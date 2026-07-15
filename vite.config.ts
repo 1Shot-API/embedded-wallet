@@ -7,8 +7,10 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const vendorSignerRoot = path.resolve(__dirname, "vendor/ows-signer");
-const vendorSignerSrc = path.join(vendorSignerRoot, "src");
+const signerPkgSrc = path.resolve(
+  __dirname,
+  "node_modules/@1shotapi/ows-signer/src",
+);
 const signerPublicDir = path.resolve(__dirname, "signer-static");
 
 const MIME: Record<string, string> = {
@@ -77,7 +79,7 @@ function serveSignerPlugin(): Plugin {
 
         if (url.startsWith("/signer/src/")) {
           const filePath = resolveContainedPath(
-            vendorSignerSrc,
+            signerPkgSrc,
             url.slice("/signer/src/".length),
           );
           if (!filePath || !fs.existsSync(filePath)) {

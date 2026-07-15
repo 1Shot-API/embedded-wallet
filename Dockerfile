@@ -10,7 +10,6 @@ COPY index.html vite.config.ts tsconfig.json tsconfig.node.json components.json 
 COPY src ./src
 COPY scripts ./scripts
 COPY signer-static ./signer-static
-COPY vendor/ows-signer ./vendor/ows-signer
 
 RUN npm run build
 
