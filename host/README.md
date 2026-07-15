@@ -1,6 +1,6 @@
 # Test Host Layer
 
-Local Host Layer for exercising Host ↔ Branding communication against this repo’s wallet (`/wallet/`).
+Local Host Layer for exercising Host ↔ Branding communication against this repo’s wallet (served at domain root).
 
 Adapted from OWS [`examples/host`](https://github.com/1Shot-API/open-wallet/tree/main/examples/host), plus a **Style** panel that calls `proxy.rpc("setStyle", options)`.
 
@@ -19,8 +19,8 @@ npm run dev:host
 Open the printed host URL (default `http://localhost:5173`). The iframe URL comes from:
 
 1. `WALLET_IFRAME_URL` if set
-2. else `https://{NGROK_DOMAIN}/wallet/` when `NGROK_DOMAIN` is set in root `.env`
-3. else `http://localhost:5174/wallet/`
+2. else `https://{NGROK_DOMAIN}/` when `NGROK_DOMAIN` is set in root `.env`
+3. else `http://localhost:5174/`
 
 ## HTTPS (passkeys)
 

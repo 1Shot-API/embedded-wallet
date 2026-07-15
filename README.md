@@ -6,7 +6,7 @@ This repo is the **OWS Branding Layer** for the 1Shot Wallet — a frontend-only
 
 ```
 Host Layer (integrator dapp)
-  └── This app /wallet/     Branding Layer (@1shotapi/ows-wallet-utils)
+  └── This app /            Branding Layer (@1shotapi/ows-wallet-utils)
         └── /signer/        Signing Layer (@1shotapi/ows-signer)
 ```
 
@@ -14,7 +14,7 @@ Host Layer (integrator dapp)
 
 | Path | Content |
 |------|---------|
-| `/wallet/` | React Branding Layer (Vite bundle) |
+| `/` | React Branding Layer (Vite bundle) |
 | `/signer/` | Static `@1shotapi/ows-signer` ES modules |
 
 Production deliverable: a static **nginx** Docker image (no server-side runtime).
@@ -36,17 +36,17 @@ npm run dev:host      # Test Host Layer (setStyle knobs + EIP-1193)
 
 | Service | Local URL |
 |---------|-----------|
-| Branding (`/wallet/`) | http://localhost:5174/wallet/ |
+| Branding (`/`) | http://localhost:5174/ |
 | Signing (`/signer/`) | http://localhost:5174/signer/ |
 | Test host | http://localhost:5173 |
 
-Passkeys need HTTPS — use the printed ngrok `/wallet/` URL as the host iframe source (`NGROK_DOMAIN` in `.env` is picked up by `dev:host`).
+Passkeys need HTTPS — use the printed ngrok wallet URL as the host iframe source (`NGROK_DOMAIN` in `.env` is picked up by `dev:host`).
 
 Style testing: use the **Style (setStyle RPC)** panel on the test host (`host/`), not in-wallet debug UI. See [host/README.md](host/README.md).
 
 ## Host integration
 
-Production iframe URL: **`https://wallet.1shotapi.com/wallet/`**
+Production iframe URL: **`https://wallet.1shotapi.com/`**
 
 ```bash
 npm install @1shotapi/ows-provider
@@ -55,7 +55,7 @@ npm install @1shotapi/ows-provider
 ```typescript
 import { OWSProxy } from "@1shotapi/ows-provider";
 
-const proxy = await OWSProxy.create(container, "https://wallet.1shotapi.com/wallet/");
+const proxy = await OWSProxy.create(container, "https://wallet.1shotapi.com/");
 
 await proxy.rpc("setStyle", {
   copy: { productName: "Acme Wallet", tagline: "Powered by 1Shot" },
@@ -84,7 +84,7 @@ Source: [skills/oneshot-embedded-wallet](skills/oneshot-embedded-wallet/).
 ## Build
 
 ```bash
-npm run build         # dist/wallet + dist/signer
+npm run build         # dist/ (branding) + dist/signer
 npm run preview       # preview production wallet build
 ```
 
@@ -93,7 +93,7 @@ npm run preview       # preview production wallet build
 ```bash
 docker build -t oneshot-wallet .
 docker run --rm -p 8080:80 oneshot-wallet
-# open http://localhost:8080/wallet/
+# open http://localhost:8080/
 # signer at http://localhost:8080/signer/
 ```
 
@@ -102,6 +102,7 @@ docker run --rm -p 8080:80 oneshot-wallet
 | Script | Purpose |
 |--------|---------|
 | `dev` / `dev:local` | Dev server (± ngrok) |
+| `dev:host` | Test Host Layer |
 | `build` | Typecheck + Vite build + copy signer from `node_modules` |
 | `clean` | Remove `dist/` |
 | `lint` | `tsc --noEmit` |
@@ -112,4 +113,4 @@ See [roadmap.md](roadmap.md) (ShadCN + customization phases).
 
 ## Status
 
-Functional Branding Layer (passkey unlock, EIP-1193, signing consent, recovery, credentials) with Phase 0 style foundations (`setStyle` + StyleProvider). ShadCN UI migration in progress.
+Functional Branding Layer (passkey unlock, EIP-1193, signing consent, recovery, credentials) with Phase 0–1 style foundations (`setStyle` + StyleProvider + shell). ShadCN UI migration in progress.

@@ -614,7 +614,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setBootError(error instanceof Error ? error.message : String(error));
       });
 
-      // Paint UI without awaiting host handshake — standalone /wallet/ has no parent.
+      // Paint UI without awaiting host handshake — standalone branding has no parent.
       const listed = await credentialRepository.list();
       if (cancelled) return;
       setCredentialCount(listed.length);

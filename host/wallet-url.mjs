@@ -26,10 +26,10 @@ export function walletIframeUrl() {
   }
   const domain = normalizeNgrokDomain(process.env.NGROK_DOMAIN);
   if (domain) {
-    return `https://${domain}/wallet/`;
+    return `https://${domain}/`;
   }
   const walletPort = process.env.WALLET_PORT?.trim() || "5174";
-  return `http://localhost:${walletPort}/wallet/`;
+  return `http://localhost:${walletPort}/`;
 }
 
 /**

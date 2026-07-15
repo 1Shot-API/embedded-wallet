@@ -17,7 +17,7 @@ Teach an agent how to embed the **1Shot Wallet** Branding Layer from a Host Laye
 
 ```
 Host (your dapp)          @1shotapi/ows-provider → OWSProxy
-  └── Branding iframe     https://wallet.1shotapi.com/wallet/
+  └── Branding iframe     https://wallet.1shotapi.com/
         └── Signing       https://wallet.1shotapi.com/signer/  (same origin)
 ```
 
@@ -32,7 +32,7 @@ npm install @1shotapi/ows-provider @1shotapi/ows-types
 ```typescript
 import { OWSProxy } from "@1shotapi/ows-provider";
 
-const WALLET_URL = "https://wallet.1shotapi.com/wallet/";
+const WALLET_URL = "https://wallet.1shotapi.com/";
 
 const container = document.getElementById("wallet-container")!;
 const proxy = await OWSProxy.create(container, WALLET_URL);
@@ -52,8 +52,8 @@ const accounts = await proxy.ethereum.request({ method: "eth_requestAccounts" })
 ### Local / HTTPS notes
 
 - Passkeys require a **secure-context ancestor chain**. The Host page must be HTTPS (or `localhost`) when the wallet iframe is HTTPS.
-- Dev wallet URL: your ngrok or local Vite origin + `/wallet/` (e.g. `https://….ngrok-free.app/wallet/`).
-- Production wallet URL: **`https://wallet.1shotapi.com/wallet/`** (Signing Layer at `/signer/` on the same origin — do not embed `/signer/` from the host).
+- Dev wallet URL: your ngrok or local Vite origin root (e.g. `https://….ngrok-free.app/`).
+- Production wallet URL: **`https://wallet.1shotapi.com/`** (Signing Layer at `/signer/` on the same origin — do not embed `/signer/` from the host).
 
 ## Custom RPC — `setStyle`
 

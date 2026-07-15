@@ -106,7 +106,7 @@ function serveSignerPlugin(): Plugin {
 }
 
 export default defineConfig({
-  base: "/wallet/",
+  base: "/",
   publicDir: false,
   plugins: [react(), tailwindcss(), serveSignerPlugin()],
   resolve: {
@@ -126,7 +126,7 @@ export default defineConfig({
     host: "0.0.0.0",
   },
   build: {
-    outDir: "dist/wallet",
+    outDir: "dist",
     emptyOutDir: true,
     sourcemap: true,
   },
