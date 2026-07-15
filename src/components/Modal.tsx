@@ -1,5 +1,13 @@
 import type { ReactNode } from "react";
-import { useEffect, useId, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 export type ModalAction = {
   label: string;
@@ -13,12 +21,17 @@ export type ModalProps = {
   title: string;
   children: ReactNode;
   actions?: ModalAction[];
+  /** Escape / overlay dismiss. Omit to lock the dialog until an action. */
   onBackdropDismiss?: () => void;
   /** Extra content after children (e.g. signer slot). */
   footer?: ReactNode;
   wide?: boolean;
 };
 
+/**
+ * Wallet modal shell — controlled Dialog always mounted `open` while ModalHost
+ * keeps this tree rendered. Escape / outside click call `onBackdropDismiss` when set.
+ */
 export function Modal({
   title,
   children,
@@ -27,74 +40,61 @@ export function Modal({
   footer,
   wide,
 }: ModalProps) {
-  const titleId = useId();
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const focusTarget =
-      panelRef.current?.querySelector<HTMLElement>("[data-autofocus]") ??
-      panelRef.current?.querySelector<HTMLElement>(
-        "button, [href], input, select, textarea",
-      );
-    focusTarget?.focus();
-  }, []);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && onBackdropDismiss) {
-        event.preventDefault();
-        onBackdropDismiss();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onBackdropDismiss]);
-
   return (
-    <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-[color-mix(in_srgb,CanvasText_35%,transparent)] p-4"
-      role="presentation"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
+    <Dialog
+      open
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
           onBackdropDismiss?.();
         }
       }}
     >
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className={`max-h-[min(85vh,36rem)] overflow-auto rounded-[10px] bg-[Canvas] p-5 text-[CanvasText] shadow-[0_12px_40px_color-mix(in_srgb,CanvasText_25%,transparent)] ${
-          wide ? "w-[min(32rem,100%)]" : "w-[min(28rem,100%)]"
-        }`}
+      <DialogContent
+        showCloseButton={false}
+        className={cn(
+          "bg-background text-foreground z-[10000] max-h-[min(85vh,36rem)] gap-3 overflow-y-auto p-5 sm:max-w-md",
+          wide && "sm:max-w-lg",
+        )}
+        onPointerDownOutside={(event) => {
+          if (!onBackdropDismiss) {
+            event.preventDefault();
+          }
+        }}
+        onEscapeKeyDown={(event) => {
+          if (!onBackdropDismiss) {
+            event.preventDefault();
+          }
+        }}
       >
-        <h2 id={titleId} className="mb-3 text-lg font-semibold">
-          {title}
-        </h2>
-        <div className="text-[0.95rem] opacity-90">{children}</div>
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold tracking-tight">
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="text-muted-foreground text-[0.95rem]">{children}</div>
+
         {footer}
+
         {actions && actions.length > 0 ? (
-          <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <DialogFooter className="bg-background -mx-5 -mb-5 mt-1 border-t-0 sm:justify-end">
             {actions.map((action) => (
-              <button
+              <Button
                 key={action.label}
                 type="button"
                 disabled={action.disabled}
-                data-autofocus={action.autoFocus ? "" : undefined}
+                autoFocus={action.autoFocus}
+                variant={
+                  action.variant === "primary" ? "default" : "outline"
+                }
                 onClick={action.onClick}
-                className={`cursor-pointer rounded-md border border-[color-mix(in_srgb,CanvasText_25%,transparent)] px-4 py-2 text-[inherit] disabled:cursor-not-allowed disabled:opacity-50 ${
-                  action.variant === "primary"
-                    ? "bg-[color-mix(in_srgb,CanvasText_12%,Canvas)] font-medium"
-                    : "bg-transparent"
-                }`}
               >
                 {action.label}
-              </button>
+              </Button>
             ))}
-          </div>
+          </DialogFooter>
         ) : null}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

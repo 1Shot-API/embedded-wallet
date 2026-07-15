@@ -102,10 +102,10 @@ Relayer / credential fetch    →  TanStack Query (later phase)
 
 **Outcome:** One shadcn Dialog-based `Modal` / `AppDialog` used by all kinds; ModalHost unchanged in routing.
 
-- [ ] `npx shadcn add dialog` (and Input / Label / Textarea as needed).
-- [ ] Replace `src/components/Modal.tsx` with shadcn Dialog wrapper (actions, title, description slots).
-- [ ] Keep `ModalHost` switch; each modal migrates in later phases.
-- [ ] Accessibility: focus trap, Escape → reject/cancel where appropriate.
+- [x] `npx shadcn add dialog` (and Input / Label / Textarea as needed).
+- [x] Replace `src/components/Modal.tsx` with shadcn Dialog wrapper (actions, title, description slots).
+- [x] Keep `ModalHost` switch; each modal migrates in later phases.
+- [x] Accessibility: focus trap, Escape → reject/cancel where appropriate.
 
 **Exit criteria:** At least one modal (prefer `connect`) uses the new Dialog shell end-to-end.
 

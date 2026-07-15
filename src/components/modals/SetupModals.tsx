@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Modal } from "../Modal";
 import type { WalletSetupChoice } from "../../wallet/modalTypes";
 
@@ -76,30 +78,31 @@ export function PasskeyNameModal({
         Choose a name for this wallet passkey. Your device will use it when you
         create the credential and when you sign in later.
       </p>
-      <label className="mb-1.5 block text-[0.85rem] font-medium opacity-80" htmlFor="passkey-name">
-        Account name
-      </label>
-      <input
-        id="passkey-name"
-        data-autofocus=""
-        type="text"
-        autoComplete="username"
-        placeholder="e.g. My wallet"
-        maxLength={64}
-        value={name}
-        onChange={(event) => {
-          setName(event.target.value);
-          setError(null);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            submit();
-          }
-        }}
-        className="mb-2 box-border w-full rounded-md border border-[color-mix(in_srgb,CanvasText_25%,transparent)] bg-[Canvas] px-2.5 py-2 text-inherit"
-      />
-      {error ? <p className="m-0 text-[0.85rem] text-red-700">{error}</p> : null}
+      <div className="grid gap-1.5">
+        <Label htmlFor="passkey-name">Account name</Label>
+        <Input
+          id="passkey-name"
+          autoFocus
+          type="text"
+          autoComplete="username"
+          placeholder="e.g. My wallet"
+          maxLength={64}
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            setError(null);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              submit();
+            }
+          }}
+        />
+      </div>
+      {error ? (
+        <p className="text-destructive m-0 mt-2 text-[0.85rem]">{error}</p>
+      ) : null}
     </Modal>
   );
 }

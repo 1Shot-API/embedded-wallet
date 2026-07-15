@@ -14,6 +14,33 @@ function waitForPaint(): Promise<void> {
   });
 }
 
+/**
+ * Dialog portals content; refs on the footer slot are not always set on the
+ * first effect tick. Wait a few frames before treating them as missing.
+ */
+async function waitForSignerSlot(
+  getHome: () => HTMLElement | null,
+  getSlot: () => HTMLElement | null,
+  isAborted: () => boolean,
+): Promise<{ home: HTMLElement; slot: HTMLElement } | null> {
+  for (let attempt = 0; attempt < 60; attempt++) {
+    if (isAborted()) return null;
+    const home = getHome();
+    const slot = getSlot();
+    if (home && slot) {
+      return { home, slot };
+    }
+    await waitForPaint();
+  }
+  if (isAborted()) return null;
+  const home = getHome();
+  const slot = getSlot();
+  if (home && slot) {
+    return { home, slot };
+  }
+  return null;
+}
+
 function formatBackupError(error: unknown): string {
   if (error instanceof Error) {
     const message = error.message;
@@ -47,15 +74,21 @@ export function CreateBackupModal({
 
   useEffect(() => {
     abortedRef.current = false;
-    const home = signerContainerRef.current;
-    const slot = signerSlotRef.current;
-    if (!home || !slot) {
-      onReject(new Error("Signer not ready for backup"));
-      return;
-    }
 
     void (async () => {
       try {
+        const nodes = await waitForSignerSlot(
+          () => signerContainerRef.current,
+          () => signerSlotRef.current,
+          () => abortedRef.current,
+        );
+        if (abortedRef.current) return;
+        if (!nodes) {
+          onReject(new Error("Signer not ready for backup"));
+          return;
+        }
+        const { home, slot } = nodes;
+
         // Unlock is usually a no-op here (create only when unlocked); this still
         // waits for Signing Layer load before getSigner().
         await ensureReady();
@@ -232,15 +265,21 @@ export function RestoreBackupModal({
 
   useEffect(() => {
     abortedRef.current = false;
-    const home = signerContainerRef.current;
-    const slot = signerSlotRef.current;
-    if (!home || !slot) {
-      onReject(new Error("Signer not ready for restore"));
-      return;
-    }
 
     void (async () => {
       try {
+        const nodes = await waitForSignerSlot(
+          () => signerContainerRef.current,
+          () => signerSlotRef.current,
+          () => abortedRef.current,
+        );
+        if (abortedRef.current) return;
+        if (!nodes) {
+          onReject(new Error("Signer not ready for restore"));
+          return;
+        }
+        const { home, slot } = nodes;
+
         // Restore is offered while locked — wait for Signing Layer only.
         // Do not call ensureReady() (that would unlock / run setup first).
         await awaitSignerReady();

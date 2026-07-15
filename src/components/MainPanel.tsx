@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { hasBackup } from "../storage";
 import { useWallet } from "../wallet/WalletProvider";
 import { useStyle } from "../style";
 
@@ -24,6 +25,7 @@ export function MainPanel() {
     openCredentialList,
   } = useWallet();
   const { style } = useStyle();
+  const canRestore = hasBackup();
 
   const status = unlocked
     ? "Unlocked"
@@ -87,7 +89,11 @@ export function MainPanel() {
         </div>
 
         <div className="mt-2 flex flex-wrap gap-2">
-          {unlocked ? (
+          {/*
+            Create when unlocked, or when locked with no stored backup (openCreateBackup
+            → ensureReady will unlock / run setup). Restore only when locked + backup.
+          */}
+          {unlocked || !canRestore ? (
             <Button
               type="button"
               variant="outline"
@@ -100,7 +106,7 @@ export function MainPanel() {
               Create backup
             </Button>
           ) : null}
-          {!unlocked ? (
+          {!unlocked && canRestore ? (
             <Button
               type="button"
               variant="outline"
