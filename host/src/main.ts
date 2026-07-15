@@ -49,6 +49,12 @@ const styleSetupTitle = document.getElementById(
 const styleSetupCreate = document.getElementById(
   "style-setup-create",
 ) as HTMLInputElement;
+const stylePasskeyTitle = document.getElementById(
+  "style-passkey-title",
+) as HTMLInputElement;
+const stylePasskeyContinue = document.getElementById(
+  "style-passkey-continue",
+) as HTMLInputElement;
 const stylePrimary = document.getElementById("style-primary") as HTMLInputElement;
 const stylePrimaryFg = document.getElementById(
   "style-primary-fg",
@@ -146,6 +152,8 @@ function readStyleForm(): Record<string, unknown> {
   const connectContinue = styleConnectContinue.value.trim();
   const setupTitle = styleSetupTitle.value.trim();
   const setupCreate = styleSetupCreate.value.trim();
+  const passkeyTitle = stylePasskeyTitle.value.trim();
+  const passkeyContinue = stylePasskeyContinue.value.trim();
   if (productName) copy.productName = productName;
   if (tagline) copy.tagline = tagline;
   const connect: Record<string, string> = {};
@@ -156,6 +164,10 @@ function readStyleForm(): Record<string, unknown> {
   if (setupTitle) walletSetup.title = setupTitle;
   if (setupCreate) walletSetup.createLabel = setupCreate;
   if (Object.keys(walletSetup).length > 0) copy.walletSetup = walletSetup;
+  const passkeyName: Record<string, string> = {};
+  if (passkeyTitle) passkeyName.title = passkeyTitle;
+  if (passkeyContinue) passkeyName.continueLabel = passkeyContinue;
+  if (Object.keys(passkeyName).length > 0) copy.passkeyName = passkeyName;
 
   const payload: Record<string, unknown> = {};
   if (Object.keys(theme).length > 0) payload.theme = theme;
@@ -171,6 +183,8 @@ function fillStyleForm(preset: {
   connectContinue: string;
   setupTitle: string;
   setupCreate: string;
+  passkeyTitle: string;
+  passkeyContinue: string;
   primary: string;
   primaryForeground: string;
   background: string;
@@ -184,6 +198,8 @@ function fillStyleForm(preset: {
   styleConnectContinue.value = preset.connectContinue;
   styleSetupTitle.value = preset.setupTitle;
   styleSetupCreate.value = preset.setupCreate;
+  stylePasskeyTitle.value = preset.passkeyTitle;
+  stylePasskeyContinue.value = preset.passkeyContinue;
   stylePrimary.value = preset.primary;
   stylePrimaryFg.value = preset.primaryForeground;
   styleBackground.value = preset.background;
@@ -289,6 +305,8 @@ async function main(): Promise<void> {
       connectContinue: "Allow",
       setupTitle: "Welcome aboard",
       setupCreate: "Create Ocean account",
+      passkeyTitle: "Name your Ocean passkey",
+      passkeyContinue: "Save name",
       primary: "oklch(0.45 0.18 250)",
       primaryForeground: "oklch(0.99 0 0)",
       background: "oklch(0.98 0.01 250)",
@@ -307,6 +325,8 @@ async function main(): Promise<void> {
       connectContinue: "Continue",
       setupTitle: "Set up your wallet",
       setupCreate: "Create account",
+      passkeyTitle: "Name your passkey",
+      passkeyContinue: "Continue",
       primary: "oklch(0.205 0 0)",
       primaryForeground: "oklch(0.985 0 0)",
       background: "oklch(1 0 0)",

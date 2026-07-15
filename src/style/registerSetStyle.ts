@@ -43,12 +43,26 @@ const walletSetupCopySchema = z
   .strict()
   .optional();
 
+const passkeyNameCopySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    fieldLabel: z.string().optional(),
+    placeholder: z.string().optional(),
+    emptyError: z.string().optional(),
+    cancelLabel: z.string().optional(),
+    continueLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
 const copySchema = z
   .object({
     productName: z.string().optional(),
     tagline: z.string().optional(),
     connect: connectCopySchema,
     walletSetup: walletSetupCopySchema,
+    passkeyName: passkeyNameCopySchema,
   })
   .strict()
   .optional();

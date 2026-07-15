@@ -85,6 +85,13 @@ await proxy.rpc("setStyle", options);
 | `copy.walletSetup.cancelLabel` | string | Cancel button |
 | `copy.walletSetup.loginLabel` | string | Login with passkey |
 | `copy.walletSetup.createLabel` | string | Create account |
+| `copy.passkeyName.title` | string | passkey name modal title |
+| `copy.passkeyName.body` | string | passkey name modal body |
+| `copy.passkeyName.fieldLabel` | string | input label |
+| `copy.passkeyName.placeholder` | string | input placeholder |
+| `copy.passkeyName.emptyError` | string | empty-name validation error |
+| `copy.passkeyName.cancelLabel` | string | Cancel button |
+| `copy.passkeyName.continueLabel` | string | Continue button |
 | `dark` | boolean | toggles `html.dark` |
 
 Returns `{ ok: true, productName: string }` with the resolved product name after merge.

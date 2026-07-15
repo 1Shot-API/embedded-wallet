@@ -46,13 +46,15 @@ export function PasskeyNameModal({
 }: {
   onResolve: (name: string | null) => void;
 }) {
+  const { style } = useStyle();
+  const { passkeyName } = style.copy;
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      setError("Enter a name for your passkey.");
+      setError(passkeyName.emptyError);
       return;
     }
     onResolve(trimmed);
@@ -60,33 +62,30 @@ export function PasskeyNameModal({
 
   return (
     <Modal
-      title="Name your passkey"
+      title={passkeyName.title}
       onBackdropDismiss={() => onResolve(null)}
       actions={[
         {
-          label: "Cancel",
+          label: passkeyName.cancelLabel,
           variant: "secondary",
           onClick: () => onResolve(null),
         },
         {
-          label: "Continue",
+          label: passkeyName.continueLabel,
           variant: "primary",
           onClick: submit,
         },
       ]}
     >
-      <p className="mb-3">
-        Choose a name for this wallet passkey. Your device will use it when you
-        create the credential and when you sign in later.
-      </p>
+      <p className="text-muted-foreground mb-3">{passkeyName.body}</p>
       <div className="grid gap-1.5">
-        <Label htmlFor="passkey-name">Account name</Label>
+        <Label htmlFor="passkey-name">{passkeyName.fieldLabel}</Label>
         <Input
           id="passkey-name"
           autoFocus
           type="text"
           autoComplete="username"
-          placeholder="e.g. My wallet"
+          placeholder={passkeyName.placeholder}
           maxLength={64}
           value={name}
           onChange={(event) => {

@@ -31,6 +31,15 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       loginLabel: "Login with passkey",
       createLabel: "Create account",
     },
+    passkeyName: {
+      title: "Name your passkey",
+      body: "Choose a name for this wallet passkey. Your device will use it when you create the credential and when you sign in later.",
+      fieldLabel: "Account name",
+      placeholder: "e.g. My wallet",
+      emptyError: "Enter a name for your passkey.",
+      cancelLabel: "Cancel",
+      continueLabel: "Continue",
+    },
   },
   dark: false,
 };

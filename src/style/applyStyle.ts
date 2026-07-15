@@ -21,6 +21,10 @@ export function mergeStyle(
         ...current.copy.walletSetup,
         ...patch.copy?.walletSetup,
       },
+      passkeyName: {
+        ...current.copy.passkeyName,
+        ...patch.copy?.passkeyName,
+      },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
   };
@@ -34,6 +38,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       ...DEFAULT_STYLE.copy,
       connect: { ...DEFAULT_STYLE.copy.connect },
       walletSetup: { ...DEFAULT_STYLE.copy.walletSetup },
+      passkeyName: { ...DEFAULT_STYLE.copy.passkeyName },
     },
   };
 }

@@ -4,6 +4,7 @@ export type {
   IStyleCopyOptions,
   IStyleCopyConnect,
   IStyleCopyWalletSetup,
+  IStyleCopyPasskeyName,
   IResolvedCopy,
   IResolvedStyle,
 } from "./types";

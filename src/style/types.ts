@@ -44,6 +44,17 @@ export interface IStyleCopyWalletSetup {
   createLabel: string;
 }
 
+/** Name passkey modal (create-account flow). */
+export interface IStyleCopyPasskeyName {
+  title: string;
+  body: string;
+  fieldLabel: string;
+  placeholder: string;
+  emptyError: string;
+  cancelLabel: string;
+  continueLabel: string;
+}
+
 export interface IStyleCopyOptions {
   /** Product / wallet title shown in chrome and onboarding */
   productName?: string;
@@ -53,6 +64,8 @@ export interface IStyleCopyOptions {
   connect?: Partial<IStyleCopyConnect>;
   /** Partial patch for the wallet setup modal */
   walletSetup?: Partial<IStyleCopyWalletSetup>;
+  /** Partial patch for the passkey name modal */
+  passkeyName?: Partial<IStyleCopyPasskeyName>;
 }
 
 /** Fully resolved copy map after merging defaults + setStyle. */
@@ -61,6 +74,7 @@ export interface IResolvedCopy {
   tagline: string;
   connect: IStyleCopyConnect;
   walletSetup: IStyleCopyWalletSetup;
+  passkeyName: IStyleCopyPasskeyName;
 }
 
 export interface IStyleOptions {
