@@ -1,0 +1,41 @@
+{
+  "name": "@1shotapi/embedded-wallet",
+  "version": "0.0.0",
+  "private": true,
+  "description": "1Shot Wallet — OWS Branding Layer (React + Vite + Tailwind)",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:local": "node scripts/dev.mjs --no-tunnel",
+    "build": "tsc -p tsconfig.json --noEmit && vite build && node scripts/copy-signer.mjs",
+    "sync:signer": "node scripts/sync-signer.mjs",
+    "clean": "node scripts/clean.mjs",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "preview": "vite preview",
+    "dockerize": "docker build -t oneshot-wallet ."
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.2.9",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.525.0",
+    "radix-ui": "^1.6.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "shadcn": "^4.13.0",
+    "tailwind-merge": "^3.3.1"
+  },
+  "devDependencies": {
+    "@ngrok/ngrok": "^1.7.0",
+    "@tailwindcss/vite": "^4.1.11",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "dotenv": "^16.4.7",
+    "tailwindcss": "^4.1.11",
+    "tw-animate-css": "^1.3.5",
+    "typescript": "~5.8.0",
+    "vite": "^7.0.4"
+  }
+}
