@@ -37,6 +37,12 @@ const styleProductName = document.getElementById(
   "style-product-name",
 ) as HTMLInputElement;
 const styleTagline = document.getElementById("style-tagline") as HTMLInputElement;
+const styleConnectTitle = document.getElementById(
+  "style-connect-title",
+) as HTMLInputElement;
+const styleConnectContinue = document.getElementById(
+  "style-connect-continue",
+) as HTMLInputElement;
 const stylePrimary = document.getElementById("style-primary") as HTMLInputElement;
 const stylePrimaryFg = document.getElementById(
   "style-primary-fg",
@@ -127,11 +133,17 @@ function readStyleForm(): Record<string, unknown> {
   if (foreground) theme.foreground = foreground;
   if (radius) theme.radius = radius;
 
-  const copy: Record<string, string> = {};
+  const copy: Record<string, unknown> = {};
   const productName = styleProductName.value.trim();
   const tagline = styleTagline.value.trim();
+  const connectTitle = styleConnectTitle.value.trim();
+  const connectContinue = styleConnectContinue.value.trim();
   if (productName) copy.productName = productName;
   if (tagline) copy.tagline = tagline;
+  const connect: Record<string, string> = {};
+  if (connectTitle) connect.title = connectTitle;
+  if (connectContinue) connect.continueLabel = connectContinue;
+  if (Object.keys(connect).length > 0) copy.connect = connect;
 
   const payload: Record<string, unknown> = {};
   if (Object.keys(theme).length > 0) payload.theme = theme;
@@ -143,6 +155,8 @@ function readStyleForm(): Record<string, unknown> {
 function fillStyleForm(preset: {
   productName: string;
   tagline: string;
+  connectTitle: string;
+  connectContinue: string;
   primary: string;
   primaryForeground: string;
   background: string;
@@ -152,6 +166,8 @@ function fillStyleForm(preset: {
 }): void {
   styleProductName.value = preset.productName;
   styleTagline.value = preset.tagline;
+  styleConnectTitle.value = preset.connectTitle;
+  styleConnectContinue.value = preset.connectContinue;
   stylePrimary.value = preset.primary;
   stylePrimaryFg.value = preset.primaryForeground;
   styleBackground.value = preset.background;
@@ -253,6 +269,8 @@ async function main(): Promise<void> {
     fillStyleForm({
       productName: "Ocean Wallet",
       tagline: "Host setStyle preset",
+      connectTitle: "Connect to Ocean",
+      connectContinue: "Allow",
       primary: "oklch(0.45 0.18 250)",
       primaryForeground: "oklch(0.99 0 0)",
       background: "oklch(0.98 0.01 250)",
@@ -267,6 +285,8 @@ async function main(): Promise<void> {
     fillStyleForm({
       productName: "1Shot Wallet",
       tagline: "Passkey-secured embedded wallet",
+      connectTitle: "Connect wallet",
+      connectContinue: "Continue",
       primary: "oklch(0.205 0 0)",
       primaryForeground: "oklch(0.985 0 0)",
       background: "oklch(1 0 0)",

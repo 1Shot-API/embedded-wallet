@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useStyle } from "../../style";
 import { Modal } from "../Modal";
 import type { WalletSetupChoice } from "../../wallet/modalTypes";
 
@@ -112,28 +113,28 @@ export function ConnectModal({
 }: {
   onResolve: (approved: boolean) => void;
 }) {
+  const { style } = useStyle();
+  const { connect } = style.copy;
+
   return (
     <Modal
-      title="Connect wallet"
+      title={connect.title}
       onBackdropDismiss={() => onResolve(false)}
       actions={[
         {
-          label: "Reject",
+          label: connect.rejectLabel,
           variant: "secondary",
           onClick: () => onResolve(false),
         },
         {
-          label: "Continue",
+          label: connect.continueLabel,
           variant: "primary",
           autoFocus: true,
           onClick: () => onResolve(true),
         },
       ]}
     >
-      <p className="m-0">
-        The connected app is requesting your wallet address. You may be asked to
-        verify with your passkey after you continue.
-      </p>
+      <p className="text-muted-foreground m-0">{connect.body}</p>
     </Modal>
   );
 }

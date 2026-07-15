@@ -11,15 +11,39 @@ export function mergeStyle(
       ...patch.theme,
     },
     copy: {
-      ...current.copy,
-      ...patch.copy,
+      productName: patch.copy?.productName ?? current.copy.productName,
+      tagline: patch.copy?.tagline ?? current.copy.tagline,
+      connect: {
+        ...current.copy.connect,
+        ...patch.copy?.connect,
+      },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
   };
 }
 
 export function createInitialStyle(patch?: IStyleOptions): IResolvedStyle {
-  return patch ? mergeStyle(DEFAULT_STYLE, patch) : { ...DEFAULT_STYLE, theme: { ...DEFAULT_STYLE.theme }, copy: { ...DEFAULT_STYLE.copy } };
+  if (!patch) {
+    return {
+      ...DEFAULT_STYLE,
+      theme: { ...DEFAULT_STYLE.theme },
+      copy: {
+        ...DEFAULT_STYLE.copy,
+        connect: { ...DEFAULT_STYLE.copy.connect },
+      },
+    };
+  }
+  return mergeStyle(
+    {
+      ...DEFAULT_STYLE,
+      theme: { ...DEFAULT_STYLE.theme },
+      copy: {
+        ...DEFAULT_STYLE.copy,
+        connect: { ...DEFAULT_STYLE.copy.connect },
+      },
+    },
+    patch,
+  );
 }
 
 /** Map resolved theme onto CSS variables consumed by shadcn / Tailwind. */

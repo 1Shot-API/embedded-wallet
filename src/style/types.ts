@@ -27,11 +27,28 @@ export interface IStyleThemeOptions {
   fontSans?: string;
 }
 
+/** Connect approval modal (`eth_requestAccounts` / connect consent). */
+export interface IStyleCopyConnect {
+  title: string;
+  body: string;
+  rejectLabel: string;
+  continueLabel: string;
+}
+
 export interface IStyleCopyOptions {
   /** Product / wallet title shown in chrome and onboarding */
   productName?: string;
   /** Short supporting line under the product name */
   tagline?: string;
+  /** Partial patch for the connect modal */
+  connect?: Partial<IStyleCopyConnect>;
+}
+
+/** Fully resolved copy map after merging defaults + setStyle. */
+export interface IResolvedCopy {
+  productName: string;
+  tagline: string;
+  connect: IStyleCopyConnect;
 }
 
 export interface IStyleOptions {
@@ -44,6 +61,6 @@ export interface IStyleOptions {
 /** Fully resolved style after merging defaults + setStyle patches. */
 export interface IResolvedStyle {
   theme: Required<IStyleThemeOptions>;
-  copy: Required<IStyleCopyOptions>;
+  copy: IResolvedCopy;
   dark: boolean;
 }

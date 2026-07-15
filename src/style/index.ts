@@ -1,4 +1,11 @@
-export type { IStyleOptions, IStyleThemeOptions, IStyleCopyOptions, IResolvedStyle } from "./types";
+export type {
+  IStyleOptions,
+  IStyleThemeOptions,
+  IStyleCopyOptions,
+  IStyleCopyConnect,
+  IResolvedCopy,
+  IResolvedStyle,
+} from "./types";
 export { DEFAULT_STYLE } from "./defaults";
 export { StyleProvider, useStyle } from "./StyleProvider";
 export { styleController } from "./styleController";

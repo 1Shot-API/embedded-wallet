@@ -22,10 +22,21 @@ const themeSchema = z
   .strict()
   .optional();
 
+const connectCopySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    rejectLabel: z.string().optional(),
+    continueLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
 const copySchema = z
   .object({
     productName: z.string().optional(),
     tagline: z.string().optional(),
+    connect: connectCopySchema,
   })
   .strict()
   .optional();

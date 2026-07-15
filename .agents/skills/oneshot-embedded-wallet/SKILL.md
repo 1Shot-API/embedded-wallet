@@ -76,6 +76,10 @@ await proxy.rpc("setStyle", options);
 | `theme.fontSans` | string | `--font-sans` |
 | `copy.productName` | string | titles / chrome |
 | `copy.tagline` | string | supporting line |
+| `copy.connect.title` | string | connect modal title |
+| `copy.connect.body` | string | connect modal body |
+| `copy.connect.rejectLabel` | string | Reject button |
+| `copy.connect.continueLabel` | string | Continue button |
 | `dark` | boolean | toggles `html.dark` |
 
 Returns `{ ok: true, productName: string }` with the resolved product name after merge.

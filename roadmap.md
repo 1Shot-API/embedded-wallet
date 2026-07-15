@@ -115,7 +115,7 @@ Relayer / credential fetch    →  TanStack Query (later phase)
 
 Migrate one kind at a time:
 
-1. [ ] `connect`
+1. [x] `connect` — `copy.connect.*` via StyleContext; Dialog + Button tokens
 2. [ ] `walletSetup`
 3. [ ] `passkeyName`
 
