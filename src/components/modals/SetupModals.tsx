@@ -10,33 +10,33 @@ export function WalletSetupModal({
 }: {
   onResolve: (choice: WalletSetupChoice) => void;
 }) {
+  const { style } = useStyle();
+  const { walletSetup } = style.copy;
+
   return (
     <Modal
-      title="Set up your wallet"
+      title={walletSetup.title}
       onBackdropDismiss={() => onResolve("cancel")}
       actions={[
         {
-          label: "Cancel",
+          label: walletSetup.cancelLabel,
           variant: "secondary",
           onClick: () => onResolve("cancel"),
         },
         {
-          label: "Login with passkey",
+          label: walletSetup.loginLabel,
           variant: "primary",
           autoFocus: true,
           onClick: () => onResolve("login"),
         },
         {
-          label: "Create account",
+          label: walletSetup.createLabel,
           variant: "primary",
           onClick: () => onResolve("create"),
         },
       ]}
     >
-      <p className="m-0">
-        This wallet uses a passkey to secure your keys on this device. Log in
-        with an existing passkey or create a new account before continuing.
-      </p>
+      <p className="text-muted-foreground m-0">{walletSetup.body}</p>
     </Modal>
   );
 }

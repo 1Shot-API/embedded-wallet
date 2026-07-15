@@ -17,33 +17,29 @@ export function mergeStyle(
         ...current.copy.connect,
         ...patch.copy?.connect,
       },
+      walletSetup: {
+        ...current.copy.walletSetup,
+        ...patch.copy?.walletSetup,
+      },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
   };
 }
 
-export function createInitialStyle(patch?: IStyleOptions): IResolvedStyle {
-  if (!patch) {
-    return {
-      ...DEFAULT_STYLE,
-      theme: { ...DEFAULT_STYLE.theme },
-      copy: {
-        ...DEFAULT_STYLE.copy,
-        connect: { ...DEFAULT_STYLE.copy.connect },
-      },
-    };
-  }
-  return mergeStyle(
-    {
-      ...DEFAULT_STYLE,
-      theme: { ...DEFAULT_STYLE.theme },
-      copy: {
-        ...DEFAULT_STYLE.copy,
-        connect: { ...DEFAULT_STYLE.copy.connect },
-      },
+function cloneDefaultStyle(): IResolvedStyle {
+  return {
+    ...DEFAULT_STYLE,
+    theme: { ...DEFAULT_STYLE.theme },
+    copy: {
+      ...DEFAULT_STYLE.copy,
+      connect: { ...DEFAULT_STYLE.copy.connect },
+      walletSetup: { ...DEFAULT_STYLE.copy.walletSetup },
     },
-    patch,
-  );
+  };
+}
+
+export function createInitialStyle(patch?: IStyleOptions): IResolvedStyle {
+  return patch ? mergeStyle(cloneDefaultStyle(), patch) : cloneDefaultStyle();
 }
 
 /** Map resolved theme onto CSS variables consumed by shadcn / Tailwind. */

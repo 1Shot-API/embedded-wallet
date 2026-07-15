@@ -24,6 +24,13 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       rejectLabel: "Reject",
       continueLabel: "Continue",
     },
+    walletSetup: {
+      title: "Set up your wallet",
+      body: "This wallet uses a passkey to secure your keys on this device. Log in with an existing passkey or create a new account before continuing.",
+      cancelLabel: "Cancel",
+      loginLabel: "Login with passkey",
+      createLabel: "Create account",
+    },
   },
   dark: false,
 };

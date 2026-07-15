@@ -35,6 +35,15 @@ export interface IStyleCopyConnect {
   continueLabel: string;
 }
 
+/** First-time / locked setup modal (login vs create). */
+export interface IStyleCopyWalletSetup {
+  title: string;
+  body: string;
+  cancelLabel: string;
+  loginLabel: string;
+  createLabel: string;
+}
+
 export interface IStyleCopyOptions {
   /** Product / wallet title shown in chrome and onboarding */
   productName?: string;
@@ -42,6 +51,8 @@ export interface IStyleCopyOptions {
   tagline?: string;
   /** Partial patch for the connect modal */
   connect?: Partial<IStyleCopyConnect>;
+  /** Partial patch for the wallet setup modal */
+  walletSetup?: Partial<IStyleCopyWalletSetup>;
 }
 
 /** Fully resolved copy map after merging defaults + setStyle. */
@@ -49,6 +60,7 @@ export interface IResolvedCopy {
   productName: string;
   tagline: string;
   connect: IStyleCopyConnect;
+  walletSetup: IStyleCopyWalletSetup;
 }
 
 export interface IStyleOptions {

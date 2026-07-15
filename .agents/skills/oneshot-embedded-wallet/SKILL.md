@@ -80,6 +80,11 @@ await proxy.rpc("setStyle", options);
 | `copy.connect.body` | string | connect modal body |
 | `copy.connect.rejectLabel` | string | Reject button |
 | `copy.connect.continueLabel` | string | Continue button |
+| `copy.walletSetup.title` | string | setup modal title |
+| `copy.walletSetup.body` | string | setup modal body |
+| `copy.walletSetup.cancelLabel` | string | Cancel button |
+| `copy.walletSetup.loginLabel` | string | Login with passkey |
+| `copy.walletSetup.createLabel` | string | Create account |
 | `dark` | boolean | toggles `html.dark` |
 
 Returns `{ ok: true, productName: string }` with the resolved product name after merge.

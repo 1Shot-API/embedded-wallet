@@ -3,6 +3,7 @@ export type {
   IStyleThemeOptions,
   IStyleCopyOptions,
   IStyleCopyConnect,
+  IStyleCopyWalletSetup,
   IResolvedCopy,
   IResolvedStyle,
 } from "./types";

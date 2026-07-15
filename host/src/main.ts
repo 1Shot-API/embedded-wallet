@@ -43,6 +43,12 @@ const styleConnectTitle = document.getElementById(
 const styleConnectContinue = document.getElementById(
   "style-connect-continue",
 ) as HTMLInputElement;
+const styleSetupTitle = document.getElementById(
+  "style-setup-title",
+) as HTMLInputElement;
+const styleSetupCreate = document.getElementById(
+  "style-setup-create",
+) as HTMLInputElement;
 const stylePrimary = document.getElementById("style-primary") as HTMLInputElement;
 const stylePrimaryFg = document.getElementById(
   "style-primary-fg",
@@ -138,12 +144,18 @@ function readStyleForm(): Record<string, unknown> {
   const tagline = styleTagline.value.trim();
   const connectTitle = styleConnectTitle.value.trim();
   const connectContinue = styleConnectContinue.value.trim();
+  const setupTitle = styleSetupTitle.value.trim();
+  const setupCreate = styleSetupCreate.value.trim();
   if (productName) copy.productName = productName;
   if (tagline) copy.tagline = tagline;
   const connect: Record<string, string> = {};
   if (connectTitle) connect.title = connectTitle;
   if (connectContinue) connect.continueLabel = connectContinue;
   if (Object.keys(connect).length > 0) copy.connect = connect;
+  const walletSetup: Record<string, string> = {};
+  if (setupTitle) walletSetup.title = setupTitle;
+  if (setupCreate) walletSetup.createLabel = setupCreate;
+  if (Object.keys(walletSetup).length > 0) copy.walletSetup = walletSetup;
 
   const payload: Record<string, unknown> = {};
   if (Object.keys(theme).length > 0) payload.theme = theme;
@@ -157,6 +169,8 @@ function fillStyleForm(preset: {
   tagline: string;
   connectTitle: string;
   connectContinue: string;
+  setupTitle: string;
+  setupCreate: string;
   primary: string;
   primaryForeground: string;
   background: string;
@@ -168,6 +182,8 @@ function fillStyleForm(preset: {
   styleTagline.value = preset.tagline;
   styleConnectTitle.value = preset.connectTitle;
   styleConnectContinue.value = preset.connectContinue;
+  styleSetupTitle.value = preset.setupTitle;
+  styleSetupCreate.value = preset.setupCreate;
   stylePrimary.value = preset.primary;
   stylePrimaryFg.value = preset.primaryForeground;
   styleBackground.value = preset.background;
@@ -271,6 +287,8 @@ async function main(): Promise<void> {
       tagline: "Host setStyle preset",
       connectTitle: "Connect to Ocean",
       connectContinue: "Allow",
+      setupTitle: "Welcome aboard",
+      setupCreate: "Create Ocean account",
       primary: "oklch(0.45 0.18 250)",
       primaryForeground: "oklch(0.99 0 0)",
       background: "oklch(0.98 0.01 250)",
@@ -287,6 +305,8 @@ async function main(): Promise<void> {
       tagline: "Passkey-secured embedded wallet",
       connectTitle: "Connect wallet",
       connectContinue: "Continue",
+      setupTitle: "Set up your wallet",
+      setupCreate: "Create account",
       primary: "oklch(0.205 0 0)",
       primaryForeground: "oklch(0.985 0 0)",
       background: "oklch(1 0 0)",

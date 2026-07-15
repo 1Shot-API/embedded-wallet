@@ -32,11 +32,23 @@ const connectCopySchema = z
   .strict()
   .optional();
 
+const walletSetupCopySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    cancelLabel: z.string().optional(),
+    loginLabel: z.string().optional(),
+    createLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
 const copySchema = z
   .object({
     productName: z.string().optional(),
     tagline: z.string().optional(),
     connect: connectCopySchema,
+    walletSetup: walletSetupCopySchema,
   })
   .strict()
   .optional();
