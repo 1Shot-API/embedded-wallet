@@ -7,6 +7,9 @@ export type {
   IStyleCopyPasskeyName,
   IStyleCopyPersonalSign,
   IStyleCopyTypedData,
+  IStyleCopyCredentialOffer,
+  IStyleCopyCredentialPresentation,
+  IStyleCopyCredentialList,
   IResolvedCopy,
   IResolvedStyle,
 } from "./types";

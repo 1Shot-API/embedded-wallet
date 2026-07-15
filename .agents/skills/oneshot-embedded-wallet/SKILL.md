@@ -104,6 +104,25 @@ await proxy.rpc("setStyle", options);
 | `copy.typedData.messageLabel` | string | Message label |
 | `copy.typedData.rejectLabel` | string | Reject button |
 | `copy.typedData.signLabel` | string | Sign button |
+| `copy.credentialOffer.title` | string | offer modal title |
+| `copy.credentialOffer.body` | string | supports `{issuerName}` `{issuerId}` |
+| `copy.credentialOffer.offeredHeading` | string | offered list heading |
+| `copy.credentialOffer.passkeyNote` | string | passkey hint |
+| `copy.credentialOffer.rejectLabel` | string | Reject button |
+| `copy.credentialOffer.acceptLabel` | string | Accept button |
+| `copy.credentialPresentation.title` | string | presentation modal title |
+| `copy.credentialPresentation.body` | string | supports `{verifierName}` `{verifierId}` |
+| `copy.credentialPresentation.credentialDetail` | string | supports `{credentialType}` `{credentialIssuer}` |
+| `copy.credentialPresentation.claimsHeading` | string | claims list heading |
+| `copy.credentialPresentation.passkeyNote` | string | passkey hint |
+| `copy.credentialPresentation.rejectLabel` | string | Reject button |
+| `copy.credentialPresentation.shareLabel` | string | Share button |
+| `copy.credentialList.title` | string | credential list title |
+| `copy.credentialList.emptyBody` | string | empty-state text |
+| `copy.credentialList.issuerLabel` | string | Issuer label |
+| `copy.credentialList.issuedLabel` | string | Issued label |
+| `copy.credentialList.validUntilLabel` | string | Valid until label |
+| `copy.credentialList.closeLabel` | string | Close button |
 | `dark` | boolean | toggles `html.dark` |
 
 Returns `{ ok: true, productName: string }` with the resolved product name after merge.

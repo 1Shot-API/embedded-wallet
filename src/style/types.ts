@@ -75,6 +75,44 @@ export interface IStyleCopyTypedData {
   signLabel: string;
 }
 
+/**
+ * OID4VCI credential-offer approval modal.
+ * `body` supports `{issuerName}` and `{issuerId}`.
+ */
+export interface IStyleCopyCredentialOffer {
+  title: string;
+  body: string;
+  offeredHeading: string;
+  passkeyNote: string;
+  rejectLabel: string;
+  acceptLabel: string;
+}
+
+/**
+ * OID4VP presentation approval modal.
+ * `body` supports `{verifierName}` / `{verifierId}`;
+ * `credentialDetail` supports `{credentialType}` / `{credentialIssuer}`.
+ */
+export interface IStyleCopyCredentialPresentation {
+  title: string;
+  body: string;
+  credentialDetail: string;
+  claimsHeading: string;
+  passkeyNote: string;
+  rejectLabel: string;
+  shareLabel: string;
+}
+
+/** In-wallet credential inventory modal. */
+export interface IStyleCopyCredentialList {
+  title: string;
+  emptyBody: string;
+  issuerLabel: string;
+  issuedLabel: string;
+  validUntilLabel: string;
+  closeLabel: string;
+}
+
 export interface IStyleCopyOptions {
   /** Product / wallet title shown in chrome and onboarding */
   productName?: string;
@@ -90,6 +128,12 @@ export interface IStyleCopyOptions {
   personalSign?: Partial<IStyleCopyPersonalSign>;
   /** Partial patch for the EIP-712 typed-data modal */
   typedData?: Partial<IStyleCopyTypedData>;
+  /** Partial patch for the credential offer modal */
+  credentialOffer?: Partial<IStyleCopyCredentialOffer>;
+  /** Partial patch for the credential presentation modal */
+  credentialPresentation?: Partial<IStyleCopyCredentialPresentation>;
+  /** Partial patch for the credential list modal */
+  credentialList?: Partial<IStyleCopyCredentialList>;
 }
 
 /** Fully resolved copy map after merging defaults + setStyle. */
@@ -101,6 +145,9 @@ export interface IResolvedCopy {
   passkeyName: IStyleCopyPasskeyName;
   personalSign: IStyleCopyPersonalSign;
   typedData: IStyleCopyTypedData;
+  credentialOffer: IStyleCopyCredentialOffer;
+  credentialPresentation: IStyleCopyCredentialPresentation;
+  credentialList: IStyleCopyCredentialList;
 }
 
 export interface IStyleOptions {

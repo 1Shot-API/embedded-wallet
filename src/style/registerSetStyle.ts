@@ -80,6 +80,43 @@ const typedDataCopySchema = z
   .strict()
   .optional();
 
+const credentialOfferCopySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    offeredHeading: z.string().optional(),
+    passkeyNote: z.string().optional(),
+    rejectLabel: z.string().optional(),
+    acceptLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
+const credentialPresentationCopySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    credentialDetail: z.string().optional(),
+    claimsHeading: z.string().optional(),
+    passkeyNote: z.string().optional(),
+    rejectLabel: z.string().optional(),
+    shareLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
+const credentialListCopySchema = z
+  .object({
+    title: z.string().optional(),
+    emptyBody: z.string().optional(),
+    issuerLabel: z.string().optional(),
+    issuedLabel: z.string().optional(),
+    validUntilLabel: z.string().optional(),
+    closeLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
 const copySchema = z
   .object({
     productName: z.string().optional(),
@@ -89,6 +126,9 @@ const copySchema = z
     passkeyName: passkeyNameCopySchema,
     personalSign: personalSignCopySchema,
     typedData: typedDataCopySchema,
+    credentialOffer: credentialOfferCopySchema,
+    credentialPresentation: credentialPresentationCopySchema,
+    credentialList: credentialListCopySchema,
   })
   .strict()
   .optional();

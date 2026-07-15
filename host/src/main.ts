@@ -64,6 +64,15 @@ const styleSignLabel = document.getElementById(
 const styleTypedTitle = document.getElementById(
   "style-typed-title",
 ) as HTMLInputElement;
+const styleCredOfferTitle = document.getElementById(
+  "style-cred-offer-title",
+) as HTMLInputElement;
+const styleCredPresentTitle = document.getElementById(
+  "style-cred-present-title",
+) as HTMLInputElement;
+const styleCredListTitle = document.getElementById(
+  "style-cred-list-title",
+) as HTMLInputElement;
 const stylePrimary = document.getElementById("style-primary") as HTMLInputElement;
 const stylePrimaryFg = document.getElementById(
   "style-primary-fg",
@@ -166,6 +175,9 @@ function readStyleForm(): Record<string, unknown> {
   const signTitle = styleSignTitle.value.trim();
   const signLabel = styleSignLabel.value.trim();
   const typedTitle = styleTypedTitle.value.trim();
+  const credOfferTitle = styleCredOfferTitle.value.trim();
+  const credPresentTitle = styleCredPresentTitle.value.trim();
+  const credListTitle = styleCredListTitle.value.trim();
   if (productName) copy.productName = productName;
   if (tagline) copy.tagline = tagline;
   const connect: Record<string, string> = {};
@@ -188,6 +200,11 @@ function readStyleForm(): Record<string, unknown> {
   if (typedTitle) typedData.title = typedTitle;
   if (signLabel) typedData.signLabel = signLabel;
   if (Object.keys(typedData).length > 0) copy.typedData = typedData;
+  if (credOfferTitle) copy.credentialOffer = { title: credOfferTitle };
+  if (credPresentTitle) {
+    copy.credentialPresentation = { title: credPresentTitle };
+  }
+  if (credListTitle) copy.credentialList = { title: credListTitle };
 
   const payload: Record<string, unknown> = {};
   if (Object.keys(theme).length > 0) payload.theme = theme;
@@ -208,6 +225,9 @@ function fillStyleForm(preset: {
   signTitle: string;
   signLabel: string;
   typedTitle: string;
+  credOfferTitle: string;
+  credPresentTitle: string;
+  credListTitle: string;
   primary: string;
   primaryForeground: string;
   background: string;
@@ -226,6 +246,9 @@ function fillStyleForm(preset: {
   styleSignTitle.value = preset.signTitle;
   styleSignLabel.value = preset.signLabel;
   styleTypedTitle.value = preset.typedTitle;
+  styleCredOfferTitle.value = preset.credOfferTitle;
+  styleCredPresentTitle.value = preset.credPresentTitle;
+  styleCredListTitle.value = preset.credListTitle;
   stylePrimary.value = preset.primary;
   stylePrimaryFg.value = preset.primaryForeground;
   styleBackground.value = preset.background;
@@ -336,6 +359,9 @@ async function main(): Promise<void> {
       signTitle: "Sign with Ocean",
       signLabel: "Approve",
       typedTitle: "Ocean typed data",
+      credOfferTitle: "Accept Ocean credential?",
+      credPresentTitle: "Share with verifier?",
+      credListTitle: "Ocean credentials",
       primary: "oklch(0.45 0.18 250)",
       primaryForeground: "oklch(0.99 0 0)",
       background: "oklch(0.98 0.01 250)",
@@ -359,6 +385,9 @@ async function main(): Promise<void> {
       signTitle: "Sign message",
       signLabel: "Sign",
       typedTitle: "Sign typed data",
+      credOfferTitle: "Accept credential offer?",
+      credPresentTitle: "Share credential?",
+      credListTitle: "My credentials",
       primary: "oklch(0.205 0 0)",
       primaryForeground: "oklch(0.985 0 0)",
       background: "oklch(1 0 0)",

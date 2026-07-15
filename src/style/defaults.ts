@@ -56,6 +56,34 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       rejectLabel: "Reject",
       signLabel: "Sign",
     },
+    credentialOffer: {
+      title: "Accept credential offer?",
+      body: "{issuerName} ({issuerId}) wants to issue a credential to your wallet.",
+      offeredHeading: "Offered credentials:",
+      passkeyNote:
+        "You may be asked to verify with your passkey after you continue.",
+      rejectLabel: "Reject",
+      acceptLabel: "Accept",
+    },
+    credentialPresentation: {
+      title: "Share credential?",
+      body: "{verifierName} ({verifierId}) is requesting proof.",
+      credentialDetail:
+        "Credential: {credentialType} from {credentialIssuer}",
+      claimsHeading: "Claims to disclose:",
+      passkeyNote:
+        "You may be asked to verify with your passkey after you continue.",
+      rejectLabel: "Reject",
+      shareLabel: "Share",
+    },
+    credentialList: {
+      title: "My credentials",
+      emptyBody: "No credentials stored in this wallet yet.",
+      issuerLabel: "Issuer:",
+      issuedLabel: "Issued",
+      validUntilLabel: "Valid until",
+      closeLabel: "Close",
+    },
   },
   dark: false,
 };

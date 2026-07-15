@@ -3,6 +3,7 @@ import type {
   CredentialPresentationApprovalRequest,
   CredentialSummary,
 } from "@1shotapi/ows-types";
+import { useStyle } from "../../style";
 import { Modal } from "../Modal";
 
 export function CredentialOfferModal({
@@ -12,18 +13,21 @@ export function CredentialOfferModal({
   request: CredentialOfferApprovalRequest;
   onResolve: (approved: boolean) => void;
 }) {
+  const { style } = useStyle();
+  const { credentialOffer } = style.copy;
+
   return (
     <Modal
-      title="Accept credential offer?"
+      title={credentialOffer.title}
       onBackdropDismiss={() => onResolve(false)}
       actions={[
         {
-          label: "Reject",
+          label: credentialOffer.rejectLabel,
           variant: "secondary",
           onClick: () => onResolve(false),
         },
         {
-          label: "Accept",
+          label: credentialOffer.acceptLabel,
           variant: "primary",
           autoFocus: true,
           onClick: () => onResolve(true),
@@ -31,10 +35,12 @@ export function CredentialOfferModal({
       ]}
     >
       <p className="mb-3">
-        {request.issuerName} ({request.issuerId}) wants to issue a credential to
-        your wallet.
+        {fillTemplate(credentialOffer.body, {
+          issuerName: request.issuerName,
+          issuerId: String(request.issuerId),
+        })}
       </p>
-      <p className="mb-1 font-semibold">Offered credentials:</p>
+      <p className="mb-1 font-semibold">{credentialOffer.offeredHeading}</p>
       <ul className="mb-3 list-disc pl-5">
         {request.offeredCredentials.map((credential) => {
           const scope = credential.scope ? ` — ${credential.scope}` : "";
@@ -46,8 +52,8 @@ export function CredentialOfferModal({
           );
         })}
       </ul>
-      <p className="m-0 text-[0.9rem] opacity-85">
-        You may be asked to verify with your passkey after you continue.
+      <p className="text-muted-foreground m-0 text-[0.9rem]">
+        {credentialOffer.passkeyNote}
       </p>
     </Modal>
   );
@@ -60,18 +66,21 @@ export function CredentialPresentationModal({
   request: CredentialPresentationApprovalRequest;
   onResolve: (approved: boolean) => void;
 }) {
+  const { style } = useStyle();
+  const { credentialPresentation } = style.copy;
+
   return (
     <Modal
-      title="Share credential?"
+      title={credentialPresentation.title}
       onBackdropDismiss={() => onResolve(false)}
       actions={[
         {
-          label: "Reject",
+          label: credentialPresentation.rejectLabel,
           variant: "secondary",
           onClick: () => onResolve(false),
         },
         {
-          label: "Share",
+          label: credentialPresentation.shareLabel,
           variant: "primary",
           autoFocus: true,
           onClick: () => onResolve(true),
@@ -79,19 +88,27 @@ export function CredentialPresentationModal({
       ]}
     >
       <p className="mb-2">
-        {request.verifierName} ({request.verifierId}) is requesting proof.
+        {fillTemplate(credentialPresentation.body, {
+          verifierName: request.verifierName,
+          verifierId: String(request.verifierId),
+        })}
       </p>
       <p className="mb-3">
-        Credential: {request.credentialType} from {request.credentialIssuer}
+        {fillTemplate(credentialPresentation.credentialDetail, {
+          credentialType: request.credentialType,
+          credentialIssuer: String(request.credentialIssuer),
+        })}
       </p>
-      <p className="mb-1 font-semibold">Claims to disclose:</p>
+      <p className="mb-1 font-semibold">
+        {credentialPresentation.claimsHeading}
+      </p>
       <ul className="mb-3 list-disc pl-5">
         {request.requestedClaims.map((claim) => (
           <li key={claim}>{claim}</li>
         ))}
       </ul>
-      <p className="m-0 text-[0.9rem] opacity-85">
-        You may be asked to verify with your passkey after you continue.
+      <p className="text-muted-foreground m-0 text-[0.9rem]">
+        {credentialPresentation.passkeyNote}
       </p>
     </Modal>
   );
@@ -104,14 +121,17 @@ export function CredentialListModal({
   credentials: CredentialSummary[];
   onResolve: () => void;
 }) {
+  const { style } = useStyle();
+  const { credentialList } = style.copy;
+
   return (
     <Modal
-      title="My credentials"
+      title={credentialList.title}
       wide
       onBackdropDismiss={onResolve}
       actions={[
         {
-          label: "Close",
+          label: credentialList.closeLabel,
           variant: "primary",
           autoFocus: true,
           onClick: onResolve,
@@ -119,24 +139,24 @@ export function CredentialListModal({
       ]}
     >
       {credentials.length === 0 ? (
-        <p className="m-0 opacity-85">
-          No credentials stored in this wallet yet.
-        </p>
+        <p className="text-muted-foreground m-0">{credentialList.emptyBody}</p>
       ) : (
-        <ul className="m-0 grid list-none gap-3 p-0">
+        <ul className="m-0 grid max-h-64 list-none gap-3 overflow-auto p-0">
           {credentials.map((credential) => (
             <li
               key={credential.credentialId}
-              className="rounded-md border border-[color-mix(in_srgb,CanvasText_15%,transparent)] bg-[color-mix(in_srgb,CanvasText_4%,transparent)] p-3"
+              className="border-border bg-muted/40 rounded-md border p-3"
             >
               <p className="mb-1 font-semibold">
                 {credential.type.join(", ")}
               </p>
-              <p className="mb-1 text-[0.85rem]">Issuer: {credential.issuer}</p>
-              <p className="m-0 font-mono text-xs opacity-85">
+              <p className="mb-1 text-[0.85rem]">
+                {credentialList.issuerLabel} {credential.issuer}
+              </p>
+              <p className="text-muted-foreground m-0 font-mono text-xs">
                 {credential.validUntil
-                  ? `Issued ${credential.issuedAt} · Valid until ${credential.validUntil}`
-                  : `Issued ${credential.issuedAt}`}
+                  ? `${credentialList.issuedLabel} ${credential.issuedAt} · ${credentialList.validUntilLabel} ${credential.validUntil}`
+                  : `${credentialList.issuedLabel} ${credential.issuedAt}`}
               </p>
             </li>
           ))}
@@ -144,4 +164,12 @@ export function CredentialListModal({
       )}
     </Modal>
   );
+}
+
+/** Replace `{name}` tokens; unknown keys become empty strings. */
+function fillTemplate(
+  template: string,
+  vars: Record<string, string>,
+): string {
+  return template.replace(/\{(\w+)\}/g, (_match, key: string) => vars[key] ?? "");
 }

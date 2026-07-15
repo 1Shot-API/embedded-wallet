@@ -134,9 +134,9 @@ Preserve request detail display; avoid overstuffing the first viewport of the fl
 
 ### Phase 5 — Credential modals
 
-1. [ ] `credentialOffer`
-2. [ ] `credentialPresentation`
-3. [ ] `credentialList`
+1. [x] `credentialOffer` — `copy.credentialOffer.*` via StyleContext (`{issuerName}` / `{issuerId}` templates)
+2. [x] `credentialPresentation` — `copy.credentialPresentation.*` via StyleContext
+3. [x] `credentialList` — `copy.credentialList.*` via StyleContext; token-styled cards
 
 Keep OID4 wiring in `registerCredentialsProvider` / WalletProvider; UI-only change.
 

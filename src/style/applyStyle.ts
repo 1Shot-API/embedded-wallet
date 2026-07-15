@@ -33,6 +33,18 @@ export function mergeStyle(
         ...current.copy.typedData,
         ...patch.copy?.typedData,
       },
+      credentialOffer: {
+        ...current.copy.credentialOffer,
+        ...patch.copy?.credentialOffer,
+      },
+      credentialPresentation: {
+        ...current.copy.credentialPresentation,
+        ...patch.copy?.credentialPresentation,
+      },
+      credentialList: {
+        ...current.copy.credentialList,
+        ...patch.copy?.credentialList,
+      },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
   };
@@ -49,6 +61,9 @@ function cloneDefaultStyle(): IResolvedStyle {
       passkeyName: { ...DEFAULT_STYLE.copy.passkeyName },
       personalSign: { ...DEFAULT_STYLE.copy.personalSign },
       typedData: { ...DEFAULT_STYLE.copy.typedData },
+      credentialOffer: { ...DEFAULT_STYLE.copy.credentialOffer },
+      credentialPresentation: { ...DEFAULT_STYLE.copy.credentialPresentation },
+      credentialList: { ...DEFAULT_STYLE.copy.credentialList },
     },
   };
 }
