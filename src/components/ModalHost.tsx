@@ -1,4 +1,4 @@
-import { useWallet } from "../wallet/WalletProvider";
+import { useModalStore } from "../wallet/modalStore";
 import {
   ConnectModal,
   PasskeyNameModal,
@@ -13,7 +13,7 @@ import {
 import { CreateBackupModal, RestoreBackupModal } from "./modals/BackupModals";
 
 export function ModalHost() {
-  const { activeModal } = useWallet();
+  const activeModal = useModalStore((state) => state.activeModal);
   if (!activeModal) return null;
 
   switch (activeModal.kind) {

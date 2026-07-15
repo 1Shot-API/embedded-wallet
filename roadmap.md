@@ -155,11 +155,11 @@ Keep OID4 wiring in `registerCredentialsProvider` / WalletProvider; UI-only chan
 
 **Outcome:** `WalletProvider` sheds UI state into stores; OWS handlers call stores from outside React.
 
-- [ ] Add `zustand`.
-- [ ] `useWalletSessionStore` — ready, unlocked, addresses, chain, credentialCount, bootError, walletCreated.
-- [ ] `useModalStore` — queue, push/pop, `activeModal`.
-- [ ] Thin `WalletProvider` (boot, refs, `ensureReady`, register handlers) that syncs into stores.
-- [ ] Update consumers (`useWallet` → store selectors where appropriate).
+- [x] Add `zustand`.
+- [x] `useWalletSessionStore` — ready, unlocked, addresses, chain, credentialCount, bootError, walletCreated.
+- [x] `useModalStore` — queue, push/pop, `activeModal`.
+- [x] Thin `WalletProvider` (boot, refs, `ensureReady`, register handlers) that syncs into stores.
+- [x] Update consumers (`useWallet` → store selectors where appropriate).
 
 **Exit criteria:** Opening a modal does not force unrelated shell re-renders; handlers remain correct.
 

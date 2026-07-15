@@ -1,4 +1,5 @@
-import { useWallet } from "./wallet/WalletProvider";
+import { useShallow } from "zustand/react/shallow";
+import { useWalletSessionStore } from "./wallet/sessionStore";
 import { WalletChrome } from "./components/WalletChrome";
 import { OnboardingPanel } from "./components/OnboardingPanel";
 import { MainPanel } from "./components/MainPanel";
@@ -6,7 +7,16 @@ import { SignerHost } from "./components/SignerHost";
 import { ModalHost } from "./components/ModalHost";
 
 export function App() {
-  const { bootError, ready, unlocked, walletCreated, embedded } = useWallet();
+  const { bootError, ready, unlocked, walletCreated, embedded } =
+    useWalletSessionStore(
+      useShallow((state) => ({
+        bootError: state.bootError,
+        ready: state.ready,
+        unlocked: state.unlocked,
+        walletCreated: state.walletCreated,
+        embedded: state.embedded,
+      })),
+    );
 
   const showOnboarding = embedded && !walletCreated && !unlocked;
 

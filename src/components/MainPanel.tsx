@@ -1,3 +1,4 @@
+import { useShallow } from "zustand/react/shallow";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -7,23 +8,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { hasBackup } from "../storage";
-import { useWallet } from "../wallet/WalletProvider";
 import { useStyle } from "../style";
+import { useWallet } from "../wallet/WalletProvider";
+import { useWalletSessionStore } from "../wallet/sessionStore";
 
 export function MainPanel() {
+  const {
+    chains,
+    switchChain,
+    openCreateBackup,
+    openRestoreBackup,
+    openCredentialList,
+  } = useWallet();
   const {
     unlocked,
     walletCreated,
     evmAddress,
     solanaAddress,
     chainId,
-    chains,
     credentialCount,
-    switchChain,
-    openCreateBackup,
-    openRestoreBackup,
-    openCredentialList,
-  } = useWallet();
+  } = useWalletSessionStore(
+    useShallow((state) => ({
+      unlocked: state.unlocked,
+      walletCreated: state.walletCreated,
+      evmAddress: state.evmAddress,
+      solanaAddress: state.solanaAddress,
+      chainId: state.chainId,
+      credentialCount: state.credentialCount,
+    })),
+  );
   const { style } = useStyle();
   const canRestore = hasBackup();
 

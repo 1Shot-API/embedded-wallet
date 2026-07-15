@@ -5,17 +5,13 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   type ReactNode,
   type RefObject,
 } from "react";
 import { OWSSigner } from "@1shotapi/ows-signer-utils";
 import { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
 import {
-  EVMAccountAddress,
-  EVMChainId,
   OwsUserRejectedError,
-  SolanaAccountAddress,
   type CredentialOfferApprovalRequest,
   type CredentialPresentationApprovalRequest,
 } from "@1shotapi/ows-types";
@@ -34,7 +30,10 @@ import {
   ParseUtils,
 } from "@1shotapi/ows-oid4";
 import { DEMO_CHAINS } from "../ows/demoChains";
-import { registerAccountConnect } from "../ows/registerAccountConnect";
+import {
+  registerAccountConnect,
+  type AccountConnectStorage,
+} from "../ows/registerAccountConnect";
 import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
 import { registerSetStyleRpc } from "../style";
@@ -42,17 +41,14 @@ import {
   isWalletCreated,
   loadBackup,
   loadCachedEvmAddress,
-  loadCachedSolanaAddress,
   loadCredentialId,
   saveBackup,
   saveCachedAddresses,
   saveWalletCreated,
 } from "../storage";
-import {
-  nextModalId,
-  type ActiveModal,
-  type WalletSetupChoice,
-} from "./modalTypes";
+import { useModalStore } from "./modalStore";
+import type { ActiveModal, WalletSetupChoice } from "./modalTypes";
+import { useWalletSessionStore } from "./sessionStore";
 
 const credentialRepository = new LocalStorageCredentialRepository();
 const issuerTrust = new InMemoryIssuerTrustRegistry();
@@ -65,12 +61,17 @@ const attestationProvider = new DemoWalletAttestationProvider({
   issuer: "ows-demo-wallet",
 });
 
-const walletStorage = {
-  isWalletCreated,
-  loadCredentialId,
-  saveWalletCreated,
-  saveCachedAddresses,
+const walletStorage: AccountConnectStorage = {
   loadCachedEvmAddress,
+  saveCachedAddresses: (evm, solana) => {
+    saveCachedAddresses(evm, solana);
+    const session = useWalletSessionStore.getState();
+    if (solana) {
+      session.setAddresses(evm, solana);
+    } else {
+      session.setAddresses(evm, session.solanaAddress);
+    }
+  },
 };
 
 /**
@@ -91,13 +92,12 @@ function createDeferredSigner(
     .catch((error: unknown) => {
       loadError = error;
       console.error(
-        "[ows-example-general-wallet] deferred Signing Layer load failed",
+        "[oneshot-wallet] deferred Signing Layer load failed",
         error,
       );
     });
   return new Proxy({} as OWSSigner, {
     get(_target, property) {
-      // Avoid looking like a thenable if someone awaits the proxy.
       if (property === "then") {
         return undefined;
       }
@@ -121,18 +121,9 @@ function createDeferredSigner(
   });
 }
 
+/** Imperative wallet APIs that need refs / boot (not UI session state). */
 export type WalletContextValue = {
-  ready: boolean;
-  bootError: string | null;
-  embedded: boolean;
-  unlocked: boolean;
-  walletCreated: boolean;
-  evmAddress: EVMAccountAddress;
-  solanaAddress: SolanaAccountAddress;
-  chainId: EVMChainId;
   chains: typeof DEMO_CHAINS;
-  credentialCount: number;
-  activeModal: ActiveModal | null;
   signerContainerRef: RefObject<HTMLDivElement | null>;
   getSigner: () => OWSSigner | null;
   /** Resolves when the Signing Layer iframe has finished loading. */
@@ -162,81 +153,28 @@ export function useWallet(): WalletContextValue {
   return value;
 }
 
-export function WalletProvider({ children }: { children: ReactNode }) {
-  const [ready, setReady] = useState(false);
-  const [bootError, setBootError] = useState<string | null>(null);
-  const [unlocked, setUnlockedState] = useState(false);
-  const [walletCreated, setWalletCreated] = useState(() => isWalletCreated());
-  const [evmAddress, setEvmAddress] = useState<EVMAccountAddress>(
-    () => loadCachedEvmAddress() ?? EVMAccountAddress("0x0"),
-  );
-  const [solanaAddress, setSolanaAddress] = useState<SolanaAccountAddress>(
-    () => loadCachedSolanaAddress() ?? SolanaAccountAddress("—"),
-  );
-  const [chainId, setChainId] = useState<EVMChainId>(DEMO_CHAINS[0]!.chainId);
-  const [credentialCount, setCredentialCount] = useState(0);
-  const [activeModal, setActiveModal] = useState<ActiveModal | null>(null);
-  const [embedded] = useState(() => window.parent !== window);
+function pushModal<T>(
+  build: (handlers: {
+    id: string;
+    resolve: (value: T) => void;
+    reject: (error: unknown) => void;
+  }) => ActiveModal,
+): Promise<T> {
+  return useModalStore.getState().push(build);
+}
 
+export function WalletProvider({ children }: { children: ReactNode }) {
   const signerContainerRef = useRef<HTMLDivElement | null>(null);
   const walletRef = useRef<OWSWallet | null>(null);
   const signerRef = useRef<OWSSigner | null>(null);
   const rpcHelperRef = useRef<RpcHelper | null>(null);
-  const unlockedRef = useRef(false);
   const unlockInFlightRef = useRef<Promise<void> | undefined>(undefined);
-  const modalQueueRef = useRef<ActiveModal[]>([]);
 
-  const advanceQueue = useCallback(() => {
-    const next = modalQueueRef.current[0] ?? null;
-    setActiveModal(next);
-  }, []);
-
-  const removeModal = useCallback(
-    (id: string) => {
-      modalQueueRef.current = modalQueueRef.current.filter((m) => m.id !== id);
-      advanceQueue();
-    },
-    [advanceQueue],
-  );
-
-  const pushModal = useCallback(
-    <T,>(
-      build: (handlers: {
-        id: string;
-        resolve: (value: T) => void;
-        reject: (error: unknown) => void;
-      }) => ActiveModal,
-    ): Promise<T> => {
-      return new Promise<T>((resolve, reject) => {
-        const id = nextModalId();
-        let settled = false;
-        const finishResolve = (value: T) => {
-          if (settled) return;
-          settled = true;
-          removeModal(id);
-          resolve(value);
-        };
-        const finishReject = (error: unknown) => {
-          if (settled) return;
-          settled = true;
-          removeModal(id);
-          reject(error);
-        };
-        const modal = build({
-          id,
-          resolve: finishResolve,
-          reject: finishReject,
-        });
-        modalQueueRef.current.push(modal);
-        setActiveModal((current) => current ?? modal);
-      });
-    },
-    [removeModal],
-  );
+  /** Resolves once `OWSSigner.create` finishes; set during boot. */
+  const awaitSignerRef = useRef<(() => Promise<OWSSigner>) | null>(null);
 
   const setUnlocked = useCallback((value: boolean) => {
-    unlockedRef.current = value;
-    setUnlockedState(value);
+    useWalletSessionStore.getState().setUnlocked(value);
   }, []);
 
   const refreshAddresses = useCallback(async () => {
@@ -244,14 +182,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (!signer) return;
     const evm = await signer.evm.getAccountAddress();
     const solana = await signer.solana.getAccountAddress();
-    setEvmAddress(evm);
-    setSolanaAddress(solana);
+    useWalletSessionStore.getState().setAddresses(evm, solana);
     saveCachedAddresses(evm, solana);
   }, []);
 
   const refreshCredentialCount = useCallback(async () => {
     const listed = await credentialRepository.list();
-    setCredentialCount(listed.length);
+    useWalletSessionStore.getState().setCredentialCount(listed.length);
   }, []);
 
   const promptPasskeyName = useCallback((): Promise<string | null> => {
@@ -260,7 +197,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       kind: "passkeyName",
       resolve,
     }));
-  }, [pushModal]);
+  }, []);
 
   const requestWalletSetupChoice =
     useCallback((): Promise<WalletSetupChoice> => {
@@ -269,7 +206,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         kind: "walletSetup",
         resolve,
       }));
-    }, [pushModal]);
+    }, []);
 
   const loginWithPasskey = useCallback(async () => {
     const signer = signerRef.current;
@@ -280,7 +217,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       throw new Error("Passkey login succeeded but credential id missing");
     }
     saveWalletCreated(credentialId);
-    setWalletCreated(true);
+    useWalletSessionStore.getState().setWalletCreated(true);
     await refreshAddresses();
     setUnlocked(true);
   }, [refreshAddresses, setUnlocked]);
@@ -298,7 +235,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         throw new Error("Passkey created but credential id missing");
       }
       saveWalletCreated(credentialId);
-      setWalletCreated(true);
+      useWalletSessionStore.getState().setWalletCreated(true);
       await refreshAddresses();
       setUnlocked(true);
     },
@@ -326,7 +263,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         throw new Error("Passkey unlock succeeded but credential id missing");
       }
       saveWalletCreated(credentialId);
-      setWalletCreated(true);
+      useWalletSessionStore.getState().setWalletCreated(true);
       await refreshAddresses();
       setUnlocked(true);
       return;
@@ -354,7 +291,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [createNewWalletFromUi, loginWithPasskey, requestWalletSetupChoice]);
 
   const ensureReadyImpl = useCallback(async () => {
-    if (unlockedRef.current) {
+    if (useWalletSessionStore.getState().unlocked) {
       return;
     }
     if (unlockInFlightRef.current) {
@@ -380,9 +317,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const ensureReadyRef = useRef(ensureReadyImpl);
   ensureReadyRef.current = ensureReadyImpl;
 
-  /** Resolves once `OWSSigner.create` finishes; set during boot. */
-  const awaitSignerRef = useRef<(() => Promise<OWSSigner>) | null>(null);
-
   const awaitSignerReady = useCallback(async (): Promise<OWSSigner> => {
     const awaitSigner = awaitSignerRef.current;
     if (!awaitSigner) {
@@ -398,11 +332,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await ensureReadyRef.current();
   }, [awaitSignerReady]);
 
-  const uiBridgeRef = useRef({
-    pushModal,
-  });
-  uiBridgeRef.current.pushModal = pushModal;
-
   const switchChain = useCallback(async (next: string) => {
     const rpc = rpcHelperRef.current;
     if (!rpc) return;
@@ -410,8 +339,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       await rpc.switchChain(next);
     } catch (error: unknown) {
-      setChainId(previous);
-      console.error("[ows-example-general-wallet] chain switch failed", error);
+      useWalletSessionStore.getState().setChainId(previous);
+      console.error("[oneshot-wallet] chain switch failed", error);
       throw error;
     }
   }, []);
@@ -422,14 +351,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const openCredentialList = useCallback(async () => {
     const listed = await credentialRepository.list();
-    setCredentialCount(listed.length);
+    useWalletSessionStore.getState().setCredentialCount(listed.length);
     await pushModal<void>(({ id, resolve }) => ({
       id,
       kind: "credentialList",
       credentials: listed,
       resolve,
     }));
-  }, [pushModal]);
+  }, []);
 
   const openCreateBackup = useCallback(async () => {
     const wallet = walletRef.current;
@@ -445,7 +374,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     } finally {
       await display.hide();
     }
-  }, [pushModal]);
+  }, []);
 
   const openRestoreBackup = useCallback(async () => {
     const encrypted = loadBackup();
@@ -466,13 +395,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }));
       if (restored) {
         setUnlocked(true);
-        setWalletCreated(true);
+        useWalletSessionStore.getState().setWalletCreated(true);
         await refreshAddresses();
       }
     } finally {
       await display.hide();
     }
-  }, [pushModal, refreshAddresses, setUnlocked]);
+  }, [refreshAddresses, setUnlocked]);
 
   const persistBackup = useCallback((encryptedPrivateKey: string) => {
     saveBackup(encryptedPrivateKey);
@@ -482,18 +411,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    const session = useWalletSessionStore.getState();
 
     async function boot(): Promise<void> {
-      // Wait a tick so SignerHost has committed the ref.
       await Promise.resolve();
       const container = signerContainerRef.current;
       if (!container) {
         throw new Error("#signer-container not mounted");
       }
 
-      // Kick off Signing Layer load without blocking the host Postmate handshake.
-      // Postmate parents only retry ~5 times (~2.5s after iframe load); awaiting
-      // the nested /signer/ iframe (especially over ngrok) exceeds that window.
       const signerUrl = new URL("/signer/", window.location.origin).href;
       const signerPromise = OWSSigner.create(container, signerUrl, {
         hidden: true,
@@ -505,8 +431,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         return loaded;
       };
       awaitSignerRef.current = awaitSigner;
-      // Handlers close over this proxy; they must call ensureReady (awaits signer)
-      // before touching signing APIs.
       const signer = createDeferredSigner(awaitSigner);
 
       const wallet = OWSWallet.prepare({ debug: true });
@@ -518,9 +442,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           resolve: (value: T) => void;
           reject: (error: unknown) => void;
         }) => ActiveModal,
-      ) => uiBridgeRef.current.pushModal(build);
+      ) => pushModal(build);
 
-      // Host theming — register before start(); may be called repeatedly.
       registerSetStyleRpc(wallet);
 
       registerAccountConnect(wallet, signer, {
@@ -589,64 +512,53 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         { defaultChainId },
       );
       rpcHelperRef.current = rpcHelper;
-      setChainId(rpcHelper.getChainId());
+      session.setChainId(rpcHelper.getChainId());
       rpcHelper.events.on("chainChanged", (next) => {
-        setChainId(next);
+        useWalletSessionStore.getState().setChainId(next);
       });
 
-      // Register Postmate.Model immediately — before nested signer iframe load.
       void wallet.start().catch((error: unknown) => {
         if (cancelled) return;
-        console.error(
-          "[ows-example-general-wallet] Postmate handshake failed",
-          error,
-        );
-        setBootError(error instanceof Error ? error.message : String(error));
+        console.error("[oneshot-wallet] Postmate handshake failed", error);
+        useWalletSessionStore
+          .getState()
+          .setBootError(error instanceof Error ? error.message : String(error));
       });
 
-      // Finish Signing Layer init in the background; UI can paint meanwhile.
       void awaitSigner().catch((error: unknown) => {
         if (cancelled) return;
-        console.error(
-          "[ows-example-general-wallet] Signing Layer failed to load",
-          error,
-        );
-        setBootError(error instanceof Error ? error.message : String(error));
+        console.error("[oneshot-wallet] Signing Layer failed to load", error);
+        useWalletSessionStore
+          .getState()
+          .setBootError(error instanceof Error ? error.message : String(error));
       });
 
-      // Paint UI without awaiting host handshake — standalone branding has no parent.
       const listed = await credentialRepository.list();
       if (cancelled) return;
-      setCredentialCount(listed.length);
-      setReady(true);
-      console.info("[ows-example-general-wallet] ready", {
+      useWalletSessionStore.getState().setCredentialCount(listed.length);
+      useWalletSessionStore.getState().setReady(true);
+      console.info("[oneshot-wallet] ready", {
         chainId: rpcHelper.getChainId(),
       });
     }
 
     void boot().catch((error: unknown) => {
-      console.error("[ows-example-general-wallet] failed to start", error);
-      setBootError(error instanceof Error ? error.message : String(error));
+      console.error("[oneshot-wallet] failed to start", error);
+      useWalletSessionStore
+        .getState()
+        .setBootError(error instanceof Error ? error.message : String(error));
     });
 
     return () => {
       cancelled = true;
     };
+    // Boot once; handlers close over ensureReady via ensureReadyRef.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only boot
   }, []);
 
   const value = useMemo<WalletContextValue>(
     () => ({
-      ready,
-      bootError,
-      embedded,
-      unlocked,
-      walletCreated,
-      evmAddress,
-      solanaAddress,
-      chainId,
       chains: DEMO_CHAINS,
-      credentialCount,
-      activeModal,
       signerContainerRef,
       getSigner,
       awaitSignerReady,
@@ -664,16 +576,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       persistBackup,
     }),
     [
-      ready,
-      bootError,
-      embedded,
-      unlocked,
-      walletCreated,
-      evmAddress,
-      solanaAddress,
-      chainId,
-      credentialCount,
-      activeModal,
       getSigner,
       awaitSignerReady,
       ensureReady,
