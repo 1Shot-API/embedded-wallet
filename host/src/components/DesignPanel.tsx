@@ -1,15 +1,22 @@
+import type { RefCallback } from "react";
 import { WalletConfigurator } from "./WalletConfigurator";
 
 export interface IDesignPanelProps {
   ready: boolean;
   onApplyStyle: (options: Record<string, unknown>) => Promise<void>;
+  /** Create() container for inline OWSProxy (never reparent the iframe). */
+  previewMountRef: RefCallback<HTMLDivElement>;
 }
 
 /**
- * Design mode: configurator (left) + live wallet preview region (right).
- * The branding iframe is kept visible via {@link OWSProxy.showWallet}.
+ * Design mode: configurator (left) + live inline wallet preview (right).
+ * Host destroys/recreates the proxy into this mount with presentationMode=inline.
  */
-export function DesignPanel({ ready, onApplyStyle }: IDesignPanelProps) {
+export function DesignPanel({
+  ready,
+  onApplyStyle,
+  previewMountRef,
+}: IDesignPanelProps) {
   return (
     <div className="grid h-[calc(100svh-3.5rem)] grid-cols-1 lg:grid-cols-[minmax(22rem,26rem)_1fr]">
       <aside className="border-border bg-background overflow-y-auto border-r">
@@ -36,8 +43,8 @@ export function DesignPanel({ ready, onApplyStyle }: IDesignPanelProps) {
               Preview
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Live Branding Layer flyout (lower-right). Changes apply via{" "}
-              <code className="text-xs">setStyle</code>.
+              Fresh inline proxy in this slot. Styles are re-applied via{" "}
+              <code className="text-xs">setStyle</code> when you return to Test.
             </p>
           </div>
           <span className="bg-accent text-accent-foreground inline-flex items-center rounded-full border border-cyan-100 px-2.5 py-1 text-xs font-semibold">
@@ -45,20 +52,29 @@ export function DesignPanel({ ready, onApplyStyle }: IDesignPanelProps) {
           </span>
         </div>
 
-        <div className="border-primary/30 relative flex flex-1 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed bg-white shadow-sm">
-          <div className="pointer-events-none absolute inset-x-0 top-0 flex h-9 items-center gap-1.5 border-b border-slate-100 bg-slate-50/90 px-3">
+        <div className="relative flex flex-1 items-center justify-center overflow-auto rounded-2xl border-2 border-dashed border-slate-300/80 bg-white shadow-sm">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-9 items-center gap-1.5 border-b border-slate-100 bg-slate-50/90 px-3">
             <span className="size-2.5 rounded-full bg-red-300" />
             <span className="size-2.5 rounded-full bg-amber-300" />
             <span className="size-2.5 rounded-full bg-emerald-300" />
             <span className="text-muted-foreground ml-2 text-xs">
-              Host canvas
+              Host canvas · inline presentation
             </span>
           </div>
-          <p className="text-muted-foreground max-w-xs px-6 text-center text-sm">
-            {ready
-              ? "Wallet flyout is open. Apply styles from the left panel to preview them."
-              : "Connecting to wallet…"}
-          </p>
+
+          <div className="flex min-h-[36rem] w-full items-center justify-center px-6 pt-12 pb-8">
+            <div
+              className="relative h-[600px] w-[360px] shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md"
+              aria-label="Wallet inline mount"
+            >
+              <div ref={previewMountRef} className="absolute inset-0" />
+              {!ready ? (
+                <p className="text-muted-foreground absolute inset-0 z-20 flex items-center justify-center bg-white/80 px-6 text-center text-sm">
+                  Connecting to wallet…
+                </p>
+              ) : null}
+            </div>
+          </div>
         </div>
       </section>
     </div>

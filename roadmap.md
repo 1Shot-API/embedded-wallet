@@ -172,7 +172,8 @@ Keep OID4 wiring in `registerCredentialsProvider` / WalletProvider; UI-only chan
 - [ ] Document `IStyleOptions` and example host `setStyle` call in README.
 - [ ] Expand knobs as needed (logo URL, radius, font, showBackup, etc.).
 - [x] Host tester: React + ShadCN shell; style knobs encapsulated in `WalletConfigurator` (organization TBD).
-- [x] Host layout v1: 1Shot-branded header + Sidebar (Test / Design); Design keeps wallet flyout open with configurator.
+- [x] Host layout v1: 1Shot-branded header + Sidebar (Test / Design); Design embeds wallet inline with configurator.
+- [x] Wallet presentation: MetaMask-like 360×600; create-time `presentationMode`; Test/Design destroy+recreate proxy (no reparent).
 - [ ] Reorganize `WalletConfigurator` (sections/tabs for copy vs theme).
 - [ ] Dark mode strategy if we support host toggle via `setStyle`.
 

@@ -71,7 +71,7 @@ export function WalletConfigurator({
     setStatus("Calling setStyle…");
     try {
       await onApply(buildSetStylePayload(payloadForm));
-      setStatus("setStyle applied — open the wallet to see changes.");
+      setStatus("setStyle applied.");
     } catch (error) {
       setIsError(true);
       setStatus(error instanceof Error ? error.message : "setStyle failed");

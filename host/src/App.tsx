@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { OWSProxy } from "@1shotapi/ows-provider";
+import {
+  EWalletPresentationMode,
+  OWSProxy,
+} from "@1shotapi/ows-provider";
 import { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
 import {
   createPublicClient,
@@ -22,9 +25,16 @@ function normalizeChainIdHex(value: string): EVMChainId {
   return EVMChainId(`0x${BigInt(value).toString(16)}`);
 }
 
+/** MetaMask-like branding panel size (also default in ows-provider). */
+const WALLET_SIZE_X = 360;
+const WALLET_SIZE_Y = 600;
+
 export function App() {
-  const walletContainerRef = useRef<HTMLDivElement | null>(null);
+  const flyoutContainerRef = useRef<HTMLDivElement | null>(null);
   const proxyRef = useRef<OWSProxy | null>(null);
+  /** Last setStyle payload from Design mode — re-applied after Test recreate. */
+  const lastStyleRef = useRef<Record<string, unknown> | null>(null);
+  const [previewMount, setPreviewMount] = useState<HTMLDivElement | null>(null);
 
   const [mode, setMode] = useState<HostMode>("test");
   const [ready, setReady] = useState(false);
@@ -53,30 +63,66 @@ export function App() {
     [],
   );
 
+  // Presentation is create-time only. Switching Test ↔ Design destroys and
+  // recreates the proxy against the right container (reparenting breaks Postmate).
   useEffect(() => {
+    if (mode === "design" && !previewMount) {
+      return;
+    }
+
+    const container =
+      mode === "design" ? previewMount : flyoutContainerRef.current;
+    if (!container) {
+      return;
+    }
+
     let cancelled = false;
-    const container = walletContainerRef.current;
-    if (!container) return;
+    setReady(false);
+    reportStatus("Connecting to wallet…");
 
     console.info(
-      "[oneshot-wallet-host] embedding Branding Layer",
+      "[oneshot-wallet-host] creating Branding Layer proxy",
+      mode,
       __WALLET_IFRAME_URL__,
     );
 
     void (async () => {
+      proxyRef.current?.destroy();
+      proxyRef.current = null;
+      container.replaceChildren();
+
       try {
         const proxy = await OWSProxy.create(container, __WALLET_IFRAME_URL__, {
-          // Slightly taller flyout for design-mode preview.
-          walletSizeX: 360,
-          walletSizeY: 520,
+          walletSizeX: WALLET_SIZE_X,
+          walletSizeY: WALLET_SIZE_Y,
+          presentationMode:
+            mode === "design"
+              ? EWalletPresentationMode.Inline
+              : EWalletPresentationMode.Flyout,
         });
-        if (cancelled) return;
+        if (cancelled) {
+          proxy.destroy();
+          return;
+        }
         proxyRef.current = proxy;
+
+        if (lastStyleRef.current) {
+          await proxy.rpc("setStyle", lastStyleRef.current);
+        }
+
+        if (cancelled) {
+          proxy.destroy();
+          proxyRef.current = null;
+          return;
+        }
+
         setReady(true);
         try {
           const connectedChain = await refreshChainFromWallet(proxy);
           reportStatus(
-            `Wallet connected on ${connectedChain}. Enter a message and click Sign.`,
+            mode === "design"
+              ? `Design preview connected on ${connectedChain}. Apply setStyle to refresh.`
+              : `Wallet connected on ${connectedChain}. Enter a message and click Sign.`,
           );
         } catch (error) {
           reportStatus(
@@ -98,19 +144,10 @@ export function App() {
 
     return () => {
       cancelled = true;
+      proxyRef.current?.destroy();
+      proxyRef.current = null;
     };
-  }, [refreshChainFromWallet, reportStatus]);
-
-  // Design mode keeps the branding flyout visible; Test keeps it hidden.
-  useEffect(() => {
-    const proxy = proxyRef.current;
-    if (!proxy || !ready) return;
-    if (mode === "design") {
-      proxy.showWallet();
-    } else {
-      proxy.hideWallet();
-    }
-  }, [mode, ready]);
+  }, [mode, previewMount, refreshChainFromWallet, reportStatus]);
 
   const resolveAccount = async (
     proxy: OWSProxy,
@@ -285,6 +322,7 @@ export function App() {
   };
 
   const handleApplyStyle = async (options: Record<string, unknown>) => {
+    lastStyleRef.current = options;
     const proxy = proxyRef.current;
     if (!proxy) {
       throw new Error("Wallet not connected");
@@ -320,10 +358,15 @@ export function App() {
           {mode === "test" ? (
             <TestPanel {...walletActionProps} />
           ) : (
-            <DesignPanel ready={ready} onApplyStyle={handleApplyStyle} />
+            <DesignPanel
+              ready={ready}
+              onApplyStyle={handleApplyStyle}
+              previewMountRef={setPreviewMount}
+            />
           )}
         </SidebarInset>
-        <div ref={walletContainerRef} aria-hidden="true" />
+        {/* Flyout create() target — never reparented; Test mode only. */}
+        <div ref={flyoutContainerRef} aria-hidden="true" />
       </SidebarProvider>
     </TooltipProvider>
   );
