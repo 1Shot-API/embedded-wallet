@@ -11,16 +11,16 @@ export function App() {
   const showOnboarding = embedded && !walletCreated && !unlocked;
 
   return (
-    <div className="flex min-h-full flex-col bg-[Canvas] text-[CanvasText]">
+    <div className="bg-background text-foreground flex min-h-full flex-col">
       {embedded ? <WalletChrome /> : null}
 
       <div className="flex-1 px-5 py-4">
         {bootError ? (
-          <p className="text-sm text-red-700 dark:text-red-400">
+          <p className="text-destructive text-sm">
             Failed to start: {bootError}
           </p>
         ) : !ready ? (
-          <p className="font-mono text-sm opacity-75">Loading…</p>
+          <p className="text-muted-foreground font-mono text-sm">Loading…</p>
         ) : showOnboarding ? (
           <OnboardingPanel />
         ) : (

@@ -84,16 +84,17 @@ Relayer / credential fetch    →  TanStack Query (later phase)
 
 ### Phase 1 — Shell on ShadCN + tokens
 
-**Outcome:** App chrome uses Button / layout primitives; reads brand name / labels from StyleContext.
+**Outcome:** App chrome uses Button / layout primitives; reads brand name / labels from StyleContext. Host test app exercises `setStyle` over Host ↔ Branding RPC (not an in-wallet debug button).
 
-- [ ] Wire `StyleProvider` around app in `main.tsx`.
-- [ ] Refactor `WalletChrome` → tokens + styled title from copy map.
-- [ ] Refactor `OnboardingPanel` → shadcn Button / typography.
-- [ ] Refactor `MainPanel` → shadcn Button, Select (chain), Card or non-card sections as fit.
-- [ ] Replace ad-hoc `<button>` styles with `@/components/ui/button`.
-- [ ] Ensure shell respects `setStyle` colors and product name.
+- [x] Wire `StyleProvider` around app in `main.tsx`.
+- [x] Refactor `WalletChrome` → tokens + styled title from copy map.
+- [x] Refactor `OnboardingPanel` → shadcn Button / typography.
+- [x] Refactor `MainPanel` → shadcn Button, Select (chain).
+- [x] Replace shell ad-hoc `<button>` styles with `@/components/ui/button`.
+- [x] Ensure shell respects `setStyle` colors and product name.
+- [x] Add `host/` test Host Layer (from OWS `examples/host`) with setStyle knobs; `npm run dev:host`.
 
-**Exit criteria:** Standalone + embedded shell looks like a coherent 1Shot product; theme knobs visible on shell.
+**Exit criteria:** Standalone + embedded shell looks like a coherent 1Shot product; theme knobs on the host exercise host↔branding communication.
 
 ---
 

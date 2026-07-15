@@ -1,19 +1,24 @@
+import { Button } from "@/components/ui/button";
 import { useWallet } from "../wallet/WalletProvider";
+import { useStyle } from "../style";
 
 export function OnboardingPanel() {
   const { loginWithPasskey, createNewWalletFromUi } = useWallet();
+  const { style } = useStyle();
 
   return (
-    <div className="py-2">
-      <h2 className="mb-3 text-lg font-semibold">Welcome</h2>
-      <p className="mb-4 text-[0.95rem] opacity-90">
-        Log in with an existing passkey or create a new wallet account to get
-        started.
+    <div className="text-foreground py-2">
+      <h2 className="mb-1 text-lg font-semibold tracking-tight">
+        {style.copy.productName}
+      </h2>
+      <p className="text-muted-foreground mb-4 text-[0.95rem]">
+        {style.copy.tagline}. Log in with an existing passkey or create a new
+        wallet account to get started.
       </p>
       <div className="flex flex-col gap-2">
-        <button
+        <Button
           type="button"
-          className="cursor-pointer rounded-md border border-[color-mix(in_srgb,CanvasText_25%,transparent)] bg-[color-mix(in_srgb,CanvasText_12%,Canvas)] px-4 py-2 font-medium"
+          className="w-full"
           onClick={() => {
             void loginWithPasskey().catch((error: unknown) => {
               console.error("[wallet-setup] embedded login failed", error);
@@ -21,10 +26,11 @@ export function OnboardingPanel() {
           }}
         >
           Login with passkey
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="cursor-pointer rounded-md border border-[color-mix(in_srgb,CanvasText_25%,transparent)] bg-[color-mix(in_srgb,CanvasText_12%,Canvas)] px-4 py-2 font-medium"
+          variant="outline"
+          className="w-full"
           onClick={() => {
             void createNewWalletFromUi().catch((error: unknown) => {
               console.error("[wallet-setup] embedded create failed", error);
@@ -32,7 +38,7 @@ export function OnboardingPanel() {
           }}
         >
           Create account
-        </button>
+        </Button>
       </div>
     </div>
   );

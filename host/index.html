@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1Shot Wallet — Test Host</title>
+</head>
+<body>
+  <header class="site-header">
+    <h1>1Shot Wallet <span class="byline">test host</span></h1>
+    <p class="subtitle">
+      Host Layer → Branding Layer. Use the style panel to exercise
+      <code>proxy.rpc("setStyle", …)</code>.
+    </p>
+  </header>
+
+  <main class="content">
+    <section class="sign-panel" aria-labelledby="wallet-actions-heading">
+      <h2 id="wallet-actions-heading" class="section-title">Wallet actions</h2>
+
+      <div class="chain-row">
+        <label for="chain-select">Chain</label>
+        <select id="chain-select" aria-label="Active chain">
+          <option value="0xaa36a7">Sepolia</option>
+          <option value="0x14a34">Base Sepolia</option>
+          <option value="0x4cef52">Arc Testnet</option>
+        </select>
+        <button
+          type="button"
+          id="chain-refresh-button"
+          class="chain-refresh"
+          aria-label="Refresh chain from wallet"
+          title="Refresh chain from wallet"
+        >
+          ↻
+        </button>
+      </div>
+
+      <label for="message-input">Message to sign (EIP-191)</label>
+      <textarea id="message-input" rows="3">Hello from 1Shot Wallet</textarea>
+      <div class="actions">
+        <button type="button" id="sign-button">Sign</button>
+        <button type="button" id="show-wallet-button">Show Wallet</button>
+      </div>
+      <p id="status" class="status" aria-live="polite"></p>
+      <pre id="signature-output" class="signature-output" hidden></pre>
+
+      <hr class="panel-divider" />
+
+      <label for="token-address-input">ERC-20 contract address</label>
+      <input
+        id="token-address-input"
+        type="text"
+        class="text-input"
+        spellcheck="false"
+        autocomplete="off"
+        placeholder="0x…"
+      />
+      <div class="actions">
+        <button type="button" id="check-balance-button">Check Balance</button>
+      </div>
+      <pre id="token-balance-output" class="signature-output" hidden></pre>
+    </section>
+
+    <section class="style-panel" aria-labelledby="style-heading">
+      <h2 id="style-heading" class="section-title">Style (setStyle RPC)</h2>
+      <p class="hint">
+        Patches are merged on the Branding Layer. Apply after the wallet connects.
+      </p>
+
+      <div class="field-grid">
+        <label for="style-product-name">Product name</label>
+        <input id="style-product-name" type="text" class="text-input" value="Acme Wallet" />
+
+        <label for="style-tagline">Tagline</label>
+        <input
+          id="style-tagline"
+          type="text"
+          class="text-input"
+          value="Powered by 1Shot"
+        />
+
+        <label for="style-primary">Primary</label>
+        <input
+          id="style-primary"
+          type="text"
+          class="text-input mono"
+          value="oklch(0.45 0.18 250)"
+          spellcheck="false"
+        />
+
+        <label for="style-primary-fg">Primary foreground</label>
+        <input
+          id="style-primary-fg"
+          type="text"
+          class="text-input mono"
+          value="oklch(0.99 0 0)"
+          spellcheck="false"
+        />
+
+        <label for="style-background">Background</label>
+        <input
+          id="style-background"
+          type="text"
+          class="text-input mono"
+          value="oklch(1 0 0)"
+          spellcheck="false"
+        />
+
+        <label for="style-foreground">Foreground</label>
+        <input
+          id="style-foreground"
+          type="text"
+          class="text-input mono"
+          value="oklch(0.145 0 0)"
+          spellcheck="false"
+        />
+
+        <label for="style-radius">Radius</label>
+        <input
+          id="style-radius"
+          type="text"
+          class="text-input mono"
+          value="0.625rem"
+          spellcheck="false"
+        />
+      </div>
+
+      <label class="checkbox-row">
+        <input id="style-dark" type="checkbox" />
+        Dark mode (<code>dark: true</code>)
+      </label>
+
+      <div class="actions">
+        <button type="button" id="apply-style-button">Apply setStyle</button>
+        <button type="button" id="preset-ocean-button">Preset: ocean</button>
+        <button type="button" id="preset-reset-button">Preset: defaults vibe</button>
+      </div>
+      <p id="style-status" class="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <div id="wallet-container" class="wallet-container" aria-hidden="true"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

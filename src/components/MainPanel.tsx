@@ -1,5 +1,13 @@
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useWallet } from "../wallet/WalletProvider";
-import { styleController, useStyle } from "../style";
+import { useStyle } from "../style";
 
 export function MainPanel() {
   const {
@@ -25,7 +33,9 @@ export function MainPanel() {
 
   return (
     <>
-      <h1 className="mb-1 text-xl font-semibold">{style.copy.productName}</h1>
+      <h1 className="text-foreground mb-1 text-xl font-semibold tracking-tight">
+        {style.copy.productName}
+      </h1>
       <p className="text-muted-foreground mb-4 text-[0.9rem]">
         {style.copy.tagline}
       </p>
@@ -45,25 +55,31 @@ export function MainPanel() {
             {solanaAddress}
           </span>
         </div>
-        <div className="grid grid-cols-[7rem_1fr] items-baseline gap-2">
-          <label className="font-medium" htmlFor="chain-select">
+        <div className="grid grid-cols-[7rem_1fr] items-center gap-2">
+          <span className="font-medium" id="chain-label">
             Chain
-          </label>
-          <select
-            id="chain-select"
-            aria-label="Active chain"
-            className="border-border bg-background text-foreground max-w-64 rounded-md border px-2 py-1.5 text-[0.9rem]"
+          </span>
+          <Select
             value={chainId}
-            onChange={(event) => {
-              void switchChain(event.target.value);
+            onValueChange={(value) => {
+              if (value) void switchChain(value);
             }}
           >
-            {chains.map((chain) => (
-              <option key={chain.chainId} value={chain.chainId}>
-                {chain.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              className="max-w-64"
+              size="default"
+              aria-labelledby="chain-label"
+            >
+              <SelectValue placeholder="Select chain" />
+            </SelectTrigger>
+            <SelectContent>
+              {chains.map((chain) => (
+                <SelectItem key={chain.chainId} value={chain.chainId}>
+                  {chain.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="grid grid-cols-[7rem_1fr] items-baseline gap-2">
           <span className="font-medium">Credentials</span>
@@ -72,9 +88,9 @@ export function MainPanel() {
 
         <div className="mt-2 flex flex-wrap gap-2">
           {unlocked ? (
-            <button
+            <Button
               type="button"
-              className="border-border hover:bg-muted cursor-pointer rounded-md border bg-transparent px-3.5 py-2 text-[0.9rem]"
+              variant="outline"
               onClick={() => {
                 void openCreateBackup().catch((error: unknown) => {
                   console.error("[create-backup] failed", error);
@@ -82,12 +98,12 @@ export function MainPanel() {
               }}
             >
               Create backup
-            </button>
+            </Button>
           ) : null}
           {!unlocked ? (
-            <button
+            <Button
               type="button"
-              className="border-border hover:bg-muted cursor-pointer rounded-md border bg-transparent px-3.5 py-2 text-[0.9rem]"
+              variant="outline"
               onClick={() => {
                 void openRestoreBackup().catch((error: unknown) => {
                   console.error("[restore-backup] failed", error);
@@ -95,11 +111,11 @@ export function MainPanel() {
               }}
             >
               Restore backup
-            </button>
+            </Button>
           ) : null}
-          <button
+          <Button
             type="button"
-            className="border-border hover:bg-muted cursor-pointer rounded-md border bg-transparent px-3.5 py-2 text-[0.9rem]"
+            variant="outline"
             onClick={() => {
               void openCredentialList().catch((error: unknown) => {
                 console.error("[credential-list] failed", error);
@@ -107,27 +123,7 @@ export function MainPanel() {
             }}
           >
             My credentials
-          </button>
-          {import.meta.env.DEV ? (
-            <button
-              type="button"
-              className="bg-primary text-primary-foreground hover:bg-primary/80 cursor-pointer rounded-md border border-transparent px-3.5 py-2 text-[0.9rem]"
-              onClick={() => {
-                styleController.merge({
-                  theme: {
-                    primary: "oklch(0.45 0.18 250)",
-                    primaryForeground: "oklch(0.99 0 0)",
-                  },
-                  copy: {
-                    productName: "Styled Demo Wallet",
-                    tagline: "setStyle smoke test (dev only)",
-                  },
-                });
-              }}
-            >
-              Debug: setStyle
-            </button>
-          ) : null}
+          </Button>
         </div>
       </section>
     </>

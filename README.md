@@ -29,18 +29,20 @@ cp .env.example .env  # set NGROK_AUTHTOKEN (and optional NGROK_DOMAIN)
 ## Develop
 
 ```bash
-npm run dev           # Vite + ngrok HTTPS tunnel
-npm run dev:local     # local HTTP only (no tunnel)
+npm run dev           # Branding Layer + ngrok HTTPS tunnel
+npm run dev:local     # Branding Layer, local HTTP only
+npm run dev:host      # Test Host Layer (setStyle knobs + EIP-1193)
 ```
 
 | Service | Local URL |
 |---------|-----------|
 | Branding (`/wallet/`) | http://localhost:5174/wallet/ |
 | Signing (`/signer/`) | http://localhost:5174/signer/ |
+| Test host | http://localhost:5173 |
 
-Passkeys need HTTPS — use the printed ngrok `/wallet/` URL as the host iframe source.
+Passkeys need HTTPS — use the printed ngrok `/wallet/` URL as the host iframe source (`NGROK_DOMAIN` in `.env` is picked up by `dev:host`).
 
-In Vite **dev**, the main panel includes a **Debug: setStyle** button that patches theme/copy via the same path as host RPC.
+Style testing: use the **Style (setStyle RPC)** panel on the test host (`host/`), not in-wallet debug UI. See [host/README.md](host/README.md).
 
 ## Host integration
 
