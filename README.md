@@ -2,7 +2,7 @@
 
 1Shot API's free, permissionless embedded wallet. Includes passkey-based verification and OID4 credential management for shared KYC.
 
-This repo is the **OWS Branding Layer** for the 1Shot Wallet — a frontend-only static app (React + Vite + Tailwind) hosted at `wallet.1shotapi.com`.
+This repo is the **OWS Branding Layer** for the 1Shot Wallet — a frontend-only static app (React + Vite + Tailwind + shadcn/ui) hosted at `wallet.1shotapi.com`.
 
 ```
 Host Layer (integrator dapp)
@@ -40,6 +40,45 @@ npm run dev:local     # local HTTP only (no tunnel)
 
 Passkeys need HTTPS — use the printed ngrok `/wallet/` URL as the host iframe source.
 
+In Vite **dev**, the main panel includes a **Debug: setStyle** button that patches theme/copy via the same path as host RPC.
+
+## Host integration
+
+Production iframe URL: **`https://wallet.1shotapi.com/wallet/`**
+
+```bash
+npm install @1shotapi/ows-provider
+```
+
+```typescript
+import { OWSProxy } from "@1shotapi/ows-provider";
+
+const proxy = await OWSProxy.create(container, "https://wallet.1shotapi.com/wallet/");
+
+await proxy.rpc("setStyle", {
+  copy: { productName: "Acme Wallet", tagline: "Powered by 1Shot" },
+  theme: { primary: "oklch(0.45 0.18 250)" },
+});
+
+proxy.showWallet();
+```
+
+### `setStyle` (custom RPC)
+
+Additive merge of theme CSS variables + copy. Safe to call repeatedly. Schema is Zod-strict (unknown keys rejected). Full field list: [skills/oneshot-embedded-wallet/SKILL.md](skills/oneshot-embedded-wallet/SKILL.md).
+
+### Agent skill
+
+Integrators / coding agents:
+
+```bash
+npx skills add 1Shot-API/embedded-wallet@oneshot-embedded-wallet
+# or from a sibling clone:
+npx skills add ../embedded-wallet --skill oneshot-embedded-wallet
+```
+
+Source: [skills/oneshot-embedded-wallet](skills/oneshot-embedded-wallet/).
+
 ## Build
 
 ```bash
@@ -65,6 +104,10 @@ docker run --rm -p 8080:80 oneshot-wallet
 | `clean` | Remove `dist/` |
 | `lint` | `tsc --noEmit` |
 
+## Refactor roadmap
+
+See [roadmap.md](roadmap.md) (ShadCN + customization phases).
+
 ## Status
 
-Functional Branding Layer ported from OWS `examples/general-wallet` (passkey unlock, EIP-1193, signing consent, recovery, credentials). UI will be refactored to shadcn next.
+Functional Branding Layer (passkey unlock, EIP-1193, signing consent, recovery, credentials) with Phase 0 style foundations (`setStyle` + StyleProvider). ShadCN UI migration in progress.

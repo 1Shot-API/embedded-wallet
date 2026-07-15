@@ -1,4 +1,5 @@
 import { useWallet } from "../wallet/WalletProvider";
+import { styleController, useStyle } from "../style";
 
 export function MainPanel() {
   const {
@@ -14,6 +15,7 @@ export function MainPanel() {
     openRestoreBackup,
     openCredentialList,
   } = useWallet();
+  const { style } = useStyle();
 
   const status = unlocked
     ? "Unlocked"
@@ -23,9 +25,9 @@ export function MainPanel() {
 
   return (
     <>
-      <h1 className="mb-1 text-xl font-semibold">OWS Example General Wallet</h1>
-      <p className="mb-4 text-[0.9rem] opacity-75">
-        Branding Layer — general-purpose wallet with nested Signing Layer.
+      <h1 className="mb-1 text-xl font-semibold">{style.copy.productName}</h1>
+      <p className="text-muted-foreground mb-4 text-[0.9rem]">
+        {style.copy.tagline}
       </p>
 
       <section className="grid max-w-xl gap-2" aria-label="Wallet status">
@@ -50,7 +52,7 @@ export function MainPanel() {
           <select
             id="chain-select"
             aria-label="Active chain"
-            className="max-w-64 rounded-md border border-[color-mix(in_srgb,CanvasText_25%,transparent)] bg-[Canvas] px-2 py-1.5 text-[0.9rem] text-inherit"
+            className="border-border bg-background text-foreground max-w-64 rounded-md border px-2 py-1.5 text-[0.9rem]"
             value={chainId}
             onChange={(event) => {
               void switchChain(event.target.value);
@@ -72,7 +74,7 @@ export function MainPanel() {
           {unlocked ? (
             <button
               type="button"
-              className="cursor-pointer rounded-md border border-[color-mix(in_srgb,CanvasText_25%,transparent)] bg-transparent px-3.5 py-2 text-[0.9rem]"
+              className="border-border hover:bg-muted cursor-pointer rounded-md border bg-transparent px-3.5 py-2 text-[0.9rem]"
               onClick={() => {
                 void openCreateBackup().catch((error: unknown) => {
                   console.error("[create-backup] failed", error);
@@ -85,10 +87,10 @@ export function MainPanel() {
           {!unlocked ? (
             <button
               type="button"
-              className="cursor-pointer rounded-md border border-[color-mix(in_srgb,CanvasText_25%,transparent)] bg-transparent px-3.5 py-2 text-[0.9rem]"
+              className="border-border hover:bg-muted cursor-pointer rounded-md border bg-transparent px-3.5 py-2 text-[0.9rem]"
               onClick={() => {
                 void openRestoreBackup().catch((error: unknown) => {
-                  console.error("[recover-backup] failed", error);
+                  console.error("[restore-backup] failed", error);
                 });
               }}
             >
@@ -97,18 +99,35 @@ export function MainPanel() {
           ) : null}
           <button
             type="button"
-            className="cursor-pointer rounded-md border border-[color-mix(in_srgb,CanvasText_25%,transparent)] bg-transparent px-3.5 py-2 text-[0.9rem]"
+            className="border-border hover:bg-muted cursor-pointer rounded-md border bg-transparent px-3.5 py-2 text-[0.9rem]"
             onClick={() => {
               void openCredentialList().catch((error: unknown) => {
-                console.error(
-                  "[ows-example-general-wallet] list credentials failed",
-                  error,
-                );
+                console.error("[credential-list] failed", error);
               });
             }}
           >
             My credentials
           </button>
+          {import.meta.env.DEV ? (
+            <button
+              type="button"
+              className="bg-primary text-primary-foreground hover:bg-primary/80 cursor-pointer rounded-md border border-transparent px-3.5 py-2 text-[0.9rem]"
+              onClick={() => {
+                styleController.merge({
+                  theme: {
+                    primary: "oklch(0.45 0.18 250)",
+                    primaryForeground: "oklch(0.99 0 0)",
+                  },
+                  copy: {
+                    productName: "Styled Demo Wallet",
+                    tagline: "setStyle smoke test (dev only)",
+                  },
+                });
+              }}
+            >
+              Debug: setStyle
+            </button>
+          ) : null}
         </div>
       </section>
     </>

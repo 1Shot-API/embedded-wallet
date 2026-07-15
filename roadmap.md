@@ -69,13 +69,14 @@ Relayer / credential fetch    →  TanStack Query (later phase)
 
 **Outcome:** Host can call `setStyle`; CSS vars + copy map exist; shadcn theme CSS restored alongside wallet layout.
 
-- [ ] Define `IStyleOptions` (theme tokens + copy/labels + feature flags as needed).
-- [ ] Defaults module (`DEFAULT_STYLE` / 1Shot branding).
-- [ ] `applyStyleToDocument(options)` → set CSS variables on `document.documentElement` (or `#root`).
-- [ ] `StyleProvider` + `useStyle()` context.
-- [ ] Register `wallet.registerRpc("setStyle", …)` **before** `wallet.start()` (merge + apply).
-- [ ] Restore / merge shadcn theme into `src/index.css` (css variables + Tailwind) without breaking `/signer/` host styles.
-- [ ] Smoke: call `setStyle` from a temporary button or host console; primary/background tokens update.
+- [x] Define `IStyleOptions` (theme tokens + copy/labels + feature flags as needed).
+- [x] Defaults module (`DEFAULT_STYLE` / 1Shot branding).
+- [x] `applyStyleToDocument(options)` → set CSS variables on `document.documentElement` (or `#root`).
+- [x] `StyleProvider` + `useStyle()` context.
+- [x] Register `wallet.registerRpc("setStyle", …)` **before** `wallet.start()` (merge + apply).
+- [x] Restore / merge shadcn theme into `src/index.css` (css variables + Tailwind) without breaking `/signer/` host styles.
+- [x] Smoke: call `setStyle` from a temporary button or host console; primary/background tokens update.
+- [x] Bootstrap Host integrator skill (`skills/oneshot-embedded-wallet`) documenting `setStyle` + wallet URL.
 
 **Exit criteria:** Defaults render; RPC path works; no modal UI rewritten yet.
 
@@ -205,7 +206,7 @@ Keep OID4 wiring in `registerCredentialsProvider` / WalletProvider; UI-only chan
 
 | Phase | Status |
 |-------|--------|
-| 0 Foundations | pending |
+| 0 Foundations | done |
 | 1 Shell | pending |
 | 2 Modal system | pending |
 | 3 Setup modals | pending |

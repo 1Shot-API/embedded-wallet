@@ -37,6 +37,7 @@ import { DEMO_CHAINS } from "../ows/demoChains";
 import { registerAccountConnect } from "../ows/registerAccountConnect";
 import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
+import { registerSetStyleRpc } from "../style";
 import {
   isWalletCreated,
   loadBackup,
@@ -518,6 +519,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           reject: (error: unknown) => void;
         }) => ActiveModal,
       ) => uiBridgeRef.current.pushModal(build);
+
+      // Host theming — register before start(); may be called repeatedly.
+      registerSetStyleRpc(wallet);
 
       registerAccountConnect(wallet, signer, {
         storage: walletStorage,
