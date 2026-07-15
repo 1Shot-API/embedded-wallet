@@ -2,6 +2,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { resolveHttpsOptions, walletIframeUrl } from "./wallet-url.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -14,6 +16,12 @@ const https = resolveHttpsOptions({
 export default defineConfig({
   define: {
     __WALLET_IFRAME_URL__: JSON.stringify(walletIframeUrl()),
+  },
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
   },
   server: {
     port: Number(process.env.HOST_PORT ?? process.env.PORT ?? 5173),

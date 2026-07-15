@@ -167,11 +167,16 @@ Keep OID4 wiring in `registerCredentialsProvider` / WalletProvider; UI-only chan
 
 ### Phase 8 — Polish + customization tester prep
 
+**Outcome:** Host tester is a professional playground for `setStyle`; wallet docs catch up.
+
 - [ ] Document `IStyleOptions` and example host `setStyle` call in README.
 - [ ] Expand knobs as needed (logo URL, radius, font, showBackup, etc.).
-- [ ] Optional: minimal internal “style playground” panel behind a query flag (not the full host tester site).
+- [x] Host tester: React + ShadCN shell; style knobs encapsulated in `WalletConfigurator` (organization TBD).
+- [x] Host layout v1: 1Shot-branded header + Sidebar (Test / Design); Design keeps wallet flyout open with configurator.
+- [ ] Reorganize `WalletConfigurator` (sections/tabs for copy vs theme).
 - [ ] Dark mode strategy if we support host toggle via `setStyle`.
 
+**Exit criteria:** Host looks intentional; `setStyle` knobs are maintainable as we grow the wallet UI.
 ---
 
 ### Later (out of this refactor)
