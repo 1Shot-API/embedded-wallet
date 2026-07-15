@@ -1,0 +1,113 @@
+name: 1Shot Wallet - Build, Push, and Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PRODUCT_NAME: oneshot
+  GITHUB_SHA: ${{ github.sha }}
+  GITHUB_REF: ${{ github.ref }}
+  REGISTRY_HOSTNAME: gcr.io
+  GAR_LOCATION: us-central1
+  GKE_ZONE: us-central1-a
+  PROJECT_ID: shot-prod-493103
+  GCP_CREDENTIALS: ${{ secrets.PROD_GCP_CREDENTIALS }}
+  GOOGLE_APPLICATION_CREDENTIALS: ~/.gcp/credentials.json
+  GOOGLE_PROJECT: shot-prod-493103
+  GOOGLE_REGION: us-central1
+  GOOGLE_ZONE: us-central1-a
+  BUILD_ENV: develop
+  SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  wallet-dockerize:
+    name: Dockerize Code
+    runs-on:
+      labels: [ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v4
+        id: changes
+        with:
+          filters: |
+            packages:
+              - '**'
+      # Setup gcloud CLI
+      - id: "auth"
+        uses: "google-github-actions/auth@v3"
+        with:
+          credentials_json: "${{ secrets.PROD_GCP_CREDENTIALS }}"
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v3"
+      - name: Docker configuration
+        #if: steps.changes.outputs.packages == 'true'
+        run: |-
+          gcloud --quiet auth configure-docker $GAR_LOCATION-docker.pkg.dev
+
+      - name: Build Wallet
+        run: |-
+          docker build \
+            --tag "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$PRODUCT_NAME/oneshot-wallet:$GITHUB_SHA" \
+            --tag "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$PRODUCT_NAME/oneshot-wallet:${GITHUB_REF##*/}" \
+            --tag "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$PRODUCT_NAME/oneshot-wallet:latest" \
+            --build-arg PRODUCT_NAME="$PRODUCT_NAME" \
+            --build-arg GITHUB_SHA="$GITHUB_SHA" \
+            --build-arg GITHUB_REF="$GITHUB_REF" \
+            --build-arg BASE_TAG="$GITHUB_SHA" \
+            -f ./Dockerfile \
+            .
+
+      # Push the Docker image to Google Artifact Registry
+      - name: Publish Wallet
+        run: |-
+          docker push "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$PRODUCT_NAME/oneshot-wallet"  --all-tags
+
+  google-deployment:
+    name: Deploy to Google
+    runs-on:
+      labels: [ubuntu-latest]
+    if: ${{ success() && contains(join(needs.*.result, ','), 'success') }}
+    needs: [wallet-dockerize]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - id: "auth"
+        uses: "google-github-actions/auth@v3"
+        with:
+          credentials_json: "${{ secrets.PROD_GCP_CREDENTIALS }}"
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v3"
+        # SSH into the VM and run the deploy script
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Pull and Run Latest
+        run: |
+          set -euo pipefail
+          ZONE="${GOOGLE_ZONE}"
+          for VM in prod-vm prod-vm-2; do
+            EXTERNAL_IP=$(gcloud compute instances describe "$VM" --zone="$ZONE" --project="$PROJECT_ID" \
+              --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
+            EXTERNAL_IP="${EXTERNAL_IP//$'\r'/}"
+            EXTERNAL_IP="${EXTERNAL_IP//[[:space:]]/}"
+            if [[ -z "${EXTERNAL_IP}" ]]; then
+              echo "::error::VM '$VM' in zone '$ZONE' has no external NAT IP (networkInterfaces[0].accessConfigs[0].natIP is empty). Attach a public IP or change the deploy method (e.g. IAP)."
+              exit 1
+            fi
+            echo "==================== Deploying wallet to $VM ($EXTERNAL_IP) ===================="
+            ssh-keyscan -t ed25519 -H "$EXTERNAL_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
+            ssh-keyscan -H "$EXTERNAL_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
+            ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 "github@${EXTERNAL_IP}" 'bash -s' < infra/scripts/deploy-prod-wallet-vm-remote.sh
+          done
