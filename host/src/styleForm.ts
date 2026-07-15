@@ -1,63 +1,157 @@
-/** Flat form state for the host style playground (organization can come later). */
+/** Flat form state for the host style playground. */
 export interface IStyleFormState {
+  // Basic
+  logoUrl: string;
   productName: string;
   tagline: string;
-  connectTitle: string;
-  connectContinue: string;
-  setupTitle: string;
-  setupCreate: string;
-  passkeyTitle: string;
-  passkeyContinue: string;
-  signTitle: string;
-  signLabel: string;
-  typedTitle: string;
-  credOfferTitle: string;
-  credPresentTitle: string;
-  credListTitle: string;
-  backupTitle: string;
-  restoreTitle: string;
+
+  // Style (colors + chrome)
   primary: string;
   primaryForeground: string;
   background: string;
   foreground: string;
+  muted: string;
+  mutedForeground: string;
+  border: string;
+  accent: string;
+  accentForeground: string;
   radius: string;
+  fontSans: string;
   dark: boolean;
+
+  // Text — Connect
+  connectTitle: string;
+  connectBody: string;
+  connectContinue: string;
+  connectReject: string;
+
+  // Text — Wallet setup
+  setupTitle: string;
+  setupBody: string;
+  setupCreate: string;
+  setupLogin: string;
+  setupCancel: string;
+
+  // Text — Passkey name
+  passkeyTitle: string;
+  passkeyBody: string;
+  passkeyContinue: string;
+  passkeyCancel: string;
+
+  // Text — Personal sign
+  signTitle: string;
+  signLabel: string;
+  signReject: string;
+
+  // Text — Typed data
+  typedTitle: string;
+  typedSignLabel: string;
+  typedReject: string;
+
+  // Text — Credential offer
+  credOfferTitle: string;
+  credOfferBody: string;
+  credOfferAccept: string;
+  credOfferReject: string;
+
+  // Text — Credential presentation
+  credPresentTitle: string;
+  credPresentBody: string;
+  credPresentShare: string;
+  credPresentReject: string;
+
+  // Text — Credential list
+  credListTitle: string;
+  credListEmpty: string;
+  credListClose: string;
+
+  // Text — Create backup
+  backupTitle: string;
+  backupBody: string;
+  backupContinue: string;
+  backupCancel: string;
+
+  // Text — Restore backup
+  restoreTitle: string;
+  restoreBody: string;
+  restoreLabel: string;
+  restoreCancel: string;
 }
 
 export const ACME_PRESET: IStyleFormState = {
+  logoUrl: "",
   productName: "Acme Wallet",
   tagline: "Powered by 1Shot",
+  primary: "#3b6ef5",
+  primaryForeground: "#ffffff",
+  background: "#ffffff",
+  foreground: "#171717",
+  muted: "#f5f5f5",
+  mutedForeground: "#737373",
+  border: "#e5e5e5",
+  accent: "#eff6ff",
+  accentForeground: "#1e3a8a",
+  radius: "0.625rem",
+  fontSans: "",
+  dark: false,
   connectTitle: "Connect to Acme",
+  connectBody: "Acme is requesting your wallet address.",
   connectContinue: "Allow",
+  connectReject: "Reject",
   setupTitle: "Welcome to Acme",
+  setupBody: "Create or restore your Acme passkey wallet.",
   setupCreate: "Get started",
+  setupLogin: "Log in",
+  setupCancel: "Cancel",
   passkeyTitle: "Name this passkey",
+  passkeyBody: "Choose a name for this wallet passkey.",
   passkeyContinue: "Save name",
+  passkeyCancel: "Cancel",
   signTitle: "Approve signature",
   signLabel: "Sign",
+  signReject: "Reject",
   typedTitle: "Approve typed data",
+  typedSignLabel: "Sign",
+  typedReject: "Reject",
   credOfferTitle: "Accept this credential?",
+  credOfferBody: "Review the offer before accepting.",
+  credOfferAccept: "Accept",
+  credOfferReject: "Reject",
   credPresentTitle: "Share this credential?",
+  credPresentBody: "A verifier is requesting a presentation.",
+  credPresentShare: "Share",
+  credPresentReject: "Reject",
   credListTitle: "Credentials",
+  credListEmpty: "No credentials yet.",
+  credListClose: "Close",
   backupTitle: "Create a backup",
+  backupBody: "Encrypt a recovery blob with a passphrase.",
+  backupContinue: "Continue",
+  backupCancel: "Cancel",
   restoreTitle: "Restore wallet",
-  primary: "oklch(0.45 0.18 250)",
-  primaryForeground: "oklch(0.99 0 0)",
-  background: "oklch(1 0 0)",
-  foreground: "oklch(0.145 0 0)",
-  radius: "0.625rem",
-  dark: false,
+  restoreBody: "Paste a backup and enter your passphrase.",
+  restoreLabel: "Restore",
+  restoreCancel: "Cancel",
 };
 
 export const OCEAN_PRESET: IStyleFormState = {
+  ...ACME_PRESET,
   productName: "Ocean Wallet",
   tagline: "Host setStyle preset",
+  primary: "#0e7490",
+  primaryForeground: "#ffffff",
+  background: "#f0f9ff",
+  foreground: "#164e63",
+  muted: "#e0f2fe",
+  mutedForeground: "#0e7490",
+  border: "#bae6fd",
+  accent: "#cffafe",
+  accentForeground: "#155e75",
+  radius: "0.75rem",
   connectTitle: "Connect to Ocean",
-  connectContinue: "Allow",
   setupTitle: "Welcome aboard",
   setupCreate: "Create Ocean account",
   passkeyTitle: "Name your Ocean passkey",
-  passkeyContinue: "Save name",
   signTitle: "Sign with Ocean",
   signLabel: "Approve",
   typedTitle: "Ocean typed data",
@@ -66,106 +160,151 @@ export const OCEAN_PRESET: IStyleFormState = {
   credListTitle: "Ocean credentials",
   backupTitle: "Backup Ocean keys",
   restoreTitle: "Restore Ocean wallet",
-  primary: "oklch(0.45 0.18 250)",
-  primaryForeground: "oklch(0.99 0 0)",
-  background: "oklch(0.98 0.01 250)",
-  foreground: "oklch(0.2 0.04 250)",
-  radius: "0.75rem",
-  dark: false,
 };
 
 export const DEFAULTS_PRESET: IStyleFormState = {
+  ...ACME_PRESET,
   productName: "1Shot Wallet",
   tagline: "Passkey-secured embedded wallet",
+  primary: "#171717",
+  primaryForeground: "#fafafa",
+  background: "#ffffff",
+  foreground: "#171717",
+  muted: "#f5f5f5",
+  mutedForeground: "#737373",
+  border: "#e5e5e5",
+  accent: "#f5f5f5",
+  accentForeground: "#171717",
+  radius: "0.625rem",
   connectTitle: "Connect wallet",
+  connectBody: "",
   connectContinue: "Continue",
   setupTitle: "Set up your wallet",
+  setupBody: "",
   setupCreate: "Create account",
   passkeyTitle: "Name your passkey",
+  passkeyBody: "",
   passkeyContinue: "Continue",
   signTitle: "Sign message",
   signLabel: "Sign",
   typedTitle: "Sign typed data",
+  typedSignLabel: "Sign",
   credOfferTitle: "Accept credential offer?",
+  credOfferBody: "",
   credPresentTitle: "Share credential?",
+  credPresentBody: "",
   credListTitle: "My credentials",
   backupTitle: "Create backup",
+  backupBody: "",
   restoreTitle: "Restore backup",
-  primary: "oklch(0.205 0 0)",
-  primaryForeground: "oklch(0.985 0 0)",
-  background: "oklch(1 0 0)",
-  foreground: "oklch(0.145 0 0)",
-  radius: "0.625rem",
-  dark: false,
+  restoreBody: "",
 };
+
+function put(
+  target: Record<string, string>,
+  key: string,
+  value: string,
+): void {
+  const trimmed = value.trim();
+  if (trimmed) target[key] = trimmed;
+}
 
 /** Build a `setStyle` RPC payload from the flat form (omit empty theme/copy keys). */
 export function buildSetStylePayload(
   form: IStyleFormState,
 ): Record<string, unknown> {
   const theme: Record<string, string> = {};
-  const primary = form.primary.trim();
-  const primaryForeground = form.primaryForeground.trim();
-  const background = form.background.trim();
-  const foreground = form.foreground.trim();
-  const radius = form.radius.trim();
-  if (primary) theme.primary = primary;
-  if (primaryForeground) theme.primaryForeground = primaryForeground;
-  if (background) theme.background = background;
-  if (foreground) theme.foreground = foreground;
-  if (radius) theme.radius = radius;
+  put(theme, "primary", form.primary);
+  put(theme, "primaryForeground", form.primaryForeground);
+  put(theme, "background", form.background);
+  put(theme, "foreground", form.foreground);
+  put(theme, "muted", form.muted);
+  put(theme, "mutedForeground", form.mutedForeground);
+  put(theme, "border", form.border);
+  put(theme, "accent", form.accent);
+  put(theme, "accentForeground", form.accentForeground);
+  put(theme, "radius", form.radius);
+  put(theme, "fontSans", form.fontSans);
 
   const copy: Record<string, unknown> = {};
-  const productName = form.productName.trim();
-  const tagline = form.tagline.trim();
-  if (productName) copy.productName = productName;
-  if (tagline) copy.tagline = tagline;
+  put(copy as Record<string, string>, "productName", form.productName);
+  put(copy as Record<string, string>, "tagline", form.tagline);
+  put(copy as Record<string, string>, "logoUrl", form.logoUrl);
 
   const connect: Record<string, string> = {};
-  if (form.connectTitle.trim()) connect.title = form.connectTitle.trim();
-  if (form.connectContinue.trim()) {
-    connect.continueLabel = form.connectContinue.trim();
-  }
+  put(connect, "title", form.connectTitle);
+  put(connect, "body", form.connectBody);
+  put(connect, "continueLabel", form.connectContinue);
+  put(connect, "rejectLabel", form.connectReject);
   if (Object.keys(connect).length > 0) copy.connect = connect;
 
   const walletSetup: Record<string, string> = {};
-  if (form.setupTitle.trim()) walletSetup.title = form.setupTitle.trim();
-  if (form.setupCreate.trim()) {
-    walletSetup.createLabel = form.setupCreate.trim();
-  }
+  put(walletSetup, "title", form.setupTitle);
+  put(walletSetup, "body", form.setupBody);
+  put(walletSetup, "createLabel", form.setupCreate);
+  put(walletSetup, "loginLabel", form.setupLogin);
+  put(walletSetup, "cancelLabel", form.setupCancel);
   if (Object.keys(walletSetup).length > 0) copy.walletSetup = walletSetup;
 
   const passkeyName: Record<string, string> = {};
-  if (form.passkeyTitle.trim()) passkeyName.title = form.passkeyTitle.trim();
-  if (form.passkeyContinue.trim()) {
-    passkeyName.continueLabel = form.passkeyContinue.trim();
-  }
+  put(passkeyName, "title", form.passkeyTitle);
+  put(passkeyName, "body", form.passkeyBody);
+  put(passkeyName, "continueLabel", form.passkeyContinue);
+  put(passkeyName, "cancelLabel", form.passkeyCancel);
   if (Object.keys(passkeyName).length > 0) copy.passkeyName = passkeyName;
 
   const personalSign: Record<string, string> = {};
-  if (form.signTitle.trim()) personalSign.title = form.signTitle.trim();
-  if (form.signLabel.trim()) personalSign.signLabel = form.signLabel.trim();
+  put(personalSign, "title", form.signTitle);
+  put(personalSign, "signLabel", form.signLabel);
+  put(personalSign, "rejectLabel", form.signReject);
   if (Object.keys(personalSign).length > 0) copy.personalSign = personalSign;
 
   const typedData: Record<string, string> = {};
-  if (form.typedTitle.trim()) typedData.title = form.typedTitle.trim();
-  if (form.signLabel.trim()) typedData.signLabel = form.signLabel.trim();
+  put(typedData, "title", form.typedTitle);
+  put(typedData, "signLabel", form.typedSignLabel);
+  put(typedData, "rejectLabel", form.typedReject);
   if (Object.keys(typedData).length > 0) copy.typedData = typedData;
 
-  if (form.credOfferTitle.trim()) {
-    copy.credentialOffer = { title: form.credOfferTitle.trim() };
+  const credentialOffer: Record<string, string> = {};
+  put(credentialOffer, "title", form.credOfferTitle);
+  put(credentialOffer, "body", form.credOfferBody);
+  put(credentialOffer, "acceptLabel", form.credOfferAccept);
+  put(credentialOffer, "rejectLabel", form.credOfferReject);
+  if (Object.keys(credentialOffer).length > 0) {
+    copy.credentialOffer = credentialOffer;
   }
-  if (form.credPresentTitle.trim()) {
-    copy.credentialPresentation = { title: form.credPresentTitle.trim() };
+
+  const credentialPresentation: Record<string, string> = {};
+  put(credentialPresentation, "title", form.credPresentTitle);
+  put(credentialPresentation, "body", form.credPresentBody);
+  put(credentialPresentation, "shareLabel", form.credPresentShare);
+  put(credentialPresentation, "rejectLabel", form.credPresentReject);
+  if (Object.keys(credentialPresentation).length > 0) {
+    copy.credentialPresentation = credentialPresentation;
   }
-  if (form.credListTitle.trim()) {
-    copy.credentialList = { title: form.credListTitle.trim() };
+
+  const credentialList: Record<string, string> = {};
+  put(credentialList, "title", form.credListTitle);
+  put(credentialList, "emptyBody", form.credListEmpty);
+  put(credentialList, "closeLabel", form.credListClose);
+  if (Object.keys(credentialList).length > 0) {
+    copy.credentialList = credentialList;
   }
-  if (form.backupTitle.trim()) {
-    copy.createBackup = { title: form.backupTitle.trim() };
-  }
-  if (form.restoreTitle.trim()) {
-    copy.restoreBackup = { title: form.restoreTitle.trim() };
+
+  const createBackup: Record<string, string> = {};
+  put(createBackup, "title", form.backupTitle);
+  put(createBackup, "body", form.backupBody);
+  put(createBackup, "continueLabel", form.backupContinue);
+  put(createBackup, "cancelLabel", form.backupCancel);
+  if (Object.keys(createBackup).length > 0) copy.createBackup = createBackup;
+
+  const restoreBackup: Record<string, string> = {};
+  put(restoreBackup, "title", form.restoreTitle);
+  put(restoreBackup, "body", form.restoreBody);
+  put(restoreBackup, "restoreLabel", form.restoreLabel);
+  put(restoreBackup, "cancelLabel", form.restoreCancel);
+  if (Object.keys(restoreBackup).length > 0) {
+    copy.restoreBackup = restoreBackup;
   }
 
   const payload: Record<string, unknown> = { dark: form.dark };

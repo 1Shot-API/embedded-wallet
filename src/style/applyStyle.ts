@@ -13,6 +13,7 @@ export function mergeStyle(
     copy: {
       productName: patch.copy?.productName ?? current.copy.productName,
       tagline: patch.copy?.tagline ?? current.copy.tagline,
+      logoUrl: patch.copy?.logoUrl ?? current.copy.logoUrl,
       connect: {
         ...current.copy.connect,
         ...patch.copy?.connect,

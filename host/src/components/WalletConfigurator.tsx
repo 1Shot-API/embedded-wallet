@@ -2,6 +2,16 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ColorPickerField } from "./ColorPickerField";
 import {
   ACME_PRESET,
   DEFAULTS_PRESET,
@@ -16,7 +26,7 @@ export interface IWalletConfiguratorProps {
   onApply: (options: Record<string, unknown>) => Promise<void>;
 }
 
-function Field({
+function TextField({
   id,
   label,
   value,
@@ -30,7 +40,7 @@ function Field({
   mono?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-[9rem_1fr] items-center gap-x-3 gap-y-1 max-sm:grid-cols-1">
+    <div className="grid gap-1.5">
       <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
@@ -43,9 +53,33 @@ function Field({
   );
 }
 
+function BodyField({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Textarea
+        id={id}
+        value={value}
+        rows={3}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </div>
+  );
+}
+
 /**
  * Host-side style playground for `proxy.rpc("setStyle", …)`.
- * Flat knobs for now — layout/organization can be refined later.
+ * Tabs: Basic (identity), Style (theme colors), Text (modal copy).
  */
 export function WalletConfigurator({
   ready,
@@ -81,155 +115,411 @@ export function WalletConfigurator({
   };
 
   return (
-    <section className="flex flex-col gap-3" aria-label="Style configuration">
-      <div className="flex flex-col gap-2">
-        <Field
-          id="style-product-name"
-          label="Product name"
-          value={form.productName}
-          onChange={(value) => patch("productName", value)}
-        />
-        <Field
-          id="style-tagline"
-          label="Tagline"
-          value={form.tagline}
-          onChange={(value) => patch("tagline", value)}
-        />
-        <Field
-          id="style-connect-title"
-          label="Connect title"
-          value={form.connectTitle}
-          onChange={(value) => patch("connectTitle", value)}
-        />
-        <Field
-          id="style-connect-continue"
-          label="Connect continue"
-          value={form.connectContinue}
-          onChange={(value) => patch("connectContinue", value)}
-        />
-        <Field
-          id="style-setup-title"
-          label="Setup title"
-          value={form.setupTitle}
-          onChange={(value) => patch("setupTitle", value)}
-        />
-        <Field
-          id="style-setup-create"
-          label="Setup create"
-          value={form.setupCreate}
-          onChange={(value) => patch("setupCreate", value)}
-        />
-        <Field
-          id="style-passkey-title"
-          label="Passkey title"
-          value={form.passkeyTitle}
-          onChange={(value) => patch("passkeyTitle", value)}
-        />
-        <Field
-          id="style-passkey-continue"
-          label="Passkey continue"
-          value={form.passkeyContinue}
-          onChange={(value) => patch("passkeyContinue", value)}
-        />
-        <Field
-          id="style-sign-title"
-          label="Sign title"
-          value={form.signTitle}
-          onChange={(value) => patch("signTitle", value)}
-        />
-        <Field
-          id="style-sign-label"
-          label="Sign button"
-          value={form.signLabel}
-          onChange={(value) => patch("signLabel", value)}
-        />
-        <Field
-          id="style-typed-title"
-          label="Typed-data title"
-          value={form.typedTitle}
-          onChange={(value) => patch("typedTitle", value)}
-        />
-        <Field
-          id="style-cred-offer-title"
-          label="Offer title"
-          value={form.credOfferTitle}
-          onChange={(value) => patch("credOfferTitle", value)}
-        />
-        <Field
-          id="style-cred-present-title"
-          label="Present title"
-          value={form.credPresentTitle}
-          onChange={(value) => patch("credPresentTitle", value)}
-        />
-        <Field
-          id="style-cred-list-title"
-          label="List title"
-          value={form.credListTitle}
-          onChange={(value) => patch("credListTitle", value)}
-        />
-        <Field
-          id="style-backup-title"
-          label="Backup title"
-          value={form.backupTitle}
-          onChange={(value) => patch("backupTitle", value)}
-        />
-        <Field
-          id="style-restore-title"
-          label="Restore title"
-          value={form.restoreTitle}
-          onChange={(value) => patch("restoreTitle", value)}
-        />
-        <Field
-          id="style-primary"
-          label="Primary"
-          value={form.primary}
-          mono
-          onChange={(value) => patch("primary", value)}
-        />
-        <Field
-          id="style-primary-fg"
-          label="Primary foreground"
-          value={form.primaryForeground}
-          mono
-          onChange={(value) => patch("primaryForeground", value)}
-        />
-        <Field
-          id="style-background"
-          label="Background"
-          value={form.background}
-          mono
-          onChange={(value) => patch("background", value)}
-        />
-        <Field
-          id="style-foreground"
-          label="Foreground"
-          value={form.foreground}
-          mono
-          onChange={(value) => patch("foreground", value)}
-        />
-        <Field
-          id="style-radius"
-          label="Radius"
-          value={form.radius}
-          mono
-          onChange={(value) => patch("radius", value)}
-        />
-      </div>
+    <section className="flex flex-col gap-4" aria-label="Style configuration">
+      <Tabs defaultValue="basic">
+        <TabsList variant="line" className="w-full justify-start">
+          <TabsTrigger value="basic">Basic</TabsTrigger>
+          <TabsTrigger value="style">Style</TabsTrigger>
+          <TabsTrigger value="text">Text</TabsTrigger>
+        </TabsList>
 
-      <label className="flex items-center gap-2 text-sm font-medium">
-        <input
-          id="style-dark"
-          type="checkbox"
-          className="border-input size-4 rounded border"
-          checked={form.dark}
-          onChange={(event) => patch("dark", event.target.checked)}
-        />
-        <span>
-          Dark mode (<code className="text-xs">dark: true</code>)
-        </span>
-      </label>
+        <TabsContent value="basic" className="mt-4 flex flex-col gap-3">
+          <TextField
+            id="style-logo-url"
+            label="Logo URL"
+            value={form.logoUrl}
+            mono
+            onChange={(value) => patch("logoUrl", value)}
+          />
+          <TextField
+            id="style-product-name"
+            label="Wallet name"
+            value={form.productName}
+            onChange={(value) => patch("productName", value)}
+          />
+          <TextField
+            id="style-tagline"
+            label="Subtext"
+            value={form.tagline}
+            onChange={(value) => patch("tagline", value)}
+          />
+        </TabsContent>
 
-      <div className="flex flex-wrap gap-2">
+        <TabsContent value="style" className="mt-4 flex flex-col gap-3">
+          <ColorPickerField
+            id="style-primary"
+            label="Primary"
+            value={form.primary}
+            onChange={(value) => patch("primary", value)}
+          />
+          <ColorPickerField
+            id="style-primary-fg"
+            label="Primary FG"
+            value={form.primaryForeground}
+            onChange={(value) => patch("primaryForeground", value)}
+          />
+          <ColorPickerField
+            id="style-background"
+            label="Background"
+            value={form.background}
+            onChange={(value) => patch("background", value)}
+          />
+          <ColorPickerField
+            id="style-foreground"
+            label="Foreground"
+            value={form.foreground}
+            onChange={(value) => patch("foreground", value)}
+          />
+          <ColorPickerField
+            id="style-muted"
+            label="Muted"
+            value={form.muted}
+            onChange={(value) => patch("muted", value)}
+          />
+          <ColorPickerField
+            id="style-muted-fg"
+            label="Muted FG"
+            value={form.mutedForeground}
+            onChange={(value) => patch("mutedForeground", value)}
+          />
+          <ColorPickerField
+            id="style-border"
+            label="Border"
+            value={form.border}
+            onChange={(value) => patch("border", value)}
+          />
+          <ColorPickerField
+            id="style-accent"
+            label="Accent"
+            value={form.accent}
+            onChange={(value) => patch("accent", value)}
+          />
+          <ColorPickerField
+            id="style-accent-fg"
+            label="Accent FG"
+            value={form.accentForeground}
+            onChange={(value) => patch("accentForeground", value)}
+          />
+          <TextField
+            id="style-radius"
+            label="Radius"
+            value={form.radius}
+            mono
+            onChange={(value) => patch("radius", value)}
+          />
+          <TextField
+            id="style-font"
+            label="Font family"
+            value={form.fontSans}
+            mono
+            onChange={(value) => patch("fontSans", value)}
+          />
+          <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
+            <Label htmlFor="style-dark" className="cursor-pointer">
+              Dark mode
+            </Label>
+            <Switch
+              id="style-dark"
+              checked={form.dark}
+              onCheckedChange={(checked) => patch("dark", checked)}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="text" className="mt-4">
+          <Accordion type="multiple">
+            <AccordionItem value="connect">
+              <AccordionTrigger>Connect</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="connect-title"
+                  label="Title"
+                  value={form.connectTitle}
+                  onChange={(value) => patch("connectTitle", value)}
+                />
+                <BodyField
+                  id="connect-body"
+                  label="Body"
+                  value={form.connectBody}
+                  onChange={(value) => patch("connectBody", value)}
+                />
+                <TextField
+                  id="connect-continue"
+                  label="Continue"
+                  value={form.connectContinue}
+                  onChange={(value) => patch("connectContinue", value)}
+                />
+                <TextField
+                  id="connect-reject"
+                  label="Reject"
+                  value={form.connectReject}
+                  onChange={(value) => patch("connectReject", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="setup">
+              <AccordionTrigger>Wallet setup</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="setup-title"
+                  label="Title"
+                  value={form.setupTitle}
+                  onChange={(value) => patch("setupTitle", value)}
+                />
+                <BodyField
+                  id="setup-body"
+                  label="Body"
+                  value={form.setupBody}
+                  onChange={(value) => patch("setupBody", value)}
+                />
+                <TextField
+                  id="setup-create"
+                  label="Create"
+                  value={form.setupCreate}
+                  onChange={(value) => patch("setupCreate", value)}
+                />
+                <TextField
+                  id="setup-login"
+                  label="Login"
+                  value={form.setupLogin}
+                  onChange={(value) => patch("setupLogin", value)}
+                />
+                <TextField
+                  id="setup-cancel"
+                  label="Cancel"
+                  value={form.setupCancel}
+                  onChange={(value) => patch("setupCancel", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="passkey">
+              <AccordionTrigger>Passkey name</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="passkey-title"
+                  label="Title"
+                  value={form.passkeyTitle}
+                  onChange={(value) => patch("passkeyTitle", value)}
+                />
+                <BodyField
+                  id="passkey-body"
+                  label="Body"
+                  value={form.passkeyBody}
+                  onChange={(value) => patch("passkeyBody", value)}
+                />
+                <TextField
+                  id="passkey-continue"
+                  label="Continue"
+                  value={form.passkeyContinue}
+                  onChange={(value) => patch("passkeyContinue", value)}
+                />
+                <TextField
+                  id="passkey-cancel"
+                  label="Cancel"
+                  value={form.passkeyCancel}
+                  onChange={(value) => patch("passkeyCancel", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="sign">
+              <AccordionTrigger>Personal sign</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="sign-title"
+                  label="Title"
+                  value={form.signTitle}
+                  onChange={(value) => patch("signTitle", value)}
+                />
+                <TextField
+                  id="sign-label"
+                  label="Sign"
+                  value={form.signLabel}
+                  onChange={(value) => patch("signLabel", value)}
+                />
+                <TextField
+                  id="sign-reject"
+                  label="Reject"
+                  value={form.signReject}
+                  onChange={(value) => patch("signReject", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="typed">
+              <AccordionTrigger>Typed data</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="typed-title"
+                  label="Title"
+                  value={form.typedTitle}
+                  onChange={(value) => patch("typedTitle", value)}
+                />
+                <TextField
+                  id="typed-sign"
+                  label="Sign"
+                  value={form.typedSignLabel}
+                  onChange={(value) => patch("typedSignLabel", value)}
+                />
+                <TextField
+                  id="typed-reject"
+                  label="Reject"
+                  value={form.typedReject}
+                  onChange={(value) => patch("typedReject", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="cred-offer">
+              <AccordionTrigger>Credential offer</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="cred-offer-title"
+                  label="Title"
+                  value={form.credOfferTitle}
+                  onChange={(value) => patch("credOfferTitle", value)}
+                />
+                <BodyField
+                  id="cred-offer-body"
+                  label="Body"
+                  value={form.credOfferBody}
+                  onChange={(value) => patch("credOfferBody", value)}
+                />
+                <TextField
+                  id="cred-offer-accept"
+                  label="Accept"
+                  value={form.credOfferAccept}
+                  onChange={(value) => patch("credOfferAccept", value)}
+                />
+                <TextField
+                  id="cred-offer-reject"
+                  label="Reject"
+                  value={form.credOfferReject}
+                  onChange={(value) => patch("credOfferReject", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="cred-present">
+              <AccordionTrigger>Credential presentation</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="cred-present-title"
+                  label="Title"
+                  value={form.credPresentTitle}
+                  onChange={(value) => patch("credPresentTitle", value)}
+                />
+                <BodyField
+                  id="cred-present-body"
+                  label="Body"
+                  value={form.credPresentBody}
+                  onChange={(value) => patch("credPresentBody", value)}
+                />
+                <TextField
+                  id="cred-present-share"
+                  label="Share"
+                  value={form.credPresentShare}
+                  onChange={(value) => patch("credPresentShare", value)}
+                />
+                <TextField
+                  id="cred-present-reject"
+                  label="Reject"
+                  value={form.credPresentReject}
+                  onChange={(value) => patch("credPresentReject", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="cred-list">
+              <AccordionTrigger>Credential list</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="cred-list-title"
+                  label="Title"
+                  value={form.credListTitle}
+                  onChange={(value) => patch("credListTitle", value)}
+                />
+                <BodyField
+                  id="cred-list-empty"
+                  label="Empty"
+                  value={form.credListEmpty}
+                  onChange={(value) => patch("credListEmpty", value)}
+                />
+                <TextField
+                  id="cred-list-close"
+                  label="Close"
+                  value={form.credListClose}
+                  onChange={(value) => patch("credListClose", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="backup">
+              <AccordionTrigger>Create backup</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="backup-title"
+                  label="Title"
+                  value={form.backupTitle}
+                  onChange={(value) => patch("backupTitle", value)}
+                />
+                <BodyField
+                  id="backup-body"
+                  label="Body"
+                  value={form.backupBody}
+                  onChange={(value) => patch("backupBody", value)}
+                />
+                <TextField
+                  id="backup-continue"
+                  label="Continue"
+                  value={form.backupContinue}
+                  onChange={(value) => patch("backupContinue", value)}
+                />
+                <TextField
+                  id="backup-cancel"
+                  label="Cancel"
+                  value={form.backupCancel}
+                  onChange={(value) => patch("backupCancel", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="restore">
+              <AccordionTrigger>Restore backup</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="restore-title"
+                  label="Title"
+                  value={form.restoreTitle}
+                  onChange={(value) => patch("restoreTitle", value)}
+                />
+                <BodyField
+                  id="restore-body"
+                  label="Body"
+                  value={form.restoreBody}
+                  onChange={(value) => patch("restoreBody", value)}
+                />
+                <TextField
+                  id="restore-label"
+                  label="Restore"
+                  value={form.restoreLabel}
+                  onChange={(value) => patch("restoreLabel", value)}
+                />
+                <TextField
+                  id="restore-cancel"
+                  label="Cancel"
+                  value={form.restoreCancel}
+                  onChange={(value) => patch("restoreCancel", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </TabsContent>
+      </Tabs>
+
+      <div className="flex flex-wrap gap-2 border-t pt-4">
         <Button
           type="button"
           disabled={!ready || busy}
@@ -257,7 +547,7 @@ export function WalletConfigurator({
             void apply(DEFAULTS_PRESET);
           }}
         >
-          Preset: defaults vibe
+          Preset: defaults
         </Button>
       </div>
 

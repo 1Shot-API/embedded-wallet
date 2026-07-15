@@ -158,6 +158,8 @@ export interface IStyleCopyOptions {
   productName?: string;
   /** Short supporting line under the product name */
   tagline?: string;
+  /** Optional brand logo URL shown in wallet chrome */
+  logoUrl?: string;
   /** Partial patch for the connect modal */
   connect?: Partial<IStyleCopyConnect>;
   /** Partial patch for the wallet setup modal */
@@ -184,6 +186,7 @@ export interface IStyleCopyOptions {
 export interface IResolvedCopy {
   productName: string;
   tagline: string;
+  logoUrl: string;
   connect: IStyleCopyConnect;
   walletSetup: IStyleCopyWalletSetup;
   passkeyName: IStyleCopyPasskeyName;

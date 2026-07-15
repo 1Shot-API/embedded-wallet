@@ -158,6 +158,7 @@ const copySchema = z
   .object({
     productName: z.string().optional(),
     tagline: z.string().optional(),
+    logoUrl: z.string().optional(),
     connect: connectCopySchema,
     walletSetup: walletSetupCopySchema,
     passkeyName: passkeyNameCopySchema,

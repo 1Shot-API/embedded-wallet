@@ -18,6 +18,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
   copy: {
     productName: "1Shot Wallet",
     tagline: "Passkey-secured embedded wallet",
+    logoUrl: "",
     connect: {
       title: "Connect wallet",
       body: "The connected app is requesting your wallet address. You may be asked to verify with your passkey after you continue.",
