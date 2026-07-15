@@ -25,6 +25,14 @@ export function mergeStyle(
         ...current.copy.passkeyName,
         ...patch.copy?.passkeyName,
       },
+      personalSign: {
+        ...current.copy.personalSign,
+        ...patch.copy?.personalSign,
+      },
+      typedData: {
+        ...current.copy.typedData,
+        ...patch.copy?.typedData,
+      },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
   };
@@ -39,6 +47,8 @@ function cloneDefaultStyle(): IResolvedStyle {
       connect: { ...DEFAULT_STYLE.copy.connect },
       walletSetup: { ...DEFAULT_STYLE.copy.walletSetup },
       passkeyName: { ...DEFAULT_STYLE.copy.passkeyName },
+      personalSign: { ...DEFAULT_STYLE.copy.personalSign },
+      typedData: { ...DEFAULT_STYLE.copy.typedData },
     },
   };
 }

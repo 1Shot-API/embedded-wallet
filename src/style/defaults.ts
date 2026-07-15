@@ -40,6 +40,22 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       cancelLabel: "Cancel",
       continueLabel: "Continue",
     },
+    personalSign: {
+      title: "Sign message",
+      accountLabel: "Account",
+      messageLabel: "Message",
+      rejectLabel: "Reject",
+      signLabel: "Sign",
+    },
+    typedData: {
+      title: "Sign typed data",
+      accountLabel: "Account",
+      primaryTypeLabel: "Primary type",
+      domainLabel: "Domain",
+      messageLabel: "Message",
+      rejectLabel: "Reject",
+      signLabel: "Sign",
+    },
   },
   dark: false,
 };

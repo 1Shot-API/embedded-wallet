@@ -125,8 +125,8 @@ Copy via StyleContext (titles, button labels). Tokens only for colors.
 
 ### Phase 4 — Signing modals
 
-1. [ ] `personalSign`
-2. [ ] `typedData`
+1. [x] `personalSign` — `copy.personalSign.*` via StyleContext; token-styled detail blocks
+2. [x] `typedData` — `copy.typedData.*` via StyleContext; token-styled detail blocks
 
 Preserve request detail display; avoid overstuffing the first viewport of the flyout.
 

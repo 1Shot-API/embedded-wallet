@@ -56,6 +56,30 @@ const passkeyNameCopySchema = z
   .strict()
   .optional();
 
+const personalSignCopySchema = z
+  .object({
+    title: z.string().optional(),
+    accountLabel: z.string().optional(),
+    messageLabel: z.string().optional(),
+    rejectLabel: z.string().optional(),
+    signLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
+const typedDataCopySchema = z
+  .object({
+    title: z.string().optional(),
+    accountLabel: z.string().optional(),
+    primaryTypeLabel: z.string().optional(),
+    domainLabel: z.string().optional(),
+    messageLabel: z.string().optional(),
+    rejectLabel: z.string().optional(),
+    signLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
 const copySchema = z
   .object({
     productName: z.string().optional(),
@@ -63,6 +87,8 @@ const copySchema = z
     connect: connectCopySchema,
     walletSetup: walletSetupCopySchema,
     passkeyName: passkeyNameCopySchema,
+    personalSign: personalSignCopySchema,
+    typedData: typedDataCopySchema,
   })
   .strict()
   .optional();

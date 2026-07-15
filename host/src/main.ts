@@ -55,6 +55,15 @@ const stylePasskeyTitle = document.getElementById(
 const stylePasskeyContinue = document.getElementById(
   "style-passkey-continue",
 ) as HTMLInputElement;
+const styleSignTitle = document.getElementById(
+  "style-sign-title",
+) as HTMLInputElement;
+const styleSignLabel = document.getElementById(
+  "style-sign-label",
+) as HTMLInputElement;
+const styleTypedTitle = document.getElementById(
+  "style-typed-title",
+) as HTMLInputElement;
 const stylePrimary = document.getElementById("style-primary") as HTMLInputElement;
 const stylePrimaryFg = document.getElementById(
   "style-primary-fg",
@@ -154,6 +163,9 @@ function readStyleForm(): Record<string, unknown> {
   const setupCreate = styleSetupCreate.value.trim();
   const passkeyTitle = stylePasskeyTitle.value.trim();
   const passkeyContinue = stylePasskeyContinue.value.trim();
+  const signTitle = styleSignTitle.value.trim();
+  const signLabel = styleSignLabel.value.trim();
+  const typedTitle = styleTypedTitle.value.trim();
   if (productName) copy.productName = productName;
   if (tagline) copy.tagline = tagline;
   const connect: Record<string, string> = {};
@@ -168,6 +180,14 @@ function readStyleForm(): Record<string, unknown> {
   if (passkeyTitle) passkeyName.title = passkeyTitle;
   if (passkeyContinue) passkeyName.continueLabel = passkeyContinue;
   if (Object.keys(passkeyName).length > 0) copy.passkeyName = passkeyName;
+  const personalSign: Record<string, string> = {};
+  if (signTitle) personalSign.title = signTitle;
+  if (signLabel) personalSign.signLabel = signLabel;
+  if (Object.keys(personalSign).length > 0) copy.personalSign = personalSign;
+  const typedData: Record<string, string> = {};
+  if (typedTitle) typedData.title = typedTitle;
+  if (signLabel) typedData.signLabel = signLabel;
+  if (Object.keys(typedData).length > 0) copy.typedData = typedData;
 
   const payload: Record<string, unknown> = {};
   if (Object.keys(theme).length > 0) payload.theme = theme;
@@ -185,6 +205,9 @@ function fillStyleForm(preset: {
   setupCreate: string;
   passkeyTitle: string;
   passkeyContinue: string;
+  signTitle: string;
+  signLabel: string;
+  typedTitle: string;
   primary: string;
   primaryForeground: string;
   background: string;
@@ -200,6 +223,9 @@ function fillStyleForm(preset: {
   styleSetupCreate.value = preset.setupCreate;
   stylePasskeyTitle.value = preset.passkeyTitle;
   stylePasskeyContinue.value = preset.passkeyContinue;
+  styleSignTitle.value = preset.signTitle;
+  styleSignLabel.value = preset.signLabel;
+  styleTypedTitle.value = preset.typedTitle;
   stylePrimary.value = preset.primary;
   stylePrimaryFg.value = preset.primaryForeground;
   styleBackground.value = preset.background;
@@ -307,6 +333,9 @@ async function main(): Promise<void> {
       setupCreate: "Create Ocean account",
       passkeyTitle: "Name your Ocean passkey",
       passkeyContinue: "Save name",
+      signTitle: "Sign with Ocean",
+      signLabel: "Approve",
+      typedTitle: "Ocean typed data",
       primary: "oklch(0.45 0.18 250)",
       primaryForeground: "oklch(0.99 0 0)",
       background: "oklch(0.98 0.01 250)",
@@ -327,6 +356,9 @@ async function main(): Promise<void> {
       setupCreate: "Create account",
       passkeyTitle: "Name your passkey",
       passkeyContinue: "Continue",
+      signTitle: "Sign message",
+      signLabel: "Sign",
+      typedTitle: "Sign typed data",
       primary: "oklch(0.205 0 0)",
       primaryForeground: "oklch(0.985 0 0)",
       background: "oklch(1 0 0)",

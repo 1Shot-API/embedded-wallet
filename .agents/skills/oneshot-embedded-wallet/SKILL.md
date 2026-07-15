@@ -92,6 +92,18 @@ await proxy.rpc("setStyle", options);
 | `copy.passkeyName.emptyError` | string | empty-name validation error |
 | `copy.passkeyName.cancelLabel` | string | Cancel button |
 | `copy.passkeyName.continueLabel` | string | Continue button |
+| `copy.personalSign.title` | string | personal_sign modal title |
+| `copy.personalSign.accountLabel` | string | Account field label |
+| `copy.personalSign.messageLabel` | string | Message field label |
+| `copy.personalSign.rejectLabel` | string | Reject button |
+| `copy.personalSign.signLabel` | string | Sign button |
+| `copy.typedData.title` | string | EIP-712 modal title |
+| `copy.typedData.accountLabel` | string | Account field label |
+| `copy.typedData.primaryTypeLabel` | string | Primary type label |
+| `copy.typedData.domainLabel` | string | Domain label |
+| `copy.typedData.messageLabel` | string | Message label |
+| `copy.typedData.rejectLabel` | string | Reject button |
+| `copy.typedData.signLabel` | string | Sign button |
 | `dark` | boolean | toggles `html.dark` |
 
 Returns `{ ok: true, productName: string }` with the resolved product name after merge.

@@ -55,6 +55,26 @@ export interface IStyleCopyPasskeyName {
   continueLabel: string;
 }
 
+/** `personal_sign` / eth_sign message approval modal. */
+export interface IStyleCopyPersonalSign {
+  title: string;
+  accountLabel: string;
+  messageLabel: string;
+  rejectLabel: string;
+  signLabel: string;
+}
+
+/** EIP-712 typed-data approval modal. */
+export interface IStyleCopyTypedData {
+  title: string;
+  accountLabel: string;
+  primaryTypeLabel: string;
+  domainLabel: string;
+  messageLabel: string;
+  rejectLabel: string;
+  signLabel: string;
+}
+
 export interface IStyleCopyOptions {
   /** Product / wallet title shown in chrome and onboarding */
   productName?: string;
@@ -66,6 +86,10 @@ export interface IStyleCopyOptions {
   walletSetup?: Partial<IStyleCopyWalletSetup>;
   /** Partial patch for the passkey name modal */
   passkeyName?: Partial<IStyleCopyPasskeyName>;
+  /** Partial patch for the personal_sign modal */
+  personalSign?: Partial<IStyleCopyPersonalSign>;
+  /** Partial patch for the EIP-712 typed-data modal */
+  typedData?: Partial<IStyleCopyTypedData>;
 }
 
 /** Fully resolved copy map after merging defaults + setStyle. */
@@ -75,6 +99,8 @@ export interface IResolvedCopy {
   connect: IStyleCopyConnect;
   walletSetup: IStyleCopyWalletSetup;
   passkeyName: IStyleCopyPasskeyName;
+  personalSign: IStyleCopyPersonalSign;
+  typedData: IStyleCopyTypedData;
 }
 
 export interface IStyleOptions {
