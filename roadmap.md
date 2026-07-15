@@ -144,8 +144,8 @@ Keep OID4 wiring in `registerCredentialsProvider` / WalletProvider; UI-only chan
 
 ### Phase 6 — Backup / recovery modals
 
-1. [ ] `createBackup`
-2. [ ] `restoreBackup`
+1. [x] `createBackup` — `copy.createBackup.*` via StyleContext; `overlaySignerIframe` + `waitForSignerSlot` unchanged
+2. [x] `restoreBackup` — `copy.restoreBackup.*` via StyleContext; Signing Layer labels from copy
 
 **Do not** reparent the signer iframe — keep `overlaySignerIframe`. Passphrase UI can sit in Dialog; signer overlay behavior stays as today.
 

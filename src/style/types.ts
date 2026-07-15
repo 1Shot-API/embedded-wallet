@@ -113,6 +113,46 @@ export interface IStyleCopyCredentialList {
   closeLabel: string;
 }
 
+/**
+ * Create encrypted recovery backup modal.
+ * `body` / `passphrasePrompt` support `{minLength}`.
+ * `passphrasePrompt` + `continueLabel` are forwarded into the Signing Layer overlay.
+ */
+export interface IStyleCopyCreateBackup {
+  title: string;
+  body: string;
+  passphrasePrompt: string;
+  continueLabel: string;
+  cancelLabel: string;
+  closeLabel: string;
+  copyLabel: string;
+  copiedLabel: string;
+  copyFailedLabel: string;
+  doneLabel: string;
+  encryptedLabel: string;
+  passwordTooShortError: string;
+  cancelledError: string;
+  failedError: string;
+}
+
+/**
+ * Restore from encrypted backup modal.
+ * `passphraseLabel` + `restoreLabel` are forwarded into the Signing Layer overlay.
+ */
+export interface IStyleCopyRestoreBackup {
+  title: string;
+  body: string;
+  passphraseLabel: string;
+  restoreLabel: string;
+  cancelLabel: string;
+  closeLabel: string;
+  doneLabel: string;
+  successBody: string;
+  decryptFailedError: string;
+  cancelledError: string;
+  failedError: string;
+}
+
 export interface IStyleCopyOptions {
   /** Product / wallet title shown in chrome and onboarding */
   productName?: string;
@@ -134,6 +174,10 @@ export interface IStyleCopyOptions {
   credentialPresentation?: Partial<IStyleCopyCredentialPresentation>;
   /** Partial patch for the credential list modal */
   credentialList?: Partial<IStyleCopyCredentialList>;
+  /** Partial patch for the create-backup modal */
+  createBackup?: Partial<IStyleCopyCreateBackup>;
+  /** Partial patch for the restore-backup modal */
+  restoreBackup?: Partial<IStyleCopyRestoreBackup>;
 }
 
 /** Fully resolved copy map after merging defaults + setStyle. */
@@ -148,6 +192,8 @@ export interface IResolvedCopy {
   credentialOffer: IStyleCopyCredentialOffer;
   credentialPresentation: IStyleCopyCredentialPresentation;
   credentialList: IStyleCopyCredentialList;
+  createBackup: IStyleCopyCreateBackup;
+  restoreBackup: IStyleCopyRestoreBackup;
 }
 
 export interface IStyleOptions {

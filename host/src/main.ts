@@ -73,6 +73,12 @@ const styleCredPresentTitle = document.getElementById(
 const styleCredListTitle = document.getElementById(
   "style-cred-list-title",
 ) as HTMLInputElement;
+const styleBackupTitle = document.getElementById(
+  "style-backup-title",
+) as HTMLInputElement;
+const styleRestoreTitle = document.getElementById(
+  "style-restore-title",
+) as HTMLInputElement;
 const stylePrimary = document.getElementById("style-primary") as HTMLInputElement;
 const stylePrimaryFg = document.getElementById(
   "style-primary-fg",
@@ -178,6 +184,8 @@ function readStyleForm(): Record<string, unknown> {
   const credOfferTitle = styleCredOfferTitle.value.trim();
   const credPresentTitle = styleCredPresentTitle.value.trim();
   const credListTitle = styleCredListTitle.value.trim();
+  const backupTitle = styleBackupTitle.value.trim();
+  const restoreTitle = styleRestoreTitle.value.trim();
   if (productName) copy.productName = productName;
   if (tagline) copy.tagline = tagline;
   const connect: Record<string, string> = {};
@@ -205,6 +213,8 @@ function readStyleForm(): Record<string, unknown> {
     copy.credentialPresentation = { title: credPresentTitle };
   }
   if (credListTitle) copy.credentialList = { title: credListTitle };
+  if (backupTitle) copy.createBackup = { title: backupTitle };
+  if (restoreTitle) copy.restoreBackup = { title: restoreTitle };
 
   const payload: Record<string, unknown> = {};
   if (Object.keys(theme).length > 0) payload.theme = theme;
@@ -228,6 +238,8 @@ function fillStyleForm(preset: {
   credOfferTitle: string;
   credPresentTitle: string;
   credListTitle: string;
+  backupTitle: string;
+  restoreTitle: string;
   primary: string;
   primaryForeground: string;
   background: string;
@@ -249,6 +261,8 @@ function fillStyleForm(preset: {
   styleCredOfferTitle.value = preset.credOfferTitle;
   styleCredPresentTitle.value = preset.credPresentTitle;
   styleCredListTitle.value = preset.credListTitle;
+  styleBackupTitle.value = preset.backupTitle;
+  styleRestoreTitle.value = preset.restoreTitle;
   stylePrimary.value = preset.primary;
   stylePrimaryFg.value = preset.primaryForeground;
   styleBackground.value = preset.background;
@@ -362,6 +376,8 @@ async function main(): Promise<void> {
       credOfferTitle: "Accept Ocean credential?",
       credPresentTitle: "Share with verifier?",
       credListTitle: "Ocean credentials",
+      backupTitle: "Backup Ocean keys",
+      restoreTitle: "Restore Ocean wallet",
       primary: "oklch(0.45 0.18 250)",
       primaryForeground: "oklch(0.99 0 0)",
       background: "oklch(0.98 0.01 250)",
@@ -388,6 +404,8 @@ async function main(): Promise<void> {
       credOfferTitle: "Accept credential offer?",
       credPresentTitle: "Share credential?",
       credListTitle: "My credentials",
+      backupTitle: "Create backup",
+      restoreTitle: "Restore backup",
       primary: "oklch(0.205 0 0)",
       primaryForeground: "oklch(0.985 0 0)",
       background: "oklch(1 0 0)",

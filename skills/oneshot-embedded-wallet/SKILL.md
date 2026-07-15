@@ -123,6 +123,31 @@ await proxy.rpc("setStyle", options);
 | `copy.credentialList.issuedLabel` | string | Issued label |
 | `copy.credentialList.validUntilLabel` | string | Valid until label |
 | `copy.credentialList.closeLabel` | string | Close button |
+| `copy.createBackup.title` | string | create backup modal title |
+| `copy.createBackup.body` | string | supports `{minLength}` |
+| `copy.createBackup.passphrasePrompt` | string | Signing Layer passphrase label (`{minLength}`) |
+| `copy.createBackup.continueLabel` | string | Signing Layer continue |
+| `copy.createBackup.cancelLabel` | string | Cancel button |
+| `copy.createBackup.closeLabel` | string | Close button |
+| `copy.createBackup.copyLabel` | string | Copy button |
+| `copy.createBackup.copiedLabel` | string | after successful copy |
+| `copy.createBackup.copyFailedLabel` | string | copy failure |
+| `copy.createBackup.doneLabel` | string | Done button |
+| `copy.createBackup.encryptedLabel` | string | result ciphertext label |
+| `copy.createBackup.passwordTooShortError` | string | short passphrase error |
+| `copy.createBackup.cancelledError` | string | passkey cancelled |
+| `copy.createBackup.failedError` | string | generic failure |
+| `copy.restoreBackup.title` | string | restore backup modal title |
+| `copy.restoreBackup.body` | string | restore prompt body |
+| `copy.restoreBackup.passphraseLabel` | string | Signing Layer passphrase label |
+| `copy.restoreBackup.restoreLabel` | string | Signing Layer restore button |
+| `copy.restoreBackup.cancelLabel` | string | Cancel button |
+| `copy.restoreBackup.closeLabel` | string | Close button |
+| `copy.restoreBackup.doneLabel` | string | Done button |
+| `copy.restoreBackup.successBody` | string | success message |
+| `copy.restoreBackup.decryptFailedError` | string | bad passphrase error |
+| `copy.restoreBackup.cancelledError` | string | passkey cancelled |
+| `copy.restoreBackup.failedError` | string | generic failure |
 | `dark` | boolean | toggles `html.dark` |
 
 Returns `{ ok: true, productName: string }` with the resolved product name after merge.

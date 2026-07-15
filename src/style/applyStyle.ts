@@ -45,6 +45,14 @@ export function mergeStyle(
         ...current.copy.credentialList,
         ...patch.copy?.credentialList,
       },
+      createBackup: {
+        ...current.copy.createBackup,
+        ...patch.copy?.createBackup,
+      },
+      restoreBackup: {
+        ...current.copy.restoreBackup,
+        ...patch.copy?.restoreBackup,
+      },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
   };
@@ -64,6 +72,8 @@ function cloneDefaultStyle(): IResolvedStyle {
       credentialOffer: { ...DEFAULT_STYLE.copy.credentialOffer },
       credentialPresentation: { ...DEFAULT_STYLE.copy.credentialPresentation },
       credentialList: { ...DEFAULT_STYLE.copy.credentialList },
+      createBackup: { ...DEFAULT_STYLE.copy.createBackup },
+      restoreBackup: { ...DEFAULT_STYLE.copy.restoreBackup },
     },
   };
 }

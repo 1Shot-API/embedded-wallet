@@ -117,6 +117,43 @@ const credentialListCopySchema = z
   .strict()
   .optional();
 
+const createBackupCopySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    passphrasePrompt: z.string().optional(),
+    continueLabel: z.string().optional(),
+    cancelLabel: z.string().optional(),
+    closeLabel: z.string().optional(),
+    copyLabel: z.string().optional(),
+    copiedLabel: z.string().optional(),
+    copyFailedLabel: z.string().optional(),
+    doneLabel: z.string().optional(),
+    encryptedLabel: z.string().optional(),
+    passwordTooShortError: z.string().optional(),
+    cancelledError: z.string().optional(),
+    failedError: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
+const restoreBackupCopySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    passphraseLabel: z.string().optional(),
+    restoreLabel: z.string().optional(),
+    cancelLabel: z.string().optional(),
+    closeLabel: z.string().optional(),
+    doneLabel: z.string().optional(),
+    successBody: z.string().optional(),
+    decryptFailedError: z.string().optional(),
+    cancelledError: z.string().optional(),
+    failedError: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
 const copySchema = z
   .object({
     productName: z.string().optional(),
@@ -129,6 +166,8 @@ const copySchema = z
     credentialOffer: credentialOfferCopySchema,
     credentialPresentation: credentialPresentationCopySchema,
     credentialList: credentialListCopySchema,
+    createBackup: createBackupCopySchema,
+    restoreBackup: restoreBackupCopySchema,
   })
   .strict()
   .optional();

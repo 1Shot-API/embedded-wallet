@@ -1,10 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { overlaySignerIframe } from "@1shotapi/ows-signer-utils";
 import type { RecoveryDataCreatedData } from "@1shotapi/ows-types";
+import {
+  useStyle,
+  type IStyleCopyCreateBackup,
+  type IStyleCopyRestoreBackup,
+} from "../../style";
 import { Modal } from "../Modal";
 import { useWallet } from "../../wallet/WalletProvider";
 
 const DEFAULT_MIN_PASSWORD_LENGTH = 12;
+
+const SIGNER_SLOT_CLASS =
+  "border-border bg-muted/40 mb-4 min-h-28 overflow-hidden rounded-md border";
 
 function waitForPaint(): Promise<void> {
   return new Promise((resolve) => {
@@ -41,18 +49,49 @@ async function waitForSignerSlot(
   return null;
 }
 
-function formatBackupError(error: unknown): string {
+function fillTemplate(
+  template: string,
+  vars: Record<string, string>,
+): string {
+  return template.replace(/\{(\w+)\}/g, (_match, key: string) => vars[key] ?? "");
+}
+
+function formatBackupError(
+  error: unknown,
+  copy: IStyleCopyCreateBackup,
+): string {
   if (error instanceof Error) {
     const message = error.message;
     if (message.includes("passwordTooShort")) {
-      return "Passphrase is too short. Try again.";
+      return copy.passwordTooShortError;
     }
     if (message.includes("NotAllowed") || message.includes("not allowed")) {
-      return "Passkey prompt was cancelled or blocked.";
+      return copy.cancelledError;
     }
-    return message || "Backup failed.";
+    return message || copy.failedError;
   }
-  return "Backup failed.";
+  return copy.failedError;
+}
+
+function formatRestoreError(
+  error: unknown,
+  copy: IStyleCopyRestoreBackup,
+): string {
+  if (error instanceof Error) {
+    const message = error.message;
+    if (
+      message.includes("decryptionFailed") ||
+      message.includes("decrypt") ||
+      message.includes("OperationError")
+    ) {
+      return copy.decryptFailedError;
+    }
+    if (message.includes("NotAllowed") || message.includes("not allowed")) {
+      return copy.cancelledError;
+    }
+    return message || copy.failedError;
+  }
+  return copy.failedError;
 }
 
 export function CreateBackupModal({
@@ -64,11 +103,16 @@ export function CreateBackupModal({
 }) {
   const { getSigner, signerContainerRef, ensureReady, persistBackup } =
     useWallet();
+  const { style } = useStyle();
+  const createBackup = style.copy.createBackup;
+  const minLengthVars = {
+    minLength: String(DEFAULT_MIN_PASSWORD_LENGTH),
+  };
   const signerSlotRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<"prompt" | "result" | "error">("prompt");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RecoveryDataCreatedData | null>(null);
-  const [copyLabel, setCopyLabel] = useState("Copy");
+  const [copyLabel, setCopyLabel] = useState(createBackup.copyLabel);
   const abortedRef = useRef(false);
   const restoreOverlayRef = useRef<(() => void) | null>(null);
 
@@ -110,8 +154,8 @@ export function CreateBackupModal({
         await waitForPaint();
 
         const created = await signer.createRecoveryData(
-          `Passphrase (min ${DEFAULT_MIN_PASSWORD_LENGTH} characters)`,
-          "Continue",
+          fillTemplate(createBackup.passphrasePrompt, minLengthVars),
+          createBackup.continueLabel,
           DEFAULT_MIN_PASSWORD_LENGTH,
         );
 
@@ -129,7 +173,7 @@ export function CreateBackupModal({
         if (abortedRef.current) return;
         restoreOverlayRef.current?.();
         restoreOverlayRef.current = null;
-        setError(formatBackupError(err));
+        setError(formatBackupError(err, createBackup));
         setPhase("error");
       }
     })().catch((err: unknown) => {
@@ -144,6 +188,9 @@ export function CreateBackupModal({
       restoreOverlayRef.current?.();
       restoreOverlayRef.current = null;
     };
+    // Overlay/signing path runs once per modal open. Copy is snapshotted from
+    // StyleContext at mount; do not re-run when setStyle patches arrive mid-flow.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
   }, [
     ensureReady,
     getSigner,
@@ -155,7 +202,7 @@ export function CreateBackupModal({
   if (phase === "result" && result) {
     return (
       <Modal
-        title="Create backup"
+        title={createBackup.title}
         actions={[
           {
             label: copyLabel,
@@ -163,25 +210,28 @@ export function CreateBackupModal({
             onClick: () => {
               void navigator.clipboard.writeText(result.encryptedPrivateKey).then(
                 () => {
-                  setCopyLabel("Copied");
-                  setTimeout(() => setCopyLabel("Copy"), 1500);
+                  setCopyLabel(createBackup.copiedLabel);
+                  setTimeout(
+                    () => setCopyLabel(createBackup.copyLabel),
+                    1500,
+                  );
                 },
-                () => setCopyLabel("Copy failed"),
+                () => setCopyLabel(createBackup.copyFailedLabel),
               );
             },
           },
           {
-            label: "Done",
+            label: createBackup.doneLabel,
             variant: "primary",
             autoFocus: true,
             onClick: onResolve,
           },
         ]}
       >
-        <p className="mb-1 text-[0.8rem] font-medium opacity-75">
-          Encrypted backup
+        <p className="text-muted-foreground mb-1 text-[0.8rem] font-medium">
+          {createBackup.encryptedLabel}
         </p>
-        <pre className="m-0 max-h-40 overflow-auto break-all whitespace-pre-wrap rounded-md border border-[color-mix(in_srgb,CanvasText_20%,transparent)] p-3 font-mono text-[0.8rem]">
+        <pre className="border-border bg-muted/40 m-0 max-h-40 overflow-auto break-all whitespace-pre-wrap rounded-md border p-3 font-mono text-[0.8rem]">
           {result.encryptedPrivateKey}
         </pre>
       </Modal>
@@ -190,21 +240,21 @@ export function CreateBackupModal({
 
   return (
     <Modal
-      title="Create backup"
+      title={createBackup.title}
       onBackdropDismiss={phase === "error" ? onResolve : undefined}
       footer={
         phase === "prompt" ? (
-          <div
-            ref={signerSlotRef}
-            className="mb-4 min-h-28 overflow-hidden rounded-md border border-[color-mix(in_srgb,CanvasText_20%,transparent)] bg-[color-mix(in_srgb,CanvasText_4%,Canvas)]"
-          />
+          <div ref={signerSlotRef} className={SIGNER_SLOT_CLASS} />
         ) : null
       }
       actions={
         phase === "error" || phase === "prompt"
           ? [
               {
-                label: phase === "error" ? "Close" : "Cancel",
+                label:
+                  phase === "error"
+                    ? createBackup.closeLabel
+                    : createBackup.cancelLabel,
                 variant: "secondary",
                 autoFocus: phase === "error",
                 onClick: onResolve,
@@ -215,36 +265,14 @@ export function CreateBackupModal({
     >
       {phase === "prompt" ? (
         <p className="mb-4">
-          Enter a passphrase of at least {DEFAULT_MIN_PASSWORD_LENGTH}{" "}
-          characters to encrypt your private key. Store the backup somewhere
-          safe — you will need it to restore your wallet.
+          {fillTemplate(createBackup.body, minLengthVars)}
         </p>
       ) : null}
       {error ? (
-        <p className="m-0 text-[0.9rem] text-red-700 dark:text-red-400">
-          {error}
-        </p>
+        <p className="text-destructive m-0 text-[0.9rem]">{error}</p>
       ) : null}
     </Modal>
   );
-}
-
-function formatRestoreError(error: unknown): string {
-  if (error instanceof Error) {
-    const message = error.message;
-    if (
-      message.includes("decryptionFailed") ||
-      message.includes("decrypt") ||
-      message.includes("OperationError")
-    ) {
-      return "Could not decrypt the backup. Check the passphrase and try again.";
-    }
-    if (message.includes("NotAllowed") || message.includes("not allowed")) {
-      return "Passkey prompt was cancelled or blocked.";
-    }
-    return message || "Restore failed.";
-  }
-  return "Restore failed.";
 }
 
 export function RestoreBackupModal({
@@ -257,6 +285,8 @@ export function RestoreBackupModal({
   onReject: (error: unknown) => void;
 }) {
   const { getSigner, signerContainerRef, awaitSignerReady } = useWallet();
+  const { style } = useStyle();
+  const restoreBackup = style.copy.restoreBackup;
   const signerSlotRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<"prompt" | "done" | "error">("prompt");
   const [error, setError] = useState<string | null>(null);
@@ -301,8 +331,8 @@ export function RestoreBackupModal({
         await waitForPaint();
         await signer.recoverKey(
           encryptedPrivateKey,
-          "Backup passphrase",
-          "Restore",
+          restoreBackup.passphraseLabel,
+          restoreBackup.restoreLabel,
         );
         if (abortedRef.current) return;
         restoreOverlayRef.current?.();
@@ -312,7 +342,7 @@ export function RestoreBackupModal({
         if (abortedRef.current) return;
         restoreOverlayRef.current?.();
         restoreOverlayRef.current = null;
-        setError(formatRestoreError(err));
+        setError(formatRestoreError(err, restoreBackup));
         setPhase("error");
       }
     })().catch((err: unknown) => {
@@ -327,6 +357,9 @@ export function RestoreBackupModal({
       restoreOverlayRef.current?.();
       restoreOverlayRef.current = null;
     };
+    // Overlay/signing path runs once per modal open. Copy is snapshotted from
+    // StyleContext at mount; do not re-run when setStyle patches arrive mid-flow.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
   }, [
     awaitSignerReady,
     encryptedPrivateKey,
@@ -337,23 +370,20 @@ export function RestoreBackupModal({
 
   return (
     <Modal
-      title="Restore backup"
+      title={restoreBackup.title}
       onBackdropDismiss={
         phase === "error" ? () => onResolve(false) : undefined
       }
       footer={
         phase === "prompt" ? (
-          <div
-            ref={signerSlotRef}
-            className="mb-4 min-h-28 overflow-hidden rounded-md border border-[color-mix(in_srgb,CanvasText_20%,transparent)] bg-[color-mix(in_srgb,CanvasText_4%,Canvas)]"
-          />
+          <div ref={signerSlotRef} className={SIGNER_SLOT_CLASS} />
         ) : null
       }
       actions={
         phase === "done"
           ? [
               {
-                label: "Done",
+                label: restoreBackup.doneLabel,
                 variant: "primary",
                 autoFocus: true,
                 onClick: () => onResolve(true),
@@ -361,7 +391,10 @@ export function RestoreBackupModal({
             ]
           : [
               {
-                label: phase === "error" ? "Close" : "Cancel",
+                label:
+                  phase === "error"
+                    ? restoreBackup.closeLabel
+                    : restoreBackup.cancelLabel,
                 variant: "secondary",
                 autoFocus: phase === "error",
                 onClick: () => onResolve(false),
@@ -369,21 +402,12 @@ export function RestoreBackupModal({
             ]
       }
     >
-      {phase === "prompt" ? (
-        <p className="mb-4">
-          Enter the passphrase you used when creating this backup to unlock your
-          wallet.
-        </p>
-      ) : null}
+      {phase === "prompt" ? <p className="mb-4">{restoreBackup.body}</p> : null}
       {phase === "done" ? (
-        <p className="m-0">
-          Wallet restored. You can sign until this tab is closed.
-        </p>
+        <p className="m-0">{restoreBackup.successBody}</p>
       ) : null}
       {error ? (
-        <p className="m-0 text-[0.9rem] text-red-700 dark:text-red-400">
-          {error}
-        </p>
+        <p className="text-destructive m-0 text-[0.9rem]">{error}</p>
       ) : null}
     </Modal>
   );

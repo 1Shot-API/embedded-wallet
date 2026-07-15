@@ -10,6 +10,8 @@ export type {
   IStyleCopyCredentialOffer,
   IStyleCopyCredentialPresentation,
   IStyleCopyCredentialList,
+  IStyleCopyCreateBackup,
+  IStyleCopyRestoreBackup,
   IResolvedCopy,
   IResolvedStyle,
 } from "./types";
