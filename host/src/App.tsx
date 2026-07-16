@@ -46,6 +46,7 @@ export function App() {
   const [statusIsError, setStatusIsError] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
   const [tokenBalance, setTokenBalance] = useState<string | null>(null);
+  const [walletVisible, setWalletVisible] = useState(false);
 
   const reportStatus = useCallback((next: string, isError = false) => {
     setStatus(next);
@@ -78,6 +79,7 @@ export function App() {
 
     let cancelled = false;
     setReady(false);
+    setWalletVisible(false);
     reportStatus("Connecting to wallet…");
 
     console.info(
@@ -148,6 +150,29 @@ export function App() {
       proxyRef.current = null;
     };
   }, [mode, previewMount, refreshChainFromWallet, reportStatus]);
+
+  // Keep the Show/Hide label in sync when the wallet closes itself (× / menu).
+  useEffect(() => {
+    if (mode !== "test") {
+      return;
+    }
+    const container = flyoutContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const syncVisibility = () => {
+      const width = container.offsetWidth;
+      const height = container.offsetHeight;
+      // Full flyout ≈ wallet size; hidden is 0×0; RPC passthrough is 1×1.
+      setWalletVisible(width > 32 && height > 32);
+    };
+
+    syncVisibility();
+    const observer = new ResizeObserver(syncVisibility);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [mode, ready]);
 
   const resolveAccount = async (
     proxy: OWSProxy,
@@ -316,9 +341,20 @@ export function App() {
     })();
   };
 
-  const handleShowWallet = () => {
-    proxyRef.current?.showWallet();
-    reportStatus("Wallet panel shown. Use × in the wallet to hide.");
+  const handleToggleWallet = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+
+    if (walletVisible) {
+      proxy.hideWallet();
+      setWalletVisible(false);
+      reportStatus("Wallet panel hidden.");
+      return;
+    }
+
+    proxy.showWallet();
+    setWalletVisible(true);
+    reportStatus("Wallet panel shown. Use Hide Wallet or the wallet menu to close.");
   };
 
   const handleApplyStyle = async (options: Record<string, unknown>) => {
@@ -345,7 +381,8 @@ export function App() {
     onMessageChange: setMessage,
     onTokenAddressChange: setTokenAddress,
     onSign: handleSign,
-    onShowWallet: handleShowWallet,
+    walletVisible,
+    onToggleWallet: handleToggleWallet,
     onCheckBalance: handleCheckBalance,
   };
 

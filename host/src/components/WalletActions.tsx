@@ -32,7 +32,8 @@ export interface IWalletActionsProps {
   onMessageChange: (message: string) => void;
   onTokenAddressChange: (address: string) => void;
   onSign: () => void;
-  onShowWallet: () => void;
+  walletVisible: boolean;
+  onToggleWallet: () => void;
   onCheckBalance: () => void;
 }
 
@@ -51,7 +52,8 @@ export function WalletActions({
   onMessageChange,
   onTokenAddressChange,
   onSign,
-  onShowWallet,
+  walletVisible,
+  onToggleWallet,
   onCheckBalance,
 }: IWalletActionsProps) {
   return (
@@ -114,9 +116,9 @@ export function WalletActions({
           type="button"
           variant="outline"
           disabled={!ready}
-          onClick={onShowWallet}
+          onClick={onToggleWallet}
         >
-          Show Wallet
+          {walletVisible ? "Hide Wallet" : "Show Wallet"}
         </Button>
       </div>
 
