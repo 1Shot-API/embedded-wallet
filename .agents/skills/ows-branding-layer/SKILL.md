@@ -139,6 +139,8 @@ Split readiness in your app:
 |-----|---------|
 | `awaitSignerReady()` | Nested Signing Layer iframe + `OWSSigner` loaded |
 | `ensureReady()` | Signer loaded **and** unlocked / onboarded (passkey) |
+| `withWalletReady(ensureReady, handler)` | Wrap custom host RPCs so unlock is never skipped |
+| `ensureCredentialsReadable(...)` | Unlock/recover when the local credential cache is empty before `present` |
 
 Restore-backup must use **`awaitSignerReady` only** — calling `ensureReady` first can force setup/login before recovery.
 

@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { useStyle } from "../../style";
 import { useWallet } from "../../wallet/WalletProvider";
+import { useWalletSessionStore } from "../../wallet/sessionStore";
 import { CredentialDetailDialog } from "./CredentialDetailDialog";
 
 const PAGE_SIZE = 5;
@@ -46,6 +47,9 @@ export function CredentialsTab() {
     refreshCredentialsFromRelayer,
     refreshCredentialCount,
   } = useWallet();
+  const credentialCount = useWalletSessionStore(
+    (state) => state.credentialCount,
+  );
 
   const [rows, setRows] = useState<CredentialSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,9 +74,10 @@ export function CredentialsTab() {
     }
   }, [listCredentials, refreshCredentialCount, copy.loadFailedError]);
 
+  // Reload when store count changes (e.g. recover after discoverable login).
   useEffect(() => {
     void reload();
-  }, [reload]);
+  }, [reload, credentialCount]);
 
   const onRefresh = async () => {
     setRefreshing(true);

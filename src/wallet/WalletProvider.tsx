@@ -237,11 +237,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (!credentialId) {
       throw new Error("Passkey login succeeded but credential id missing");
     }
+    // Persist credentialId before relayer assert / recover (needed for assertions).
+    // Defer walletCreated/unlocked until after recover so MainPanel mounts with a
+    // populated credentials cache (CredentialsTab loads on mount).
     saveWalletCreated(credentialId);
-    useWalletSessionStore.getState().setWalletCreated(true);
     await refreshAddresses();
-    setUnlocked(true);
-    // Discoverable login recovers credentialId; pull official blobs from relayer.
     try {
       await credentialRepository.refreshFromRelayer();
       await refreshCredentialCount();
@@ -251,6 +251,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         error,
       );
     }
+    useWalletSessionStore.getState().setWalletCreated(true);
+    setUnlocked(true);
   }, [refreshAddresses, refreshCredentialCount, setUnlocked]);
 
   const createNewWallet = useCallback(
@@ -274,7 +276,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Persist credentialId first so relayer assertions can target this passkey.
       saveWalletCreated(credentialId);
       // Only chance to bind authenticator public key — register immediately.
-      await credentialRepository.registerPasskey(created.cosePublicKey);      useWalletSessionStore.getState().setWalletCreated(true);
+      await credentialRepository.registerPasskey(created.cosePublicKey);
+      useWalletSessionStore.getState().setWalletCreated(true);
       await refreshAddresses();
       setUnlocked(true);
     },
@@ -304,11 +307,29 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       saveWalletCreated(credentialId);
       useWalletSessionStore.getState().setWalletCreated(true);
       await refreshAddresses();
+      // Cross-origin / cleared credential cache: recover before host present/list.
+      try {
+        const listed = await credentialRepository.list();
+        if (listed.length === 0) {
+          await credentialRepository.refreshFromRelayer();
+          await refreshCredentialCount();
+        }
+      } catch (error: unknown) {
+        console.warn(
+          "[credentials] recover after unlock failed (passkey may be unregistered)",
+          error,
+        );
+      }
       setUnlocked(true);
       return;
     }
     await loginWithPasskey();
-  }, [loginWithPasskey, refreshAddresses, setUnlocked]);
+  }, [
+    loginWithPasskey,
+    refreshAddresses,
+    refreshCredentialCount,
+    setUnlocked,
+  ]);
 
   const runSetupFlow = useCallback(async () => {
     const wallet = walletRef.current;

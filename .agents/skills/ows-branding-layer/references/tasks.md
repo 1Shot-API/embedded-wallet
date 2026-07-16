@@ -38,6 +38,8 @@ App-owned passkey create / login. Split readiness:
 
 - Persist credential id + cached addresses in app storage (`src/storage.ts`).
 - Gate signing and account-connect behind `ensureReady()`.
+- **Custom host RPCs:** wrap handlers with `withWalletReady(ensureReady, handler)` (`src/wallet/withWalletReady.ts`) so unlock/setup is not forgotten for `sendTransaction` and similar.
+- **Credentials that need a warm cache** (`present`): use `ensureCredentialsReadable` before match/consent when the local credential store may be empty (cross-origin shard).
 - Embedded first-run UI when `window.parent !== window.top` is optional — `OnboardingPanel.tsx` / `WalletProvider.tsx` `runSetupFlow`.
 - Host-driven setup: wrap with `requestDisplay` + setup modals (`SetupModals.tsx`).
 
