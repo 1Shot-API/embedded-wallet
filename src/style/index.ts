@@ -9,7 +9,7 @@ export type {
   IStyleCopyTypedData,
   IStyleCopyCredentialOffer,
   IStyleCopyCredentialPresentation,
-  IStyleCopyCredentialList,
+  IStyleCopyCredentials,
   IStyleCopyCreateBackup,
   IStyleCopyRestoreBackup,
   IResolvedCopy,

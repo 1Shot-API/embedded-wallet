@@ -60,10 +60,16 @@ export interface IStyleFormState {
   credPresentShare: string;
   credPresentReject: string;
 
-  // Text — Credential list
-  credListTitle: string;
-  credListEmpty: string;
-  credListClose: string;
+  // Text — Credentials tab
+  credTabLabel: string;
+  credEmptyCount: string;
+  credCountLabel: string;
+  credEmptyBody: string;
+  credRefresh: string;
+  credView: string;
+  credDetailDescription: string;
+  credClaimsHeading: string;
+  credClose: string;
 
   // Text — Create backup
   backupTitle: string;
@@ -121,9 +127,16 @@ export const ACME_PRESET: IStyleFormState = {
   credPresentBody: "A verifier is requesting a presentation.",
   credPresentShare: "Share",
   credPresentReject: "Reject",
-  credListTitle: "Credentials",
-  credListEmpty: "No credentials yet.",
-  credListClose: "Close",
+  credTabLabel: "Credentials",
+  credEmptyCount: "No credentials stored yet.",
+  credCountLabel: "{count} credential(s)",
+  credEmptyBody:
+    "Accept an offer or refresh from the relayer to sync credentials.",
+  credRefresh: "Refresh",
+  credView: "View",
+  credDetailDescription: "Full credential details and claims.",
+  credClaimsHeading: "Claims",
+  credClose: "Close",
   backupTitle: "Create a backup",
   backupBody: "Encrypt a recovery blob with a passphrase.",
   backupContinue: "Continue",
@@ -157,7 +170,6 @@ export const OCEAN_PRESET: IStyleFormState = {
   typedTitle: "Ocean typed data",
   credOfferTitle: "Accept Ocean credential?",
   credPresentTitle: "Share with verifier?",
-  credListTitle: "Ocean credentials",
   backupTitle: "Backup Ocean keys",
   restoreTitle: "Restore Ocean wallet",
 };
@@ -193,7 +205,16 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   credOfferBody: "",
   credPresentTitle: "Share credential?",
   credPresentBody: "",
-  credListTitle: "My credentials",
+  credTabLabel: "Credentials",
+  credEmptyCount: "No credentials stored yet.",
+  credCountLabel: "{count} credential(s)",
+  credEmptyBody:
+    "Accept an offer or refresh from the relayer to sync credentials.",
+  credRefresh: "Refresh",
+  credView: "View",
+  credDetailDescription: "Full credential details and claims.",
+  credClaimsHeading: "Claims",
+  credClose: "Close",
   backupTitle: "Create backup",
   backupBody: "",
   restoreTitle: "Restore backup",
@@ -283,13 +304,17 @@ export function buildSetStylePayload(
     copy.credentialPresentation = credentialPresentation;
   }
 
-  const credentialList: Record<string, string> = {};
-  put(credentialList, "title", form.credListTitle);
-  put(credentialList, "emptyBody", form.credListEmpty);
-  put(credentialList, "closeLabel", form.credListClose);
-  if (Object.keys(credentialList).length > 0) {
-    copy.credentialList = credentialList;
-  }
+  const credentials: Record<string, string> = {};
+  put(credentials, "tabLabel", form.credTabLabel);
+  put(credentials, "emptyCountLabel", form.credEmptyCount);
+  put(credentials, "countLabel", form.credCountLabel);
+  put(credentials, "emptyBody", form.credEmptyBody);
+  put(credentials, "refreshLabel", form.credRefresh);
+  put(credentials, "viewLabel", form.credView);
+  put(credentials, "detailDescription", form.credDetailDescription);
+  put(credentials, "claimsHeading", form.credClaimsHeading);
+  put(credentials, "closeLabel", form.credClose);
+  if (Object.keys(credentials).length > 0) copy.credentials = credentials;
 
   const createBackup: Record<string, string> = {};
   put(createBackup, "title", form.backupTitle);

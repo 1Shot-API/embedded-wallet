@@ -117,12 +117,31 @@ await proxy.rpc("setStyle", options);
 | `copy.credentialPresentation.passkeyNote` | string | passkey hint |
 | `copy.credentialPresentation.rejectLabel` | string | Reject button |
 | `copy.credentialPresentation.shareLabel` | string | Share button |
-| `copy.credentialList.title` | string | credential list title |
-| `copy.credentialList.emptyBody` | string | empty-state text |
-| `copy.credentialList.issuerLabel` | string | Issuer label |
-| `copy.credentialList.issuedLabel` | string | Issued label |
-| `copy.credentialList.validUntilLabel` | string | Valid until label |
-| `copy.credentialList.closeLabel` | string | Close button |
+| `copy.credentials.tabLabel` | string | Credentials tab label |
+| `copy.credentials.emptyCountLabel` | string | zero-count summary |
+| `copy.credentials.countLabel` | string | supports `{count}` |
+| `copy.credentials.refreshLabel` | string | Refresh button |
+| `copy.credentials.loadingBody` | string | loading state |
+| `copy.credentials.emptyBody` | string | empty-state text |
+| `copy.credentials.loadFailedError` | string | list load failure |
+| `copy.credentials.refreshFailedError` | string | relayer refresh failure |
+| `copy.credentials.notFoundError` | string | detail not in cache |
+| `copy.credentials.openFailedError` | string | detail open failure |
+| `copy.credentials.typeColumn` | string | Type column header |
+| `copy.credentials.issuerColumn` | string | Issuer column header |
+| `copy.credentials.issuedColumn` | string | Issued column header |
+| `copy.credentials.viewLabel` | string | View button |
+| `copy.credentials.detailFallbackTitle` | string | detail title fallback |
+| `copy.credentials.detailDescription` | string | detail dialog description |
+| `copy.credentials.issuerLabel` | string | Issuer field label |
+| `copy.credentials.formatLabel` | string | Format field label |
+| `copy.credentials.issuedLabel` | string | Issued field label |
+| `copy.credentials.validUntilLabel` | string | Valid until label |
+| `copy.credentials.idLabel` | string | Id field label |
+| `copy.credentials.claimsHeading` | string | Claims section heading |
+| `copy.credentials.claimsLoading` | string | claims loading text |
+| `copy.credentials.claimsEmpty` | string | no claims text |
+| `copy.credentials.closeLabel` | string | Close button |
 | `copy.createBackup.title` | string | create backup modal title |
 | `copy.createBackup.body` | string | supports `{minLength}` |
 | `copy.createBackup.passphrasePrompt` | string | Signing Layer passphrase label (`{minLength}`) |

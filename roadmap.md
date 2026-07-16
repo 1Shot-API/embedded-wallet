@@ -57,7 +57,8 @@ Relayer / credential fetch    →  TanStack Query (later phase)
 | `typedData` | `SignModals.tsx` → `TypedDataModal` | EIP-712 consent |
 | `credentialOffer` | `CredentialModals.tsx` → `CredentialOfferModal` | OID4VCI accept |
 | `credentialPresentation` | `CredentialModals.tsx` → `CredentialPresentationModal` | OID4VP disclose |
-| `credentialList` | `CredentialModals.tsx` → `CredentialListModal` | Stored credentials view |
+| `credentialList` | _(removed)_ | Replaced by Credentials tab |
+| `credentials` | `CredentialsTab.tsx` + `CredentialDetailDialog.tsx` | Stored credentials table + detail |
 | `createBackup` | `BackupModals.tsx` → `CreateBackupModal` | Recovery create + overlay |
 | `restoreBackup` | `BackupModals.tsx` → `RestoreBackupModal` | Recovery restore + overlay |
 
@@ -136,7 +137,7 @@ Preserve request detail display; avoid overstuffing the first viewport of the fl
 
 1. [x] `credentialOffer` — `copy.credentialOffer.*` via StyleContext (`{issuerName}` / `{issuerId}` templates)
 2. [x] `credentialPresentation` — `copy.credentialPresentation.*` via StyleContext
-3. [x] `credentialList` — `copy.credentialList.*` via StyleContext; token-styled cards
+3. [x] `credentials` — `copy.credentials.*` via StyleContext (tab + detail dialog)
 
 Keep OID4 wiring in `registerCredentialsProvider` / WalletProvider; UI-only change.
 

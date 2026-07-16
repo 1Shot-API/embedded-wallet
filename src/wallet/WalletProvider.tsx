@@ -19,9 +19,14 @@ import type {
   PersonalSignApprovalRequest,
   SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
+import type {
+  CredentialId,
+  CredentialSummary,
+  StoredCredential,
+} from "@1shotapi/ows-types";
 import { DEMO_HOLDER_PRIVATE_JWK } from "../demo/demo-keys";
 import { InMemoryIssuerTrustRegistry } from "../demo/in-memory-trust-registry";
-import { LocalStorageCredentialRepository } from "../demo/local-storage-store";
+import { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerCredentialRepository";
 import {
   DemoWalletAttestationProvider,
   FetchUtils,
@@ -36,6 +41,7 @@ import {
 } from "../ows/registerAccountConnect";
 import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
+import { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
 import { registerSetStyleRpc } from "../style";
 import {
   isWalletCreated,
@@ -50,7 +56,18 @@ import { useModalStore } from "./modalStore";
 import type { ActiveModal, WalletSetupChoice } from "./modalTypes";
 import { useWalletSessionStore } from "./sessionStore";
 
-const credentialRepository = new LocalStorageCredentialRepository();
+/** Filled once the Signing Layer iframe finishes loading. */
+const signerHolder: { current: OWSSigner | null } = { current: null };
+
+const credentialRepository = new CachedRelayerCredentialRepository({
+  client: new RelayerCredentialsClient(),
+  getSigner: () => {
+    if (!signerHolder.current) {
+      throw new Error("Signing Layer not ready");
+    }
+    return signerHolder.current;
+  },
+});
 const issuerTrust = new InMemoryIssuerTrustRegistry();
 const fetchUtils = new FetchUtils();
 const parseUtils = new ParseUtils();
@@ -135,7 +152,11 @@ export type WalletContextValue = {
   refreshCredentialCount: () => Promise<void>;
   switchChain: (chainId: string) => Promise<void>;
   requestHide: () => Promise<void>;
-  openCredentialList: () => Promise<void>;
+  listCredentials: () => Promise<CredentialSummary[]>;
+  getCredential: (
+    credentialId: CredentialId,
+  ) => Promise<StoredCredential | undefined>;
+  refreshCredentialsFromRelayer: () => Promise<void>;
   openCreateBackup: () => Promise<void>;
   openRestoreBackup: () => Promise<void>;
   loginWithPasskey: () => Promise<void>;
@@ -220,21 +241,40 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     useWalletSessionStore.getState().setWalletCreated(true);
     await refreshAddresses();
     setUnlocked(true);
-  }, [refreshAddresses, setUnlocked]);
+    // Discoverable login recovers credentialId; pull official blobs from relayer.
+    try {
+      await credentialRepository.refreshFromRelayer();
+      await refreshCredentialCount();
+    } catch (error: unknown) {
+      console.warn(
+        "[credentials] recover after login failed (passkey may be unregistered)",
+        error,
+      );
+    }
+  }, [refreshAddresses, refreshCredentialCount, setUnlocked]);
 
   const createNewWallet = useCallback(
     async (accountName: string) => {
       const signer = signerRef.current;
       if (!signer) throw new Error("Signer not ready");
-      await signer.createCredential(accountName, {
+      const created = await signer.createCredential(accountName, {
         rpName: "Open Wallet",
         userDisplayName: accountName,
       });
-      const credentialId = signer.getCredentialId();
+      const credentialId =
+        created.credentialId ?? signer.getCredentialId();
       if (!credentialId) {
         throw new Error("Passkey created but credential id missing");
       }
+      if (!created.passkeyPublicKey) {
+        throw new Error(
+          "Passkey created but authenticator public key missing — cannot register with relayer",
+        );
+      }
+      // Persist credentialId first so relayer assertions can target this passkey.
       saveWalletCreated(credentialId);
+      // Only chance to bind authenticator public key — register immediately.
+      await credentialRepository.registerPasskey(String(created.passkeyPublicKey));
       useWalletSessionStore.getState().setWalletCreated(true);
       await refreshAddresses();
       setUnlocked(true);
@@ -349,16 +389,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await walletRef.current?.requestHide();
   }, []);
 
-  const openCredentialList = useCallback(async () => {
-    const listed = await credentialRepository.list();
-    useWalletSessionStore.getState().setCredentialCount(listed.length);
-    await pushModal<void>(({ id, resolve }) => ({
-      id,
-      kind: "credentialList",
-      credentials: listed,
-      resolve,
-    }));
+  const listCredentials = useCallback(async () => {
+    return credentialRepository.list();
   }, []);
+
+  const getCredential = useCallback(async (credentialId: CredentialId) => {
+    return credentialRepository.get(credentialId);
+  }, []);
+
+  const refreshCredentialsFromRelayer = useCallback(async () => {
+    await ensureReady();
+    await credentialRepository.refreshFromRelayer();
+    await refreshCredentialCount();
+  }, [ensureReady, refreshCredentialCount]);
 
   const openCreateBackup = useCallback(async () => {
     const wallet = walletRef.current;
@@ -428,6 +471,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const awaitSigner = async (): Promise<OWSSigner> => {
         const loaded = await signerPromise;
         signerRef.current = loaded;
+        signerHolder.current = loaded;
         return loaded;
       };
       awaitSignerRef.current = awaitSigner;
@@ -568,7 +612,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       refreshCredentialCount,
       switchChain,
       requestHide,
-      openCredentialList,
+      listCredentials,
+      getCredential,
+      refreshCredentialsFromRelayer,
       openCreateBackup,
       openRestoreBackup,
       loginWithPasskey,
@@ -584,7 +630,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       refreshCredentialCount,
       switchChain,
       requestHide,
-      openCredentialList,
+      listCredentials,
+      getCredential,
+      refreshCredentialsFromRelayer,
       openCreateBackup,
       openRestoreBackup,
       loginWithPasskey,

@@ -1,7 +1,6 @@
 import type {
   CredentialOfferApprovalRequest,
   CredentialPresentationApprovalRequest,
-  CredentialSummary,
 } from "@1shotapi/ows-types";
 import { useStyle } from "../../style";
 import { Modal } from "../Modal";
@@ -110,58 +109,6 @@ export function CredentialPresentationModal({
       <p className="text-muted-foreground m-0 text-[0.9rem]">
         {credentialPresentation.passkeyNote}
       </p>
-    </Modal>
-  );
-}
-
-export function CredentialListModal({
-  credentials,
-  onResolve,
-}: {
-  credentials: CredentialSummary[];
-  onResolve: () => void;
-}) {
-  const { style } = useStyle();
-  const { credentialList } = style.copy;
-
-  return (
-    <Modal
-      title={credentialList.title}
-      wide
-      onBackdropDismiss={onResolve}
-      actions={[
-        {
-          label: credentialList.closeLabel,
-          variant: "primary",
-          autoFocus: true,
-          onClick: onResolve,
-        },
-      ]}
-    >
-      {credentials.length === 0 ? (
-        <p className="text-muted-foreground m-0">{credentialList.emptyBody}</p>
-      ) : (
-        <ul className="m-0 grid max-h-64 list-none gap-3 overflow-auto p-0">
-          {credentials.map((credential) => (
-            <li
-              key={credential.credentialId}
-              className="border-border bg-muted/40 rounded-md border p-3"
-            >
-              <p className="mb-1 font-semibold">
-                {credential.type.join(", ")}
-              </p>
-              <p className="mb-1 text-[0.85rem]">
-                {credentialList.issuerLabel} {credential.issuer}
-              </p>
-              <p className="text-muted-foreground m-0 font-mono text-xs">
-                {credential.validUntil
-                  ? `${credentialList.issuedLabel} ${credential.issuedAt} · ${credentialList.validUntilLabel} ${credential.validUntil}`
-                  : `${credentialList.issuedLabel} ${credential.issuedAt}`}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
     </Modal>
   );
 }

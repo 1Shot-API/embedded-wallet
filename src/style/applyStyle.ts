@@ -42,9 +42,9 @@ export function mergeStyle(
         ...current.copy.credentialPresentation,
         ...patch.copy?.credentialPresentation,
       },
-      credentialList: {
-        ...current.copy.credentialList,
-        ...patch.copy?.credentialList,
+      credentials: {
+        ...current.copy.credentials,
+        ...patch.copy?.credentials,
       },
       createBackup: {
         ...current.copy.createBackup,
@@ -72,7 +72,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       typedData: { ...DEFAULT_STYLE.copy.typedData },
       credentialOffer: { ...DEFAULT_STYLE.copy.credentialOffer },
       credentialPresentation: { ...DEFAULT_STYLE.copy.credentialPresentation },
-      credentialList: { ...DEFAULT_STYLE.copy.credentialList },
+      credentials: { ...DEFAULT_STYLE.copy.credentials },
       createBackup: { ...DEFAULT_STYLE.copy.createBackup },
       restoreBackup: { ...DEFAULT_STYLE.copy.restoreBackup },
     },

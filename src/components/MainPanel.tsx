@@ -15,21 +15,22 @@ import {
   resolveActiveAddress,
   shortenAddress,
 } from "../wallet/activeAddress";
+import { useStyle } from "../style";
+import { CredentialsTab } from "./credentials/CredentialsTab";
 
 /**
  * Main unlocked shell: chain + active address, then content tabs.
- * Credentials tab is a stub until credential management is rebuilt.
  */
 export function MainPanel() {
-  const { chains, switchChain, openCredentialList } = useWallet();
-  const { unlocked, evmAddress, solanaAddress, chainId, credentialCount } =
+  const { style } = useStyle();
+  const { chains, switchChain } = useWallet();
+  const { unlocked, evmAddress, solanaAddress, chainId } =
     useWalletSessionStore(
       useShallow((state) => ({
         unlocked: state.unlocked,
         evmAddress: state.evmAddress,
         solanaAddress: state.solanaAddress,
         chainId: state.chainId,
-        credentialCount: state.credentialCount,
       })),
     );
 
@@ -102,29 +103,12 @@ export function MainPanel() {
 
       <Tabs defaultValue="credentials" className="gap-3">
         <TabsList variant="line" className="w-full justify-start">
-          <TabsTrigger value="credentials">Credentials</TabsTrigger>
+          <TabsTrigger value="credentials">
+            {style.copy.credentials.tabLabel}
+          </TabsTrigger>
         </TabsList>
-        <TabsContent value="credentials" className="flex flex-col gap-3 pt-1">
-          <p className="text-muted-foreground text-sm">
-            {credentialCount === 0
-              ? "No credentials stored yet."
-              : `${credentialCount} credential${credentialCount === 1 ? "" : "s"} stored.`}
-          </p>
-          <p className="text-muted-foreground text-xs">
-            Credential management UI is next — use the list for now.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-fit"
-            onClick={() => {
-              void openCredentialList().catch((error: unknown) => {
-                console.error("[credential-list] failed", error);
-              });
-            }}
-          >
-            Open credential list
-          </Button>
+        <TabsContent value="credentials">
+          <CredentialsTab />
         </TabsContent>
       </Tabs>
     </div>

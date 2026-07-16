@@ -432,26 +432,62 @@ export function WalletConfigurator({
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="cred-list">
-              <AccordionTrigger>Credential list</AccordionTrigger>
+            <AccordionItem value="credentials">
+              <AccordionTrigger>Credentials tab</AccordionTrigger>
               <AccordionContent className="flex flex-col gap-3">
                 <TextField
-                  id="cred-list-title"
-                  label="Title"
-                  value={form.credListTitle}
-                  onChange={(value) => patch("credListTitle", value)}
-                />
-                <BodyField
-                  id="cred-list-empty"
-                  label="Empty"
-                  value={form.credListEmpty}
-                  onChange={(value) => patch("credListEmpty", value)}
+                  id="cred-tab-label"
+                  label="Tab label"
+                  value={form.credTabLabel}
+                  onChange={(value) => patch("credTabLabel", value)}
                 />
                 <TextField
-                  id="cred-list-close"
+                  id="cred-empty-count"
+                  label="Empty count"
+                  value={form.credEmptyCount}
+                  onChange={(value) => patch("credEmptyCount", value)}
+                />
+                <TextField
+                  id="cred-count-label"
+                  label="Count ({count})"
+                  value={form.credCountLabel}
+                  onChange={(value) => patch("credCountLabel", value)}
+                />
+                <BodyField
+                  id="cred-empty-body"
+                  label="Empty body"
+                  value={form.credEmptyBody}
+                  onChange={(value) => patch("credEmptyBody", value)}
+                />
+                <TextField
+                  id="cred-refresh"
+                  label="Refresh"
+                  value={form.credRefresh}
+                  onChange={(value) => patch("credRefresh", value)}
+                />
+                <TextField
+                  id="cred-view"
+                  label="View"
+                  value={form.credView}
+                  onChange={(value) => patch("credView", value)}
+                />
+                <BodyField
+                  id="cred-detail-description"
+                  label="Detail description"
+                  value={form.credDetailDescription}
+                  onChange={(value) => patch("credDetailDescription", value)}
+                />
+                <TextField
+                  id="cred-claims-heading"
+                  label="Claims heading"
+                  value={form.credClaimsHeading}
+                  onChange={(value) => patch("credClaimsHeading", value)}
+                />
+                <TextField
+                  id="cred-close"
                   label="Close"
-                  value={form.credListClose}
-                  onChange={(value) => patch("credListClose", value)}
+                  value={form.credClose}
+                  onChange={(value) => patch("credClose", value)}
                 />
               </AccordionContent>
             </AccordionItem>

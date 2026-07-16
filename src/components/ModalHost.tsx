@@ -6,7 +6,6 @@ import {
 } from "./modals/SetupModals";
 import { PersonalSignModal, TypedDataModal } from "./modals/SignModals";
 import {
-  CredentialListModal,
   CredentialOfferModal,
   CredentialPresentationModal,
 } from "./modals/CredentialModals";
@@ -48,13 +47,6 @@ export function ModalHost() {
       return (
         <CredentialPresentationModal
           request={activeModal.request}
-          onResolve={activeModal.resolve}
-        />
-      );
-    case "credentialList":
-      return (
-        <CredentialListModal
-          credentials={activeModal.credentials}
           onResolve={activeModal.resolve}
         />
       );

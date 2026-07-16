@@ -53,6 +53,9 @@ export function clearWalletStorage(): void {
   localStorage.removeItem(CREDENTIAL_ID_KEY);
   localStorage.removeItem(EVM_ADDRESS_KEY);
   localStorage.removeItem(SOLANA_ADDRESS_KEY);
+  // Legacy keys from earlier passkey-public-key caching (no longer used).
+  localStorage.removeItem("ows-passkey-public-key");
+  localStorage.removeItem("ows-relayer-passkey-registered");
 }
 
 /** App-owned backup blob (`ows1:…`). */

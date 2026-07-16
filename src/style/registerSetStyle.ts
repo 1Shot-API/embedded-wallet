@@ -105,13 +105,32 @@ const credentialPresentationCopySchema = z
   .strict()
   .optional();
 
-const credentialListCopySchema = z
+const credentialsCopySchema = z
   .object({
-    title: z.string().optional(),
+    tabLabel: z.string().optional(),
+    emptyCountLabel: z.string().optional(),
+    countLabel: z.string().optional(),
+    refreshLabel: z.string().optional(),
+    loadingBody: z.string().optional(),
     emptyBody: z.string().optional(),
+    loadFailedError: z.string().optional(),
+    refreshFailedError: z.string().optional(),
+    notFoundError: z.string().optional(),
+    openFailedError: z.string().optional(),
+    typeColumn: z.string().optional(),
+    issuerColumn: z.string().optional(),
+    issuedColumn: z.string().optional(),
+    viewLabel: z.string().optional(),
+    detailFallbackTitle: z.string().optional(),
+    detailDescription: z.string().optional(),
     issuerLabel: z.string().optional(),
+    formatLabel: z.string().optional(),
     issuedLabel: z.string().optional(),
     validUntilLabel: z.string().optional(),
+    idLabel: z.string().optional(),
+    claimsHeading: z.string().optional(),
+    claimsLoading: z.string().optional(),
+    claimsEmpty: z.string().optional(),
     closeLabel: z.string().optional(),
   })
   .strict()
@@ -166,7 +185,7 @@ const copySchema = z
     typedData: typedDataCopySchema,
     credentialOffer: credentialOfferCopySchema,
     credentialPresentation: credentialPresentationCopySchema,
-    credentialList: credentialListCopySchema,
+    credentials: credentialsCopySchema,
     createBackup: createBackupCopySchema,
     restoreBackup: restoreBackupCopySchema,
   })

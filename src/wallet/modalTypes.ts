@@ -5,7 +5,6 @@ import type {
 import type {
   CredentialOfferApprovalRequest,
   CredentialPresentationApprovalRequest,
-  CredentialSummary,
   RecoveryDataCreatedData,
 } from "@1shotapi/ows-types";
 
@@ -50,12 +49,6 @@ export type ModalRequest =
       kind: "credentialPresentation";
       request: CredentialPresentationApprovalRequest;
       resolve: (approved: boolean) => void;
-    }
-  | {
-      id: string;
-      kind: "credentialList";
-      credentials: CredentialSummary[];
-      resolve: () => void;
     }
   | {
       id: string;

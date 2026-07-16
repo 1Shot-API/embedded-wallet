@@ -103,13 +103,35 @@ export interface IStyleCopyCredentialPresentation {
   shareLabel: string;
 }
 
-/** In-wallet credential inventory modal. */
-export interface IStyleCopyCredentialList {
-  title: string;
+/**
+ * Credentials tab + detail dialog.
+ * `countLabel` supports `{count}`.
+ */
+export interface IStyleCopyCredentials {
+  tabLabel: string;
+  emptyCountLabel: string;
+  countLabel: string;
+  refreshLabel: string;
+  loadingBody: string;
   emptyBody: string;
+  loadFailedError: string;
+  refreshFailedError: string;
+  notFoundError: string;
+  openFailedError: string;
+  typeColumn: string;
+  issuerColumn: string;
+  issuedColumn: string;
+  viewLabel: string;
+  detailFallbackTitle: string;
+  detailDescription: string;
   issuerLabel: string;
+  formatLabel: string;
   issuedLabel: string;
   validUntilLabel: string;
+  idLabel: string;
+  claimsHeading: string;
+  claimsLoading: string;
+  claimsEmpty: string;
   closeLabel: string;
 }
 
@@ -174,8 +196,8 @@ export interface IStyleCopyOptions {
   credentialOffer?: Partial<IStyleCopyCredentialOffer>;
   /** Partial patch for the credential presentation modal */
   credentialPresentation?: Partial<IStyleCopyCredentialPresentation>;
-  /** Partial patch for the credential list modal */
-  credentialList?: Partial<IStyleCopyCredentialList>;
+  /** Partial patch for the credentials tab + detail dialog */
+  credentials?: Partial<IStyleCopyCredentials>;
   /** Partial patch for the create-backup modal */
   createBackup?: Partial<IStyleCopyCreateBackup>;
   /** Partial patch for the restore-backup modal */
@@ -194,7 +216,7 @@ export interface IResolvedCopy {
   typedData: IStyleCopyTypedData;
   credentialOffer: IStyleCopyCredentialOffer;
   credentialPresentation: IStyleCopyCredentialPresentation;
-  credentialList: IStyleCopyCredentialList;
+  credentials: IStyleCopyCredentials;
   createBackup: IStyleCopyCreateBackup;
   restoreBackup: IStyleCopyRestoreBackup;
 }
