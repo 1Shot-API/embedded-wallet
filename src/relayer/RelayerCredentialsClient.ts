@@ -1,3 +1,4 @@
+import type { COSEPublicKey } from "@1shotapi/ows-types";
 import { RELAYER_BASE_URL } from "./constants";
 import type {
   IRecoveredCredentialBlob,
@@ -36,7 +37,7 @@ export class RelayerCredentialsClient {
   }
 
   async registerPasskey(
-    body: IWebAuthnAssertionRequest & { publicKey: string },
+    body: IWebAuthnAssertionRequest & { publicKey: COSEPublicKey },
   ): Promise<{ credentialId: string }> {
     return this.postJson<{ credentialId: string }>(
       "/wallet/passkeys/register",

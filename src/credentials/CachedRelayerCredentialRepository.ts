@@ -1,6 +1,7 @@
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import {
   AES256CipherText,
+  type COSEPublicKey,
   type CredentialFilter,
   type CredentialId,
   type CredentialSummary,
@@ -189,10 +190,10 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
 
   /**
    * Register this wallet's WebAuthn passkey with the relayer.
-   * Call once at account creation while `passkeyPublicKey` is still available.
+   * Call once at account creation while `cosePublicKey` is still available.
    * Later store/recover/delete only need `credentialId` + assertion.
    */
-  async registerPasskey(publicKey: string): Promise<void> {
+  async registerPasskey(publicKey: COSEPublicKey): Promise<void> {
     const assertion = await this.assert();
     await this.client.registerPasskey({ ...assertion, publicKey });
   }

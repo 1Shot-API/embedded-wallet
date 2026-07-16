@@ -266,7 +266,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (!credentialId) {
         throw new Error("Passkey created but credential id missing");
       }
-      if (!created.passkeyPublicKey) {
+      if (!created.cosePublicKey) {
         throw new Error(
           "Passkey created but authenticator public key missing — cannot register with relayer",
         );
@@ -274,8 +274,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Persist credentialId first so relayer assertions can target this passkey.
       saveWalletCreated(credentialId);
       // Only chance to bind authenticator public key — register immediately.
-      await credentialRepository.registerPasskey(String(created.passkeyPublicKey));
-      useWalletSessionStore.getState().setWalletCreated(true);
+      await credentialRepository.registerPasskey(created.cosePublicKey);      useWalletSessionStore.getState().setWalletCreated(true);
       await refreshAddresses();
       setUnlocked(true);
     },
