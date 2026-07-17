@@ -193,7 +193,7 @@ export interface IStyleCopyOptions {
   productName?: string;
   /** Short supporting line under the product name */
   tagline?: string;
-  /** Optional brand logo URL shown in wallet chrome */
+  /** Optional brand logo URL on the login screen (falls back to bundled 1Shot icon) */
   logoUrl?: string;
   /** Partial patch for the connect modal */
   connect?: Partial<IStyleCopyConnect>;

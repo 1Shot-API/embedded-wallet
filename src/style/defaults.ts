@@ -3,8 +3,8 @@ import type { IResolvedStyle } from "./types";
 /** 1Shot default branding (shadcn nova / neutral tokens). */
 export const DEFAULT_STYLE: IResolvedStyle = {
   theme: {
-    primary: "oklch(0.205 0 0)",
-    primaryForeground: "oklch(0.985 0 0)",
+    primary: "#2499a9",
+    primaryForeground: "#ffffff",
     background: "oklch(1 0 0)",
     foreground: "oklch(0.145 0 0)",
     muted: "oklch(0.97 0 0)",
@@ -17,7 +17,8 @@ export const DEFAULT_STYLE: IResolvedStyle = {
   },
   copy: {
     productName: "1Shot Wallet",
-    tagline: "Passkey-secured embedded wallet",
+    tagline:
+      "Permissionless Embedded Wallet.\nSecurely log in with passkeys or start fresh.",
     logoUrl: "",
     connect: {
       title: "Connect wallet",
@@ -29,7 +30,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       title: "Set up your wallet",
       body: "This wallet uses a passkey to secure your keys on this device. Log in with an existing passkey or create a new account before continuing.",
       cancelLabel: "Cancel",
-      loginLabel: "Login with passkey",
+      loginLabel: "Login with passkey ->",
       createLabel: "Create account",
     },
     passkeyName: {

@@ -24,13 +24,21 @@ export function App() {
     <div className="bg-background text-foreground flex min-h-full flex-col">
       {embedded ? <WalletChrome /> : null}
 
-      <div className="flex-1 px-5 py-4">
+      <div
+        className={
+          showOnboarding
+            ? "flex min-h-0 flex-1 flex-col"
+            : "flex-1 px-5 py-4"
+        }
+      >
         {bootError ? (
-          <p className="text-destructive text-sm">
+          <p className="text-destructive px-5 py-4 text-sm">
             Failed to start: {bootError}
           </p>
         ) : !ready ? (
-          <p className="text-muted-foreground font-mono text-sm">Loading…</p>
+          <p className="text-muted-foreground px-5 py-4 font-mono text-sm">
+            Loading…
+          </p>
         ) : showOnboarding ? (
           <OnboardingPanel />
         ) : (
