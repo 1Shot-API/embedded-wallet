@@ -9,6 +9,12 @@ export const DEMO_CHAINS: ReadonlyArray<{
   blockExplorerUrl: string;
 }> = [
   {
+    chainId: EVMChainId("0x4cef52"), // 5042002
+    label: "Arc Testnet",
+    rpcUrl: "https://arc-testnet.g.alchemy.com/v2/jqLUTbHeN_cVsIX2W7tJk",
+    blockExplorerUrl: "https://testnet.arcscan.app",
+  },
+  {
     chainId: EVMChainId("0xaa36a7"), // 11155111
     label: "Sepolia",
     rpcUrl: "https://eth-sepolia.g.alchemy.com/v2/jqLUTbHeN_cVsIX2W7tJk",
@@ -19,11 +25,5 @@ export const DEMO_CHAINS: ReadonlyArray<{
     label: "Base Sepolia",
     rpcUrl: "https://base-sepolia.g.alchemy.com/v2/jqLUTbHeN_cVsIX2W7tJk",
     blockExplorerUrl: "https://sepolia.basescan.org",
-  },
-  {
-    chainId: EVMChainId("0x4cef52"), // 5042002
-    label: "Arc Testnet",
-    rpcUrl: "https://arc-testnet.g.alchemy.com/v2/jqLUTbHeN_cVsIX2W7tJk",
-    blockExplorerUrl: "https://testnet.arcscan.app",
   },
 ];
