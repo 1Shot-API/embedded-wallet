@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { overlaySignerIframe } from "@1shotapi/ows-signer-utils";
 import type { RecoveryDataCreatedData } from "@1shotapi/ows-types";
-import { copyText } from "@/lib/clipboard";
 import {
   useStyle,
   type IStyleCopyCreateBackup,
   type IStyleCopyRestoreBackup,
 } from "../../style";
+import { CopyableText } from "../CopyableText";
 import { Modal } from "../Modal";
 import { useWallet } from "../../wallet/WalletProvider";
 
@@ -113,7 +113,6 @@ export function CreateBackupModal({
   const [phase, setPhase] = useState<"prompt" | "result" | "error">("prompt");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RecoveryDataCreatedData | null>(null);
-  const [copyLabel, setCopyLabel] = useState(createBackup.copyLabel);
   const abortedRef = useRef(false);
   const restoreOverlayRef = useRef<(() => void) | null>(null);
 
@@ -206,21 +205,6 @@ export function CreateBackupModal({
         title={createBackup.title}
         actions={[
           {
-            label: copyLabel,
-            variant: "secondary",
-            onClick: () => {
-              void copyText(result.encryptedPrivateKey).then((ok) => {
-                setCopyLabel(
-                  ok ? createBackup.copiedLabel : createBackup.copyFailedLabel,
-                );
-                setTimeout(
-                  () => setCopyLabel(createBackup.copyLabel),
-                  1500,
-                );
-              });
-            },
-          },
-          {
             label: createBackup.doneLabel,
             variant: "primary",
             autoFocus: true,
@@ -231,9 +215,12 @@ export function CreateBackupModal({
         <p className="text-muted-foreground mb-1 text-[0.8rem] font-medium">
           {createBackup.encryptedLabel}
         </p>
-        <pre className="wallet-detail-block text-[0.8rem]">
-          {result.encryptedPrivateKey}
-        </pre>
+        <CopyableText
+          text={result.encryptedPrivateKey}
+          copyLabel={createBackup.copyLabel}
+          copiedLabel={createBackup.copiedLabel}
+          copyFailedLabel={createBackup.copyFailedLabel}
+        />
       </Modal>
     );
   }

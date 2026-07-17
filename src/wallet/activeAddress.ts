@@ -20,11 +20,6 @@ export function chainFamilyFor(chainId: EVMChainId | string): EChainFamily {
   return EChainFamily.Evm;
 }
 
-export function shortenAddress(address: string, left = 6, right = 4): string {
-  if (address.length <= left + right + 3) return address;
-  return `${address.slice(0, left)}…${address.slice(-right)}`;
-}
-
 export interface IActiveAddress {
   family: EChainFamily;
   label: string;

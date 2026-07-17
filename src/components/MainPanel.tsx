@@ -1,7 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import { CheckIcon, CopyIcon } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -10,17 +7,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { copyText } from "@/lib/clipboard";
 import { useWallet } from "../wallet/WalletProvider";
 import { useWalletSessionStore } from "../wallet/sessionStore";
-import {
-  resolveActiveAddress,
-  shortenAddress,
-} from "../wallet/activeAddress";
+import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useStyle } from "../style";
+import { CopyableText } from "./CopyableText";
 import { CredentialsTab } from "./credentials/CredentialsTab";
-
-type CopyState = "idle" | "copied" | "failed";
 
 /**
  * Main unlocked shell: chain + active address, then content tabs.
@@ -35,30 +27,13 @@ export function MainPanel() {
       chainId: state.chainId,
     })),
   );
-  const [copyState, setCopyState] = useState<CopyState>("idle");
-  const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const active = resolveActiveAddress({
     chainId,
     evmAddress,
     solanaAddress,
   });
-  const canCopy = Boolean(active.address && active.address !== "—");
-
-  useEffect(() => {
-    return () => {
-      if (copyResetRef.current) clearTimeout(copyResetRef.current);
-    };
-  }, []);
-
-  const copyAddress = () => {
-    if (!canCopy) return;
-    void copyText(active.address).then((ok) => {
-      setCopyState(ok ? "copied" : "failed");
-      if (copyResetRef.current) clearTimeout(copyResetRef.current);
-      copyResetRef.current = setTimeout(() => setCopyState("idle"), 1500);
-    });
-  };
+  const hasAddress = Boolean(active.address && active.address !== "—");
 
   return (
     <div className="flex flex-col gap-4">
@@ -93,41 +68,14 @@ export function MainPanel() {
           <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             {active.label} address
           </span>
-          <div className="border-border bg-muted/40 flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2">
-            <code
-              className="min-w-0 flex-1 truncate font-mono text-[0.8rem]"
-              title={active.address}
-            >
-              {shortenAddress(active.address, 8, 6)}
-            </code>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label={
-                copyState === "copied"
-                  ? "Address copied"
-                  : copyState === "failed"
-                    ? "Copy failed"
-                    : "Copy address"
-              }
-              title={
-                copyState === "copied"
-                  ? "Copied"
-                  : copyState === "failed"
-                    ? "Copy failed"
-                    : "Copy address"
-              }
-              disabled={!canCopy}
-              onClick={copyAddress}
-            >
-              {copyState === "copied" ? (
-                <CheckIcon className="size-3.5" />
-              ) : (
-                <CopyIcon className="size-3.5" />
-              )}
-            </Button>
-          </div>
+          <CopyableText
+            text={hasAddress ? active.address : "—"}
+            truncate
+            disabled={!hasAddress}
+            copyLabel="Copy address"
+            copiedLabel="Address copied"
+            copyFailedLabel="Copy failed"
+          />
         </div>
       </section>
 
