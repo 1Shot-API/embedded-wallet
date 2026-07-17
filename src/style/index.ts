@@ -7,6 +7,7 @@ export type {
   IStyleCopyPasskeyName,
   IStyleCopyPersonalSign,
   IStyleCopyTypedData,
+  IStyleCopySendTransaction,
   IStyleCopyCredentialOffer,
   IStyleCopyCredentialPresentation,
   IStyleCopyCredentials,

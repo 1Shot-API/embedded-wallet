@@ -57,6 +57,17 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       rejectLabel: "Reject",
       signLabel: "Sign",
     },
+    sendTransaction: {
+      title: "Send transaction",
+      accountLabel: "Account",
+      contractLabel: "Contract",
+      contractCreationLabel: "(contract creation)",
+      valueLabel: "Value",
+      dataLabel: "Data",
+      chainLabel: "Chain",
+      rejectLabel: "Reject",
+      signLabel: "Sign",
+    },
     credentialOffer: {
       title: "Accept credential offer?",
       body: "{issuerName} ({issuerId}) wants to issue a credential to your wallet.",

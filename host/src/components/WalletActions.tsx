@@ -12,29 +12,56 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 export const HOST_CHAINS = [
-  { value: "0xaa36a7", label: "Sepolia" },
-  { value: "0x14a34", label: "Base Sepolia" },
-  { value: "0x4cef52", label: "Arc Testnet" },
+  {
+    value: "0xaa36a7",
+    label: "Sepolia",
+    usdc: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    blockExplorerUrl: "https://sepolia.etherscan.io",
+  },
+  {
+    value: "0x14a34",
+    label: "Base Sepolia",
+    usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    blockExplorerUrl: "https://sepolia.basescan.org",
+  },
+  {
+    value: "0x4cef52",
+    label: "Arc Testnet",
+    usdc: "0x3600000000000000000000000000000000000000",
+    blockExplorerUrl: "https://testnet.arcscan.app",
+  },
 ] as const;
+
+export type UsdcMode = "balance" | "send";
+
+export function hostChainMeta(chainId: string) {
+  return HOST_CHAINS.find((chain) => chain.value === chainId) ?? null;
+}
 
 export interface IWalletActionsProps {
   ready: boolean;
   busy: boolean;
   chainId: string;
   message: string;
-  tokenAddress: string;
+  usdcMode: UsdcMode;
+  usdcDestination: string;
+  usdcAmount: string;
   status: string;
   statusIsError: boolean;
   signature: string | null;
-  tokenBalance: string | null;
+  usdcOutput: string | null;
+  txHash: string | null;
+  txExplorerUrl: string | null;
   onChainChange: (chainId: string) => void;
   onRefreshChain: () => void;
   onMessageChange: (message: string) => void;
-  onTokenAddressChange: (address: string) => void;
+  onUsdcModeChange: (mode: UsdcMode) => void;
+  onUsdcDestinationChange: (address: string) => void;
+  onUsdcAmountChange: (amount: string) => void;
   onSign: () => void;
   walletVisible: boolean;
   onToggleWallet: () => void;
-  onCheckBalance: () => void;
+  onUsdcAction: () => void;
 }
 
 export function WalletActions({
@@ -42,20 +69,28 @@ export function WalletActions({
   busy,
   chainId,
   message,
-  tokenAddress,
+  usdcMode,
+  usdcDestination,
+  usdcAmount,
   status,
   statusIsError,
   signature,
-  tokenBalance,
+  usdcOutput,
+  txHash,
+  txExplorerUrl,
   onChainChange,
   onRefreshChain,
   onMessageChange,
-  onTokenAddressChange,
+  onUsdcModeChange,
+  onUsdcDestinationChange,
+  onUsdcAmountChange,
   onSign,
   walletVisible,
   onToggleWallet,
-  onCheckBalance,
+  onUsdcAction,
 }: IWalletActionsProps) {
+  const meta = hostChainMeta(chainId);
+
   return (
     <section className="flex flex-col gap-3" aria-label="Wallet actions">
       <div className="flex flex-wrap items-center gap-2">
@@ -138,34 +173,90 @@ export function WalletActions({
       <hr className="border-border my-1" />
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="token-address-input">ERC-20 contract address</Label>
-        <Input
-          id="token-address-input"
-          className="font-mono text-[0.85rem]"
-          spellCheck={false}
-          autoComplete="off"
-          placeholder="0x…"
-          value={tokenAddress}
-          disabled={!ready}
-          onChange={(event) => onTokenAddressChange(event.target.value)}
-        />
+        <Label htmlFor="usdc-mode-select">USDC</Label>
+        <Select
+          value={usdcMode}
+          disabled={!ready || busy}
+          onValueChange={(value) => {
+            if (value === "balance" || value === "send") {
+              onUsdcModeChange(value);
+            }
+          }}
+        >
+          <SelectTrigger id="usdc-mode-select">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="balance">Check Balance</SelectItem>
+            <SelectItem value="send">Send USDC</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-muted-foreground font-mono text-xs break-all">
+          {meta ? `USDC: ${meta.usdc}` : "USDC: unsupported chain"}
+        </p>
       </div>
+
+      {usdcMode === "send" ? (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="usdc-destination-input">Destination</Label>
+            <Input
+              id="usdc-destination-input"
+              className="font-mono text-[0.85rem]"
+              spellCheck={false}
+              autoComplete="off"
+              placeholder="0x…"
+              value={usdcDestination}
+              disabled={!ready}
+              onChange={(event) =>
+                onUsdcDestinationChange(event.target.value)
+              }
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="usdc-amount-input">Amount (USDC)</Label>
+            <Input
+              id="usdc-amount-input"
+              spellCheck={false}
+              autoComplete="off"
+              inputMode="decimal"
+              placeholder="1.0"
+              value={usdcAmount}
+              disabled={!ready}
+              onChange={(event) => onUsdcAmountChange(event.target.value)}
+            />
+          </div>
+        </>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
           variant="outline"
           disabled={!ready || busy}
-          onClick={onCheckBalance}
+          onClick={onUsdcAction}
         >
-          Check Balance
+          {usdcMode === "send" ? "Send USDC" : "Check Balance"}
         </Button>
       </div>
 
-      {tokenBalance ? (
+      {usdcOutput ? (
         <pre className="border-border bg-muted/40 overflow-x-auto rounded-md border p-3 font-mono text-xs break-all whitespace-pre-wrap">
-          {tokenBalance}
+          {usdcOutput}
         </pre>
+      ) : null}
+
+      {txHash && txExplorerUrl ? (
+        <p className="text-muted-foreground text-sm">
+          <a
+            href={txExplorerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2"
+          >
+            View on explorer
+          </a>
+        </p>
       ) : null}
     </section>
   );

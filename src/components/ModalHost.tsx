@@ -4,7 +4,11 @@ import {
   PasskeyNameModal,
   WalletSetupModal,
 } from "./modals/SetupModals";
-import { PersonalSignModal, TypedDataModal } from "./modals/SignModals";
+import {
+  PersonalSignModal,
+  SendTransactionModal,
+  TypedDataModal,
+} from "./modals/SignModals";
 import {
   CredentialOfferModal,
   CredentialPresentationModal,
@@ -32,6 +36,13 @@ export function ModalHost() {
     case "typedData":
       return (
         <TypedDataModal
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+        />
+      );
+    case "sendTransaction":
+      return (
+        <SendTransactionModal
           request={activeModal.request}
           onResolve={activeModal.resolve}
         />

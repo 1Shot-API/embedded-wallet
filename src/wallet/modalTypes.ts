@@ -1,5 +1,6 @@
 import type {
   PersonalSignApprovalRequest,
+  SendTransactionApprovalRequest,
   SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
 import type {
@@ -36,6 +37,12 @@ export type ModalRequest =
       id: string;
       kind: "typedData";
       request: SignTypedDataApprovalRequest;
+      resolve: (approved: boolean) => void;
+    }
+  | {
+      id: string;
+      kind: "sendTransaction";
+      request: SendTransactionApprovalRequest;
       resolve: (approved: boolean) => void;
     }
   | {

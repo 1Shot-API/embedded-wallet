@@ -1,5 +1,6 @@
 import type {
   PersonalSignApprovalRequest,
+  SendTransactionApprovalRequest,
   SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
 import { ConversionUtils, HexString } from "@1shotapi/ows-types";
@@ -85,6 +86,47 @@ export function TypedDataModal({
         label={copy.messageLabel}
         content={formatJson(typedData.message)}
       />
+    </Modal>
+  );
+}
+
+export function SendTransactionModal({
+  request,
+  onResolve,
+}: {
+  request: SendTransactionApprovalRequest;
+  onResolve: (approved: boolean) => void;
+}) {
+  const { style } = useStyle();
+  const { sendTransaction: copy } = style.copy;
+
+  return (
+    <Modal
+      title={copy.title}
+      onBackdropDismiss={() => onResolve(false)}
+      actions={[
+        {
+          label: copy.rejectLabel,
+          variant: "secondary",
+          onClick: () => onResolve(false),
+        },
+        {
+          label: copy.signLabel,
+          variant: "primary",
+          autoFocus: true,
+          onClick: () => onResolve(true),
+        },
+      ]}
+    >
+      <FieldLabel>{copy.accountLabel}</FieldLabel>
+      <p className="mb-3 break-all font-mono text-[0.8rem]">{request.address}</p>
+      <LabeledBlock
+        label={copy.contractLabel}
+        content={request.to ?? copy.contractCreationLabel}
+      />
+      <LabeledBlock label={copy.valueLabel} content={request.value} />
+      <LabeledBlock label={copy.dataLabel} content={request.data} />
+      <LabeledBlock label={copy.chainLabel} content={request.chainId} />
     </Modal>
   );
 }

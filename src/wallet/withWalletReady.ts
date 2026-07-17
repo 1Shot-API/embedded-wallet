@@ -3,14 +3,20 @@
  *
  * OWS helpers (`SignHelper`, `CredentialsHelper`) take an optional `ensureReady`
  * callback, but some flows (e.g. `present`) also need credentials in the local
- * cache before they can match / show consent. Custom RPCs (`sendTransaction`, …)
- * should wrap handlers with {@link withWalletReady} so unlock/setup is never
- * forgotten when new methods are added.
+ * cache before they can match / show consent. Custom RPCs (`eth_sendTransaction`,
+ * future 7710/delegation sends) should use the same centralized gate pattern so
+ * unlock/setup is never forgotten when new methods are added.
  *
- * `ensureReady` itself owns the branch:
+ * Full `ensureReady` owns:
  * - unlocked → no-op
  * - cached credential id → passkey unlock (+ credential recover when cache empty)
  * - otherwise → setup modal (login existing / create new), then recover
+ *
+ * For **signed** EIP-1193 actions (`personal_sign`, typed data, `eth_sendTransaction`):
+ * pass a setup-only gate to `SignHelper` — run setup/login only when no credential
+ * id exists. With a known credential, skip a separate `getPublicKey` unlock; the
+ * signing ceremony itself authenticates. Pair with `onAuthenticated` to mark
+ * unlocked and refresh addresses after a successful sign.
  */
 
 export type WalletReadyGate = () => Promise<void>;
@@ -18,7 +24,8 @@ export type WalletReadyGate = () => Promise<void>;
 /**
  * Wrap a host RPC / credential handler so it always runs after {@link ensureReady}.
  * Use for actions that need an unlocked signer before any other work
- * (e.g. future `sendTransaction`).
+ * (e.g. credential mutate paths). Prefer SignHelper's setup-only gate for
+ * signing / transaction methods.
  */
 export function withWalletReady<TArgs extends unknown[], TResult>(
   ensureReady: WalletReadyGate,

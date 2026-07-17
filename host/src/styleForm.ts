@@ -48,6 +48,11 @@ export interface IStyleFormState {
   typedSignLabel: string;
   typedReject: string;
 
+  // Text — Send transaction
+  txTitle: string;
+  txSignLabel: string;
+  txReject: string;
+
   // Text — Credential offer
   credOfferTitle: string;
   credOfferBody: string;
@@ -119,6 +124,9 @@ export const ACME_PRESET: IStyleFormState = {
   typedTitle: "Approve typed data",
   typedSignLabel: "Sign",
   typedReject: "Reject",
+  txTitle: "Approve transaction",
+  txSignLabel: "Sign",
+  txReject: "Reject",
   credOfferTitle: "Accept this credential?",
   credOfferBody: "Review the offer before accepting.",
   credOfferAccept: "Accept",
@@ -168,6 +176,7 @@ export const OCEAN_PRESET: IStyleFormState = {
   signTitle: "Sign with Ocean",
   signLabel: "Approve",
   typedTitle: "Ocean typed data",
+  txTitle: "Ocean transaction",
   credOfferTitle: "Accept Ocean credential?",
   credPresentTitle: "Share with verifier?",
   backupTitle: "Backup Ocean keys",
@@ -201,6 +210,8 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   signLabel: "Sign",
   typedTitle: "Sign typed data",
   typedSignLabel: "Sign",
+  txTitle: "Send transaction",
+  txSignLabel: "Sign",
   credOfferTitle: "Accept credential offer?",
   credOfferBody: "",
   credPresentTitle: "Share credential?",
@@ -285,6 +296,14 @@ export function buildSetStylePayload(
   put(typedData, "signLabel", form.typedSignLabel);
   put(typedData, "rejectLabel", form.typedReject);
   if (Object.keys(typedData).length > 0) copy.typedData = typedData;
+
+  const sendTransaction: Record<string, string> = {};
+  put(sendTransaction, "title", form.txTitle);
+  put(sendTransaction, "signLabel", form.txSignLabel);
+  put(sendTransaction, "rejectLabel", form.txReject);
+  if (Object.keys(sendTransaction).length > 0) {
+    copy.sendTransaction = sendTransaction;
+  }
 
   const credentialOffer: Record<string, string> = {};
   put(credentialOffer, "title", form.credOfferTitle);

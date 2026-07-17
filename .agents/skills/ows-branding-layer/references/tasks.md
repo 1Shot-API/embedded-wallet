@@ -38,8 +38,6 @@ App-owned passkey create / login. Split readiness:
 
 - Persist credential id + cached addresses in app storage (`src/storage.ts`).
 - Gate signing and account-connect behind `ensureReady()`.
-- **Custom host RPCs:** wrap handlers with `withWalletReady(ensureReady, handler)` (`src/wallet/withWalletReady.ts`) so unlock/setup is not forgotten for `sendTransaction` and similar.
-- **Credentials that need a warm cache** (`present`): use `ensureCredentialsReadable` before match/consent when the local credential store may be empty (cross-origin shard).
 - Embedded first-run UI when `window.parent !== window.top` is optional — `OnboardingPanel.tsx` / `WalletProvider.tsx` `runSetupFlow`.
 - Host-driven setup: wrap with `requestDisplay` + setup modals (`SetupModals.tsx`).
 
@@ -96,20 +94,25 @@ Headless wiring in `SignHelper` (`@1shotapi/ows-signer-utils`):
 requestDisplay → consent UI → ensureReady → signer.evm.signMessage | signTypedData → hide
 ```
 
-Registers: `personal_sign`, `eth_signTypedData`, `eth_signTypedData_v3`, `eth_signTypedData_v4`. Reject with `OwsUserRejectedError`. No transaction signing in `SignHelper`.
+Registers: `personal_sign`, `eth_signTypedData`, `eth_signTypedData_v3`, `eth_signTypedData_v4`, `eth_sendTransaction`. Reject with `OwsUserRejectedError`.
+
+Create `RpcHelper` before `SignHelper` and pass it as `chainRpc`. Use a **setup-only** `ensureReady` (run onboarding only when no credential id) plus `onAuthenticated` after a successful ceremony so known credentials need only one passkey prompt.
 
 ```typescript
 const signHelper = new SignHelper(signer, wallet, {
-  ensureReady,
+  ensureReady: ensureOnboardedForSigning,
+  onAuthenticated,
+  chainRpc: rpcHelper,
   requestPersonalSignApproval, // PersonalSignApprovalRequest → boolean
   requestSignTypedDataApproval, // SignTypedDataApprovalRequest → boolean
+  requestSendTransactionApproval, // SendTransactionApprovalRequest → boolean
 });
 for (const [method, handler] of Object.entries(signHelper.handlers)) {
   wallet.registerEip1193(method, handler);
 }
 ```
 
-Reference: `src/ows/registerApprovalSigning.ts`, `src/components/modals/SignModals.tsx`.
+Reference: `src/ows/registerApprovalSigning.ts`, `src/components/modals/SignModals.tsx`, `src/wallet/withWalletReady.ts` (embedded-wallet).
 
 ## 6. Recovery overlay
 

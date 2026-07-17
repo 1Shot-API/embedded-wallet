@@ -3,23 +3,37 @@ import {
   EWalletPresentationMode,
   OWSProxy,
 } from "@1shotapi/ows-provider";
-import { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
+import {
+  EVMAccountAddress,
+  EVMChainId,
+  HexString,
+  type EVMTransactionHash,
+} from "@1shotapi/ows-types";
 import {
   createPublicClient,
   custom,
+  encodeFunctionData,
   erc20Abi,
   formatUnits,
   getAddress,
   isAddress,
+  parseUnits,
   type Address,
+  type Hex,
 } from "viem";
 import { AppHeader } from "./components/AppHeader";
 import { AppSidebar, type HostMode } from "./components/AppSidebar";
 import { DesignPanel } from "./components/DesignPanel";
 import { TestPanel } from "./components/TestPanel";
-import { HOST_CHAINS } from "./components/WalletActions";
+import {
+  HOST_CHAINS,
+  hostChainMeta,
+  type UsdcMode,
+} from "./components/WalletActions";
 import { SidebarInset, SidebarProvider } from "./components/ui/sidebar";
 import { TooltipProvider } from "./components/ui/tooltip";
+
+const USDC_DECIMALS = 6;
 
 function normalizeChainIdHex(value: string): EVMChainId {
   return EVMChainId(`0x${BigInt(value).toString(16)}`);
@@ -41,16 +55,26 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [chainId, setChainId] = useState<string>(HOST_CHAINS[0].value);
   const [message, setMessage] = useState("Hello from 1Shot Wallet");
-  const [tokenAddress, setTokenAddress] = useState("");
+  const [usdcMode, setUsdcMode] = useState<UsdcMode>("balance");
+  const [usdcDestination, setUsdcDestination] = useState("");
+  const [usdcAmount, setUsdcAmount] = useState("");
   const [status, setStatus] = useState("Connecting to wallet…");
   const [statusIsError, setStatusIsError] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
-  const [tokenBalance, setTokenBalance] = useState<string | null>(null);
+  const [usdcOutput, setUsdcOutput] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [txExplorerUrl, setTxExplorerUrl] = useState<string | null>(null);
   const [walletVisible, setWalletVisible] = useState(false);
 
   const reportStatus = useCallback((next: string, isError = false) => {
     setStatus(next);
     setStatusIsError(isError);
+  }, []);
+
+  const clearUsdcOutputs = useCallback(() => {
+    setUsdcOutput(null);
+    setTxHash(null);
+    setTxExplorerUrl(null);
   }, []);
 
   const refreshChainFromWallet = useCallback(
@@ -195,6 +219,7 @@ export function App() {
     if (!proxy) return;
     const selected = EVMChainId(next as `0x${string}`);
     setBusy(true);
+    clearUsdcOutputs();
     void (async () => {
       try {
         await proxy.ethereum.request({
@@ -234,6 +259,11 @@ export function App() {
     })();
   };
 
+  const handleUsdcModeChange = (next: UsdcMode) => {
+    setUsdcMode(next);
+    clearUsdcOutputs();
+  };
+
   const handleSign = () => {
     const proxy = proxyRef.current;
     if (!proxy) return;
@@ -268,23 +298,23 @@ export function App() {
     })();
   };
 
-  const handleCheckBalance = () => {
+  const handleCheckUsdcBalance = () => {
     const proxy = proxyRef.current;
     if (!proxy) return;
-    const rawAddress = tokenAddress.trim();
-    if (!isAddress(rawAddress)) {
-      reportStatus("Enter a valid ERC-20 contract address.", true);
-      setTokenBalance(null);
+    const meta = hostChainMeta(chainId);
+    if (!meta) {
+      reportStatus("USDC is not configured for this chain.", true);
+      clearUsdcOutputs();
       return;
     }
 
     setBusy(true);
-    setTokenBalance(null);
-    reportStatus("Reading token balance…");
+    clearUsdcOutputs();
+    reportStatus("Reading USDC balance…");
 
     void (async () => {
       try {
-        const token = getAddress(rawAddress) as Address;
+        const token = getAddress(meta.usdc) as Address;
         const account = await resolveAccount(proxy);
         const owner = getAddress(account) as Address;
         const client = createPublicClient({
@@ -315,7 +345,7 @@ export function App() {
           }),
         ]);
 
-        setTokenBalance(
+        setUsdcOutput(
           [
             `Contract: ${token}`,
             `Account:  ${owner}`,
@@ -332,13 +362,96 @@ export function App() {
         reportStatus(
           error instanceof Error
             ? error.message
-            : "Failed to read token balance",
+            : "Failed to read USDC balance",
           true,
         );
       } finally {
         setBusy(false);
       }
     })();
+  };
+
+  const handleSendUsdc = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    const meta = hostChainMeta(chainId);
+    if (!meta) {
+      reportStatus("USDC is not configured for this chain.", true);
+      clearUsdcOutputs();
+      return;
+    }
+
+    const destinationRaw = usdcDestination.trim();
+    if (!isAddress(destinationRaw)) {
+      reportStatus("Enter a valid destination address.", true);
+      clearUsdcOutputs();
+      return;
+    }
+
+    let amount: bigint;
+    try {
+      amount = parseUnits(usdcAmount.trim(), USDC_DECIMALS);
+    } catch {
+      reportStatus("Enter a valid USDC amount.", true);
+      clearUsdcOutputs();
+      return;
+    }
+    if (amount <= 0n) {
+      reportStatus("Amount must be greater than zero.", true);
+      clearUsdcOutputs();
+      return;
+    }
+
+    setBusy(true);
+    clearUsdcOutputs();
+    reportStatus("Preparing USDC transfer…");
+
+    void (async () => {
+      try {
+        const account = await resolveAccount(proxy);
+        const to = getAddress(destinationRaw) as Address;
+        const data = encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "transfer",
+          args: [to, amount],
+        }) as Hex;
+        const activeChainId = EVMChainId(chainId as `0x${string}`);
+
+        reportStatus("Approve the transaction in the wallet…");
+        const hash = (await proxy.ethereum.request({
+          method: "eth_sendTransaction",
+          params: [
+            {
+              from: account,
+              to: EVMAccountAddress(meta.usdc as `0x${string}`),
+              data: HexString(data),
+              value: HexString("0x0"),
+              chainId: activeChainId,
+            },
+          ],
+        })) as EVMTransactionHash;
+
+        setUsdcOutput(`Transaction hash:\n${hash}`);
+        setTxHash(hash);
+        setTxExplorerUrl(`${meta.blockExplorerUrl}/tx/${hash}`);
+        reportStatus(`USDC sent. Hash ${hash}`);
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "Failed to send USDC",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleUsdcAction = () => {
+    if (usdcMode === "send") {
+      handleSendUsdc();
+    } else {
+      handleCheckUsdcBalance();
+    }
   };
 
   const handleToggleWallet = () => {
@@ -371,19 +484,25 @@ export function App() {
     busy,
     chainId,
     message,
-    tokenAddress,
+    usdcMode,
+    usdcDestination,
+    usdcAmount,
     status,
     statusIsError,
     signature,
-    tokenBalance,
+    usdcOutput,
+    txHash,
+    txExplorerUrl,
     onChainChange: handleChainChange,
     onRefreshChain: handleRefreshChain,
     onMessageChange: setMessage,
-    onTokenAddressChange: setTokenAddress,
+    onUsdcModeChange: handleUsdcModeChange,
+    onUsdcDestinationChange: setUsdcDestination,
+    onUsdcAmountChange: setUsdcAmount,
     onSign: handleSign,
     walletVisible,
     onToggleWallet: handleToggleWallet,
-    onCheckBalance: handleCheckBalance,
+    onUsdcAction: handleUsdcAction,
   };
 
   return (

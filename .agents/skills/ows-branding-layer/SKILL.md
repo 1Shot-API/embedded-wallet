@@ -108,16 +108,17 @@ const signerPromise = OWSSigner.create(signerContainer, signerUrl, {
 const signer = createDeferredSigner(() => signerPromise); // copy pattern from WalletProvider
 
 // Register before start (order in general-wallet):
-// account connect → SignHelper handlers → CredentialsHelper.register() → RpcHelper
-new RpcHelper(providers, wallet, signer, { defaultChainId });
+// account connect → RpcHelper → SignHelper handlers → CredentialsHelper.register()
+const rpcHelper = new RpcHelper(providers, wallet, signer, { defaultChainId });
 
 const signHelper = new SignHelper(signer, wallet, {
-  ensureReady: async () => {
-    await signerPromise; // iframe load
-    await unlockIfNeeded(); // passkey create/login
-  },
+  // Setup-only when no credential; signing ceremony unlocks when credential exists
+  ensureReady: ensureOnboardedForSigning,
+  onAuthenticated: markUnlockedAndRefreshAddresses,
+  chainRpc: rpcHelper,
   requestPersonalSignApproval,
   requestSignTypedDataApproval,
+  requestSendTransactionApproval,
 });
 for (const [method, handler] of Object.entries(signHelper.handlers)) {
   wallet.registerEip1193(method, handler);
@@ -138,9 +139,11 @@ Split readiness in your app:
 | API | Meaning |
 |-----|---------|
 | `awaitSignerReady()` | Nested Signing Layer iframe + `OWSSigner` loaded |
-| `ensureReady()` | Signer loaded **and** unlocked / onboarded (passkey) |
-| `withWalletReady(ensureReady, handler)` | Wrap custom host RPCs so unlock is never skipped |
-| `ensureCredentialsReadable(...)` | Unlock/recover when the local credential cache is empty before `present` |
+| `ensureReady()` | Signer loaded **and** unlocked / onboarded (passkey) — for connect, credentials, recovery create |
+| `ensureOnboardedForSigning()` | Setup/login **only if no credential id**; otherwise no-op — for `SignHelper` signed actions |
+| `onAuthenticated` | After successful sign / send: set unlocked + refresh addresses |
+
+For custom RPCs such as `eth_sendTransaction` or future ERC-7710 sends, use the same **centralized signed-action gate**: setup-only before consent when the credential is missing; one passkey ceremony for the sign itself when the credential is known.
 
 Restore-backup must use **`awaitSignerReady` only** — calling `ensureReady` first can force setup/login before recovery.
 

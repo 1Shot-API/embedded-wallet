@@ -29,9 +29,22 @@ function contentType(filePath: string): string {
 }
 
 function sendFile(res: ServerResponse, filePath: string): void {
-  res.statusCode = 200;
-  res.setHeader("Content-Type", contentType(filePath));
-  fs.createReadStream(filePath).pipe(res);
+  const stream = fs.createReadStream(filePath);
+  stream.once("open", () => {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", contentType(filePath));
+    stream.pipe(res);
+  });
+  stream.once("error", (error: NodeJS.ErrnoException) => {
+    if (res.headersSent) {
+      res.destroy(error);
+      return;
+    }
+    const notFound = error.code === "ENOENT";
+    res.statusCode = notFound ? 404 : 500;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end(notFound ? "Not found" : "Internal Server Error");
+  });
 }
 
 /**
@@ -96,7 +109,8 @@ function serveSignerPlugin(): Plugin {
           url.slice("/signer/".length),
         );
         if (!filePath || !fs.existsSync(filePath)) {
-          next();
+          res.statusCode = 404;
+          res.end("Not found");
           return;
         }
         sendFile(res, filePath);

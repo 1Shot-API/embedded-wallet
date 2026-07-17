@@ -17,6 +17,7 @@ import {
 } from "@1shotapi/ows-types";
 import type {
   PersonalSignApprovalRequest,
+  SendTransactionApprovalRequest,
   SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
 import type {
@@ -392,6 +393,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await ensureReadyRef.current();
   }, [awaitSignerReady]);
 
+  /**
+   * Signed-action gate: only run setup/login when no credential exists.
+   * With a known credential, the signing ceremony itself unlocks.
+   */
+  const ensureOnboardedForSigning = useCallback(async () => {
+    await awaitSignerReady();
+    if (isWalletCreated()) {
+      return;
+    }
+    await ensureReadyRef.current();
+  }, [awaitSignerReady]);
+
+  const onSigningAuthenticated = useCallback(async () => {
+    await refreshAddresses();
+    useWalletSessionStore.getState().setWalletCreated(true);
+    setUnlocked(true);
+  }, [refreshAddresses, setUnlocked]);
+
   const switchChain = useCallback(async (next: string) => {
     const rpc = rpcHelperRef.current;
     if (!rpc) return;
@@ -521,8 +540,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           })),
       });
 
+      const defaultChainId = DEMO_CHAINS[0]!.chainId;
+      const rpcHelper = new RpcHelper(
+        new Map(DEMO_CHAINS.map((chain) => [chain.chainId, chain.rpcUrl])),
+        wallet,
+        signer,
+        { defaultChainId },
+      );
+      rpcHelperRef.current = rpcHelper;
+      session.setChainId(rpcHelper.getChainId());
+      rpcHelper.events.on("chainChanged", (next) => {
+        useWalletSessionStore.getState().setChainId(next);
+      });
+
       registerApprovalSigning(wallet, signer, {
-        ensureReady,
+        ensureReady: ensureOnboardedForSigning,
+        onAuthenticated: onSigningAuthenticated,
+        chainRpc: rpcHelper,
         requestPersonalSignApproval: (request: PersonalSignApprovalRequest) =>
           ask<boolean>(({ id, resolve }) => ({
             id,
@@ -536,6 +570,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           ask<boolean>(({ id, resolve }) => ({
             id,
             kind: "typedData",
+            request,
+            resolve,
+          })),
+        requestSendTransactionApproval: (
+          request: SendTransactionApprovalRequest,
+        ) =>
+          ask<boolean>(({ id, resolve }) => ({
+            id,
+            kind: "sendTransaction",
             request,
             resolve,
           })),
@@ -566,19 +609,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             request,
             resolve,
           })),
-      });
-
-      const defaultChainId = DEMO_CHAINS[0]!.chainId;
-      const rpcHelper = new RpcHelper(
-        new Map(DEMO_CHAINS.map((chain) => [chain.chainId, chain.rpcUrl])),
-        wallet,
-        signer,
-        { defaultChainId },
-      );
-      rpcHelperRef.current = rpcHelper;
-      session.setChainId(rpcHelper.getChainId());
-      rpcHelper.events.on("chainChanged", (next) => {
-        useWalletSessionStore.getState().setChainId(next);
       });
 
       void wallet.start().catch((error: unknown) => {

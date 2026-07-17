@@ -80,6 +80,21 @@ const typedDataCopySchema = z
   .strict()
   .optional();
 
+const sendTransactionCopySchema = z
+  .object({
+    title: z.string().optional(),
+    accountLabel: z.string().optional(),
+    contractLabel: z.string().optional(),
+    contractCreationLabel: z.string().optional(),
+    valueLabel: z.string().optional(),
+    dataLabel: z.string().optional(),
+    chainLabel: z.string().optional(),
+    rejectLabel: z.string().optional(),
+    signLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
 const credentialOfferCopySchema = z
   .object({
     title: z.string().optional(),
@@ -183,6 +198,7 @@ const copySchema = z
     passkeyName: passkeyNameCopySchema,
     personalSign: personalSignCopySchema,
     typedData: typedDataCopySchema,
+    sendTransaction: sendTransactionCopySchema,
     credentialOffer: credentialOfferCopySchema,
     credentialPresentation: credentialPresentationCopySchema,
     credentials: credentialsCopySchema,

@@ -75,6 +75,19 @@ export interface IStyleCopyTypedData {
   signLabel: string;
 }
 
+/** `eth_sendTransaction` approval modal. */
+export interface IStyleCopySendTransaction {
+  title: string;
+  accountLabel: string;
+  contractLabel: string;
+  contractCreationLabel: string;
+  valueLabel: string;
+  dataLabel: string;
+  chainLabel: string;
+  rejectLabel: string;
+  signLabel: string;
+}
+
 /**
  * OID4VCI credential-offer approval modal.
  * `body` supports `{issuerName}` and `{issuerId}`.
@@ -192,6 +205,8 @@ export interface IStyleCopyOptions {
   personalSign?: Partial<IStyleCopyPersonalSign>;
   /** Partial patch for the EIP-712 typed-data modal */
   typedData?: Partial<IStyleCopyTypedData>;
+  /** Partial patch for the eth_sendTransaction modal */
+  sendTransaction?: Partial<IStyleCopySendTransaction>;
   /** Partial patch for the credential offer modal */
   credentialOffer?: Partial<IStyleCopyCredentialOffer>;
   /** Partial patch for the credential presentation modal */
@@ -214,6 +229,7 @@ export interface IResolvedCopy {
   passkeyName: IStyleCopyPasskeyName;
   personalSign: IStyleCopyPersonalSign;
   typedData: IStyleCopyTypedData;
+  sendTransaction: IStyleCopySendTransaction;
   credentialOffer: IStyleCopyCredentialOffer;
   credentialPresentation: IStyleCopyCredentialPresentation;
   credentials: IStyleCopyCredentials;

@@ -34,6 +34,10 @@ export function mergeStyle(
         ...current.copy.typedData,
         ...patch.copy?.typedData,
       },
+      sendTransaction: {
+        ...current.copy.sendTransaction,
+        ...patch.copy?.sendTransaction,
+      },
       credentialOffer: {
         ...current.copy.credentialOffer,
         ...patch.copy?.credentialOffer,
@@ -70,6 +74,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       passkeyName: { ...DEFAULT_STYLE.copy.passkeyName },
       personalSign: { ...DEFAULT_STYLE.copy.personalSign },
       typedData: { ...DEFAULT_STYLE.copy.typedData },
+      sendTransaction: { ...DEFAULT_STYLE.copy.sendTransaction },
       credentialOffer: { ...DEFAULT_STYLE.copy.credentialOffer },
       credentialPresentation: { ...DEFAULT_STYLE.copy.credentialPresentation },
       credentials: { ...DEFAULT_STYLE.copy.credentials },

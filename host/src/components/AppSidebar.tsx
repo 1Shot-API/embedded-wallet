@@ -28,7 +28,7 @@ const NAV_ITEMS: {
   {
     mode: "test",
     label: "Test",
-    description: "Sign, switch chain, balances",
+    description: "Sign, switch chain, USDC balance and send",
     icon: FlaskConicalIcon,
   },
   {

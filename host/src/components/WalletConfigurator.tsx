@@ -372,6 +372,30 @@ export function WalletConfigurator({
               </AccordionContent>
             </AccordionItem>
 
+            <AccordionItem value="send-tx">
+              <AccordionTrigger>Send transaction</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="tx-title"
+                  label="Title"
+                  value={form.txTitle}
+                  onChange={(value) => patch("txTitle", value)}
+                />
+                <TextField
+                  id="tx-sign"
+                  label="Sign"
+                  value={form.txSignLabel}
+                  onChange={(value) => patch("txSignLabel", value)}
+                />
+                <TextField
+                  id="tx-reject"
+                  label="Reject"
+                  value={form.txReject}
+                  onChange={(value) => patch("txReject", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
             <AccordionItem value="cred-offer">
               <AccordionTrigger>Credential offer</AccordionTrigger>
               <AccordionContent className="flex flex-col gap-3">
