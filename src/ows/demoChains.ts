@@ -7,6 +7,11 @@ export const DEMO_CHAINS: ReadonlyArray<{
   rpcUrl: string;
 }> = [
   {
+    chainId: EVMChainId("0x4cef52"), // 5042002
+    label: "Arc Testnet",
+    rpcUrl: "https://rpc.testnet.arc.network",
+  },
+  {
     chainId: EVMChainId("0xaa36a7"), // 11155111
     label: "Sepolia",
     rpcUrl: "https://sepolia.drpc.org",
@@ -15,10 +20,5 @@ export const DEMO_CHAINS: ReadonlyArray<{
     chainId: EVMChainId("0x14a34"), // 84532
     label: "Base Sepolia",
     rpcUrl: "https://sepolia.base.org",
-  },
-  {
-    chainId: EVMChainId("0x4cef52"), // 5042002
-    label: "Arc Testnet",
-    rpcUrl: "https://rpc.testnet.arc.network",
   },
 ];

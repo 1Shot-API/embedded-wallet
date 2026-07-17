@@ -177,7 +177,7 @@ export const OCEAN_PRESET: IStyleFormState = {
 export const DEFAULTS_PRESET: IStyleFormState = {
   ...ACME_PRESET,
   productName: "1Shot Wallet",
-  tagline: "Passkey-secured embedded wallet",
+  tagline: "",
   primary: "#171717",
   primaryForeground: "#fafafa",
   background: "#ffffff",
@@ -192,7 +192,8 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   connectBody: "",
   connectContinue: "Continue",
   setupTitle: "Set up your wallet",
-  setupBody: "",
+  setupBody:
+    "Permissionless Embedded Wallet.\nSecurely log in with passkeys or start fresh.",
   setupCreate: "Create account",
   passkeyTitle: "Name your passkey",
   passkeyBody: "",
@@ -249,7 +250,6 @@ export function buildSetStylePayload(
 
   const copy: Record<string, unknown> = {};
   put(copy as Record<string, string>, "productName", form.productName);
-  put(copy as Record<string, string>, "tagline", form.tagline);
   put(copy as Record<string, string>, "logoUrl", form.logoUrl);
 
   const connect: Record<string, string> = {};

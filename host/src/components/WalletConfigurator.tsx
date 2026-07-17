@@ -137,11 +137,11 @@ export function WalletConfigurator({
             value={form.productName}
             onChange={(value) => patch("productName", value)}
           />
-          <TextField
-            id="style-tagline"
-            label="Subtext"
-            value={form.tagline}
-            onChange={(value) => patch("tagline", value)}
+          <BodyField
+            id="style-setup-body"
+            label="Login subtext"
+            value={form.setupBody}
+            onChange={(value) => patch("setupBody", value)}
           />
         </TabsContent>
 
@@ -266,12 +266,6 @@ export function WalletConfigurator({
                   label="Title"
                   value={form.setupTitle}
                   onChange={(value) => patch("setupTitle", value)}
-                />
-                <BodyField
-                  id="setup-body"
-                  label="Body"
-                  value={form.setupBody}
-                  onChange={(value) => patch("setupBody", value)}
                 />
                 <TextField
                   id="setup-create"

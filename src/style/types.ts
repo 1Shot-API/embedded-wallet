@@ -38,6 +38,7 @@ export interface IStyleCopyConnect {
 /** First-time / locked setup modal (login vs create). */
 export interface IStyleCopyWalletSetup {
   title: string;
+  /** Login screen subtext and setup modal body (supports `\n` line breaks). */
   body: string;
   cancelLabel: string;
   loginLabel: string;

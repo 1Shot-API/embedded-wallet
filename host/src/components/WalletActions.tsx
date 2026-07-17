@@ -12,9 +12,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 export const HOST_CHAINS = [
+  { value: "0x4cef52", label: "Arc Testnet" },
   { value: "0xaa36a7", label: "Sepolia" },
   { value: "0x14a34", label: "Base Sepolia" },
-  { value: "0x4cef52", label: "Arc Testnet" },
 ] as const;
 
 export interface IWalletActionsProps {

@@ -1,43 +1,57 @@
+import { ArrowRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import oneShotIcon from "@/assets/1Shot-Icon-New.svg";
 import { useWallet } from "../wallet/WalletProvider";
 import { useStyle } from "../style";
 
 export function OnboardingPanel() {
   const { loginWithPasskey, createNewWalletFromUi } = useWallet();
   const { style } = useStyle();
+  const { walletSetup } = style.copy;
+  const logoSrc = style.copy.logoUrl || oneShotIcon;
 
   return (
-    <div className="text-foreground py-2">
-      <h2 className="mb-1 text-lg font-semibold tracking-tight">
+    <div className="text-foreground flex w-full max-w-sm flex-col items-center text-center">
+      <img
+        src={logoSrc}
+        alt=""
+        className="mb-6 size-24 object-contain"
+      />
+
+      <h2 className="mb-3 text-2xl font-bold tracking-tight">
         {style.copy.productName}
       </h2>
-      <p className="text-muted-foreground mb-4 text-[0.95rem]">
-        {style.copy.tagline}. Log in with an existing passkey or create a new
-        wallet account to get started.
+
+      <p className="text-muted-foreground mb-6 max-w-xs text-[0.95rem] leading-relaxed whitespace-pre-line">
+        {walletSetup.body}
       </p>
-      <div className="flex flex-col gap-2">
+
+      <div className="flex w-full flex-col gap-3">
         <Button
           type="button"
-          className="w-full"
+          size="lg"
+          className="h-12 w-full rounded-full text-base font-semibold shadow-sm"
           onClick={() => {
             void loginWithPasskey().catch((error: unknown) => {
               console.error("[wallet-setup] embedded login failed", error);
             });
           }}
         >
-          Login with passkey
+          {walletSetup.loginLabel}
+          <ArrowRightIcon data-icon="inline-end" />
         </Button>
         <Button
           type="button"
           variant="outline"
-          className="w-full"
+          size="lg"
+          className="h-12 w-full rounded-full text-base font-semibold"
           onClick={() => {
             void createNewWalletFromUi().catch((error: unknown) => {
               console.error("[wallet-setup] embedded create failed", error);
             });
           }}
         >
-          Create account
+          {walletSetup.createLabel}
         </Button>
       </div>
     </div>

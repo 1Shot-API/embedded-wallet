@@ -36,7 +36,7 @@ export function WalletSetupModal({
         },
       ]}
     >
-      <p className="text-muted-foreground m-0">{walletSetup.body}</p>
+      <p className="text-muted-foreground m-0 whitespace-pre-line">{walletSetup.body}</p>
     </Modal>
   );
 }

@@ -55,6 +55,7 @@ import {
 import { useModalStore } from "./modalStore";
 import type { ActiveModal, WalletSetupChoice } from "./modalTypes";
 import { useWalletSessionStore } from "./sessionStore";
+import { useWalletFrameResize, WALLET_SHELL_ID } from "./useWalletFrameResize";
 
 /** Filled once the Signing Layer iframe finishes loading. */
 const signerHolder: { current: OWSSigner | null } = { current: null };
@@ -193,6 +194,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   /** Resolves once `OWSSigner.create` finishes; set during boot. */
   const awaitSignerRef = useRef<(() => Promise<OWSSigner>) | null>(null);
+
+  useWalletFrameResize(walletRef);
 
   const setUnlocked = useCallback((value: boolean) => {
     useWalletSessionStore.getState().setUnlocked(value);
@@ -560,13 +563,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         useWalletSessionStore.getState().setChainId(next);
       });
 
-      void wallet.start().catch((error: unknown) => {
-        if (cancelled) return;
-        console.error("[oneshot-wallet] Postmate handshake failed", error);
-        useWalletSessionStore
-          .getState()
-          .setBootError(error instanceof Error ? error.message : String(error));
-      });
+      await wallet.start();
 
       void awaitSigner().catch((error: unknown) => {
         if (cancelled) return;
@@ -580,6 +577,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       useWalletSessionStore.getState().setCredentialCount(listed.length);
       useWalletSessionStore.getState().setReady(true);
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        const shell = document.getElementById(WALLET_SHELL_ID);
+        if (shell) {
+          wallet.requestResize({ height: shell.scrollHeight });
+        }
+      });
       console.info("[oneshot-wallet] ready", {
         chainId: rpcHelper.getChainId(),
       });
