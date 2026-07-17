@@ -17,8 +17,8 @@ export function OnboardingPanel() {
   const lines = taglineLines(tagline);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-8 text-center">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-8 text-center">
         <BrandLogo
           logoUrl={logoUrl}
           className="mb-6 size-[4.5rem] rounded-2xl"

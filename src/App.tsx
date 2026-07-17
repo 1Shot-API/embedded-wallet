@@ -21,7 +21,7 @@ export function App() {
   const showOnboarding = embedded && !walletCreated && !unlocked;
 
   return (
-    <div className="bg-background text-foreground flex min-h-full flex-col">
+    <div className="bg-background text-foreground flex h-full min-h-full flex-col">
       {embedded ? <WalletChrome /> : null}
 
       <div
