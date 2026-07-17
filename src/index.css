@@ -126,12 +126,26 @@
   #root {
     margin: 0;
     min-height: 100%;
+    /* Match host requestDisplay(~420px): never grow past the iframe. */
+    max-width: 100%;
+    overflow-x: hidden;
   }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer components {
+  /**
+   * Mono detail blocks (tx data, backup ciphertext, etc.).
+   * `break-all` + `min-w-0` so unbroken hex wraps at the wallet design width
+   * instead of forcing horizontal scroll inside modals.
+   */
+  .wallet-detail-block {
+    @apply border-border bg-muted/40 m-0 max-h-40 max-w-full min-w-0 overflow-x-hidden overflow-y-auto break-all whitespace-pre-wrap rounded-md border p-3 font-mono text-[0.85rem];
   }
 }
 

@@ -140,16 +140,12 @@ function FieldLabel({ children }: { children: string }) {
 }
 
 function DetailBlock({ content }: { content: string }) {
-  return (
-    <pre className="border-border bg-muted/40 m-0 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-md border p-3 font-mono text-[0.85rem]">
-      {content}
-    </pre>
-  );
+  return <pre className="wallet-detail-block">{content}</pre>;
 }
 
 function LabeledBlock({ label, content }: { label: string; content: string }) {
   return (
-    <div className="mb-3 last:mb-0">
+    <div className="mb-3 min-w-0 last:mb-0">
       <FieldLabel>{label}</FieldLabel>
       <DetailBlock content={content} />
     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { overlaySignerIframe } from "@1shotapi/ows-signer-utils";
 import type { RecoveryDataCreatedData } from "@1shotapi/ows-types";
+import { copyText } from "@/lib/clipboard";
 import {
   useStyle,
   type IStyleCopyCreateBackup,
@@ -208,16 +209,15 @@ export function CreateBackupModal({
             label: copyLabel,
             variant: "secondary",
             onClick: () => {
-              void navigator.clipboard.writeText(result.encryptedPrivateKey).then(
-                () => {
-                  setCopyLabel(createBackup.copiedLabel);
-                  setTimeout(
-                    () => setCopyLabel(createBackup.copyLabel),
-                    1500,
-                  );
-                },
-                () => setCopyLabel(createBackup.copyFailedLabel),
-              );
+              void copyText(result.encryptedPrivateKey).then((ok) => {
+                setCopyLabel(
+                  ok ? createBackup.copiedLabel : createBackup.copyFailedLabel,
+                );
+                setTimeout(
+                  () => setCopyLabel(createBackup.copyLabel),
+                  1500,
+                );
+              });
             },
           },
           {
@@ -231,7 +231,7 @@ export function CreateBackupModal({
         <p className="text-muted-foreground mb-1 text-[0.8rem] font-medium">
           {createBackup.encryptedLabel}
         </p>
-        <pre className="border-border bg-muted/40 m-0 max-h-40 overflow-auto break-all whitespace-pre-wrap rounded-md border p-3 font-mono text-[0.8rem]">
+        <pre className="wallet-detail-block text-[0.8rem]">
           {result.encryptedPrivateKey}
         </pre>
       </Modal>

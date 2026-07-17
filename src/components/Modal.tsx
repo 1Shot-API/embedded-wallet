@@ -52,7 +52,9 @@ export function Modal({
       <DialogContent
         showCloseButton={false}
         className={cn(
-          "bg-background text-foreground z-[10000] max-h-[min(85vh,36rem)] gap-3 overflow-y-auto p-5 sm:max-w-md",
+          // min-w-0 + overflow-x-hidden: long hex/data must wrap inside the
+          // wallet iframe width instead of forcing horizontal scroll.
+          "bg-background text-foreground z-[10000] max-h-[min(85vh,36rem)] min-w-0 gap-3 overflow-x-hidden overflow-y-auto p-5 sm:max-w-md",
           wide && "sm:max-w-lg",
         )}
         onPointerDownOutside={(event) => {
@@ -66,13 +68,15 @@ export function Modal({
           }
         }}
       >
-        <DialogHeader>
+        <DialogHeader className="min-w-0">
           <DialogTitle className="text-lg font-semibold tracking-tight">
             {title}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="text-muted-foreground text-[0.95rem]">{children}</div>
+        <div className="text-muted-foreground min-w-0 overflow-x-hidden text-[0.95rem]">
+          {children}
+        </div>
 
         {footer}
 

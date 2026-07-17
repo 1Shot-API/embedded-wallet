@@ -1,4 +1,5 @@
-import { CopyIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CheckIcon, CopyIcon } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { copyText } from "@/lib/clipboard";
 import { useWallet } from "../wallet/WalletProvider";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import {
@@ -18,32 +20,43 @@ import {
 import { useStyle } from "../style";
 import { CredentialsTab } from "./credentials/CredentialsTab";
 
+type CopyState = "idle" | "copied" | "failed";
+
 /**
  * Main unlocked shell: chain + active address, then content tabs.
  */
 export function MainPanel() {
   const { style } = useStyle();
   const { chains, switchChain } = useWallet();
-  const { unlocked, evmAddress, solanaAddress, chainId } =
-    useWalletSessionStore(
-      useShallow((state) => ({
-        unlocked: state.unlocked,
-        evmAddress: state.evmAddress,
-        solanaAddress: state.solanaAddress,
-        chainId: state.chainId,
-      })),
-    );
+  const { evmAddress, solanaAddress, chainId } = useWalletSessionStore(
+    useShallow((state) => ({
+      evmAddress: state.evmAddress,
+      solanaAddress: state.solanaAddress,
+      chainId: state.chainId,
+    })),
+  );
+  const [copyState, setCopyState] = useState<CopyState>("idle");
+  const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const active = resolveActiveAddress({
     chainId,
     evmAddress,
     solanaAddress,
   });
+  const canCopy = Boolean(active.address && active.address !== "—");
+
+  useEffect(() => {
+    return () => {
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+    };
+  }, []);
 
   const copyAddress = () => {
-    if (!active.address || active.address === "—") return;
-    void navigator.clipboard.writeText(active.address).catch((error: unknown) => {
-      console.warn("[wallet] copy address failed", error);
+    if (!canCopy) return;
+    void copyText(active.address).then((ok) => {
+      setCopyState(ok ? "copied" : "failed");
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+      copyResetRef.current = setTimeout(() => setCopyState("idle"), 1500);
     });
   };
 
@@ -80,7 +93,7 @@ export function MainPanel() {
           <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             {active.label} address
           </span>
-          <div className="border-border bg-muted/40 flex items-center gap-2 rounded-lg border px-3 py-2">
+          <div className="border-border bg-muted/40 flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2">
             <code
               className="min-w-0 flex-1 truncate font-mono text-[0.8rem]"
               title={active.address}
@@ -91,11 +104,28 @@ export function MainPanel() {
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label="Copy address"
-              disabled={!unlocked || active.address === "—"}
+              aria-label={
+                copyState === "copied"
+                  ? "Address copied"
+                  : copyState === "failed"
+                    ? "Copy failed"
+                    : "Copy address"
+              }
+              title={
+                copyState === "copied"
+                  ? "Copied"
+                  : copyState === "failed"
+                    ? "Copy failed"
+                    : "Copy address"
+              }
+              disabled={!canCopy}
               onClick={copyAddress}
             >
-              <CopyIcon className="size-3.5" />
+              {copyState === "copied" ? (
+                <CheckIcon className="size-3.5" />
+              ) : (
+                <CopyIcon className="size-3.5" />
+              )}
             </Button>
           </div>
         </div>
