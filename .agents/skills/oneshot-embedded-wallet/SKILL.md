@@ -3,7 +3,7 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as setStyle for theming the 1Shot Branding Layer.
+  or custom RPC such as setStyle / focusWallet for theming and host-driven focus mode on the 1Shot Branding Layer.
 license: MIT
 metadata:
   author: 1Shot-API
@@ -175,6 +175,30 @@ Unknown keys are rejected (Zod `.strict()`).
 
 See also [README.md](../../README.md) in this repository.
 
+## Custom RPC — `focusWallet` / `unfocusWallet`
+
+Host-controlled shell modes. Callers (not end users) switch between **General** (multi-chain tabs) and **Focused** (single chain + asset detail view).
+
+```typescript
+// Lock to one chain + ERC-20 (or other) asset
+await proxy.rpc("focusWallet", {
+  chainId: "0x4cef52", // Arc Testnet
+  assetAddress: "0x3600000000000000000000000000000000000000", // USDC
+});
+proxy.showWallet();
+
+// Restore general mode (keeps the current chain)
+await proxy.rpc("unfocusWallet");
+```
+
+| Method | Params | Effect |
+|--------|--------|--------|
+| `focusWallet` | `{ chainId: \`0x…\`, assetAddress: \`0x…\` }` | Switches active chain, sets focused asset, shows Asset Details shell |
+| `unfocusWallet` | none | Clears focus; returns to network selector + tabs |
+
+`focusWallet` returns `{ ok: true, mode: "focused", chainId, assetAddress }`.  
+`unfocusWallet` returns `{ ok: true, mode: "general" }`.
+
 ## Other Host APIs
 
 | API | Use |
@@ -182,10 +206,11 @@ See also [README.md](../../README.md) in this repository.
 | `proxy.ethereum.request(...)` | EIP-1193 (accounts, sign, chain, …) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, …) |
+| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, …) |
 
 ## Hard rules
 
 - Never embed the Signing Layer iframe from the Host — always Host → Branding → Signing.
 - Prefer the published wallet URL in production; point at a local Branding origin only while developing this repo.
 - Theme with `setStyle`; do not ask integrators to fork CSS for basic brand colors / product name.
+- Use `focusWallet` / `unfocusWallet` for host-driven single-asset flows; do not expose mode switching in the wallet UI.

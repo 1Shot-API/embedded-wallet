@@ -44,6 +44,7 @@ import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
 import { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
 import { registerSetStyleRpc } from "../style";
+import { registerFocusModeRpc } from "./registerFocusMode";
 import {
   isWalletCreated,
   loadBackup,
@@ -552,6 +553,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       rpcHelper.events.on("chainChanged", (next) => {
         useWalletSessionStore.getState().setChainId(next);
       });
+
+      registerFocusModeRpc(wallet, rpcHelper);
 
       registerApprovalSigning(wallet, signer, {
         ensureReady: ensureOnboardedForSigning,

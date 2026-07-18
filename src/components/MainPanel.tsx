@@ -8,25 +8,41 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWallet } from "../wallet/WalletProvider";
-import { useWalletSessionStore } from "../wallet/sessionStore";
+import {
+  EWalletMode,
+  useWalletSessionStore,
+} from "../wallet/sessionStore";
 import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useStyle } from "../style";
+import { AssetDetails } from "./AssetDetails";
 import { CopyableText } from "./CopyableText";
 import { CredentialsTab } from "./credentials/CredentialsTab";
 
 /**
- * Main unlocked shell: chain + active address, then content tabs.
+ * Main unlocked shell: General (network + tabs) or Focused (single asset).
  */
 export function MainPanel() {
   const { style } = useStyle();
   const { chains, switchChain } = useWallet();
-  const { evmAddress, solanaAddress, chainId } = useWalletSessionStore(
+  const {
+    evmAddress,
+    solanaAddress,
+    chainId,
+    mode,
+    focusedAssetAddress,
+  } = useWalletSessionStore(
     useShallow((state) => ({
       evmAddress: state.evmAddress,
       solanaAddress: state.solanaAddress,
       chainId: state.chainId,
+      mode: state.mode,
+      focusedAssetAddress: state.focusedAssetAddress,
     })),
   );
+
+  if (mode === EWalletMode.Focused && focusedAssetAddress) {
+    return <AssetDetails assetAddress={focusedAssetAddress} />;
+  }
 
   const active = resolveActiveAddress({
     chainId,
