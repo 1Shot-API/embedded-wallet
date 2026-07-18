@@ -16,23 +16,30 @@ const MOCK_ISSUER_TRUST: IssuerTrustMetadata = {
   jurisdictions: ["US", "GB"],
 };
 
-const LOCAL_DEMO_HOSTNAMES = new Set([
+/**
+ * Hostnames trusted for demo OID4VCI offers (any path under the origin).
+ * Includes local OWS demos and the 1Shot marketing playground issuer.
+ */
+const TRUSTED_DEMO_HOSTNAMES = new Set([
   "localhost",
   "127.0.0.1",
   "ows-host.com",
   "ows-issuer.com",
   "ows-verifier.com",
+  "1shotapi.com",
+  "www.1shotapi.com",
 ]);
 
-/** True for local Vite / mkcert demo issuer origins. */
-export function isLocalDemoIssuerOrigin(issuerId: string): boolean {
+/** True for local Vite / mkcert demos and the 1Shot site playground issuer. */
+export function isTrustedDemoIssuerOrigin(issuerId: string): boolean {
   try {
     const url = new URL(issuerId);
     return (
-      LOCAL_DEMO_HOSTNAMES.has(url.hostname) ||
+      TRUSTED_DEMO_HOSTNAMES.has(url.hostname) ||
       url.hostname.endsWith(".ows-host.com") ||
       url.hostname.endsWith(".ows-issuer.com") ||
-      url.hostname.endsWith(".ows-verifier.com")
+      url.hostname.endsWith(".ows-verifier.com") ||
+      url.hostname.endsWith(".1shotapi.com")
     );
   } catch {
     return false;
@@ -46,7 +53,7 @@ export class InMemoryIssuerTrustRegistry implements IIssuerTrustRegistry {
 
   async isTrustedIssuer(issuerId: CredentialIssuer): Promise<boolean> {
     const id = String(issuerId);
-    if (isLocalDemoIssuerOrigin(id)) return true;
+    if (isTrustedDemoIssuerOrigin(id)) return true;
     return this.entries.some((e) => e.issuerId === issuerId);
   }
 
@@ -55,10 +62,10 @@ export class InMemoryIssuerTrustRegistry implements IIssuerTrustRegistry {
   ): Promise<IssuerTrustMetadata | undefined> {
     const found = this.entries.find((e) => e.issuerId === issuerId);
     if (found) return found;
-    if (isLocalDemoIssuerOrigin(String(issuerId))) {
+    if (isTrustedDemoIssuerOrigin(String(issuerId))) {
       return {
         issuerId,
-        name: "Local Demo KYC Issuer",
+        name: "Demo KYC Issuer",
         assuranceLevels: ["substantial", "high"],
         jurisdictions: ["US", "GB"],
       };
