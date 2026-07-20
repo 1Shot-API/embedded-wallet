@@ -16,6 +16,7 @@ import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useStyle } from "../style";
 import { AssetDetails } from "./AssetDetails";
 import { CopyableText } from "./CopyableText";
+import { BalancesTab } from "./balances/BalancesTab";
 import { CredentialsTab } from "./credentials/CredentialsTab";
 
 /**
@@ -41,7 +42,9 @@ export function MainPanel() {
   );
 
   if (mode === EWalletMode.Focused && focusedAssetAddress) {
-    return <AssetDetails assetAddress={focusedAssetAddress} />;
+    return (
+      <AssetDetails assetAddress={focusedAssetAddress} chainId={chainId} />
+    );
   }
 
   const active = resolveActiveAddress({
@@ -95,12 +98,18 @@ export function MainPanel() {
         </div>
       </section>
 
-      <Tabs defaultValue="credentials" className="gap-3">
+      <Tabs defaultValue="balances" className="gap-3">
         <TabsList variant="line" className="w-full justify-start">
+          <TabsTrigger value="balances">
+            {style.copy.balances.tabLabel}
+          </TabsTrigger>
           <TabsTrigger value="credentials">
             {style.copy.credentials.tabLabel}
           </TabsTrigger>
         </TabsList>
+        <TabsContent value="balances">
+          <BalancesTab />
+        </TabsContent>
         <TabsContent value="credentials">
           <CredentialsTab />
         </TabsContent>

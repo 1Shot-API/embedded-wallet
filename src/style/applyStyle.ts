@@ -50,6 +50,10 @@ export function mergeStyle(
         ...current.copy.credentials,
         ...patch.copy?.credentials,
       },
+      balances: {
+        ...current.copy.balances,
+        ...patch.copy?.balances,
+      },
       createBackup: {
         ...current.copy.createBackup,
         ...patch.copy?.createBackup,
@@ -78,6 +82,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       credentialOffer: { ...DEFAULT_STYLE.copy.credentialOffer },
       credentialPresentation: { ...DEFAULT_STYLE.copy.credentialPresentation },
       credentials: { ...DEFAULT_STYLE.copy.credentials },
+      balances: { ...DEFAULT_STYLE.copy.balances },
       createBackup: { ...DEFAULT_STYLE.copy.createBackup },
       restoreBackup: { ...DEFAULT_STYLE.copy.restoreBackup },
     },

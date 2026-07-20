@@ -149,6 +149,40 @@ export interface IStyleCopyCredentials {
 }
 
 /**
+ * Balances tab + add-asset flows.
+ * `countLabel` supports `{count}`.
+ * `addConfirmBody` supports `{assetName}` and `{chainLabel}`.
+ */
+export interface IStyleCopyBalances {
+  tabLabel: string;
+  emptyCountLabel: string;
+  countLabel: string;
+  addLabel: string;
+  loadingBody: string;
+  emptyBody: string;
+  loadFailedError: string;
+  addFailedError: string;
+  invalidAddressError: string;
+  assetColumn: string;
+  chainColumn: string;
+  balanceColumn: string;
+  viewLabel: string;
+  closeLabel: string;
+  addDialogTitle: string;
+  addDialogBody: string;
+  addressLabel: string;
+  addressPlaceholder: string;
+  addDialogCancelLabel: string;
+  addDialogSubmitLabel: string;
+  addConfirmTitle: string;
+  addConfirmBody: string;
+  addConfirmRejectLabel: string;
+  addConfirmAcceptLabel: string;
+  balanceUnavailable: string;
+  balanceNonErc20: string;
+}
+
+/**
  * Create encrypted recovery backup modal.
  * `body` / `passphrasePrompt` support `{minLength}`.
  * `passphrasePrompt` + `continueLabel` are forwarded into the Signing Layer overlay.
@@ -213,6 +247,8 @@ export interface IStyleCopyOptions {
   credentialPresentation?: Partial<IStyleCopyCredentialPresentation>;
   /** Partial patch for the credentials tab + detail dialog */
   credentials?: Partial<IStyleCopyCredentials>;
+  /** Partial patch for the balances tab + add-asset flows */
+  balances?: Partial<IStyleCopyBalances>;
   /** Partial patch for the create-backup modal */
   createBackup?: Partial<IStyleCopyCreateBackup>;
   /** Partial patch for the restore-backup modal */
@@ -233,6 +269,7 @@ export interface IResolvedCopy {
   credentialOffer: IStyleCopyCredentialOffer;
   credentialPresentation: IStyleCopyCredentialPresentation;
   credentials: IStyleCopyCredentials;
+  balances: IStyleCopyBalances;
   createBackup: IStyleCopyCreateBackup;
   restoreBackup: IStyleCopyRestoreBackup;
 }

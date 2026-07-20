@@ -12,19 +12,19 @@ import { OWSSigner } from "@1shotapi/ows-signer-utils";
 import { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
 import {
   OwsUserRejectedError,
+  type CredentialId,
   type CredentialOfferApprovalRequest,
   type CredentialPresentationApprovalRequest,
+  type CredentialSummary,
+  type EVMAccountAddress,
+  type EVMChainId,
+  type StoredCredential,
 } from "@1shotapi/ows-types";
 import type {
   PersonalSignApprovalRequest,
   SendTransactionApprovalRequest,
   SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
-import type {
-  CredentialId,
-  CredentialSummary,
-  StoredCredential,
-} from "@1shotapi/ows-types";
 import { DEMO_HOLDER_PRIVATE_JWK } from "../demo/demo-keys";
 import { InMemoryIssuerTrustRegistry } from "../demo/in-memory-trust-registry";
 import { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerCredentialRepository";
@@ -44,6 +44,13 @@ import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
 import { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
 import { registerSetStyleRpc } from "../style";
+import {
+  HardcodedKnownAssetRepository,
+  LocalStorageTrackedAssetRepository,
+  type IKnownAsset,
+  type ITrackedAsset,
+} from "../assets";
+import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerFocusModeRpc } from "./registerFocusMode";
 import {
   isWalletCreated,
@@ -60,6 +67,9 @@ import { useWalletSessionStore } from "./sessionStore";
 
 /** Filled once the Signing Layer iframe finishes loading. */
 const signerHolder: { current: OWSSigner | null } = { current: null };
+
+const knownAssetRepository = new HardcodedKnownAssetRepository();
+const trackedAssetRepository = new LocalStorageTrackedAssetRepository();
 
 const credentialRepository = new CachedRelayerCredentialRepository({
   client: new RelayerCredentialsClient(),
@@ -159,6 +169,16 @@ export type WalletContextValue = {
     credentialId: CredentialId,
   ) => Promise<StoredCredential | undefined>;
   refreshCredentialsFromRelayer: () => Promise<void>;
+  listTrackedAssets: () => Promise<ITrackedAsset[]>;
+  addTrackedAsset: (asset: ITrackedAsset) => Promise<void>;
+  removeTrackedAsset: (
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ) => Promise<void>;
+  getKnownAsset: (
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ) => Promise<IKnownAsset | null>;
   openCreateBackup: () => Promise<void>;
   openRestoreBackup: () => Promise<void>;
   loginWithPasskey: () => Promise<void>;
@@ -443,6 +463,38 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await refreshCredentialCount();
   }, [ensureReady, refreshCredentialCount]);
 
+  const refreshTrackedAssetCount = useCallback(async () => {
+    const listed = await trackedAssetRepository.list();
+    useWalletSessionStore.getState().setTrackedAssetCount(listed.length);
+  }, []);
+
+  const listTrackedAssets = useCallback(async () => {
+    return trackedAssetRepository.list();
+  }, []);
+
+  const addTrackedAsset = useCallback(
+    async (asset: ITrackedAsset) => {
+      await trackedAssetRepository.add(asset);
+      await refreshTrackedAssetCount();
+    },
+    [refreshTrackedAssetCount],
+  );
+
+  const removeTrackedAsset = useCallback(
+    async (chainId: EVMChainId, address: EVMAccountAddress) => {
+      await trackedAssetRepository.remove(chainId, address);
+      await refreshTrackedAssetCount();
+    },
+    [refreshTrackedAssetCount],
+  );
+
+  const getKnownAsset = useCallback(
+    async (chainId: EVMChainId, address: EVMAccountAddress) => {
+      return knownAssetRepository.getKnownAsset(chainId, address);
+    },
+    [],
+  );
+
   const openCreateBackup = useCallback(async () => {
     const wallet = walletRef.current;
     if (!wallet) return;
@@ -556,6 +608,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
       registerFocusModeRpc(wallet, rpcHelper);
 
+      registerAddAssetRpc(wallet, {
+        knownAssetRepository,
+        trackedAssetRepository,
+        requestAddAssetApproval: (request) =>
+          ask<boolean>(({ id, resolve }) => ({
+            id,
+            kind: "addAsset",
+            request,
+            resolve,
+          })),
+      });
+
       registerApprovalSigning(wallet, signer, {
         ensureReady: ensureOnboardedForSigning,
         onAuthenticated: onSigningAuthenticated,
@@ -633,6 +697,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const listed = await credentialRepository.list();
       if (cancelled) return;
       useWalletSessionStore.getState().setCredentialCount(listed.length);
+      const tracked = await trackedAssetRepository.list();
+      if (cancelled) return;
+      useWalletSessionStore.getState().setTrackedAssetCount(tracked.length);
       useWalletSessionStore.getState().setReady(true);
       console.info("[oneshot-wallet] ready", {
         chainId: rpcHelper.getChainId(),
@@ -668,6 +735,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       listCredentials,
       getCredential,
       refreshCredentialsFromRelayer,
+      listTrackedAssets,
+      addTrackedAsset,
+      removeTrackedAsset,
+      getKnownAsset,
       openCreateBackup,
       openRestoreBackup,
       loginWithPasskey,
@@ -686,6 +757,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       listCredentials,
       getCredential,
       refreshCredentialsFromRelayer,
+      listTrackedAssets,
+      addTrackedAsset,
+      removeTrackedAsset,
+      getKnownAsset,
       openCreateBackup,
       openRestoreBackup,
       loginWithPasskey,

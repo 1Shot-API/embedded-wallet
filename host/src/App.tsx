@@ -553,6 +553,56 @@ export function App() {
     })();
   };
 
+  const handleAddUsdcArc = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Requesting add Arc USDC…");
+    void (async () => {
+      try {
+        await proxy.rpc("addAsset", {
+          chainId: FOCUS_USDC_ARC.chainId,
+          assetAddress: FOCUS_USDC_ARC.assetAddress,
+        });
+        proxy.showWallet();
+        setWalletVisible(true);
+        reportStatus("Arc USDC added to tracked assets.");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "addAsset failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleAddUsdtBase = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Requesting add Base USDT…");
+    void (async () => {
+      try {
+        await proxy.rpc("addAsset", {
+          chainId: FOCUS_USDT_BASE.chainId,
+          assetAddress: FOCUS_USDT_BASE.assetAddress,
+        });
+        proxy.showWallet();
+        setWalletVisible(true);
+        reportStatus("Base USDT added to tracked assets.");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "addAsset failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
   const walletActionProps = {
     ready,
     busy,
@@ -580,6 +630,8 @@ export function App() {
     onFocusUsdcArc: handleFocusUsdcArc,
     onFocusUsdtBase: handleFocusUsdtBase,
     onUnfocusWallet: handleUnfocusWallet,
+    onAddUsdcArc: handleAddUsdcArc,
+    onAddUsdtBase: handleAddUsdtBase,
   };
 
   return (

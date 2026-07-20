@@ -151,6 +151,38 @@ const credentialsCopySchema = z
   .strict()
   .optional();
 
+const balancesCopySchema = z
+  .object({
+    tabLabel: z.string().optional(),
+    emptyCountLabel: z.string().optional(),
+    countLabel: z.string().optional(),
+    addLabel: z.string().optional(),
+    loadingBody: z.string().optional(),
+    emptyBody: z.string().optional(),
+    loadFailedError: z.string().optional(),
+    addFailedError: z.string().optional(),
+    invalidAddressError: z.string().optional(),
+    assetColumn: z.string().optional(),
+    chainColumn: z.string().optional(),
+    balanceColumn: z.string().optional(),
+    viewLabel: z.string().optional(),
+    closeLabel: z.string().optional(),
+    addDialogTitle: z.string().optional(),
+    addDialogBody: z.string().optional(),
+    addressLabel: z.string().optional(),
+    addressPlaceholder: z.string().optional(),
+    addDialogCancelLabel: z.string().optional(),
+    addDialogSubmitLabel: z.string().optional(),
+    addConfirmTitle: z.string().optional(),
+    addConfirmBody: z.string().optional(),
+    addConfirmRejectLabel: z.string().optional(),
+    addConfirmAcceptLabel: z.string().optional(),
+    balanceUnavailable: z.string().optional(),
+    balanceNonErc20: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
 const createBackupCopySchema = z
   .object({
     title: z.string().optional(),
@@ -202,6 +234,7 @@ const copySchema = z
     credentialOffer: credentialOfferCopySchema,
     credentialPresentation: credentialPresentationCopySchema,
     credentials: credentialsCopySchema,
+    balances: balancesCopySchema,
     createBackup: createBackupCopySchema,
     restoreBackup: restoreBackupCopySchema,
   })

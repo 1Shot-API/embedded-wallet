@@ -8,7 +8,6 @@ import {
   ShoppingBagIcon,
 } from "lucide-react";
 import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
-import { useShallow } from "zustand/react/shallow";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import { DEMO_CHAINS } from "../ows/demoChains";
 
@@ -92,16 +91,17 @@ function ActivityIcon({ kind }: { kind: ActivityKind }) {
 
 export interface IAssetDetailsProps {
   assetAddress: EVMAccountAddress;
+  /** When omitted, uses the session active chain. */
+  chainId?: EVMChainId;
 }
 
 /**
  * Shared focused-asset / asset-detail shell.
  * Layout only for now — balances and actions are static mock data.
  */
-export function AssetDetails({ assetAddress }: IAssetDetailsProps) {
-  const { chainId } = useWalletSessionStore(
-    useShallow((state) => ({ chainId: state.chainId })),
-  );
+export function AssetDetails({ assetAddress, chainId: chainIdProp }: IAssetDetailsProps) {
+  const sessionChainId = useWalletSessionStore((state) => state.chainId);
+  const chainId = chainIdProp ?? sessionChainId;
   const meta = resolveAssetMeta(String(assetAddress));
   const network = chainLabel(chainId);
 

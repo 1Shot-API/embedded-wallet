@@ -8,6 +8,7 @@ import type {
   CredentialPresentationApprovalRequest,
   RecoveryDataCreatedData,
 } from "@1shotapi/ows-types";
+import type { IAddAssetApprovalRequest } from "./registerAddAsset";
 
 export type WalletSetupChoice = "login" | "create" | "cancel";
 
@@ -55,6 +56,12 @@ export type ModalRequest =
       id: string;
       kind: "credentialPresentation";
       request: CredentialPresentationApprovalRequest;
+      resolve: (approved: boolean) => void;
+    }
+  | {
+      id: string;
+      kind: "addAsset";
+      request: IAddAssetApprovalRequest;
       resolve: (approved: boolean) => void;
     }
   | {

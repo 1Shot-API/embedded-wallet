@@ -11,6 +11,7 @@ export type {
   IStyleCopyCredentialOffer,
   IStyleCopyCredentialPresentation,
   IStyleCopyCredentials,
+  IStyleCopyBalances,
   IStyleCopyCreateBackup,
   IStyleCopyRestoreBackup,
   IResolvedCopy,

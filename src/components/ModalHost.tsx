@@ -14,6 +14,7 @@ import {
   CredentialPresentationModal,
 } from "./modals/CredentialModals";
 import { CreateBackupModal, RestoreBackupModal } from "./modals/BackupModals";
+import { AddAssetModal } from "./modals/AddAssetModal";
 
 export function ModalHost() {
   const activeModal = useModalStore((state) => state.activeModal);
@@ -57,6 +58,13 @@ export function ModalHost() {
     case "credentialPresentation":
       return (
         <CredentialPresentationModal
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+        />
+      );
+    case "addAsset":
+      return (
+        <AddAssetModal
           request={activeModal.request}
           onResolve={activeModal.resolve}
         />

@@ -79,6 +79,8 @@ export interface IWalletActionsProps {
   onFocusUsdcArc: () => void;
   onFocusUsdtBase: () => void;
   onUnfocusWallet: () => void;
+  onAddUsdcArc: () => void;
+  onAddUsdtBase: () => void;
 }
 
 export function WalletActions({
@@ -108,6 +110,8 @@ export function WalletActions({
   onFocusUsdcArc,
   onFocusUsdtBase,
   onUnfocusWallet,
+  onAddUsdcArc,
+  onAddUsdtBase,
 }: IWalletActionsProps) {
   const meta = hostChainMeta(chainId);
 
@@ -311,6 +315,32 @@ export function WalletActions({
             onClick={onUnfocusWallet}
           >
             Unfocus
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Add asset</Label>
+        <p className="text-muted-foreground text-xs">
+          Propose a tracked asset via <code>addAsset</code> (user must confirm
+          in the wallet).
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready || busy}
+            onClick={onAddUsdcArc}
+          >
+            Add Arc USDC
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready || busy}
+            onClick={onAddUsdtBase}
+          >
+            Add Base USDT
           </Button>
         </div>
       </div>

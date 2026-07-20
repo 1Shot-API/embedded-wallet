@@ -27,6 +27,8 @@ export interface IWalletSessionState {
   solanaAddress: SolanaAccountAddress;
   chainId: EVMChainId;
   credentialCount: number;
+  /** Bumped on tracked-asset add/remove so Balances tab reloads. */
+  trackedAssetCount: number;
   mode: EWalletMode;
   focusedAssetAddress: EVMAccountAddress | null;
 
@@ -40,6 +42,7 @@ export interface IWalletSessionState {
   ) => void;
   setChainId: (chainId: EVMChainId) => void;
   setCredentialCount: (count: number) => void;
+  setTrackedAssetCount: (count: number) => void;
   setMode: (mode: EWalletMode) => void;
   setFocusedAssetAddress: (address: EVMAccountAddress | null) => void;
   focusWallet: (
@@ -81,6 +84,7 @@ export const useWalletSessionStore = create<IWalletSessionState>((set) => ({
   solanaAddress: initialSolanaAddress(),
   chainId: DEMO_CHAINS[0]!.chainId,
   credentialCount: 0,
+  trackedAssetCount: 0,
   mode: EWalletMode.General,
   focusedAssetAddress: null,
 
@@ -92,6 +96,7 @@ export const useWalletSessionStore = create<IWalletSessionState>((set) => ({
     set({ evmAddress, solanaAddress }),
   setChainId: (chainId) => set({ chainId }),
   setCredentialCount: (credentialCount) => set({ credentialCount }),
+  setTrackedAssetCount: (trackedAssetCount) => set({ trackedAssetCount }),
   setMode: (mode) => set({ mode }),
   setFocusedAssetAddress: (focusedAssetAddress) => set({ focusedAssetAddress }),
   focusWallet: (chainId, focusedAssetAddress) =>
