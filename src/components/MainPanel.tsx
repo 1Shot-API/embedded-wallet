@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
   Select,
@@ -7,6 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { TrackedAsset } from "../lib/types/business";
 import { useWallet } from "../wallet/WalletProvider";
 import {
   EWalletMode,
@@ -18,6 +20,45 @@ import { AssetDetails } from "./AssetDetails";
 import { CopyableText } from "./CopyableText";
 import { BalancesTab } from "./balances/BalancesTab";
 import { CredentialsTab } from "./credentials/CredentialsTab";
+
+function FocusedAssetPanel() {
+  const { resolveTrackedAsset } = useWallet();
+  const { chainId, focusedAssetAddress } = useWalletSessionStore(
+    useShallow((state) => ({
+      chainId: state.chainId,
+      focusedAssetAddress: state.focusedAssetAddress,
+    })),
+  );
+  const [asset, setAsset] = useState<TrackedAsset | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!focusedAssetAddress) return;
+    let cancelled = false;
+    setError(null);
+    void resolveTrackedAsset(chainId, focusedAssetAddress)
+      .then((resolved) => {
+        if (!cancelled) setAsset(resolved);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setAsset(null);
+          setError(err instanceof Error ? err.message : "Failed to load asset");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chainId, focusedAssetAddress, resolveTrackedAsset]);
+
+  if (error) {
+    return <p className="text-destructive m-0 text-sm">{error}</p>;
+  }
+  if (!asset) {
+    return <p className="text-muted-foreground m-0 text-sm">Loading…</p>;
+  }
+  return <AssetDetails asset={asset} />;
+}
 
 /**
  * Main unlocked shell: General (network + tabs) or Focused (single asset).
@@ -42,9 +83,7 @@ export function MainPanel() {
   );
 
   if (mode === EWalletMode.Focused && focusedAssetAddress) {
-    return (
-      <AssetDetails assetAddress={focusedAssetAddress} chainId={chainId} />
-    );
+    return <FocusedAssetPanel />;
   }
 
   const active = resolveActiveAddress({

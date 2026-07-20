@@ -38,20 +38,20 @@ export function resolveActiveAddress(input: {
       return {
         family,
         label: "Solana",
-        address: String(input.solanaAddress || "—"),
+        address: input.solanaAddress || "—",
       };
     case EChainFamily.Bitcoin:
       return {
         family,
         label: "Bitcoin",
-        address: String(input.bitcoinAddress || "—"),
+        address: input.bitcoinAddress || "—",
       };
     case EChainFamily.Evm:
     default:
       return {
         family: EChainFamily.Evm,
         label: "EVM",
-        address: String(input.evmAddress || "—"),
+        address: input.evmAddress || "—",
       };
   }
 }

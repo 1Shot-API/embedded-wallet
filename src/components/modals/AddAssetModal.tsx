@@ -1,19 +1,14 @@
+import type { EVMChainId } from "@1shotapi/ows-types";
 import { Modal } from "../Modal";
 import { useStyle } from "../../style";
 import { DEMO_CHAINS } from "../../ows/demoChains";
 import type { IAddAssetApprovalRequest } from "../../wallet/registerAddAsset";
 import { CopyableText } from "../CopyableText";
 
-function chainLabel(chainId: string): string {
+function chainLabel(chainId: EVMChainId): string {
   return (
-    DEMO_CHAINS.find((chain) => String(chain.chainId) === chainId)?.label ??
-    chainId
+    DEMO_CHAINS.find((chain) => chain.chainId === chainId)?.label ?? chainId
   );
-}
-
-function truncateAddress(address: string): string {
-  if (address.length <= 12) return address;
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
 export function AddAssetModal({
@@ -25,8 +20,8 @@ export function AddAssetModal({
 }) {
   const { style } = useStyle();
   const { balances: copy } = style.copy;
-  const displayName = request.assetName ?? truncateAddress(String(request.assetAddress));
-  const network = chainLabel(String(request.chainId));
+  const displayName = request.assetSymbol || request.assetName;
+  const network = chainLabel(request.chainId);
 
   return (
     <Modal
@@ -70,7 +65,7 @@ export function AddAssetModal({
           </dt>
           <dd className="m-0 min-w-0">
             <CopyableText
-              text={String(request.assetAddress)}
+              text={request.assetAddress}
               truncate
               copyLabel="Copy address"
               copiedLabel="Copied"

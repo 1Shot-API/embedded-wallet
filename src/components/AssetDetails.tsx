@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import {
   ArrowDownLeftIcon,
@@ -7,24 +8,11 @@ import {
   SendIcon,
   ShoppingBagIcon,
 } from "lucide-react";
-import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
-import { useWalletSessionStore } from "../wallet/sessionStore";
+import type { TrackedAsset } from "../lib/types/business";
+import type { EVMChainId } from "@1shotapi/ows-types";
 import { DEMO_CHAINS } from "../ows/demoChains";
-
-/** Arc Testnet native USDC. */
-const ARC_USDC = "0x3600000000000000000000000000000000000000";
-/** Base mainnet USDT. */
-const BASE_USDT = "0xfde4c96c8593536e31f229ea8f37b2ada2699bb2";
-
-interface IAssetMeta {
-  symbol: string;
-  name: string;
-}
-
-const KNOWN_ASSETS: Record<string, IAssetMeta> = {
-  [ARC_USDC.toLowerCase()]: { symbol: "USDC", name: "USD Coin" },
-  [BASE_USDT.toLowerCase()]: { symbol: "USDT", name: "Tether USD" },
-};
+import { useWallet } from "../wallet/WalletProvider";
+import { BalanceDisplay } from "./BalanceDisplay";
 
 type ActivityKind = "received" | "sent" | "purchase";
 
@@ -60,20 +48,9 @@ const MOCK_ACTIVITY: IMockActivity[] = [
   },
 ];
 
-function resolveAssetMeta(assetAddress: string): IAssetMeta {
-  const known = KNOWN_ASSETS[assetAddress.toLowerCase()];
-  if (known) return known;
-  const short =
-    assetAddress.length > 10
-      ? `${assetAddress.slice(0, 6)}…${assetAddress.slice(-4)}`
-      : assetAddress;
-  return { symbol: short, name: "Token" };
-}
-
 function chainLabel(chainId: EVMChainId): string {
   return (
-    DEMO_CHAINS.find((chain) => chain.chainId === chainId)?.label ??
-    String(chainId)
+    DEMO_CHAINS.find((chain) => chain.chainId === chainId)?.label ?? chainId
   );
 }
 
@@ -90,23 +67,24 @@ function ActivityIcon({ kind }: { kind: ActivityKind }) {
 }
 
 export interface IAssetDetailsProps {
-  assetAddress: EVMAccountAddress;
-  /** When omitted, uses the session active chain. */
-  chainId?: EVMChainId;
+  asset: TrackedAsset;
 }
 
 /**
  * Shared focused-asset / asset-detail shell.
- * Layout only for now — balances and actions are static mock data.
+ * Balance is live; recent activity remains mock for now.
  */
-export function AssetDetails({ assetAddress, chainId: chainIdProp }: IAssetDetailsProps) {
-  const sessionChainId = useWalletSessionStore((state) => state.chainId);
-  const chainId = chainIdProp ?? sessionChainId;
-  const meta = resolveAssetMeta(String(assetAddress));
-  const network = chainLabel(chainId);
+export function AssetDetails({ asset }: IAssetDetailsProps) {
+  const { requestBalanceRefresh } = useWallet();
+
+  useEffect(() => {
+    requestBalanceRefresh(asset.id);
+  }, [asset.id, requestBalanceRefresh]);
+
+  const network = chainLabel(asset.chainId);
 
   return (
-    <div className="flex flex-col gap-5" aria-label={`${meta.symbol} details`}>
+    <div className="flex flex-col gap-5" aria-label={`${asset.symbol} details`}>
       <header className="flex flex-col items-center gap-2 pt-2 text-center">
         <div
           className="bg-primary text-primary-foreground flex size-14 items-center justify-center rounded-full"
@@ -116,13 +94,18 @@ export function AssetDetails({ assetAddress, chainId: chainIdProp }: IAssetDetai
         </div>
         <div className="flex flex-col gap-0.5">
           <h2 className="text-foreground text-lg font-semibold tracking-tight">
-            {meta.symbol}
+            {asset.symbol}
           </h2>
-          <p className="text-muted-foreground text-xs">{network}</p>
+          <p className="text-muted-foreground text-xs">
+            {asset.name} · {network}
+          </p>
         </div>
-        <p className="text-primary text-3xl font-semibold tracking-tight">
-          $123.00
-        </p>
+        <BalanceDisplay
+          trackedAssetId={asset.id}
+          balance={asset.balance}
+          decimals={asset.decimals}
+          className="text-primary text-3xl font-semibold tracking-tight"
+        />
       </header>
 
       <nav
@@ -173,7 +156,7 @@ export function AssetDetails({ assetAddress, chainId: chainIdProp }: IAssetDetai
                   item.positive ? "text-primary" : "text-foreground"
                 }`}
               >
-                {item.amount} {meta.symbol}
+                {item.amount} {asset.symbol}
               </p>
             </li>
           ))}

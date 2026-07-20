@@ -47,9 +47,15 @@ import { registerSetStyleRpc } from "../style";
 import {
   HardcodedKnownAssetRepository,
   LocalStorageTrackedAssetRepository,
-  type IKnownAsset,
-  type ITrackedAsset,
-} from "../assets";
+} from "../lib/implementations/data";
+import {
+  DemoChainsBlockchainProvider,
+  EventBus,
+} from "../lib/implementations/utils";
+import type { IEventBus } from "../lib/interfaces/utils";
+import type { KnownAsset, TrackedAsset } from "../lib/types/business";
+import { RefreshBalanceRequestedEvent } from "../lib/types/events";
+import type { TrackedAssetId } from "../lib/types/primitives";
 import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerFocusModeRpc } from "./registerFocusMode";
 import {
@@ -68,8 +74,15 @@ import { useWalletSessionStore } from "./sessionStore";
 /** Filled once the Signing Layer iframe finishes loading. */
 const signerHolder: { current: OWSSigner | null } = { current: null };
 
-const knownAssetRepository = new HardcodedKnownAssetRepository();
-const trackedAssetRepository = new LocalStorageTrackedAssetRepository();
+const blockchainProvider = new DemoChainsBlockchainProvider();
+const eventBus: IEventBus = new EventBus();
+const knownAssetRepository = new HardcodedKnownAssetRepository(
+  blockchainProvider,
+);
+const trackedAssetRepository = new LocalStorageTrackedAssetRepository(
+  blockchainProvider,
+  eventBus,
+);
 
 const credentialRepository = new CachedRelayerCredentialRepository({
   client: new RelayerCredentialsClient(),
@@ -169,8 +182,11 @@ export type WalletContextValue = {
     credentialId: CredentialId,
   ) => Promise<StoredCredential | undefined>;
   refreshCredentialsFromRelayer: () => Promise<void>;
-  listTrackedAssets: () => Promise<ITrackedAsset[]>;
-  addTrackedAsset: (asset: ITrackedAsset) => Promise<void>;
+  listTrackedAssets: () => Promise<TrackedAsset[]>;
+  addTrackedAsset: (
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ) => Promise<TrackedAsset>;
   removeTrackedAsset: (
     chainId: EVMChainId,
     address: EVMAccountAddress,
@@ -178,7 +194,13 @@ export type WalletContextValue = {
   getKnownAsset: (
     chainId: EVMChainId,
     address: EVMAccountAddress,
-  ) => Promise<IKnownAsset | null>;
+  ) => Promise<KnownAsset | null>;
+  resolveTrackedAsset: (
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ) => Promise<TrackedAsset>;
+  requestBalanceRefresh: (id?: TrackedAssetId) => void;
+  eventBus: IEventBus;
   openCreateBackup: () => Promise<void>;
   openRestoreBackup: () => Promise<void>;
   loginWithPasskey: () => Promise<void>;
@@ -464,18 +486,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [ensureReady, refreshCredentialCount]);
 
   const refreshTrackedAssetCount = useCallback(async () => {
-    const listed = await trackedAssetRepository.list();
+    const owner = useWalletSessionStore.getState().evmAddress;
+    const listed = await trackedAssetRepository.list(owner);
     useWalletSessionStore.getState().setTrackedAssetCount(listed.length);
   }, []);
 
   const listTrackedAssets = useCallback(async () => {
-    return trackedAssetRepository.list();
+    const owner = useWalletSessionStore.getState().evmAddress;
+    return trackedAssetRepository.list(owner);
   }, []);
 
   const addTrackedAsset = useCallback(
-    async (asset: ITrackedAsset) => {
-      await trackedAssetRepository.add(asset);
+    async (chainId: EVMChainId, address: EVMAccountAddress) => {
+      const owner = useWalletSessionStore.getState().evmAddress;
+      const resolved = await knownAssetRepository.resolveForTracking(
+        chainId,
+        address,
+        owner,
+      );
+      const tracked = await trackedAssetRepository.add(resolved, owner);
       await refreshTrackedAssetCount();
+      return tracked;
     },
     [refreshTrackedAssetCount],
   );
@@ -494,6 +525,32 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     },
     [],
   );
+
+  const resolveTrackedAsset = useCallback(
+    async (chainId: EVMChainId, address: EVMAccountAddress) => {
+      const owner = useWalletSessionStore.getState().evmAddress;
+      const listed = await trackedAssetRepository.list(owner);
+      const existing = listed.find(
+        (asset) =>
+          asset.chainId === chainId && asset.address === address,
+      );
+      if (existing) return existing;
+      const resolved = await knownAssetRepository.resolveForTracking(
+        chainId,
+        address,
+        owner,
+      );
+      return (await trackedAssetRepository.list(owner)).find(
+        (asset) =>
+          asset.address === address && asset.chainId === chainId,
+      ) ?? (await trackedAssetRepository.add(resolved, owner));
+    },
+    [],
+  );
+
+  const requestBalanceRefresh = useCallback((id?: TrackedAssetId) => {
+    eventBus.emit(new RefreshBalanceRequestedEvent(id));
+  }, []);
 
   const openCreateBackup = useCallback(async () => {
     const wallet = walletRef.current;
@@ -611,6 +668,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       registerAddAssetRpc(wallet, {
         knownAssetRepository,
         trackedAssetRepository,
+        getOwnerAddress: () => useWalletSessionStore.getState().evmAddress,
         requestAddAssetApproval: (request) =>
           ask<boolean>(({ id, resolve }) => ({
             id,
@@ -697,7 +755,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const listed = await credentialRepository.list();
       if (cancelled) return;
       useWalletSessionStore.getState().setCredentialCount(listed.length);
-      const tracked = await trackedAssetRepository.list();
+      const owner = useWalletSessionStore.getState().evmAddress;
+      const tracked = await trackedAssetRepository.list(owner);
       if (cancelled) return;
       useWalletSessionStore.getState().setTrackedAssetCount(tracked.length);
       useWalletSessionStore.getState().setReady(true);
@@ -720,6 +779,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only boot
   }, []);
 
+  useEffect(() => {
+    return eventBus.onRefreshBalanceRequested((event) => {
+      const owner = useWalletSessionStore.getState().evmAddress;
+      void trackedAssetRepository
+        .getBalances(owner, event.trackedAssetId)
+        .then(async (assets) => {
+          useWalletSessionStore.getState().setTrackedAssetCount(
+            (await trackedAssetRepository.list(owner)).length,
+          );
+          return assets;
+        })
+        .catch((error: unknown) => {
+          console.error("[oneshot-wallet] balance refresh failed", error);
+        });
+    });
+  }, []);
+
   const value = useMemo<WalletContextValue>(
     () => ({
       chains: DEMO_CHAINS,
@@ -739,6 +815,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       addTrackedAsset,
       removeTrackedAsset,
       getKnownAsset,
+      resolveTrackedAsset,
+      requestBalanceRefresh,
+      eventBus,
       openCreateBackup,
       openRestoreBackup,
       loginWithPasskey,
@@ -761,6 +840,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       addTrackedAsset,
       removeTrackedAsset,
       getKnownAsset,
+      resolveTrackedAsset,
+      requestBalanceRefresh,
       openCreateBackup,
       openRestoreBackup,
       loginWithPasskey,

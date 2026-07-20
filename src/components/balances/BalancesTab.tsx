@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { ITrackedAsset } from "../../assets";
+import type { TrackedAsset } from "../../lib/types/business";
 import { useStyle } from "../../style";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
@@ -26,7 +26,7 @@ export function BalancesTab() {
   const { addTrackedAsset } = useWallet();
   const chainId = useWalletSessionStore((state) => state.chainId);
 
-  const [selected, setSelected] = useState<ITrackedAsset | null>(null);
+  const [selected, setSelected] = useState<TrackedAsset | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addressInput, setAddressInput] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
@@ -49,10 +49,7 @@ export function BalancesTab() {
             {copy.closeLabel}
           </Button>
         </div>
-        <AssetDetails
-          assetAddress={selected.address}
-          chainId={selected.chainId}
-        />
+        <AssetDetails asset={selected} />
       </div>
     );
   }
@@ -66,10 +63,10 @@ export function BalancesTab() {
     setAdding(true);
     setAddError(null);
     try {
-      await addTrackedAsset({
+      await addTrackedAsset(
         chainId,
-        address: EVMAccountAddress(trimmed as `0x${string}`),
-      });
+        EVMAccountAddress(trimmed as `0x${string}`),
+      );
       setAddOpen(false);
       setAddressInput("");
     } catch (err: unknown) {

@@ -203,7 +203,7 @@ Unlike `addAsset`, **`focusWallet` does not ask the user for confirmation** — 
 
 ## Custom RPC — `addAsset`
 
-Propose a tracked asset for the Balances tab. **Always requires user confirmation** in the wallet (Reject / Add). On approval the asset is persisted in local storage; on rejection the RPC throws a user-rejected error.
+Propose a tracked **ERC-20** for the Balances tab. The wallet resolves the token (known catalog, or on-chain `getCode` + `name`/`symbol`/`decimals`) **before** showing the confirm modal. Non-ERC-20 addresses are rejected. **Always requires user confirmation** (Reject / Add). On approval the asset is persisted; on rejection the RPC throws a user-rejected error.
 
 ```typescript
 await proxy.rpc("addAsset", {
@@ -215,11 +215,11 @@ proxy.showWallet();
 
 | Method | Params | Effect |
 |--------|--------|--------|
-| `addAsset` | `{ chainId: \`0x…\`, assetAddress: \`0x…\` }` | Shows confirm modal; on accept, adds to tracked assets |
+| `addAsset` | `{ chainId: \`0x…\`, assetAddress: \`0x…\` }` | Probes ERC-20, shows confirm modal; on accept, adds to tracked assets |
 
 Returns `{ ok: true, chainId, assetAddress }` when the user accepts.
 
-Users can also add assets from the Balances tab without a host RPC. The Balances list shows tracked assets for the currently selected network only.
+Users can also add assets from the Balances tab without a host RPC. The Balances list shows tracked assets for the currently selected network only (USDC is always tracked per supported chain).
 
 ## Other Host APIs
 

@@ -4,9 +4,12 @@ import {
   EVMAccountAddress,
   EVMChainId,
   OwsUserRejectedError,
+  type EVMAccountAddress as EVMAccountAddressType,
 } from "@1shotapi/ows-types";
-import type { IKnownAssetRepository } from "../assets/IKnownAssetRepository";
-import type { ITrackedAssetRepository } from "../assets/ITrackedAssetRepository";
+import type {
+  IKnownAssetRepository,
+  ITrackedAssetRepository,
+} from "../lib/interfaces/data";
 import { useWalletSessionStore } from "./sessionStore";
 
 /** Custom RPC — host: `await proxy.rpc("addAsset", { chainId, assetAddress })`. */
@@ -30,13 +33,15 @@ export type IAddAssetParams = z.infer<typeof addAssetParamsSchema>;
 export interface IAddAssetApprovalRequest {
   chainId: EVMChainId;
   assetAddress: EVMAccountAddress;
-  /** Known catalog name when available. */
-  assetName: string | null;
+  /** Resolved token name for the confirm modal. */
+  assetName: string;
+  assetSymbol: string;
 }
 
 export type RegisterAddAssetOptions = {
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
+  getOwnerAddress: () => EVMAccountAddressType;
   requestAddAssetApproval: (
     request: IAddAssetApprovalRequest,
   ) => Promise<boolean>;
@@ -44,7 +49,7 @@ export type RegisterAddAssetOptions = {
 
 /**
  * Register host `addAsset` RPC (always requires user confirmation).
- * Must run after the modal ask helper exists and before `wallet.start()`.
+ * Resolves ERC-20 metadata before the confirm modal.
  */
 export function registerAddAssetRpc(
   wallet: OWSWallet,
@@ -54,9 +59,11 @@ export function registerAddAssetRpc(
     ADD_ASSET_RPC_METHOD,
     async (params) => {
       const { chainId, assetAddress } = params as IAddAssetParams;
-      const known = await options.knownAssetRepository.getKnownAsset(
+      const owner = options.getOwnerAddress();
+      const resolved = await options.knownAssetRepository.resolveForTracking(
         chainId,
         assetAddress,
+        owner,
       );
 
       const display = await wallet.requestDisplay({ width: 420, height: 360 });
@@ -64,17 +71,15 @@ export function registerAddAssetRpc(
         const approved = await options.requestAddAssetApproval({
           chainId,
           assetAddress,
-          assetName: known?.name ?? null,
+          assetName: resolved.name,
+          assetSymbol: resolved.symbol,
         });
         if (!approved) {
           throw new OwsUserRejectedError("User rejected add asset request");
         }
 
-        await options.trackedAssetRepository.add({
-          chainId,
-          address: assetAddress,
-        });
-        const listed = await options.trackedAssetRepository.list();
+        await options.trackedAssetRepository.add(resolved, owner);
+        const listed = await options.trackedAssetRepository.list(owner);
         useWalletSessionStore.getState().setTrackedAssetCount(listed.length);
 
         return {

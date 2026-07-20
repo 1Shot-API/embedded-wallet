@@ -6,7 +6,7 @@ import {
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import type { EVMChainId } from "@1shotapi/ows-types";
+import { RefreshCwIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Pagination,
@@ -23,55 +23,37 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  EAssetType,
-  fetchErc20Balance,
-  resolveErc20Decimals,
-  trackedAssetKey,
-  type IKnownAsset,
-  type ITrackedAsset,
-} from "../../assets";
+import { TrackedAsset } from "../../lib/types/business";
+import type { EVMChainId } from "@1shotapi/ows-types";
 import { DEMO_CHAINS } from "../../ows/demoChains";
 import { useStyle } from "../../style";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
+import { BalanceDisplay } from "../BalanceDisplay";
 
 const PAGE_SIZE = 5;
 
-export interface IAssetListRow extends ITrackedAsset {
-  known: IKnownAsset | null;
-  displayName: string;
-  chainLabel: string;
-  balanceLabel: string;
-}
-
-function truncateAddress(address: string): string {
-  if (address.length <= 12) return address;
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
-}
-
 function chainLabelFor(chainId: EVMChainId): string {
   return (
-    DEMO_CHAINS.find((chain) => chain.chainId === chainId)?.label ??
-    String(chainId)
+    DEMO_CHAINS.find((chain) => chain.chainId === chainId)?.label ?? chainId
   );
 }
 
 export function AssetList({
   onView,
 }: {
-  onView: (asset: ITrackedAsset) => void;
+  onView: (asset: TrackedAsset) => void;
 }) {
   const { style } = useStyle();
   const { balances: copy } = style.copy;
-  const { listTrackedAssets, getKnownAsset } = useWallet();
+  const { listTrackedAssets, requestBalanceRefresh } = useWallet();
   const trackedAssetCount = useWalletSessionStore(
     (state) => state.trackedAssetCount,
   );
-  const evmAddress = useWalletSessionStore((state) => state.evmAddress);
   const chainId = useWalletSessionStore((state) => state.chainId);
+  const evmAddress = useWalletSessionStore((state) => state.evmAddress);
 
-  const [rows, setRows] = useState<IAssetListRow[]>([]);
+  const [rows, setRows] = useState<TrackedAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,80 +64,32 @@ export function AssetList({
       const tracked = (await listTrackedAssets()).filter(
         (asset) => asset.chainId === chainId,
       );
-      const enriched: IAssetListRow[] = await Promise.all(
-        tracked.map(async (asset) => {
-          const known = await getKnownAsset(asset.chainId, asset.address);
-          const displayName =
-            known?.name ?? truncateAddress(String(asset.address));
-          const network = chainLabelFor(asset.chainId);
-
-          let balanceLabel = copy.balanceUnavailable;
-          if (known && known.type !== EAssetType.Erc20) {
-            balanceLabel = copy.balanceNonErc20;
-          } else if (!known || known.type === EAssetType.Erc20) {
-            const decimals = resolveErc20Decimals(known);
-            const balance = await fetchErc20Balance({
-              chainId: asset.chainId,
-              tokenAddress: asset.address,
-              ownerAddress: evmAddress,
-              decimals,
-            });
-            balanceLabel = balance ?? copy.balanceUnavailable;
-          }
-
-          return {
-            ...asset,
-            known,
-            displayName,
-            chainLabel: network,
-            balanceLabel,
-          };
-        }),
-      );
-      setRows(enriched);
+      setRows(tracked);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : copy.loadFailedError);
     } finally {
       setLoading(false);
     }
-  }, [
-    listTrackedAssets,
-    getKnownAsset,
-    chainId,
-    evmAddress,
-    copy.balanceUnavailable,
-    copy.balanceNonErc20,
-    copy.loadFailedError,
-  ]);
+  }, [listTrackedAssets, chainId, copy.loadFailedError]);
 
   useEffect(() => {
     void reload();
-  }, [reload, trackedAssetCount]);
+  }, [reload, trackedAssetCount, evmAddress]);
 
-  const columns = useMemo<ColumnDef<IAssetListRow>[]>(
+  const columns = useMemo<ColumnDef<TrackedAsset>[]>(
     () => [
       {
         id: "asset",
         header: copy.assetColumn,
         cell: ({ row }) => (
           <div className="flex min-w-0 items-center gap-2">
-            {row.original.known?.iconUrl ? (
-              <img
-                src={row.original.known.iconUrl}
-                alt=""
-                className="size-6 shrink-0 rounded-full"
-              />
-            ) : (
-              <div
-                className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
-                aria-hidden
-              >
-                $
-              </div>
-            )}
-            <span className="truncate font-medium">
-              {row.original.displayName}
-            </span>
+            <div
+              className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
+              aria-hidden
+            >
+              $
+            </div>
+            <span className="truncate font-medium">{row.original.symbol}</span>
           </div>
         ),
       },
@@ -164,7 +98,7 @@ export function AssetList({
         header: copy.chainColumn,
         cell: ({ row }) => (
           <span className="text-muted-foreground text-xs">
-            {row.original.chainLabel}
+            {chainLabelFor(row.original.chainId)}
           </span>
         ),
       },
@@ -172,7 +106,12 @@ export function AssetList({
         id: "balance",
         header: copy.balanceColumn,
         cell: ({ row }) => (
-          <span className="font-mono text-xs">{row.original.balanceLabel}</span>
+          <BalanceDisplay
+            trackedAssetId={row.original.id}
+            balance={row.original.balance}
+            decimals={row.original.decimals}
+            className="text-xs"
+          />
         ),
       },
       {
@@ -198,7 +137,7 @@ export function AssetList({
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    getRowId: (row) => trackedAssetKey(row.chainId, row.address),
+    getRowId: (row) => row.id,
     initialState: {
       pagination: { pageSize: PAGE_SIZE },
     },
@@ -209,11 +148,23 @@ export function AssetList({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-muted-foreground text-xs">
-        {rows.length === 0
-          ? copy.emptyCountLabel
-          : copy.countLabel.replace("{count}", String(rows.length))}
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-muted-foreground text-xs">
+          {rows.length === 0
+            ? copy.emptyCountLabel
+            : copy.countLabel.replace("{count}", String(rows.length))}
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={loading}
+          onClick={() => requestBalanceRefresh()}
+          aria-label="Refresh balances"
+        >
+          <RefreshCwIcon className="size-3.5" />
+        </Button>
+      </div>
 
       {error ? (
         <p className="text-destructive m-0 text-sm">{error}</p>
