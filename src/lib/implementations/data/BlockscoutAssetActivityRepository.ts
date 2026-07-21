@@ -9,12 +9,12 @@ import {
   createMemoryStorageBackend,
   type CredentialStorageBackend,
 } from "../../../demo/local-storage-store";
-import { RELAYER_BASE_URL } from "../../../relayer/constants";
 import type {
   IAssetActivityRepository,
   IListAssetActivityParams,
   IRecordSentActivityParams,
 } from "../../interfaces/data/IAssetActivityRepository";
+import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
 import { AssetActivity } from "../../types/domain/AssetActivity";
 import {
@@ -26,9 +26,6 @@ import {
   makeTrackedAssetId,
   type TrackedAssetId,
 } from "../../types/primitives";
-
-/** localStorage key for optimistic in-wallet sends. */
-export const OWS_ASSET_ACTIVITY_STORAGE_KEY = "ows.asset-activity.v1";
 
 type StoredOptimistic = {
   hash: string;
@@ -64,14 +61,8 @@ type RelayerActivityPagedResponse = {
 };
 
 export type AssetActivityRepositoryOptions = {
-  storageKey?: string;
   storage?: CredentialStorageBackend;
-  /** Relayer origin (default `RELAYER_BASE_URL`). */
-  relayerBaseUrl?: string;
 };
-
-const DEFAULT_LIMIT = 10;
-const MAX_OPTIMISTIC = 100;
 
 /**
  * ERC-20 activity via the 1Shot relayer (`GET /wallet/activity`, Blockscout-backed),
@@ -81,31 +72,27 @@ const MAX_OPTIMISTIC = 100;
 export class BlockscoutAssetActivityRepository
   implements IAssetActivityRepository
 {
-  private readonly storageKey: string;
   private readonly storage: CredentialStorageBackend;
-  private readonly relayerBaseUrl: string;
 
   constructor(
     private readonly eventBus: IEventBus,
+    private readonly configProvider: IConfigProvider,
     options: AssetActivityRepositoryOptions = {},
   ) {
-    this.storageKey = options.storageKey ?? OWS_ASSET_ACTIVITY_STORAGE_KEY;
     this.storage =
       options.storage ??
       (typeof localStorage !== "undefined"
         ? localStorage
         : createMemoryStorageBackend());
-    this.relayerBaseUrl = (
-      options.relayerBaseUrl ?? RELAYER_BASE_URL
-    ).replace(/\/$/, "");
   }
 
   async list(params: IListAssetActivityParams): Promise<AssetActivity[]> {
-    const limit = params.limit ?? DEFAULT_LIMIT;
+    const config = await this.configProvider.getConfig();
+    const limit = params.limit ?? config.assetActivityDefaultLimit;
     const { owner, asset } = params;
     const trackedAssetId = asset.id;
 
-    const optimistic = this.readOptimistic()
+    const optimistic = this.readOptimistic(config.assetActivityStorageKey)
       .filter(
         (row) =>
           row.chainId === String(asset.chainId) &&
@@ -123,6 +110,7 @@ export class BlockscoutAssetActivityRepository
         decimals: asset.decimals,
         trackedAssetId,
         limit,
+        relayerBaseUrl: config.relayerBaseUrl,
       });
     } catch (error: unknown) {
       console.warn(
@@ -148,6 +136,7 @@ export class BlockscoutAssetActivityRepository
   async recordSent(
     params: IRecordSentActivityParams,
   ): Promise<AssetActivity> {
+    const config = await this.configProvider.getConfig();
     const trackedAssetId = makeTrackedAssetId(
       params.chainId,
       params.tokenAddress,
@@ -165,11 +154,11 @@ export class BlockscoutAssetActivityRepository
 
     const next = [
       stored,
-      ...this.readOptimistic().filter(
+      ...this.readOptimistic(config.assetActivityStorageKey).filter(
         (row) => row.hash.toLowerCase() !== stored.hash.toLowerCase(),
       ),
-    ].slice(0, MAX_OPTIMISTIC);
-    this.writeOptimistic(next);
+    ].slice(0, config.assetActivityMaxOptimistic);
+    this.writeOptimistic(config.assetActivityStorageKey, next);
 
     const activity = this.optimisticToActivity(stored, trackedAssetId);
     this.eventBus.emit(new TransactionHistoryUpdatedEvent(trackedAssetId));
@@ -183,10 +172,11 @@ export class BlockscoutAssetActivityRepository
     decimals: number;
     trackedAssetId: TrackedAssetId;
     limit: number;
+    relayerBaseUrl: string;
   }): Promise<AssetActivity[]> {
     // Over-fetch so client-side token filtering still yields `limit` rows.
     const pageSize = Math.min(Math.max(args.limit * 5, args.limit), 100);
-    const url = new URL(`${this.relayerBaseUrl}/wallet/activity`);
+    const url = new URL(`${args.relayerBaseUrl}/wallet/activity`);
     url.searchParams.set("chainid", String(args.chainId));
     url.searchParams.set("accountAddress", String(args.owner));
     url.searchParams.set("page", "1");
@@ -331,9 +321,9 @@ export class BlockscoutAssetActivityRepository
     );
   }
 
-  private readOptimistic(): StoredOptimistic[] {
+  private readOptimistic(storageKey: string): StoredOptimistic[] {
     try {
-      const raw = this.storage.getItem(this.storageKey);
+      const raw = this.storage.getItem(storageKey);
       if (!raw) {
         return [];
       }
@@ -344,8 +334,8 @@ export class BlockscoutAssetActivityRepository
     }
   }
 
-  private writeOptimistic(rows: StoredOptimistic[]): void {
+  private writeOptimistic(storageKey: string, rows: StoredOptimistic[]): void {
     const blob: StoredBlob = { optimistic: rows };
-    this.storage.setItem(this.storageKey, JSON.stringify(blob));
+    this.storage.setItem(storageKey, JSON.stringify(blob));
   }
 }

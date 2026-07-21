@@ -1,3 +1,5 @@
+export type { IConfigProvider } from "./IConfigProvider";
+export { IConfigProviderType } from "./IConfigProvider";
 export type { IEventBus } from "./IEventBus";
 export { IEventBusType } from "./IEventBus";
 export type {

@@ -8,11 +8,10 @@ import {
   type ICredentialRepository,
   type StoredCredential,
 } from "@1shotapi/ows-types";
+import type { IConfigProvider } from "../lib/interfaces/utils/IConfigProvider";
 import type { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
 import { createRelayerAssertion } from "../relayer/webauthnAuth";
 import { loadCredentialId } from "../storage";
-
-export const OWS_CREDENTIALS_STORAGE_KEY = "ows.credentials.v2";
 
 /** Minimal sync key/value API (localStorage or test double). */
 export type CredentialStorageBackend = {
@@ -30,7 +29,7 @@ type StoredBlob = {
 export interface ICachedRelayerCredentialRepositoryDeps {
   client: RelayerCredentialsClient;
   getSigner: () => OWSSigner;
-  storageKey?: string;
+  configProvider: IConfigProvider;
   storage?: CredentialStorageBackend;
 }
 
@@ -77,13 +76,14 @@ function isStoredCredential(value: unknown): value is StoredCredential {
 export class CachedRelayerCredentialRepository implements ICredentialRepository {
   private readonly client: RelayerCredentialsClient;
   private readonly getSigner: () => OWSSigner;
-  private readonly storageKey: string;
+  private readonly configProvider: IConfigProvider;
   private readonly storage: CredentialStorageBackend;
+  private storageKey: string | null = null;
 
   constructor(deps: ICachedRelayerCredentialRepositoryDeps) {
     this.client = deps.client;
     this.getSigner = deps.getSigner;
-    this.storageKey = deps.storageKey ?? OWS_CREDENTIALS_STORAGE_KEY;
+    this.configProvider = deps.configProvider;
     this.storage =
       deps.storage ??
       (typeof localStorage !== "undefined"
@@ -91,7 +91,17 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
         : createMemoryStorageBackend());
   }
 
+  private async ensureStorageKey(): Promise<string> {
+    if (this.storageKey) {
+      return this.storageKey;
+    }
+    const config = await this.configProvider.getConfig();
+    this.storageKey = config.credentialsStorageKey;
+    return this.storageKey;
+  }
+
   async store(credential: StoredCredential): Promise<void> {
+    await this.ensureStorageKey();
     const blob = this.readBlob();
     const previousBlobId = blob.blobIds[credential.credentialId];
     blob.credentials[credential.credentialId] = credential;
@@ -130,6 +140,7 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
   }
 
   async get(credentialId: CredentialId): Promise<StoredCredential | undefined> {
+    await this.ensureStorageKey();
     const blob = this.readBlob();
     if (blob.revoked.includes(credentialId)) {
       return undefined;
@@ -138,6 +149,7 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
   }
 
   async list(filter?: CredentialFilter): Promise<CredentialSummary[]> {
+    await this.ensureStorageKey();
     const blob = this.readBlob();
     const active = Object.values(blob.credentials).filter(
       (c) => !blob.revoked.includes(c.credentialId),
@@ -146,6 +158,7 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
   }
 
   async delete(credentialId: CredentialId): Promise<void> {
+    await this.ensureStorageKey();
     const blob = this.readBlob();
     const blobId = blob.blobIds[credentialId];
     delete blob.credentials[credentialId];
@@ -166,6 +179,7 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
   }
 
   async revoke(credentialId: CredentialId): Promise<void> {
+    await this.ensureStorageKey();
     const blob = this.readBlob();
     if (blob.credentials[credentialId] && !blob.revoked.includes(credentialId)) {
       blob.revoked.push(credentialId);
@@ -203,6 +217,7 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
    * Requires the passkey to already be registered (done at wallet create).
    */
   async refreshFromRelayer(): Promise<void> {
+    await this.ensureStorageKey();
     const assertion = await this.assert();
     const { credentials: remote } =
       await this.client.recoverCredentials(assertion);
@@ -265,7 +280,11 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
   }
 
   private readBlob(): StoredBlob {
-    const raw = this.storage.getItem(this.storageKey);
+    const storageKey = this.storageKey;
+    if (!storageKey) {
+      return { credentials: {}, revoked: [], blobIds: {} };
+    }
+    const raw = this.storage.getItem(storageKey);
     if (!raw) {
       return { credentials: {}, revoked: [], blobIds: {} };
     }
@@ -289,13 +308,17 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
   }
 
   private writeBlob(blob: StoredBlob): void {
+    const storageKey = this.storageKey;
+    if (!storageKey) {
+      return;
+    }
     const credCount = Object.keys(blob.credentials).length;
     const blobCount = Object.keys(blob.blobIds).length;
     if (credCount === 0 && blob.revoked.length === 0 && blobCount === 0) {
-      this.storage.removeItem(this.storageKey);
+      this.storage.removeItem(storageKey);
       return;
     }
-    this.storage.setItem(this.storageKey, JSON.stringify(blob));
+    this.storage.setItem(storageKey, JSON.stringify(blob));
   }
 }
 

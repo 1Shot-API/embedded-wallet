@@ -54,6 +54,7 @@ import {
   OneshotRelayerRepository,
 } from "../lib/implementations/data";
 import {
+  ConfigProvider,
   DemoChainsBlockchainProvider,
   EventBus,
   TransactionUtils,
@@ -86,6 +87,7 @@ import { useWalletSessionStore } from "./sessionStore";
 const signerHolder: { current: OWSSigner | null } = { current: null };
 const rpcHelperHolder: { current: RpcHelper | null } = { current: null };
 
+const configProvider = new ConfigProvider();
 const blockchainProvider = new DemoChainsBlockchainProvider();
 const eventBus: IEventBus = new EventBus();
 const transactionUtils = new TransactionUtils();
@@ -95,26 +97,34 @@ const knownAssetRepository = new HardcodedKnownAssetRepository(
 const trackedAssetRepository = new LocalStorageTrackedAssetRepository(
   blockchainProvider,
   eventBus,
+  configProvider,
 );
-const assetActivityRepository = new BlockscoutAssetActivityRepository(eventBus);
-const oneshotRelayerRepository = new OneshotRelayerRepository({
-  blockchain: blockchainProvider,
-  getSigner: () => {
-    if (!signerHolder.current) {
-      throw new Error("Signing Layer not ready");
-    }
-    return signerHolder.current;
+const assetActivityRepository = new BlockscoutAssetActivityRepository(
+  eventBus,
+  configProvider,
+);
+const oneshotRelayerRepository = new OneshotRelayerRepository(
+  {
+    blockchain: blockchainProvider,
+    getSigner: () => {
+      if (!signerHolder.current) {
+        throw new Error("Signing Layer not ready");
+      }
+      return signerHolder.current;
+    },
+    getChainRpc: () => {
+      if (!rpcHelperHolder.current) {
+        throw new Error("RPC helper not ready");
+      }
+      return rpcHelperHolder.current;
+    },
   },
-  getChainRpc: () => {
-    if (!rpcHelperHolder.current) {
-      throw new Error("RPC helper not ready");
-    }
-    return rpcHelperHolder.current;
-  },
-});
+  configProvider,
+);
 
 const credentialRepository = new CachedRelayerCredentialRepository({
-  client: new RelayerCredentialsClient(),
+  client: new RelayerCredentialsClient(configProvider),
+  configProvider,
   getSigner: () => {
     if (!signerHolder.current) {
       throw new Error("Signing Layer not ready");

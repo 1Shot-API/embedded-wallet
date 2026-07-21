@@ -17,6 +17,7 @@ import type {
   IOneshotRelayerRepository,
   ISendTransactionResult,
 } from "../../interfaces/data/IOneshotRelayerRepository";
+import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 
 const ZERO_VALUE = HexString("0x0");
 const EMPTY_DATA = HexString("0x");
@@ -30,9 +31,13 @@ export type OneshotRelayerRepositoryOptions = {
 /**
  * Interim submit path: prepare → passkey sign → eth_sendRawTransaction.
  * Returns a placeholder relayer id until the public relayer is wired.
+ * {@link IConfigProvider} supplies the relayer base URL for that future path.
  */
 export class OneshotRelayerRepository implements IOneshotRelayerRepository {
-  constructor(private readonly options: OneshotRelayerRepositoryOptions) {}
+  constructor(
+    private readonly options: OneshotRelayerRepositoryOptions,
+    private readonly configProvider: IConfigProvider,
+  ) {}
 
   async sendTransaction(
     chainId: EVMChainId,
@@ -42,6 +47,10 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
     _options?: { webhookDestination?: UriString },
   ): Promise<ISendTransactionResult> {
     void _options;
+    // Resolve env now so host→relayer mapping is exercised on every send;
+    // used when this path switches to the public relayer API.
+    await this.configProvider.getConfig();
+
     const signer = this.options.getSigner();
     const chainRpc = this.options.getChainRpc();
     const active = chainRpc.getChainId();
