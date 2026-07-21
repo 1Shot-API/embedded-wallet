@@ -45,3 +45,15 @@ export function demoTxExplorerUrl(
   }
   return `${meta.blockExplorerUrl}/tx/${transactionHash}`;
 }
+
+/** Explorer address URL for a demo chain, or `null` when the chain is unknown. */
+export function demoAddressExplorerUrl(
+  chainId: EVMChainId,
+  address: string,
+): string | null {
+  const meta = DEMO_CHAINS.find((chain) => chain.chainId === chainId);
+  if (!meta) {
+    return null;
+  }
+  return `${meta.blockExplorerUrl}/address/${address}`;
+}

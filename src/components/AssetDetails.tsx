@@ -2,12 +2,9 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
-  ArrowDownLeftIcon,
-  ArrowUpRightIcon,
   PlusIcon,
   QrCodeIcon,
   SendIcon,
-  ShoppingBagIcon,
 } from "lucide-react";
 import { AddressUtils } from "@1shotapi/ows-wallet-utils";
 import type { TrackedAsset } from "../lib/types/business";
@@ -20,62 +17,17 @@ import { useWallet } from "../wallet/WalletProvider";
 import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import { BalanceDisplay } from "./BalanceDisplay";
+import { TransactionHistory } from "./TransactionHistory";
 import { ReceiveModal } from "./modals/ReceiveModal";
 import { PurchaseComingSoonModal } from "./modals/PurchaseComingSoonModal";
 import { TransferTokensModal } from "./modals/TransferTokensModal";
 
 const addressUtils = new AddressUtils(new DemoChainsBlockchainProvider());
 
-type ActivityKind = "received" | "sent" | "purchase";
-
-interface IMockActivity {
-  kind: ActivityKind;
-  title: string;
-  when: string;
-  amount: string;
-  positive: boolean;
-}
-
-const MOCK_ACTIVITY: IMockActivity[] = [
-  {
-    kind: "received",
-    title: "Received from 0x…4a2b",
-    when: "Today, 2:45 PM",
-    amount: "+10.00",
-    positive: true,
-  },
-  {
-    kind: "sent",
-    title: "Sent to alex.eth",
-    when: "Yesterday, 11:12 AM",
-    amount: "-5.00",
-    positive: false,
-  },
-  {
-    kind: "purchase",
-    title: "Purchase from Uniswap",
-    when: "Oct 24, 09:30 AM",
-    amount: "+50.00",
-    positive: true,
-  },
-];
-
 function chainLabel(chainId: EVMChainId): string {
   return (
     DEMO_CHAINS.find((chain) => chain.chainId === chainId)?.label ?? chainId
   );
-}
-
-function ActivityIcon({ kind }: { kind: ActivityKind }) {
-  const className = "size-4 text-muted-foreground";
-  switch (kind) {
-    case "received":
-      return <ArrowDownLeftIcon className={className} />;
-    case "sent":
-      return <ArrowUpRightIcon className={className} />;
-    case "purchase":
-      return <ShoppingBagIcon className={className} />;
-  }
 }
 
 export interface IAssetDetailsProps {
@@ -84,7 +36,7 @@ export interface IAssetDetailsProps {
 
 /**
  * Shared focused-asset / asset-detail shell.
- * Balance is live; recent activity remains mock for now.
+ * Balance and recent activity are live.
  */
 export function AssetDetails({ asset }: IAssetDetailsProps) {
   const { style } = useStyle();
@@ -165,45 +117,7 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
         </ActionButton>
       </nav>
 
-      <section className="border-border flex flex-col gap-3 border-t pt-4">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-foreground text-sm font-semibold">
-            Recent Activity
-          </h3>
-          <button
-            type="button"
-            className="text-primary text-sm font-medium"
-            disabled
-          >
-            View all
-          </button>
-        </div>
-        <ul className="flex flex-col gap-1">
-          {MOCK_ACTIVITY.map((item) => (
-            <li
-              key={`${item.kind}-${item.when}`}
-              className="flex items-center gap-3 rounded-lg py-2"
-            >
-              <div className="bg-muted flex size-9 shrink-0 items-center justify-center rounded-md">
-                <ActivityIcon kind={item.kind} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-foreground truncate text-sm font-medium">
-                  {item.title}
-                </p>
-                <p className="text-muted-foreground text-xs">{item.when}</p>
-              </div>
-              <p
-                className={`shrink-0 text-sm font-medium ${
-                  item.positive ? "text-primary" : "text-foreground"
-                }`}
-              >
-                {item.amount} {asset.symbol}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <TransactionHistory asset={asset} owner={evmAddress} />
 
       {receiveOpen ? (
         <ReceiveModal

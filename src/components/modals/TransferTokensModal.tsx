@@ -17,6 +17,7 @@ import { EAssetType } from "../../lib/types/enum";
 import { useStyle } from "../../style";
 import { chainTechnologyFor } from "../../wallet/activeAddress";
 import { useWallet } from "../../wallet/WalletProvider";
+import { useWalletSessionStore } from "../../wallet/sessionStore";
 import { Modal } from "../Modal";
 import {
   AddressInput,
@@ -72,13 +73,15 @@ export function TransferTokensModal({
 }: ITransferTokensModalProps) {
   const { style } = useStyle();
   const copy = style.copy.transferTokens;
-  const { switchChain, sendTransaction } = useWallet();
+  const { switchChain, sendTransaction, recordSentActivity } = useWallet();
   const [amount, setAmount] = useState("");
   const [recipientText, setRecipientText] = useState("");
   const [recipient, setRecipient] = useState<AddressInputValue>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sentHash, setSentHash] = useState<EVMTransactionHash | null>(null);
+
+  const evmAddress = useWalletSessionStore((state) => state.evmAddress);
 
   const technology = useMemo(
     () => chainTechnologyFor(asset.chainId),
@@ -145,6 +148,17 @@ export function TransferTokensModal({
         }) as Hex,
       );
       const hash = await sendTransaction(asset.chainId, asset.address, data);
+      if (evmAddress) {
+        await recordSentActivity({
+          chainId: asset.chainId,
+          tokenAddress: asset.address,
+          owner: evmAddress,
+          to: recipient as EVMAccountAddress,
+          amount: parsed,
+          decimals: asset.decimals,
+          hash,
+        });
+      }
       onSuccess(hash);
       setSentHash(hash);
     } catch (error: unknown) {
