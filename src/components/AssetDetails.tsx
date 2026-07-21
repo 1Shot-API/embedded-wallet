@@ -21,6 +21,7 @@ import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { ReceiveModal } from "./modals/ReceiveModal";
+import { PurchaseComingSoonModal } from "./modals/PurchaseComingSoonModal";
 import { TransferTokensModal } from "./modals/TransferTokensModal";
 
 const addressUtils = new AddressUtils(new DemoChainsBlockchainProvider());
@@ -97,6 +98,7 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
   );
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
 
   useEffect(() => {
     requestBalanceRefresh(asset.id);
@@ -139,7 +141,11 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
         className="flex items-start justify-center gap-8"
         aria-label="Asset actions"
       >
-        <ActionButton label="Buy" variant="outline" disabled>
+        <ActionButton
+          label="Buy"
+          variant="outline"
+          onClick={() => setPurchaseOpen(true)}
+        >
           <PlusIcon className="size-5" />
         </ActionButton>
         <ActionButton
@@ -215,6 +221,9 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
             requestBalanceRefresh(asset.id);
           }}
         />
+      ) : null}
+      {purchaseOpen ? (
+        <PurchaseComingSoonModal onClose={() => setPurchaseOpen(false)} />
       ) : null}
     </div>
   );
