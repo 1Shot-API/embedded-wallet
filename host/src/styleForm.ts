@@ -99,6 +99,9 @@ export interface IStyleFormState {
   transferTokensTitle: string;
   transferTokensSend: string;
   transferTokensCancel: string;
+  transferTokensSentTitle: string;
+  transferTokensViewExplorer: string;
+  transferTokensDone: string;
 
   // Text — Create backup
   backupTitle: string;
@@ -188,6 +191,9 @@ export const ACME_PRESET: IStyleFormState = {
   transferTokensTitle: "Send",
   transferTokensSend: "Send",
   transferTokensCancel: "Cancel",
+  transferTokensSentTitle: "Transaction sent",
+  transferTokensViewExplorer: "View on explorer",
+  transferTokensDone: "Done",
   backupTitle: "Create a backup",
   backupBody: "Encrypt a recovery blob with a passphrase.",
   backupContinue: "Continue",
@@ -291,6 +297,9 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   transferTokensTitle: "Send",
   transferTokensSend: "Send",
   transferTokensCancel: "Cancel",
+  transferTokensSentTitle: "Transaction sent",
+  transferTokensViewExplorer: "View on explorer",
+  transferTokensDone: "Done",
   backupTitle: "Create backup",
   backupBody: "",
   restoreTitle: "Restore backup",
@@ -383,6 +392,9 @@ export function buildSetStylePayload(
   put(transferTokens, "title", form.transferTokensTitle);
   put(transferTokens, "sendLabel", form.transferTokensSend);
   put(transferTokens, "cancelLabel", form.transferTokensCancel);
+  put(transferTokens, "sentTitle", form.transferTokensSentTitle);
+  put(transferTokens, "viewOnExplorerLabel", form.transferTokensViewExplorer);
+  put(transferTokens, "doneLabel", form.transferTokensDone);
   if (Object.keys(transferTokens).length > 0) {
     copy.transferTokens = transferTokens;
   }

@@ -536,12 +536,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const owner = useWalletSessionStore.getState().evmAddress;
     const listed = await trackedAssetRepository.list(owner);
     useWalletSessionStore.getState().setTrackedAssetCount(listed.length);
-  }, []);
+  }, [trackedAssetRepository]);
 
   const listTrackedAssets = useCallback(async () => {
     const owner = useWalletSessionStore.getState().evmAddress;
     return trackedAssetRepository.list(owner);
-  }, []);
+  }, [trackedAssetRepository]);
 
   const addTrackedAsset = useCallback(
     async (chainId: EVMChainId, address: EVMAccountAddress) => {
@@ -555,7 +555,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       await refreshTrackedAssetCount();
       return tracked;
     },
-    [refreshTrackedAssetCount],
+    [
+      knownAssetRepository,
+      refreshTrackedAssetCount,
+      trackedAssetRepository,
+    ],
   );
 
   const removeTrackedAsset = useCallback(
@@ -563,14 +567,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       await trackedAssetRepository.remove(chainId, address);
       await refreshTrackedAssetCount();
     },
-    [refreshTrackedAssetCount],
+    [refreshTrackedAssetCount, trackedAssetRepository],
   );
 
   const getKnownAsset = useCallback(
     async (chainId: EVMChainId, address: EVMAccountAddress) => {
       return knownAssetRepository.getKnownAsset(chainId, address);
     },
-    [],
+    [knownAssetRepository],
   );
 
   const resolveTrackedAsset = useCallback(
@@ -587,16 +591,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         address,
         owner,
       );
-      const alreadyTracked = (await trackedAssetRepository.list(owner)).find(
-        (asset) =>
-          asset.address === address && asset.chainId === chainId,
-      );
-      if (alreadyTracked) return alreadyTracked;
+      // add() is idempotent if a concurrent caller already tracked the asset.
       const tracked = await trackedAssetRepository.add(resolved, owner);
       await refreshTrackedAssetCount();
       return tracked;
     },
-    [refreshTrackedAssetCount],
+    [
+      knownAssetRepository,
+      refreshTrackedAssetCount,
+      trackedAssetRepository,
+    ],
   );
 
   const requestBalanceRefresh = useCallback((id?: TrackedAssetId) => {

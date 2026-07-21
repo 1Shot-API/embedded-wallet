@@ -22,6 +22,7 @@ import {
   AddressInput,
   type AddressInputValue,
 } from "../AddressInput";
+import { SentTransactionModal } from "./SentTransactionModal";
 import { TokenAmountInput } from "../TokenAmountInput";
 
 export interface ITransferTokensModalProps {
@@ -29,6 +30,34 @@ export interface ITransferTokensModalProps {
   addressUtils: AddressUtils;
   onClose: () => void;
   onSuccess: (hash: EVMTransactionHash) => void;
+}
+
+function amountValidationError(
+  raw: string,
+  decimals: number,
+  balance: bigint | null,
+  copy: {
+    invalidAmountError: string;
+    insufficientBalanceError: string;
+  },
+): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+  let parsed: bigint;
+  try {
+    parsed = parseUnits(trimmed, decimals);
+  } catch {
+    return copy.invalidAmountError;
+  }
+  if (parsed <= 0n) {
+    return copy.invalidAmountError;
+  }
+  if (balance !== null && parsed > balance) {
+    return copy.insufficientBalanceError;
+  }
+  return null;
 }
 
 /**
@@ -47,33 +76,54 @@ export function TransferTokensModal({
   const [amount, setAmount] = useState("");
   const [recipientText, setRecipientText] = useState("");
   const [recipient, setRecipient] = useState<AddressInputValue>(null);
-  const [amountError, setAmountError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sentHash, setSentHash] = useState<EVMTransactionHash | null>(null);
 
   const technology = useMemo(
     () => chainTechnologyFor(asset.chainId),
     [asset.chainId],
   );
 
+  const amountError = useMemo(
+    () =>
+      amountValidationError(amount, asset.decimals, asset.balance, copy),
+    [amount, asset.balance, asset.decimals, copy],
+  );
+
+  const canSubmit = useMemo(() => {
+    if (busy || asset.type !== EAssetType.Erc20) {
+      return false;
+    }
+    if (technology !== EChainTechnology.Evm || !recipient) {
+      return false;
+    }
+    if (!amount.trim() || amountError) {
+      return false;
+    }
+    return true;
+  }, [
+    amount,
+    amountError,
+    asset.type,
+    busy,
+    recipient,
+    technology,
+  ]);
+
   const onValidated = useCallback((address: AddressInputValue) => {
     setRecipient(address);
   }, []);
 
+  const onAmountChange = useCallback((next: string) => {
+    setAmount(next);
+    setSubmitError(null);
+  }, []);
+
   async function handleSend(): Promise<void> {
     setSubmitError(null);
-    setAmountError(null);
 
-    if (asset.type !== EAssetType.Erc20) {
-      setSubmitError(copy.sendFailedError);
-      return;
-    }
-    if (technology !== EChainTechnology.Evm) {
-      setSubmitError(copy.invalidAddressError);
-      return;
-    }
-    if (!recipient) {
-      setSubmitError(copy.invalidAddressError);
+    if (!canSubmit || !recipient) {
       return;
     }
 
@@ -81,15 +131,6 @@ export function TransferTokensModal({
     try {
       parsed = parseUnits(amount.trim(), asset.decimals);
     } catch {
-      setAmountError(copy.invalidAmountError);
-      return;
-    }
-    if (parsed <= 0n) {
-      setAmountError(copy.invalidAmountError);
-      return;
-    }
-    if (asset.balance !== null && parsed > asset.balance) {
-      setAmountError(copy.insufficientBalanceError);
       return;
     }
 
@@ -105,7 +146,7 @@ export function TransferTokensModal({
       );
       const hash = await sendTransaction(asset.chainId, asset.address, data);
       onSuccess(hash);
-      onClose();
+      setSentHash(hash);
     } catch (error: unknown) {
       console.error("[oneshot-wallet] transfer failed", error);
       setSubmitError(
@@ -114,6 +155,16 @@ export function TransferTokensModal({
     } finally {
       setBusy(false);
     }
+  }
+
+  if (sentHash) {
+    return (
+      <SentTransactionModal
+        chainId={asset.chainId}
+        transactionHash={sentHash}
+        onClose={onClose}
+      />
+    );
   }
 
   return (
@@ -131,7 +182,7 @@ export function TransferTokensModal({
           label: copy.sendLabel,
           variant: "primary",
           autoFocus: true,
-          disabled: busy,
+          disabled: !canSubmit,
           onClick: () => void handleSend(),
         },
       ]}
@@ -143,7 +194,7 @@ export function TransferTokensModal({
           placeholder={copy.amountPlaceholder}
           symbol={asset.symbol}
           value={amount}
-          onChange={setAmount}
+          onChange={onAmountChange}
           error={amountError}
           disabled={busy}
         />

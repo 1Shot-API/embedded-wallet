@@ -124,6 +124,14 @@ const transferTokensCopySchema = z
     insufficientBalanceError: z.string().optional(),
     invalidAddressError: z.string().optional(),
     sendFailedError: z.string().optional(),
+    sentTitle: z.string().optional(),
+    sentBody: z.string().optional(),
+    hashLabel: z.string().optional(),
+    copyHashLabel: z.string().optional(),
+    hashCopiedLabel: z.string().optional(),
+    hashCopyFailedLabel: z.string().optional(),
+    viewOnExplorerLabel: z.string().optional(),
+    doneLabel: z.string().optional(),
   })
   .strict()
   .optional();

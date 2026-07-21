@@ -627,6 +627,26 @@ export function WalletConfigurator({
                   value={form.transferTokensCancel}
                   onChange={(value) => patch("transferTokensCancel", value)}
                 />
+                <TextField
+                  id="transfer-tokens-sent-title"
+                  label="Transfer sent title"
+                  value={form.transferTokensSentTitle}
+                  onChange={(value) => patch("transferTokensSentTitle", value)}
+                />
+                <TextField
+                  id="transfer-tokens-view-explorer"
+                  label="Transfer view on explorer"
+                  value={form.transferTokensViewExplorer}
+                  onChange={(value) =>
+                    patch("transferTokensViewExplorer", value)
+                  }
+                />
+                <TextField
+                  id="transfer-tokens-done"
+                  label="Transfer done"
+                  value={form.transferTokensDone}
+                  onChange={(value) => patch("transferTokensDone", value)}
+                />
               </AccordionContent>
             </AccordionItem>
 

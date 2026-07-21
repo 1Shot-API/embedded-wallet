@@ -105,7 +105,7 @@ export interface IStyleCopyConfirmTransfer {
 }
 
 /**
- * In-wallet send / transfer tokens modal.
+ * In-wallet send / transfer tokens modal (form + post-send confirmation).
  */
 export interface IStyleCopyTransferTokens {
   title: string;
@@ -121,6 +121,15 @@ export interface IStyleCopyTransferTokens {
   insufficientBalanceError: string;
   invalidAddressError: string;
   sendFailedError: string;
+  /** Confirmation after a successful in-wallet send. */
+  sentTitle: string;
+  sentBody: string;
+  hashLabel: string;
+  copyHashLabel: string;
+  hashCopiedLabel: string;
+  hashCopyFailedLabel: string;
+  viewOnExplorerLabel: string;
+  doneLabel: string;
 }
 
 /**

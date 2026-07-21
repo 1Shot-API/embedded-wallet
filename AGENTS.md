@@ -22,6 +22,10 @@ Prefer **clean code over backwards compatibility**. Do not add legacy redirects,
 
 Test Host Layer: `host/` (`npm run dev:host`). Style via Host RPC `setStyle`, not in-wallet debug knobs.
 
+### Form validation UX
+
+Primary submit actions (e.g. Send in `TransferTokensModal`) stay **disabled until every required field is valid**. Do not leave the button enabled and only reject on click. Empty fields show no error text; invalid non-empty input shows inline errors; the CTA enables only when the whole form is ready.
+
 ### User-facing copy (`setStyle`)
 
 When adding or changing UI strings:
@@ -35,7 +39,7 @@ When adding or changing UI strings:
 - **Data:** `IKnownAssetRepository`, `ITrackedAssetRepository`, `IOneshotRelayerRepository` (`src/lib`) and their implementations
 - **Business:** services that orchestrate domain logic (add as needed)
 
-`IOneshotRelayerRepository.sendTransaction` owns prepare + passkey sign + broadcast (interim: `eth_sendRawTransaction`). Host EIP-1193 sends go SignHelper → branding `approveAndSignTransaction` (ConfirmTransfer / SendTransaction consent) → relayer. In-wallet Send uses `TransferTokensModal` → `WalletProvider.sendTransaction` → relayer directly (no host consent / no preapproval).
+`IOneshotRelayerRepository.sendTransaction` owns prepare + passkey sign + broadcast (interim: `eth_sendRawTransaction`). Host EIP-1193 sends go SignHelper → branding `approveAndSignTransaction` (ConfirmTransfer / SendTransaction consent) → relayer. In-wallet Send uses `TransferTokensModal` → `WalletProvider.sendTransaction` → relayer, then `SentTransactionModal` (hash + explorer link). Host-driven sends do not show that confirmation — the host surfaces the hash itself.
 
 ## Branded types
 
