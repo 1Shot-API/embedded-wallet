@@ -64,7 +64,7 @@ import type {
   AssetActivity,
   KnownAsset,
   TrackedAsset,
-} from "../lib/types/business";
+} from "../lib/types/domain";
 import { RefreshBalanceRequestedEvent } from "../lib/types/events";
 import type { TrackedAssetId } from "../lib/types/primitives";
 import { registerAddAssetRpc } from "./registerAddAsset";

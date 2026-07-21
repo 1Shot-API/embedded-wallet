@@ -1,4 +1,4 @@
-import type { TrackedAsset } from "../business/TrackedAsset";
+import type { TrackedAsset } from "../domain/TrackedAsset";
 import { EWalletEventKind } from "../enum/EWalletEventKind";
 
 export class BalanceUpdatedEvent {

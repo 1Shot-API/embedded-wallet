@@ -5,7 +5,7 @@ import {
   ArrowUpRightIcon,
 } from "lucide-react";
 import type { EVMAccountAddress } from "@1shotapi/ows-types";
-import type { AssetActivity, TrackedAsset } from "../lib/types/business";
+import type { AssetActivity, TrackedAsset } from "../lib/types/domain";
 import {
   EAssetActivityKind,
   EAssetActivityStatus,

@@ -12,7 +12,7 @@ import {
   type EVMAccountAddress,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
-import type { TrackedAsset } from "../../lib/types/business";
+import type { TrackedAsset } from "../../lib/types/domain";
 import { EAssetType } from "../../lib/types/enum";
 import { useStyle } from "../../style";
 import { chainTechnologyFor } from "../../wallet/activeAddress";

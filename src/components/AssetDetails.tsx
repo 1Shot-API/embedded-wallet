@@ -7,7 +7,7 @@ import {
   SendIcon,
 } from "lucide-react";
 import { AddressUtils } from "@1shotapi/ows-wallet-utils";
-import type { TrackedAsset } from "../lib/types/business";
+import type { TrackedAsset } from "../lib/types/domain";
 import { EAssetType } from "../lib/types/enum";
 import type { EVMChainId } from "@1shotapi/ows-types";
 import { DEMO_CHAINS } from "../ows/demoChains";

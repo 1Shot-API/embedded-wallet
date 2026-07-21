@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TrackedAsset } from "../../lib/types/business";
+import { TrackedAsset } from "../../lib/types/domain";
 import { useStyle } from "../../style";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";

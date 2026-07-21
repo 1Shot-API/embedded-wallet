@@ -16,7 +16,7 @@ import type {
   IRecordSentActivityParams,
 } from "../../interfaces/data/IAssetActivityRepository";
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
-import { AssetActivity } from "../../types/business/AssetActivity";
+import { AssetActivity } from "../../types/domain/AssetActivity";
 import {
   EAssetActivityKind,
   EAssetActivityStatus,
