@@ -24,20 +24,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TrackedAsset } from "../../lib/types/business";
-import type { EVMChainId } from "@1shotapi/ows-types";
-import { DEMO_CHAINS } from "../../ows/demoChains";
 import { useStyle } from "../../style";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
 import { BalanceDisplay } from "../BalanceDisplay";
 
 const PAGE_SIZE = 5;
-
-function chainLabelFor(chainId: EVMChainId): string {
-  return (
-    DEMO_CHAINS.find((chain) => chain.chainId === chainId)?.label ?? chainId
-  );
-}
 
 export function AssetList({
   onView,
@@ -94,15 +86,6 @@ export function AssetList({
         ),
       },
       {
-        id: "chain",
-        header: copy.chainColumn,
-        cell: ({ row }) => (
-          <span className="text-muted-foreground text-xs">
-            {chainLabelFor(row.original.chainId)}
-          </span>
-        ),
-      },
-      {
         id: "balance",
         header: copy.balanceColumn,
         cell: ({ row }) => (
@@ -129,7 +112,7 @@ export function AssetList({
         ),
       },
     ],
-    [onView, copy.assetColumn, copy.chainColumn, copy.balanceColumn, copy.viewLabel],
+    [onView, copy.assetColumn, copy.balanceColumn, copy.viewLabel],
   );
 
   const table = useReactTable({
