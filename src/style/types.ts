@@ -180,6 +180,17 @@ export interface IStyleCopyBalances {
   addConfirmAcceptLabel: string;
   balanceUnavailable: string;
   balanceNonErc20: string;
+  receiveLabel: string;
+  receiveTitle: string;
+  /** Supports `{chainLabel}`. */
+  receiveBody: string;
+  receiveAddressLabel: string;
+  /** Supports `{chainLabel}`. */
+  receiveQrAlt: string;
+  receiveCopyLabel: string;
+  receiveCopiedLabel: string;
+  receiveCopyFailedLabel: string;
+  receiveCloseLabel: string;
 }
 
 /**

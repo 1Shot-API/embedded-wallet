@@ -516,6 +516,72 @@ export function WalletConfigurator({
               </AccordionContent>
             </AccordionItem>
 
+            <AccordionItem value="balances">
+              <AccordionTrigger>Balances / Receive</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="bal-tab-label"
+                  label="Tab label"
+                  value={form.balTabLabel}
+                  onChange={(value) => patch("balTabLabel", value)}
+                />
+                <TextField
+                  id="receive-label"
+                  label="Receive button"
+                  value={form.receiveLabel}
+                  onChange={(value) => patch("receiveLabel", value)}
+                />
+                <TextField
+                  id="receive-title"
+                  label="Receive title"
+                  value={form.receiveTitle}
+                  onChange={(value) => patch("receiveTitle", value)}
+                />
+                <BodyField
+                  id="receive-body"
+                  label="Receive body ({chainLabel})"
+                  value={form.receiveBody}
+                  onChange={(value) => patch("receiveBody", value)}
+                />
+                <TextField
+                  id="receive-address-label"
+                  label="Address label"
+                  value={form.receiveAddressLabel}
+                  onChange={(value) => patch("receiveAddressLabel", value)}
+                />
+                <TextField
+                  id="receive-qr-alt"
+                  label="QR alt ({chainLabel})"
+                  value={form.receiveQrAlt}
+                  onChange={(value) => patch("receiveQrAlt", value)}
+                />
+                <TextField
+                  id="receive-copy"
+                  label="Copy"
+                  value={form.receiveCopyLabel}
+                  onChange={(value) => patch("receiveCopyLabel", value)}
+                />
+                <TextField
+                  id="receive-copied"
+                  label="Copied"
+                  value={form.receiveCopiedLabel}
+                  onChange={(value) => patch("receiveCopiedLabel", value)}
+                />
+                <TextField
+                  id="receive-copy-failed"
+                  label="Copy failed"
+                  value={form.receiveCopyFailedLabel}
+                  onChange={(value) => patch("receiveCopyFailedLabel", value)}
+                />
+                <TextField
+                  id="receive-close"
+                  label="Close"
+                  value={form.receiveCloseLabel}
+                  onChange={(value) => patch("receiveCloseLabel", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
             <AccordionItem value="backup">
               <AccordionTrigger>Create backup</AccordionTrigger>
               <AccordionContent className="flex flex-col gap-3">

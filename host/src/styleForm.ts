@@ -76,6 +76,18 @@ export interface IStyleFormState {
   credClaimsHeading: string;
   credClose: string;
 
+  // Text — Balances / Receive
+  balTabLabel: string;
+  receiveLabel: string;
+  receiveTitle: string;
+  receiveBody: string;
+  receiveAddressLabel: string;
+  receiveQrAlt: string;
+  receiveCopyLabel: string;
+  receiveCopiedLabel: string;
+  receiveCopyFailedLabel: string;
+  receiveCloseLabel: string;
+
   // Text — Create backup
   backupTitle: string;
   backupBody: string;
@@ -145,6 +157,16 @@ export const ACME_PRESET: IStyleFormState = {
   credDetailDescription: "Full credential details and claims.",
   credClaimsHeading: "Claims",
   credClose: "Close",
+  balTabLabel: "Balances",
+  receiveLabel: "Receive",
+  receiveTitle: "Receive",
+  receiveBody: "Scan this QR code or copy your {chainLabel} address.",
+  receiveAddressLabel: "Address",
+  receiveQrAlt: "{chainLabel} wallet address",
+  receiveCopyLabel: "Copy address",
+  receiveCopiedLabel: "Address copied",
+  receiveCopyFailedLabel: "Copy failed",
+  receiveCloseLabel: "Close",
   backupTitle: "Create a backup",
   backupBody: "Encrypt a recovery blob with a passphrase.",
   backupContinue: "Continue",
@@ -179,6 +201,9 @@ export const OCEAN_PRESET: IStyleFormState = {
   txTitle: "Ocean transaction",
   credOfferTitle: "Accept Ocean credential?",
   credPresentTitle: "Share with verifier?",
+  balTabLabel: "Balances",
+  receiveTitle: "Receive to Ocean",
+  receiveBody: "Scan or copy your {chainLabel} Ocean address.",
   backupTitle: "Backup Ocean keys",
   restoreTitle: "Restore Ocean wallet",
 };
@@ -226,6 +251,16 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   credDetailDescription: "Full credential details and claims.",
   credClaimsHeading: "Claims",
   credClose: "Close",
+  balTabLabel: "Balances",
+  receiveLabel: "Receive",
+  receiveTitle: "Receive",
+  receiveBody: "Scan this QR code or copy your {chainLabel} address.",
+  receiveAddressLabel: "Address",
+  receiveQrAlt: "{chainLabel} wallet address",
+  receiveCopyLabel: "Copy address",
+  receiveCopiedLabel: "Address copied",
+  receiveCopyFailedLabel: "Copy failed",
+  receiveCloseLabel: "Close",
   backupTitle: "Create backup",
   backupBody: "",
   restoreTitle: "Restore backup",
@@ -334,6 +369,19 @@ export function buildSetStylePayload(
   put(credentials, "claimsHeading", form.credClaimsHeading);
   put(credentials, "closeLabel", form.credClose);
   if (Object.keys(credentials).length > 0) copy.credentials = credentials;
+
+  const balances: Record<string, string> = {};
+  put(balances, "tabLabel", form.balTabLabel);
+  put(balances, "receiveLabel", form.receiveLabel);
+  put(balances, "receiveTitle", form.receiveTitle);
+  put(balances, "receiveBody", form.receiveBody);
+  put(balances, "receiveAddressLabel", form.receiveAddressLabel);
+  put(balances, "receiveQrAlt", form.receiveQrAlt);
+  put(balances, "receiveCopyLabel", form.receiveCopyLabel);
+  put(balances, "receiveCopiedLabel", form.receiveCopiedLabel);
+  put(balances, "receiveCopyFailedLabel", form.receiveCopyFailedLabel);
+  put(balances, "receiveCloseLabel", form.receiveCloseLabel);
+  if (Object.keys(balances).length > 0) copy.balances = balances;
 
   const createBackup: Record<string, string> = {};
   put(createBackup, "title", form.backupTitle);

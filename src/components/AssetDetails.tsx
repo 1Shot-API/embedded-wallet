@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { useShallow } from "zustand/react/shallow";
 import {
   ArrowDownLeftIcon,
   ArrowUpRightIcon,
@@ -11,8 +12,12 @@ import {
 import type { TrackedAsset } from "../lib/types/business";
 import type { EVMChainId } from "@1shotapi/ows-types";
 import { DEMO_CHAINS } from "../ows/demoChains";
+import { useStyle } from "../style";
 import { useWallet } from "../wallet/WalletProvider";
+import { resolveActiveAddress } from "../wallet/activeAddress";
+import { useWalletSessionStore } from "../wallet/sessionStore";
 import { BalanceDisplay } from "./BalanceDisplay";
+import { ReceiveModal } from "./modals/ReceiveModal";
 
 type ActivityKind = "received" | "sent" | "purchase";
 
@@ -75,13 +80,27 @@ export interface IAssetDetailsProps {
  * Balance is live; recent activity remains mock for now.
  */
 export function AssetDetails({ asset }: IAssetDetailsProps) {
+  const { style } = useStyle();
+  const { balances: copy } = style.copy;
   const { requestBalanceRefresh } = useWallet();
+  const { evmAddress, solanaAddress } = useWalletSessionStore(
+    useShallow((state) => ({
+      evmAddress: state.evmAddress,
+      solanaAddress: state.solanaAddress,
+    })),
+  );
+  const [receiveOpen, setReceiveOpen] = useState(false);
 
   useEffect(() => {
     requestBalanceRefresh(asset.id);
   }, [asset.id, requestBalanceRefresh]);
 
   const network = chainLabel(asset.chainId);
+  const active = resolveActiveAddress({
+    chainId: asset.chainId,
+    evmAddress,
+    solanaAddress,
+  });
 
   return (
     <div className="flex flex-col gap-5" aria-label={`${asset.symbol} details`}>
@@ -112,13 +131,17 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
         className="flex items-start justify-center gap-8"
         aria-label="Asset actions"
       >
-        <ActionButton label="Buy" variant="outline">
+        <ActionButton label="Buy" variant="outline" disabled>
           <PlusIcon className="size-5" />
         </ActionButton>
-        <ActionButton label="Send" variant="primary">
+        <ActionButton label="Send" variant="primary" disabled>
           <SendIcon className="size-5" />
         </ActionButton>
-        <ActionButton label="Receive" variant="outline">
+        <ActionButton
+          label={copy.receiveLabel}
+          variant="outline"
+          onClick={() => setReceiveOpen(true)}
+        >
           <QrCodeIcon className="size-5" />
         </ActionButton>
       </nav>
@@ -162,6 +185,14 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
           ))}
         </ul>
       </section>
+
+      {receiveOpen ? (
+        <ReceiveModal
+          address={active.address}
+          chainLabel={network}
+          onClose={() => setReceiveOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -170,21 +201,26 @@ function ActionButton({
   label,
   variant,
   children,
+  disabled = false,
+  onClick,
 }: {
   label: string;
   variant: "primary" | "outline";
   children: ReactNode;
+  disabled?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <div className="flex flex-col items-center gap-1.5">
       <button
         type="button"
-        disabled
+        disabled={disabled}
         aria-label={label}
+        onClick={onClick}
         className={
           variant === "primary"
-            ? "bg-primary text-primary-foreground flex size-12 items-center justify-center rounded-full opacity-90"
-            : "border-border bg-background text-foreground flex size-12 items-center justify-center rounded-full border"
+            ? "bg-primary text-primary-foreground flex size-12 items-center justify-center rounded-full opacity-90 disabled:opacity-50"
+            : "border-border bg-background text-foreground flex size-12 items-center justify-center rounded-full border disabled:opacity-50"
         }
       >
         {children}

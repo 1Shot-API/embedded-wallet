@@ -22,6 +22,13 @@ Prefer **clean code over backwards compatibility**. Do not add legacy redirects,
 
 Test Host Layer: `host/` (`npm run dev:host`). Style via Host RPC `setStyle`, not in-wallet debug knobs.
 
+### User-facing copy (`setStyle`)
+
+When adding or changing UI strings:
+
+1. Wire them through `style.copy` (defaults, types, and `registerSetStyle` Zod schema) so hosts can override via `setStyle`.
+2. Expose the same keys in **both** WalletConfigurator playgrounds: `host/` in this repo and `app/playground/` in **1Shot-API-Website-New** (`styleForm.ts` + `WalletConfigurator.tsx`).
+
 ### Domain layers (assets example)
 
 - **Utils:** `IBlockchainProvider` / `DemoChainsBlockchainProvider`, `IEventBus` / `EventBus`

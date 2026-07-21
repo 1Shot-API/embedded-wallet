@@ -179,6 +179,15 @@ const balancesCopySchema = z
     addConfirmAcceptLabel: z.string().optional(),
     balanceUnavailable: z.string().optional(),
     balanceNonErc20: z.string().optional(),
+    receiveLabel: z.string().optional(),
+    receiveTitle: z.string().optional(),
+    receiveBody: z.string().optional(),
+    receiveAddressLabel: z.string().optional(),
+    receiveQrAlt: z.string().optional(),
+    receiveCopyLabel: z.string().optional(),
+    receiveCopiedLabel: z.string().optional(),
+    receiveCopyFailedLabel: z.string().optional(),
+    receiveCloseLabel: z.string().optional(),
   })
   .strict()
   .optional();

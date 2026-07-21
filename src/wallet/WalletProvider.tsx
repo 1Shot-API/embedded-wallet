@@ -540,12 +540,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         address,
         owner,
       );
-      return (await trackedAssetRepository.list(owner)).find(
+      const alreadyTracked = (await trackedAssetRepository.list(owner)).find(
         (asset) =>
           asset.address === address && asset.chainId === chainId,
-      ) ?? (await trackedAssetRepository.add(resolved, owner));
+      );
+      if (alreadyTracked) return alreadyTracked;
+      const tracked = await trackedAssetRepository.add(resolved, owner);
+      await refreshTrackedAssetCount();
+      return tracked;
     },
-    [],
+    [refreshTrackedAssetCount],
   );
 
   const requestBalanceRefresh = useCallback((id?: TrackedAssetId) => {
