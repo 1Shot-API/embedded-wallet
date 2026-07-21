@@ -647,6 +647,28 @@ export function WalletConfigurator({
                   value={form.transferTokensDone}
                   onChange={(value) => patch("transferTokensDone", value)}
                 />
+                <TextField
+                  id="passkey-prompt-unlock-title"
+                  label="Passkey unlock title"
+                  value={form.passkeyPromptUnlockTitle}
+                  onChange={(value) =>
+                    patch("passkeyPromptUnlockTitle", value)
+                  }
+                />
+                <TextField
+                  id="passkey-prompt-sign-title"
+                  label="Passkey sign title"
+                  value={form.passkeyPromptSignTitle}
+                  onChange={(value) => patch("passkeyPromptSignTitle", value)}
+                />
+                <TextField
+                  id="passkey-prompt-relayer-title"
+                  label="Passkey relayer auth title"
+                  value={form.passkeyPromptRelayerTitle}
+                  onChange={(value) =>
+                    patch("passkeyPromptRelayerTitle", value)
+                  }
+                />
               </AccordionContent>
             </AccordionItem>
 

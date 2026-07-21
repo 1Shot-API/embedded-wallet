@@ -46,6 +46,7 @@ import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
 import { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
 import { registerSetStyleRpc } from "../style";
+import { wrapSignerWithPasskeyPrompts } from "./wrapSignerWithPasskeyPrompts";
 import {
   HardcodedKnownAssetRepository,
   LocalStorageTrackedAssetRepository,
@@ -697,7 +698,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         credentialId: loadCredentialId(),
       });
       const awaitSigner = async (): Promise<OWSSigner> => {
-        const loaded = await signerPromise;
+        const loaded = wrapSignerWithPasskeyPrompts(await signerPromise);
         signerRef.current = loaded;
         signerHolder.current = loaded;
         return loaded;

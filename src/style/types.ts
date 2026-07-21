@@ -132,6 +132,26 @@ export interface IStyleCopyTransferTokens {
   doneLabel: string;
 }
 
+/** Title + body for one passkey-ceremony explanation overlay. */
+export interface IStyleCopyPasskeyPromptEntry {
+  title: string;
+  body: string;
+}
+
+/**
+ * Non-interactive overlays shown while a WebAuthn ceremony is in flight.
+ * Keys align with {@link EPasskeyPromptReason}.
+ */
+export interface IStyleCopyPasskeyPrompt {
+  unlock: IStyleCopyPasskeyPromptEntry;
+  create: IStyleCopyPasskeyPromptEntry;
+  sign: IStyleCopyPasskeyPromptEntry;
+  encrypt: IStyleCopyPasskeyPromptEntry;
+  decrypt: IStyleCopyPasskeyPromptEntry;
+  relayerAuth: IStyleCopyPasskeyPromptEntry;
+  backup: IStyleCopyPasskeyPromptEntry;
+}
+
 /**
  * OID4VCI credential-offer approval modal.
  * `body` supports `{issuerName}` and `{issuerId}`.
@@ -301,6 +321,16 @@ export interface IStyleCopyOptions {
   confirmTransfer?: Partial<IStyleCopyConfirmTransfer>;
   /** Partial patch for the in-wallet transfer tokens modal */
   transferTokens?: Partial<IStyleCopyTransferTokens>;
+  /** Partial patch for passkey-ceremony explanation overlays */
+  passkeyPrompt?: {
+    unlock?: Partial<IStyleCopyPasskeyPromptEntry>;
+    create?: Partial<IStyleCopyPasskeyPromptEntry>;
+    sign?: Partial<IStyleCopyPasskeyPromptEntry>;
+    encrypt?: Partial<IStyleCopyPasskeyPromptEntry>;
+    decrypt?: Partial<IStyleCopyPasskeyPromptEntry>;
+    relayerAuth?: Partial<IStyleCopyPasskeyPromptEntry>;
+    backup?: Partial<IStyleCopyPasskeyPromptEntry>;
+  };
   /** Partial patch for the credential offer modal */
   credentialOffer?: Partial<IStyleCopyCredentialOffer>;
   /** Partial patch for the credential presentation modal */
@@ -328,6 +358,7 @@ export interface IResolvedCopy {
   sendTransaction: IStyleCopySendTransaction;
   confirmTransfer: IStyleCopyConfirmTransfer;
   transferTokens: IStyleCopyTransferTokens;
+  passkeyPrompt: IStyleCopyPasskeyPrompt;
   credentialOffer: IStyleCopyCredentialOffer;
   credentialPresentation: IStyleCopyCredentialPresentation;
   credentials: IStyleCopyCredentials;

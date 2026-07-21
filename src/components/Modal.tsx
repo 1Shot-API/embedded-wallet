@@ -26,11 +26,13 @@ export type ModalProps = {
   /** Extra content after children (e.g. signer slot). */
   footer?: ReactNode;
   wide?: boolean;
+  /** Extra classes on DialogContent (e.g. higher z-index for overlays). */
+  contentClassName?: string;
 };
 
 /**
  * Wallet modal shell — controlled Dialog always mounted `open` while ModalHost
- * keeps this tree rendered. Escape / outside click call `onBackdropDismiss` when set.
+ * keeps this tree rendered. Escape / overlay dismiss call `onBackdropDismiss` when set.
  */
 export function Modal({
   title,
@@ -39,6 +41,7 @@ export function Modal({
   onBackdropDismiss,
   footer,
   wide,
+  contentClassName,
 }: ModalProps) {
   return (
     <Dialog
@@ -56,6 +59,7 @@ export function Modal({
           // wallet iframe width instead of forcing horizontal scroll.
           "bg-background text-foreground z-[10000] max-h-[min(85vh,36rem)] min-w-0 gap-3 overflow-x-hidden overflow-y-auto p-5 sm:max-w-md",
           wide && "sm:max-w-lg",
+          contentClassName,
         )}
         onPointerDownOutside={(event) => {
           if (!onBackdropDismiss) {

@@ -103,6 +103,11 @@ export interface IStyleFormState {
   transferTokensViewExplorer: string;
   transferTokensDone: string;
 
+  // Text — Passkey ceremony overlays
+  passkeyPromptUnlockTitle: string;
+  passkeyPromptSignTitle: string;
+  passkeyPromptRelayerTitle: string;
+
   // Text — Create backup
   backupTitle: string;
   backupBody: string;
@@ -194,6 +199,9 @@ export const ACME_PRESET: IStyleFormState = {
   transferTokensSentTitle: "Transaction sent",
   transferTokensViewExplorer: "View on explorer",
   transferTokensDone: "Done",
+  passkeyPromptUnlockTitle: "Unlock with passkey",
+  passkeyPromptSignTitle: "Confirm with passkey",
+  passkeyPromptRelayerTitle: "Authenticate with passkey",
   backupTitle: "Create a backup",
   backupBody: "Encrypt a recovery blob with a passphrase.",
   backupContinue: "Continue",
@@ -300,6 +308,9 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   transferTokensSentTitle: "Transaction sent",
   transferTokensViewExplorer: "View on explorer",
   transferTokensDone: "Done",
+  passkeyPromptUnlockTitle: "Unlock with passkey",
+  passkeyPromptSignTitle: "Confirm with passkey",
+  passkeyPromptRelayerTitle: "Authenticate with passkey",
   backupTitle: "Create backup",
   backupBody: "",
   restoreTitle: "Restore backup",
@@ -397,6 +408,26 @@ export function buildSetStylePayload(
   put(transferTokens, "doneLabel", form.transferTokensDone);
   if (Object.keys(transferTokens).length > 0) {
     copy.transferTokens = transferTokens;
+  }
+
+  const passkeyPrompt: Record<string, Record<string, string>> = {};
+  const unlock: Record<string, string> = {};
+  put(unlock, "title", form.passkeyPromptUnlockTitle);
+  if (Object.keys(unlock).length > 0) {
+    passkeyPrompt.unlock = unlock;
+  }
+  const sign: Record<string, string> = {};
+  put(sign, "title", form.passkeyPromptSignTitle);
+  if (Object.keys(sign).length > 0) {
+    passkeyPrompt.sign = sign;
+  }
+  const relayerAuth: Record<string, string> = {};
+  put(relayerAuth, "title", form.passkeyPromptRelayerTitle);
+  if (Object.keys(relayerAuth).length > 0) {
+    passkeyPrompt.relayerAuth = relayerAuth;
+  }
+  if (Object.keys(passkeyPrompt).length > 0) {
+    copy.passkeyPrompt = passkeyPrompt;
   }
 
   const credentialOffer: Record<string, string> = {};

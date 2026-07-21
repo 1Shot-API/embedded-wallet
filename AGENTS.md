@@ -26,6 +26,10 @@ Test Host Layer: `host/` (`npm run dev:host`). Style via Host RPC `setStyle`, no
 
 Primary submit actions (e.g. Send in `TransferTokensModal`) stay **disabled until every required field is valid**. Do not leave the button enabled and only reject on click. Empty fields show no error text; invalid non-empty input shows inline errors; the CTA enables only when the whole form is ready.
 
+### Passkey ceremony overlays
+
+Every WebAuthn prompt (Signing Layer PRF via `OWSSigner`, or Relayer `createRelayerAssertion`) must show the non-interactive `PasskeyPromptModal` for the duration of the ceremony—no Continue/Done. New ceremony entry points go through `withPasskeyPrompt` or the wrapped signer from `wrapSignerWithPasskeyPrompts` (applied once after `OWSSigner.create` in `WalletProvider`). Copy lives under `style.copy.passkeyPrompt`.
+
 ### User-facing copy (`setStyle`)
 
 When adding or changing UI strings:

@@ -136,6 +136,27 @@ const transferTokensCopySchema = z
   .strict()
   .optional();
 
+const passkeyPromptEntrySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
+const passkeyPromptCopySchema = z
+  .object({
+    unlock: passkeyPromptEntrySchema,
+    create: passkeyPromptEntrySchema,
+    sign: passkeyPromptEntrySchema,
+    encrypt: passkeyPromptEntrySchema,
+    decrypt: passkeyPromptEntrySchema,
+    relayerAuth: passkeyPromptEntrySchema,
+    backup: passkeyPromptEntrySchema,
+  })
+  .strict()
+  .optional();
+
 const credentialOfferCopySchema = z
   .object({
     title: z.string().optional(),
@@ -284,6 +305,7 @@ const copySchema = z
     sendTransaction: sendTransactionCopySchema,
     confirmTransfer: confirmTransferCopySchema,
     transferTokens: transferTokensCopySchema,
+    passkeyPrompt: passkeyPromptCopySchema,
     credentialOffer: credentialOfferCopySchema,
     credentialPresentation: credentialPresentationCopySchema,
     credentials: credentialsCopySchema,

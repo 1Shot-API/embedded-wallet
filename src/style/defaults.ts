@@ -102,6 +102,36 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       viewOnExplorerLabel: "View on explorer",
       doneLabel: "Done",
     },
+    passkeyPrompt: {
+      unlock: {
+        title: "Unlock with passkey",
+        body: "Confirm with your passkey to unlock this wallet.",
+      },
+      create: {
+        title: "Create passkey",
+        body: "Follow the device prompt to create a passkey for this wallet.",
+      },
+      sign: {
+        title: "Confirm with passkey",
+        body: "Confirm with your passkey to approve this signature or transaction.",
+      },
+      encrypt: {
+        title: "Encrypt with passkey",
+        body: "Confirm with your passkey to encrypt data for secure storage.",
+      },
+      decrypt: {
+        title: "Decrypt with passkey",
+        body: "Confirm with your passkey to decrypt stored wallet data.",
+      },
+      relayerAuth: {
+        title: "Authenticate with passkey",
+        body: "Confirm with your passkey to authenticate with the 1Shot Relayer.",
+      },
+      backup: {
+        title: "Confirm backup",
+        body: "Confirm with your passkey to create an encrypted recovery backup.",
+      },
+    },
     credentialOffer: {
       title: "Accept credential offer?",
       body: "{issuerName} ({issuerId}) wants to issue a credential to your wallet.",
