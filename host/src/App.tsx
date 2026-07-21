@@ -27,6 +27,8 @@ import { DesignPanel } from "./components/DesignPanel";
 import { TestPanel } from "./components/TestPanel";
 import {
   HOST_CHAINS,
+  FOCUS_USDC_ARC,
+  FOCUS_USDT_BASE,
   hostChainMeta,
   type UsdcMode,
 } from "./components/WalletActions";
@@ -479,6 +481,128 @@ export function App() {
     await proxy.rpc("setStyle", options);
   };
 
+  const handleFocusUsdcArc = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Focusing wallet on Arc USDC…");
+    void (async () => {
+      try {
+        await proxy.rpc("focusWallet", {
+          chainId: FOCUS_USDC_ARC.chainId,
+          assetAddress: FOCUS_USDC_ARC.assetAddress,
+        });
+        setChainId(FOCUS_USDC_ARC.chainId);
+        proxy.showWallet();
+        setWalletVisible(true);
+        reportStatus("Wallet focused on USDC (Arc Testnet).");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "focusWallet failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleFocusUsdtBase = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Focusing wallet on Base USDT…");
+    void (async () => {
+      try {
+        await proxy.rpc("focusWallet", {
+          chainId: FOCUS_USDT_BASE.chainId,
+          assetAddress: FOCUS_USDT_BASE.assetAddress,
+        });
+        setChainId(FOCUS_USDT_BASE.chainId);
+        proxy.showWallet();
+        setWalletVisible(true);
+        reportStatus("Wallet focused on Tether (Base).");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "focusWallet failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleUnfocusWallet = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Restoring general wallet mode…");
+    void (async () => {
+      try {
+        await proxy.rpc("unfocusWallet");
+        reportStatus("Wallet restored to general mode.");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "unfocusWallet failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleAddUsdcArc = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Requesting add Arc USDC…");
+    void (async () => {
+      try {
+        await proxy.rpc("addAsset", {
+          chainId: FOCUS_USDC_ARC.chainId,
+          assetAddress: FOCUS_USDC_ARC.assetAddress,
+        });
+        proxy.showWallet();
+        setWalletVisible(true);
+        reportStatus("Arc USDC added to tracked assets.");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "addAsset failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleAddUsdtBase = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Requesting add Base USDT…");
+    void (async () => {
+      try {
+        await proxy.rpc("addAsset", {
+          chainId: FOCUS_USDT_BASE.chainId,
+          assetAddress: FOCUS_USDT_BASE.assetAddress,
+        });
+        proxy.showWallet();
+        setWalletVisible(true);
+        reportStatus("Base USDT added to tracked assets.");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "addAsset failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
   const walletActionProps = {
     ready,
     busy,
@@ -503,6 +627,11 @@ export function App() {
     walletVisible,
     onToggleWallet: handleToggleWallet,
     onUsdcAction: handleUsdcAction,
+    onFocusUsdcArc: handleFocusUsdcArc,
+    onFocusUsdtBase: handleFocusUsdtBase,
+    onUnfocusWallet: handleUnfocusWallet,
+    onAddUsdcArc: handleAddUsdcArc,
+    onAddUsdtBase: handleAddUsdtBase,
   };
 
   return (

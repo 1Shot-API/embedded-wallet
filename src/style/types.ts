@@ -89,6 +89,70 @@ export interface IStyleCopySendTransaction {
 }
 
 /**
+ * Friendly host ERC-20 transfer confirm.
+ * `body` supports `{domain}`, `{amount}`, `{tokenName}`, `{tokenSymbol}`,
+ * `{receiver}`, `{chainName}`.
+ */
+export interface IStyleCopyConfirmTransfer {
+  title: string;
+  body: string;
+  amountLabel: string;
+  tokenLabel: string;
+  receiverLabel: string;
+  chainLabel: string;
+  rejectLabel: string;
+  confirmLabel: string;
+}
+
+/**
+ * In-wallet send / transfer tokens modal (form + post-send confirmation).
+ */
+export interface IStyleCopyTransferTokens {
+  title: string;
+  body: string;
+  amountLabel: string;
+  amountPlaceholder: string;
+  recipientLabel: string;
+  recipientPlaceholder: string;
+  scanQrLabel: string;
+  cancelLabel: string;
+  sendLabel: string;
+  invalidAmountError: string;
+  insufficientBalanceError: string;
+  invalidAddressError: string;
+  sendFailedError: string;
+  /** Confirmation after a successful in-wallet send. */
+  sentTitle: string;
+  sentBody: string;
+  hashLabel: string;
+  copyHashLabel: string;
+  hashCopiedLabel: string;
+  hashCopyFailedLabel: string;
+  viewOnExplorerLabel: string;
+  doneLabel: string;
+}
+
+/** Title + body for one passkey-ceremony explanation overlay. */
+export interface IStyleCopyPasskeyPromptEntry {
+  title: string;
+  body: string;
+}
+
+/**
+ * Non-interactive overlays shown while a WebAuthn ceremony is in flight.
+ * Keys align with {@link EPasskeyPromptReason}.
+ */
+export interface IStyleCopyPasskeyPrompt {
+  unlock: IStyleCopyPasskeyPromptEntry;
+  create: IStyleCopyPasskeyPromptEntry;
+  sign: IStyleCopyPasskeyPromptEntry;
+  encrypt: IStyleCopyPasskeyPromptEntry;
+  decrypt: IStyleCopyPasskeyPromptEntry;
+  relayerAuth: IStyleCopyPasskeyPromptEntry;
+  backup: IStyleCopyPasskeyPromptEntry;
+}
+
+/**
  * OID4VCI credential-offer approval modal.
  * `body` supports `{issuerName}` and `{issuerId}`.
  */
@@ -146,6 +210,52 @@ export interface IStyleCopyCredentials {
   claimsLoading: string;
   claimsEmpty: string;
   closeLabel: string;
+}
+
+/**
+ * Balances tab + add-asset flows.
+ * `countLabel` supports `{count}`.
+ * `addConfirmBody` supports `{assetName}` and `{chainLabel}`.
+ */
+export interface IStyleCopyBalances {
+  tabLabel: string;
+  emptyCountLabel: string;
+  countLabel: string;
+  addLabel: string;
+  loadingBody: string;
+  emptyBody: string;
+  loadFailedError: string;
+  addFailedError: string;
+  invalidAddressError: string;
+  assetColumn: string;
+  chainColumn: string;
+  balanceColumn: string;
+  viewLabel: string;
+  closeLabel: string;
+  addDialogTitle: string;
+  addDialogBody: string;
+  addressLabel: string;
+  addressPlaceholder: string;
+  addDialogCancelLabel: string;
+  addDialogSubmitLabel: string;
+  addConfirmTitle: string;
+  addConfirmBody: string;
+  addConfirmRejectLabel: string;
+  addConfirmAcceptLabel: string;
+  balanceUnavailable: string;
+  balanceNonErc20: string;
+  receiveLabel: string;
+  receiveTitle: string;
+  /** Supports `{chainLabel}`. */
+  receiveBody: string;
+  receiveAddressLabel: string;
+  /** Supports `{chainLabel}`. */
+  receiveQrAlt: string;
+  receiveCopyLabel: string;
+  receiveCopiedLabel: string;
+  receiveCopyFailedLabel: string;
+  receiveCloseLabel: string;
+  sendLabel: string;
 }
 
 /**
@@ -207,12 +317,28 @@ export interface IStyleCopyOptions {
   typedData?: Partial<IStyleCopyTypedData>;
   /** Partial patch for the eth_sendTransaction modal */
   sendTransaction?: Partial<IStyleCopySendTransaction>;
+  /** Partial patch for the friendly ERC-20 transfer confirm */
+  confirmTransfer?: Partial<IStyleCopyConfirmTransfer>;
+  /** Partial patch for the in-wallet transfer tokens modal */
+  transferTokens?: Partial<IStyleCopyTransferTokens>;
+  /** Partial patch for passkey-ceremony explanation overlays */
+  passkeyPrompt?: {
+    unlock?: Partial<IStyleCopyPasskeyPromptEntry>;
+    create?: Partial<IStyleCopyPasskeyPromptEntry>;
+    sign?: Partial<IStyleCopyPasskeyPromptEntry>;
+    encrypt?: Partial<IStyleCopyPasskeyPromptEntry>;
+    decrypt?: Partial<IStyleCopyPasskeyPromptEntry>;
+    relayerAuth?: Partial<IStyleCopyPasskeyPromptEntry>;
+    backup?: Partial<IStyleCopyPasskeyPromptEntry>;
+  };
   /** Partial patch for the credential offer modal */
   credentialOffer?: Partial<IStyleCopyCredentialOffer>;
   /** Partial patch for the credential presentation modal */
   credentialPresentation?: Partial<IStyleCopyCredentialPresentation>;
   /** Partial patch for the credentials tab + detail dialog */
   credentials?: Partial<IStyleCopyCredentials>;
+  /** Partial patch for the balances tab + add-asset flows */
+  balances?: Partial<IStyleCopyBalances>;
   /** Partial patch for the create-backup modal */
   createBackup?: Partial<IStyleCopyCreateBackup>;
   /** Partial patch for the restore-backup modal */
@@ -230,9 +356,13 @@ export interface IResolvedCopy {
   personalSign: IStyleCopyPersonalSign;
   typedData: IStyleCopyTypedData;
   sendTransaction: IStyleCopySendTransaction;
+  confirmTransfer: IStyleCopyConfirmTransfer;
+  transferTokens: IStyleCopyTransferTokens;
+  passkeyPrompt: IStyleCopyPasskeyPrompt;
   credentialOffer: IStyleCopyCredentialOffer;
   credentialPresentation: IStyleCopyCredentialPresentation;
   credentials: IStyleCopyCredentials;
+  balances: IStyleCopyBalances;
   createBackup: IStyleCopyCreateBackup;
   restoreBackup: IStyleCopyRestoreBackup;
 }

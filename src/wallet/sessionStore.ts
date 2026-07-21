@@ -11,6 +11,12 @@ import {
   loadCachedSolanaAddress,
 } from "../storage";
 
+/** Host-controlled shell mode — users cannot switch between these. */
+export enum EWalletMode {
+  General = "general",
+  Focused = "focused",
+}
+
 export interface IWalletSessionState {
   ready: boolean;
   bootError: string | null;
@@ -21,6 +27,10 @@ export interface IWalletSessionState {
   solanaAddress: SolanaAccountAddress;
   chainId: EVMChainId;
   credentialCount: number;
+  /** Bumped on tracked-asset add/remove so Balances tab reloads. */
+  trackedAssetCount: number;
+  mode: EWalletMode;
+  focusedAssetAddress: EVMAccountAddress | null;
 
   setReady: (ready: boolean) => void;
   setBootError: (error: string | null) => void;
@@ -32,6 +42,14 @@ export interface IWalletSessionState {
   ) => void;
   setChainId: (chainId: EVMChainId) => void;
   setCredentialCount: (count: number) => void;
+  setTrackedAssetCount: (count: number) => void;
+  setMode: (mode: EWalletMode) => void;
+  setFocusedAssetAddress: (address: EVMAccountAddress | null) => void;
+  focusWallet: (
+    chainId: EVMChainId,
+    assetAddress: EVMAccountAddress,
+  ) => void;
+  unfocusWallet: () => void;
 }
 
 function initialEmbedded(): boolean {
@@ -66,6 +84,9 @@ export const useWalletSessionStore = create<IWalletSessionState>((set) => ({
   solanaAddress: initialSolanaAddress(),
   chainId: DEMO_CHAINS[0]!.chainId,
   credentialCount: 0,
+  trackedAssetCount: 0,
+  mode: EWalletMode.General,
+  focusedAssetAddress: null,
 
   setReady: (ready) => set({ ready }),
   setBootError: (bootError) => set({ bootError }),
@@ -75,4 +96,18 @@ export const useWalletSessionStore = create<IWalletSessionState>((set) => ({
     set({ evmAddress, solanaAddress }),
   setChainId: (chainId) => set({ chainId }),
   setCredentialCount: (credentialCount) => set({ credentialCount }),
+  setTrackedAssetCount: (trackedAssetCount) => set({ trackedAssetCount }),
+  setMode: (mode) => set({ mode }),
+  setFocusedAssetAddress: (focusedAssetAddress) => set({ focusedAssetAddress }),
+  focusWallet: (chainId, focusedAssetAddress) =>
+    set({
+      mode: EWalletMode.Focused,
+      chainId,
+      focusedAssetAddress,
+    }),
+  unfocusWallet: () =>
+    set({
+      mode: EWalletMode.General,
+      focusedAssetAddress: null,
+    }),
 }));

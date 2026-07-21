@@ -3,7 +3,7 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as setStyle for theming the 1Shot Branding Layer.
+  or custom RPC such as setStyle / focusWallet / addAsset for theming, host-driven focus mode, and tracked assets on the 1Shot Branding Layer.
 license: MIT
 metadata:
   author: 1Shot-API
@@ -175,6 +175,52 @@ Unknown keys are rejected (Zod `.strict()`).
 
 See also [README.md](../../README.md) in this repository.
 
+## Custom RPC — `focusWallet` / `unfocusWallet`
+
+Host-controlled shell modes. Callers (not end users) switch between **General** (multi-chain tabs) and **Focused** (single chain + asset detail view).
+
+```typescript
+// Lock to one chain + ERC-20 (or other) asset
+await proxy.rpc("focusWallet", {
+  chainId: "0x4cef52", // Arc Testnet
+  assetAddress: "0x3600000000000000000000000000000000000000", // USDC
+});
+proxy.showWallet();
+
+// Restore general mode (keeps the current chain)
+await proxy.rpc("unfocusWallet");
+```
+
+| Method | Params | Effect |
+|--------|--------|--------|
+| `focusWallet` | `{ chainId: \`0x…\`, assetAddress: \`0x…\` }` | Switches active chain, sets focused asset, shows Asset Details shell |
+| `unfocusWallet` | none | Clears focus; returns to network selector + tabs |
+
+`focusWallet` returns `{ ok: true, mode: "focused", chainId, assetAddress }`.  
+`unfocusWallet` returns `{ ok: true, mode: "general" }`.
+
+Unlike `addAsset`, **`focusWallet` does not ask the user for confirmation** — hosts may temporarily lock the shell to any asset.
+
+## Custom RPC — `addAsset`
+
+Propose a tracked **ERC-20** for the Balances tab. The wallet resolves the token (known catalog, or on-chain `getCode` + `name`/`symbol`/`decimals`) **before** showing the confirm modal. Non-ERC-20 addresses are rejected. **Always requires user confirmation** (Reject / Add). On approval the asset is persisted; on rejection the RPC throws a user-rejected error.
+
+```typescript
+await proxy.rpc("addAsset", {
+  chainId: "0x4cef52", // Arc Testnet
+  assetAddress: "0x3600000000000000000000000000000000000000", // USDC
+});
+proxy.showWallet();
+```
+
+| Method | Params | Effect |
+|--------|--------|--------|
+| `addAsset` | `{ chainId: \`0x…\`, assetAddress: \`0x…\` }` | Probes ERC-20, shows confirm modal; on accept, adds to tracked assets |
+
+Returns `{ ok: true, chainId, assetAddress }` when the user accepts.
+
+Users can also add assets from the Balances tab without a host RPC. The Balances list shows tracked assets for the currently selected network only (USDC is always tracked per supported chain).
+
 ## Other Host APIs
 
 | API | Use |
@@ -182,10 +228,12 @@ See also [README.md](../../README.md) in this repository.
 | `proxy.ethereum.request(...)` | EIP-1193 (accounts, sign, chain, …) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, …) |
+| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, …) |
 
 ## Hard rules
 
 - Never embed the Signing Layer iframe from the Host — always Host → Branding → Signing.
 - Prefer the published wallet URL in production; point at a local Branding origin only while developing this repo.
 - Theme with `setStyle`; do not ask integrators to fork CSS for basic brand colors / product name.
+- Use `focusWallet` / `unfocusWallet` for host-driven single-asset flows; do not expose mode switching in the wallet UI.
+- Use `addAsset` when the host wants a lasting Balances entry; expect a confirm modal (contrast with `focusWallet`).

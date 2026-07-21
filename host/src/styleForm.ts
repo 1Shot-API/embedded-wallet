@@ -76,6 +76,42 @@ export interface IStyleFormState {
   credClaimsHeading: string;
   credClose: string;
 
+  // Text — Balances / Receive
+  balTabLabel: string;
+  receiveLabel: string;
+  receiveTitle: string;
+  receiveBody: string;
+  receiveAddressLabel: string;
+  receiveQrAlt: string;
+  receiveCopyLabel: string;
+  receiveCopiedLabel: string;
+  receiveCopyFailedLabel: string;
+  receiveCloseLabel: string;
+  sendLabel: string;
+
+  // Text — Confirm transfer (host ERC-20)
+  confirmTransferTitle: string;
+  confirmTransferBody: string;
+  confirmTransferConfirm: string;
+  confirmTransferReject: string;
+
+  // Text — Transfer tokens (in-wallet send)
+  transferTokensTitle: string;
+  transferTokensSend: string;
+  transferTokensCancel: string;
+  transferTokensSentTitle: string;
+  transferTokensViewExplorer: string;
+  transferTokensDone: string;
+
+  // Text — Passkey ceremony overlays
+  passkeyPromptUnlockTitle: string;
+  passkeyPromptCreateTitle: string;
+  passkeyPromptSignTitle: string;
+  passkeyPromptEncryptTitle: string;
+  passkeyPromptDecryptTitle: string;
+  passkeyPromptRelayerTitle: string;
+  passkeyPromptBackupTitle: string;
+
   // Text — Create backup
   backupTitle: string;
   backupBody: string;
@@ -145,6 +181,35 @@ export const ACME_PRESET: IStyleFormState = {
   credDetailDescription: "Full credential details and claims.",
   credClaimsHeading: "Claims",
   credClose: "Close",
+  balTabLabel: "Balances",
+  receiveLabel: "Receive",
+  receiveTitle: "Receive",
+  receiveBody: "Scan this QR code or copy your {chainLabel} address.",
+  receiveAddressLabel: "Address",
+  receiveQrAlt: "{chainLabel} wallet address",
+  receiveCopyLabel: "Copy address",
+  receiveCopiedLabel: "Address copied",
+  receiveCopyFailedLabel: "Copy failed",
+  receiveCloseLabel: "Close",
+  sendLabel: "Send",
+  confirmTransferTitle: "Confirm transfer",
+  confirmTransferBody:
+    "{domain} wants to send {amount} {tokenSymbol} ({tokenName}) to {receiver} on {chainName}.",
+  confirmTransferConfirm: "Confirm",
+  confirmTransferReject: "Reject",
+  transferTokensTitle: "Send",
+  transferTokensSend: "Send",
+  transferTokensCancel: "Cancel",
+  transferTokensSentTitle: "Transaction sent",
+  transferTokensViewExplorer: "View on explorer",
+  transferTokensDone: "Done",
+  passkeyPromptUnlockTitle: "Unlock with passkey",
+  passkeyPromptCreateTitle: "Create passkey",
+  passkeyPromptSignTitle: "Confirm with passkey",
+  passkeyPromptEncryptTitle: "Encrypt with passkey",
+  passkeyPromptDecryptTitle: "Decrypt with passkey",
+  passkeyPromptRelayerTitle: "Authenticate with passkey",
+  passkeyPromptBackupTitle: "Confirm backup",
   backupTitle: "Create a backup",
   backupBody: "Encrypt a recovery blob with a passphrase.",
   backupContinue: "Continue",
@@ -179,6 +244,9 @@ export const OCEAN_PRESET: IStyleFormState = {
   txTitle: "Ocean transaction",
   credOfferTitle: "Accept Ocean credential?",
   credPresentTitle: "Share with verifier?",
+  balTabLabel: "Balances",
+  receiveTitle: "Receive to Ocean",
+  receiveBody: "Scan or copy your {chainLabel} Ocean address.",
   backupTitle: "Backup Ocean keys",
   restoreTitle: "Restore Ocean wallet",
 };
@@ -226,6 +294,35 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   credDetailDescription: "Full credential details and claims.",
   credClaimsHeading: "Claims",
   credClose: "Close",
+  balTabLabel: "Balances",
+  receiveLabel: "Receive",
+  receiveTitle: "Receive",
+  receiveBody: "Scan this QR code or copy your {chainLabel} address.",
+  receiveAddressLabel: "Address",
+  receiveQrAlt: "{chainLabel} wallet address",
+  receiveCopyLabel: "Copy address",
+  receiveCopiedLabel: "Address copied",
+  receiveCopyFailedLabel: "Copy failed",
+  receiveCloseLabel: "Close",
+  sendLabel: "Send",
+  confirmTransferTitle: "Confirm transfer",
+  confirmTransferBody:
+    "{domain} wants to send {amount} {tokenSymbol} ({tokenName}) to {receiver} on {chainName}.",
+  confirmTransferConfirm: "Confirm",
+  confirmTransferReject: "Reject",
+  transferTokensTitle: "Send",
+  transferTokensSend: "Send",
+  transferTokensCancel: "Cancel",
+  transferTokensSentTitle: "Transaction sent",
+  transferTokensViewExplorer: "View on explorer",
+  transferTokensDone: "Done",
+  passkeyPromptUnlockTitle: "Unlock with passkey",
+  passkeyPromptCreateTitle: "Create passkey",
+  passkeyPromptSignTitle: "Confirm with passkey",
+  passkeyPromptEncryptTitle: "Encrypt with passkey",
+  passkeyPromptDecryptTitle: "Decrypt with passkey",
+  passkeyPromptRelayerTitle: "Authenticate with passkey",
+  passkeyPromptBackupTitle: "Confirm backup",
   backupTitle: "Create backup",
   backupBody: "",
   restoreTitle: "Restore backup",
@@ -305,6 +402,66 @@ export function buildSetStylePayload(
     copy.sendTransaction = sendTransaction;
   }
 
+  const confirmTransfer: Record<string, string> = {};
+  put(confirmTransfer, "title", form.confirmTransferTitle);
+  put(confirmTransfer, "body", form.confirmTransferBody);
+  put(confirmTransfer, "confirmLabel", form.confirmTransferConfirm);
+  put(confirmTransfer, "rejectLabel", form.confirmTransferReject);
+  if (Object.keys(confirmTransfer).length > 0) {
+    copy.confirmTransfer = confirmTransfer;
+  }
+
+  const transferTokens: Record<string, string> = {};
+  put(transferTokens, "title", form.transferTokensTitle);
+  put(transferTokens, "sendLabel", form.transferTokensSend);
+  put(transferTokens, "cancelLabel", form.transferTokensCancel);
+  put(transferTokens, "sentTitle", form.transferTokensSentTitle);
+  put(transferTokens, "viewOnExplorerLabel", form.transferTokensViewExplorer);
+  put(transferTokens, "doneLabel", form.transferTokensDone);
+  if (Object.keys(transferTokens).length > 0) {
+    copy.transferTokens = transferTokens;
+  }
+
+  const passkeyPrompt: Record<string, Record<string, string>> = {};
+  const unlock: Record<string, string> = {};
+  put(unlock, "title", form.passkeyPromptUnlockTitle);
+  if (Object.keys(unlock).length > 0) {
+    passkeyPrompt.unlock = unlock;
+  }
+  const create: Record<string, string> = {};
+  put(create, "title", form.passkeyPromptCreateTitle);
+  if (Object.keys(create).length > 0) {
+    passkeyPrompt.create = create;
+  }
+  const sign: Record<string, string> = {};
+  put(sign, "title", form.passkeyPromptSignTitle);
+  if (Object.keys(sign).length > 0) {
+    passkeyPrompt.sign = sign;
+  }
+  const encrypt: Record<string, string> = {};
+  put(encrypt, "title", form.passkeyPromptEncryptTitle);
+  if (Object.keys(encrypt).length > 0) {
+    passkeyPrompt.encrypt = encrypt;
+  }
+  const decrypt: Record<string, string> = {};
+  put(decrypt, "title", form.passkeyPromptDecryptTitle);
+  if (Object.keys(decrypt).length > 0) {
+    passkeyPrompt.decrypt = decrypt;
+  }
+  const relayerAuth: Record<string, string> = {};
+  put(relayerAuth, "title", form.passkeyPromptRelayerTitle);
+  if (Object.keys(relayerAuth).length > 0) {
+    passkeyPrompt.relayerAuth = relayerAuth;
+  }
+  const backup: Record<string, string> = {};
+  put(backup, "title", form.passkeyPromptBackupTitle);
+  if (Object.keys(backup).length > 0) {
+    passkeyPrompt.backup = backup;
+  }
+  if (Object.keys(passkeyPrompt).length > 0) {
+    copy.passkeyPrompt = passkeyPrompt;
+  }
+
   const credentialOffer: Record<string, string> = {};
   put(credentialOffer, "title", form.credOfferTitle);
   put(credentialOffer, "body", form.credOfferBody);
@@ -334,6 +491,20 @@ export function buildSetStylePayload(
   put(credentials, "claimsHeading", form.credClaimsHeading);
   put(credentials, "closeLabel", form.credClose);
   if (Object.keys(credentials).length > 0) copy.credentials = credentials;
+
+  const balances: Record<string, string> = {};
+  put(balances, "tabLabel", form.balTabLabel);
+  put(balances, "receiveLabel", form.receiveLabel);
+  put(balances, "receiveTitle", form.receiveTitle);
+  put(balances, "receiveBody", form.receiveBody);
+  put(balances, "receiveAddressLabel", form.receiveAddressLabel);
+  put(balances, "receiveQrAlt", form.receiveQrAlt);
+  put(balances, "receiveCopyLabel", form.receiveCopyLabel);
+  put(balances, "receiveCopiedLabel", form.receiveCopiedLabel);
+  put(balances, "receiveCopyFailedLabel", form.receiveCopyFailedLabel);
+  put(balances, "receiveCloseLabel", form.receiveCloseLabel);
+  put(balances, "sendLabel", form.sendLabel);
+  if (Object.keys(balances).length > 0) copy.balances = balances;
 
   const createBackup: Record<string, string> = {};
   put(createBackup, "title", form.backupTitle);

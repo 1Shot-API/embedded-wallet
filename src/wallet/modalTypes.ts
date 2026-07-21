@@ -8,8 +8,19 @@ import type {
   CredentialPresentationApprovalRequest,
   RecoveryDataCreatedData,
 } from "@1shotapi/ows-types";
+import type { IAddAssetApprovalRequest } from "./registerAddAsset";
 
 export type WalletSetupChoice = "login" | "create" | "cancel";
+
+/** Friendly host ERC-20 transfer consent (decoded transfer calldata). */
+export interface IConfirmTransferRequest {
+  domain: string;
+  amount: string;
+  tokenName: string;
+  tokenSymbol: string;
+  receiver: string;
+  chainName: string;
+}
 
 export type ModalRequest =
   | {
@@ -47,6 +58,12 @@ export type ModalRequest =
     }
   | {
       id: string;
+      kind: "confirmTransfer";
+      request: IConfirmTransferRequest;
+      resolve: (approved: boolean) => void;
+    }
+  | {
+      id: string;
       kind: "credentialOffer";
       request: CredentialOfferApprovalRequest;
       resolve: (approved: boolean) => void;
@@ -55,6 +72,12 @@ export type ModalRequest =
       id: string;
       kind: "credentialPresentation";
       request: CredentialPresentationApprovalRequest;
+      resolve: (approved: boolean) => void;
+    }
+  | {
+      id: string;
+      kind: "addAsset";
+      request: IAddAssetApprovalRequest;
       resolve: (approved: boolean) => void;
     }
   | {

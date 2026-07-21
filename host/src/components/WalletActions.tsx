@@ -32,6 +32,20 @@ export const HOST_CHAINS = [
   },
 ] as const;
 
+/** Focus demo: Arc Testnet USDC. */
+export const FOCUS_USDC_ARC = {
+  chainId: "0x4cef52",
+  assetAddress: "0x3600000000000000000000000000000000000000",
+  label: "USDC (Arc)",
+} as const;
+
+/** Focus demo: Base mainnet USDT. */
+export const FOCUS_USDT_BASE = {
+  chainId: "0x2105",
+  assetAddress: "0xfde4c96c8593536e31f229ea8f37b2ada2699bb2",
+  label: "Tether (Base)",
+} as const;
+
 export type UsdcMode = "balance" | "send";
 
 export function hostChainMeta(chainId: string) {
@@ -62,6 +76,11 @@ export interface IWalletActionsProps {
   walletVisible: boolean;
   onToggleWallet: () => void;
   onUsdcAction: () => void;
+  onFocusUsdcArc: () => void;
+  onFocusUsdtBase: () => void;
+  onUnfocusWallet: () => void;
+  onAddUsdcArc: () => void;
+  onAddUsdtBase: () => void;
 }
 
 export function WalletActions({
@@ -88,6 +107,11 @@ export function WalletActions({
   walletVisible,
   onToggleWallet,
   onUsdcAction,
+  onFocusUsdcArc,
+  onFocusUsdtBase,
+  onUnfocusWallet,
+  onAddUsdcArc,
+  onAddUsdtBase,
 }: IWalletActionsProps) {
   const meta = hostChainMeta(chainId);
 
@@ -258,6 +282,68 @@ export function WalletActions({
           </a>
         </p>
       ) : null}
+
+      <hr className="border-border my-1" />
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Focus mode</Label>
+        <p className="text-muted-foreground text-xs">
+          Host-controlled shell: lock the wallet to one chain + asset, or restore
+          general mode.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready || busy}
+            onClick={onFocusUsdcArc}
+          >
+            Focus USDC (Arc)
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready || busy}
+            onClick={onFocusUsdtBase}
+          >
+            Focus Tether (Base)
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready || busy}
+            onClick={onUnfocusWallet}
+          >
+            Unfocus
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Add asset</Label>
+        <p className="text-muted-foreground text-xs">
+          Propose a tracked asset via <code>addAsset</code> (user must confirm
+          in the wallet).
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready || busy}
+            onClick={onAddUsdcArc}
+          >
+            Add Arc USDC
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready || busy}
+            onClick={onAddUsdtBase}
+          >
+            Add Base USDT
+          </Button>
+        </div>
+      </div>
     </section>
   );
 }

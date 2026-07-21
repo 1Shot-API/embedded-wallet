@@ -95,6 +95,68 @@ const sendTransactionCopySchema = z
   .strict()
   .optional();
 
+const confirmTransferCopySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    amountLabel: z.string().optional(),
+    tokenLabel: z.string().optional(),
+    receiverLabel: z.string().optional(),
+    chainLabel: z.string().optional(),
+    rejectLabel: z.string().optional(),
+    confirmLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
+const transferTokensCopySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    amountLabel: z.string().optional(),
+    amountPlaceholder: z.string().optional(),
+    recipientLabel: z.string().optional(),
+    recipientPlaceholder: z.string().optional(),
+    scanQrLabel: z.string().optional(),
+    cancelLabel: z.string().optional(),
+    sendLabel: z.string().optional(),
+    invalidAmountError: z.string().optional(),
+    insufficientBalanceError: z.string().optional(),
+    invalidAddressError: z.string().optional(),
+    sendFailedError: z.string().optional(),
+    sentTitle: z.string().optional(),
+    sentBody: z.string().optional(),
+    hashLabel: z.string().optional(),
+    copyHashLabel: z.string().optional(),
+    hashCopiedLabel: z.string().optional(),
+    hashCopyFailedLabel: z.string().optional(),
+    viewOnExplorerLabel: z.string().optional(),
+    doneLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
+const passkeyPromptEntrySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
+const passkeyPromptCopySchema = z
+  .object({
+    unlock: passkeyPromptEntrySchema,
+    create: passkeyPromptEntrySchema,
+    sign: passkeyPromptEntrySchema,
+    encrypt: passkeyPromptEntrySchema,
+    decrypt: passkeyPromptEntrySchema,
+    relayerAuth: passkeyPromptEntrySchema,
+    backup: passkeyPromptEntrySchema,
+  })
+  .strict()
+  .optional();
+
 const credentialOfferCopySchema = z
   .object({
     title: z.string().optional(),
@@ -151,6 +213,48 @@ const credentialsCopySchema = z
   .strict()
   .optional();
 
+const balancesCopySchema = z
+  .object({
+    tabLabel: z.string().optional(),
+    emptyCountLabel: z.string().optional(),
+    countLabel: z.string().optional(),
+    addLabel: z.string().optional(),
+    loadingBody: z.string().optional(),
+    emptyBody: z.string().optional(),
+    loadFailedError: z.string().optional(),
+    addFailedError: z.string().optional(),
+    invalidAddressError: z.string().optional(),
+    assetColumn: z.string().optional(),
+    chainColumn: z.string().optional(),
+    balanceColumn: z.string().optional(),
+    viewLabel: z.string().optional(),
+    closeLabel: z.string().optional(),
+    addDialogTitle: z.string().optional(),
+    addDialogBody: z.string().optional(),
+    addressLabel: z.string().optional(),
+    addressPlaceholder: z.string().optional(),
+    addDialogCancelLabel: z.string().optional(),
+    addDialogSubmitLabel: z.string().optional(),
+    addConfirmTitle: z.string().optional(),
+    addConfirmBody: z.string().optional(),
+    addConfirmRejectLabel: z.string().optional(),
+    addConfirmAcceptLabel: z.string().optional(),
+    balanceUnavailable: z.string().optional(),
+    balanceNonErc20: z.string().optional(),
+    receiveLabel: z.string().optional(),
+    receiveTitle: z.string().optional(),
+    receiveBody: z.string().optional(),
+    receiveAddressLabel: z.string().optional(),
+    receiveQrAlt: z.string().optional(),
+    receiveCopyLabel: z.string().optional(),
+    receiveCopiedLabel: z.string().optional(),
+    receiveCopyFailedLabel: z.string().optional(),
+    receiveCloseLabel: z.string().optional(),
+    sendLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
 const createBackupCopySchema = z
   .object({
     title: z.string().optional(),
@@ -199,9 +303,13 @@ const copySchema = z
     personalSign: personalSignCopySchema,
     typedData: typedDataCopySchema,
     sendTransaction: sendTransactionCopySchema,
+    confirmTransfer: confirmTransferCopySchema,
+    transferTokens: transferTokensCopySchema,
+    passkeyPrompt: passkeyPromptCopySchema,
     credentialOffer: credentialOfferCopySchema,
     credentialPresentation: credentialPresentationCopySchema,
     credentials: credentialsCopySchema,
+    balances: balancesCopySchema,
     createBackup: createBackupCopySchema,
     restoreBackup: restoreBackupCopySchema,
   })

@@ -27,7 +27,7 @@ function formatClaimValue(value: unknown): string {
 async function resolveClaims(
   credential: StoredCredential,
 ): Promise<Record<string, unknown>> {
-  const format = String(credential.format);
+  const format = credential.format;
   if (format.includes("sd-jwt") || credential.payload.includes("~")) {
     try {
       return await PresentationUtils.unpackSubject(credential.payload);
@@ -104,7 +104,7 @@ export function CredentialDetailDialog({
                 <dt className="text-muted-foreground text-xs font-medium uppercase">
                   {copy.formatLabel}
                 </dt>
-                <dd className="font-mono text-xs">{String(credential.format)}</dd>
+                <dd className="font-mono text-xs">{credential.format}</dd>
               </div>
               <div>
                 <dt className="text-muted-foreground text-xs font-medium uppercase">

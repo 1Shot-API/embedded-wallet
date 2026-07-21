@@ -5,6 +5,7 @@ import { OnboardingPanel } from "./components/OnboardingPanel";
 import { MainPanel } from "./components/MainPanel";
 import { SignerHost } from "./components/SignerHost";
 import { ModalHost } from "./components/ModalHost";
+import { PasskeyPromptModal } from "./components/modals/PasskeyPromptModal";
 
 export function App() {
   const { bootError, ready, unlocked, walletCreated, embedded } =
@@ -48,6 +49,7 @@ export function App() {
 
       <SignerHost />
       <ModalHost />
+      <PasskeyPromptModal />
     </div>
   );
 }

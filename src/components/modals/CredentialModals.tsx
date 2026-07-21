@@ -36,7 +36,7 @@ export function CredentialOfferModal({
       <p className="mb-3">
         {fillTemplate(credentialOffer.body, {
           issuerName: request.issuerName,
-          issuerId: String(request.issuerId),
+          issuerId: request.issuerId,
         })}
       </p>
       <p className="mb-1 font-semibold">{credentialOffer.offeredHeading}</p>
@@ -89,13 +89,13 @@ export function CredentialPresentationModal({
       <p className="mb-2">
         {fillTemplate(credentialPresentation.body, {
           verifierName: request.verifierName,
-          verifierId: String(request.verifierId),
+          verifierId: request.verifierId,
         })}
       </p>
       <p className="mb-3">
         {fillTemplate(credentialPresentation.credentialDetail, {
           credentialType: request.credentialType,
-          credentialIssuer: String(request.credentialIssuer),
+          credentialIssuer: request.credentialIssuer,
         })}
       </p>
       <p className="mb-1 font-semibold">

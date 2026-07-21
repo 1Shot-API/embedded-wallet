@@ -26,4 +26,22 @@ export const DEMO_CHAINS: ReadonlyArray<{
     rpcUrl: "https://base-sepolia.g.alchemy.com/v2/jqLUTbHeN_cVsIX2W7tJk",
     blockExplorerUrl: "https://sepolia.basescan.org",
   },
+  {
+    chainId: EVMChainId("0x2105"), // 8453
+    label: "Base",
+    rpcUrl: "https://base-mainnet.g.alchemy.com/v2/jqLUTbHeN_cVsIX2W7tJk",
+    blockExplorerUrl: "https://basescan.org",
+  },
 ];
+
+/** Explorer tx URL for a demo chain, or `null` when the chain is unknown. */
+export function demoTxExplorerUrl(
+  chainId: EVMChainId,
+  transactionHash: string,
+): string | null {
+  const meta = DEMO_CHAINS.find((chain) => chain.chainId === chainId);
+  if (!meta) {
+    return null;
+  }
+  return `${meta.blockExplorerUrl}/tx/${transactionHash}`;
+}

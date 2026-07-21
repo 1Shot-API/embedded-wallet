@@ -131,6 +131,59 @@ export function SendTransactionModal({
   );
 }
 
+export function ConfirmTransferModal({
+  request,
+  onResolve,
+}: {
+  request: {
+    domain: string;
+    amount: string;
+    tokenName: string;
+    tokenSymbol: string;
+    receiver: string;
+    chainName: string;
+  };
+  onResolve: (approved: boolean) => void;
+}) {
+  const { style } = useStyle();
+  const { confirmTransfer: copy } = style.copy;
+  const body = copy.body
+    .replace("{domain}", request.domain)
+    .replace("{amount}", request.amount)
+    .replace("{tokenName}", request.tokenName)
+    .replace("{tokenSymbol}", request.tokenSymbol)
+    .replace("{receiver}", request.receiver)
+    .replace("{chainName}", request.chainName);
+
+  return (
+    <Modal
+      title={copy.title}
+      onBackdropDismiss={() => onResolve(false)}
+      actions={[
+        {
+          label: copy.rejectLabel,
+          variant: "secondary",
+          onClick: () => onResolve(false),
+        },
+        {
+          label: copy.confirmLabel,
+          variant: "primary",
+          autoFocus: true,
+          onClick: () => onResolve(true),
+        },
+      ]}
+    >
+      <p className="text-muted-foreground m-0">{body}</p>
+      <div className="mt-4 flex flex-col gap-3">
+        <LabeledBlock label={copy.amountLabel} content={`${request.amount} ${request.tokenSymbol}`} />
+        <LabeledBlock label={copy.tokenLabel} content={request.tokenName} />
+        <LabeledBlock label={copy.receiverLabel} content={request.receiver} />
+        <LabeledBlock label={copy.chainLabel} content={request.chainName} />
+      </div>
+    </Modal>
+  );
+}
+
 function FieldLabel({ children }: { children: string }) {
   return (
     <p className="text-muted-foreground mb-1 text-[0.8rem] font-medium">

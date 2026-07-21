@@ -38,6 +38,44 @@ export function mergeStyle(
         ...current.copy.sendTransaction,
         ...patch.copy?.sendTransaction,
       },
+      confirmTransfer: {
+        ...current.copy.confirmTransfer,
+        ...patch.copy?.confirmTransfer,
+      },
+      transferTokens: {
+        ...current.copy.transferTokens,
+        ...patch.copy?.transferTokens,
+      },
+      passkeyPrompt: {
+        unlock: {
+          ...current.copy.passkeyPrompt.unlock,
+          ...patch.copy?.passkeyPrompt?.unlock,
+        },
+        create: {
+          ...current.copy.passkeyPrompt.create,
+          ...patch.copy?.passkeyPrompt?.create,
+        },
+        sign: {
+          ...current.copy.passkeyPrompt.sign,
+          ...patch.copy?.passkeyPrompt?.sign,
+        },
+        encrypt: {
+          ...current.copy.passkeyPrompt.encrypt,
+          ...patch.copy?.passkeyPrompt?.encrypt,
+        },
+        decrypt: {
+          ...current.copy.passkeyPrompt.decrypt,
+          ...patch.copy?.passkeyPrompt?.decrypt,
+        },
+        relayerAuth: {
+          ...current.copy.passkeyPrompt.relayerAuth,
+          ...patch.copy?.passkeyPrompt?.relayerAuth,
+        },
+        backup: {
+          ...current.copy.passkeyPrompt.backup,
+          ...patch.copy?.passkeyPrompt?.backup,
+        },
+      },
       credentialOffer: {
         ...current.copy.credentialOffer,
         ...patch.copy?.credentialOffer,
@@ -49,6 +87,10 @@ export function mergeStyle(
       credentials: {
         ...current.copy.credentials,
         ...patch.copy?.credentials,
+      },
+      balances: {
+        ...current.copy.balances,
+        ...patch.copy?.balances,
       },
       createBackup: {
         ...current.copy.createBackup,
@@ -75,9 +117,21 @@ function cloneDefaultStyle(): IResolvedStyle {
       personalSign: { ...DEFAULT_STYLE.copy.personalSign },
       typedData: { ...DEFAULT_STYLE.copy.typedData },
       sendTransaction: { ...DEFAULT_STYLE.copy.sendTransaction },
+      confirmTransfer: { ...DEFAULT_STYLE.copy.confirmTransfer },
+      transferTokens: { ...DEFAULT_STYLE.copy.transferTokens },
+      passkeyPrompt: {
+        unlock: { ...DEFAULT_STYLE.copy.passkeyPrompt.unlock },
+        create: { ...DEFAULT_STYLE.copy.passkeyPrompt.create },
+        sign: { ...DEFAULT_STYLE.copy.passkeyPrompt.sign },
+        encrypt: { ...DEFAULT_STYLE.copy.passkeyPrompt.encrypt },
+        decrypt: { ...DEFAULT_STYLE.copy.passkeyPrompt.decrypt },
+        relayerAuth: { ...DEFAULT_STYLE.copy.passkeyPrompt.relayerAuth },
+        backup: { ...DEFAULT_STYLE.copy.passkeyPrompt.backup },
+      },
       credentialOffer: { ...DEFAULT_STYLE.copy.credentialOffer },
       credentialPresentation: { ...DEFAULT_STYLE.copy.credentialPresentation },
       credentials: { ...DEFAULT_STYLE.copy.credentials },
+      balances: { ...DEFAULT_STYLE.copy.balances },
       createBackup: { ...DEFAULT_STYLE.copy.createBackup },
       restoreBackup: { ...DEFAULT_STYLE.copy.restoreBackup },
     },
