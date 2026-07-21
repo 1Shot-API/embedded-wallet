@@ -3,6 +3,7 @@ import { EWalletEventKind } from "../../types/enum";
 import type {
   BalanceUpdatedEvent,
   RefreshBalanceRequestedEvent,
+  TransactionHistoryUpdatedEvent,
   WalletDomainEvent,
 } from "../../types/events";
 
@@ -39,6 +40,15 @@ export class EventBus implements IEventBus {
   ): () => void {
     return this.addListener(
       EWalletEventKind.RefreshBalanceRequested,
+      handler as Listener,
+    );
+  }
+
+  onTransactionHistoryUpdated(
+    handler: (event: TransactionHistoryUpdatedEvent) => void,
+  ): () => void {
+    return this.addListener(
+      EWalletEventKind.TransactionHistoryUpdated,
       handler as Listener,
     );
   }

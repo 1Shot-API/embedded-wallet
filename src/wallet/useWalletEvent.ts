@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type {
   BalanceUpdatedEvent,
   RefreshBalanceRequestedEvent,
+  TransactionHistoryUpdatedEvent,
 } from "../lib/types/events";
 import { useWallet } from "./WalletProvider";
 
@@ -22,5 +23,15 @@ export function useRefreshBalanceRequested(
   const { eventBus } = useWallet();
   useEffect(() => {
     return eventBus.onRefreshBalanceRequested(handler);
+  }, [eventBus, handler]);
+}
+
+/** Subscribe to TransactionHistoryUpdated for the lifetime of the component. */
+export function useTransactionHistoryUpdated(
+  handler: (event: TransactionHistoryUpdatedEvent) => void,
+): void {
+  const { eventBus } = useWallet();
+  useEffect(() => {
+    return eventBus.onTransactionHistoryUpdated(handler);
   }, [eventBus, handler]);
 }
