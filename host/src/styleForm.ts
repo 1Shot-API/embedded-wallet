@@ -105,8 +105,12 @@ export interface IStyleFormState {
 
   // Text — Passkey ceremony overlays
   passkeyPromptUnlockTitle: string;
+  passkeyPromptCreateTitle: string;
   passkeyPromptSignTitle: string;
+  passkeyPromptEncryptTitle: string;
+  passkeyPromptDecryptTitle: string;
   passkeyPromptRelayerTitle: string;
+  passkeyPromptBackupTitle: string;
 
   // Text — Create backup
   backupTitle: string;
@@ -200,8 +204,12 @@ export const ACME_PRESET: IStyleFormState = {
   transferTokensViewExplorer: "View on explorer",
   transferTokensDone: "Done",
   passkeyPromptUnlockTitle: "Unlock with passkey",
+  passkeyPromptCreateTitle: "Create passkey",
   passkeyPromptSignTitle: "Confirm with passkey",
+  passkeyPromptEncryptTitle: "Encrypt with passkey",
+  passkeyPromptDecryptTitle: "Decrypt with passkey",
   passkeyPromptRelayerTitle: "Authenticate with passkey",
+  passkeyPromptBackupTitle: "Confirm backup",
   backupTitle: "Create a backup",
   backupBody: "Encrypt a recovery blob with a passphrase.",
   backupContinue: "Continue",
@@ -309,8 +317,12 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   transferTokensViewExplorer: "View on explorer",
   transferTokensDone: "Done",
   passkeyPromptUnlockTitle: "Unlock with passkey",
+  passkeyPromptCreateTitle: "Create passkey",
   passkeyPromptSignTitle: "Confirm with passkey",
+  passkeyPromptEncryptTitle: "Encrypt with passkey",
+  passkeyPromptDecryptTitle: "Decrypt with passkey",
   passkeyPromptRelayerTitle: "Authenticate with passkey",
+  passkeyPromptBackupTitle: "Confirm backup",
   backupTitle: "Create backup",
   backupBody: "",
   restoreTitle: "Restore backup",
@@ -416,15 +428,35 @@ export function buildSetStylePayload(
   if (Object.keys(unlock).length > 0) {
     passkeyPrompt.unlock = unlock;
   }
+  const create: Record<string, string> = {};
+  put(create, "title", form.passkeyPromptCreateTitle);
+  if (Object.keys(create).length > 0) {
+    passkeyPrompt.create = create;
+  }
   const sign: Record<string, string> = {};
   put(sign, "title", form.passkeyPromptSignTitle);
   if (Object.keys(sign).length > 0) {
     passkeyPrompt.sign = sign;
   }
+  const encrypt: Record<string, string> = {};
+  put(encrypt, "title", form.passkeyPromptEncryptTitle);
+  if (Object.keys(encrypt).length > 0) {
+    passkeyPrompt.encrypt = encrypt;
+  }
+  const decrypt: Record<string, string> = {};
+  put(decrypt, "title", form.passkeyPromptDecryptTitle);
+  if (Object.keys(decrypt).length > 0) {
+    passkeyPrompt.decrypt = decrypt;
+  }
   const relayerAuth: Record<string, string> = {};
   put(relayerAuth, "title", form.passkeyPromptRelayerTitle);
   if (Object.keys(relayerAuth).length > 0) {
     passkeyPrompt.relayerAuth = relayerAuth;
+  }
+  const backup: Record<string, string> = {};
+  put(backup, "title", form.passkeyPromptBackupTitle);
+  if (Object.keys(backup).length > 0) {
+    passkeyPrompt.backup = backup;
   }
   if (Object.keys(passkeyPrompt).length > 0) {
     copy.passkeyPrompt = passkeyPrompt;

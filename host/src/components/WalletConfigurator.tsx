@@ -656,10 +656,34 @@ export function WalletConfigurator({
                   }
                 />
                 <TextField
+                  id="passkey-prompt-create-title"
+                  label="Passkey create title"
+                  value={form.passkeyPromptCreateTitle}
+                  onChange={(value) =>
+                    patch("passkeyPromptCreateTitle", value)
+                  }
+                />
+                <TextField
                   id="passkey-prompt-sign-title"
                   label="Passkey sign title"
                   value={form.passkeyPromptSignTitle}
                   onChange={(value) => patch("passkeyPromptSignTitle", value)}
+                />
+                <TextField
+                  id="passkey-prompt-encrypt-title"
+                  label="Passkey encrypt title"
+                  value={form.passkeyPromptEncryptTitle}
+                  onChange={(value) =>
+                    patch("passkeyPromptEncryptTitle", value)
+                  }
+                />
+                <TextField
+                  id="passkey-prompt-decrypt-title"
+                  label="Passkey decrypt title"
+                  value={form.passkeyPromptDecryptTitle}
+                  onChange={(value) =>
+                    patch("passkeyPromptDecryptTitle", value)
+                  }
                 />
                 <TextField
                   id="passkey-prompt-relayer-title"
@@ -667,6 +691,14 @@ export function WalletConfigurator({
                   value={form.passkeyPromptRelayerTitle}
                   onChange={(value) =>
                     patch("passkeyPromptRelayerTitle", value)
+                  }
+                />
+                <TextField
+                  id="passkey-prompt-backup-title"
+                  label="Passkey backup title"
+                  value={form.passkeyPromptBackupTitle}
+                  onChange={(value) =>
+                    patch("passkeyPromptBackupTitle", value)
                   }
                 />
               </AccordionContent>
