@@ -1,3 +1,4 @@
 export { BalanceUpdatedEvent } from "./BalanceUpdatedEvent";
 export { RefreshBalanceRequestedEvent } from "./RefreshBalanceRequestedEvent";
+export { TransactionHistoryUpdatedEvent } from "./TransactionHistoryUpdatedEvent";
 export type { WalletDomainEvent } from "./WalletDomainEvent";

@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { TrackedAsset } from "../lib/types/business";
+import type { TrackedAsset } from "../lib/types/domain";
 import { useWallet } from "../wallet/WalletProvider";
 import {
   EWalletMode,

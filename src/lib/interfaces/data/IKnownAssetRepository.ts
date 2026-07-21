@@ -1,5 +1,5 @@
 import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
-import type { KnownAsset, NewTrackedAsset } from "../../types/business";
+import type { KnownAsset, NewTrackedAsset } from "../../types/domain";
 
 export interface IKnownAssetRepository {
   getKnownAsset(

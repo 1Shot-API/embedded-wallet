@@ -10,7 +10,7 @@ import type { IKnownAssetRepository } from "../../interfaces/data/IKnownAssetRep
 import {
   KnownAsset,
   NewTrackedAsset,
-} from "../../types/business";
+} from "../../types/domain";
 import { EAssetType } from "../../types/enum";
 import { makeTrackedAssetId } from "@/lib/types/primitives";
 

@@ -2,4 +2,5 @@
 export enum EWalletEventKind {
   RefreshBalanceRequested = "refreshBalanceRequested",
   BalanceUpdated = "balanceUpdated",
+  TransactionHistoryUpdated = "transactionHistoryUpdated",
 }

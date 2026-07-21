@@ -14,7 +14,7 @@ Prefer **clean code over backwards compatibility**. Do not add legacy redirects,
 | `/signer/` | Signing Layer (`@1shotapi/ows-signer`) |
 | `src/lib/types/primitives/` | Wallet-local branded types (one file each) |
 | `src/lib/types/enum/` | Domain enums (`EAssetType`, `EWalletEventKind`, …) |
-| `src/lib/types/business/` | Domain DTOs (e.g. `KnownAsset`, `TrackedAsset`) |
+| `src/lib/types/domain/` | Domain DTOs (e.g. `KnownAsset`, `TrackedAsset`, `WalletConfig`) |
 | `src/lib/types/events/` | Domain event classes (one file each) |
 | `src/lib/interfaces/{business,data,utils}/` | Layer interfaces |
 | `src/lib/implementations/{business,data,utils}/` | Layer implementations |

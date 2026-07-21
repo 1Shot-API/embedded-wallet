@@ -10,22 +10,20 @@ import {
   createMemoryStorageBackend,
   type CredentialStorageBackend,
 } from "../../../demo/local-storage-store";
+import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
 import type { ITrackedAssetRepository } from "../../interfaces/data/ITrackedAssetRepository";
 import {
   DEFAULT_TRACKED_USDC,
   isDefaultTrackedUsdc,
 } from "./HardcodedKnownAssetRepository";
-import { NewTrackedAsset, TrackedAsset } from "../../types/business";
+import { NewTrackedAsset, TrackedAsset } from "../../types/domain";
 import { EAssetType } from "../../types/enum";
 import { BalanceUpdatedEvent } from "../../types/events";
 import {
   makeTrackedAssetId,
   type TrackedAssetId,
 } from "../../types/primitives";
-
-/** localStorage key for user-tracked assets (defaults like USDC are merged in). */
-export const OWS_TRACKED_ASSETS_STORAGE_KEY = "ows.tracked-assets.v2";
 
 type StoredBlob = {
   assets: Array<{
@@ -40,7 +38,6 @@ type StoredBlob = {
 };
 
 export type TrackedAssetRepositoryOptions = {
-  storageKey?: string;
   storage?: CredentialStorageBackend;
 };
 
@@ -49,16 +46,16 @@ const EMPTY_OWNER = EVMAccountAddress("0x0");
 export class LocalStorageTrackedAssetRepository
   implements ITrackedAssetRepository
 {
-  private readonly storageKey: string;
   private readonly storage: CredentialStorageBackend;
   private readonly balanceCache = new Map<TrackedAssetId, bigint>();
+  private storageKey: string | null = null;
 
   constructor(
     private readonly blockchain: IBlockchainProvider,
     private readonly eventBus: IEventBus,
+    private readonly configProvider: IConfigProvider,
     options: TrackedAssetRepositoryOptions = {},
   ) {
-    this.storageKey = options.storageKey ?? OWS_TRACKED_ASSETS_STORAGE_KEY;
     this.storage =
       options.storage ??
       (typeof localStorage !== "undefined"
@@ -66,8 +63,18 @@ export class LocalStorageTrackedAssetRepository
         : createMemoryStorageBackend());
   }
 
+  private async resolveStorageKey(): Promise<string> {
+    if (this.storageKey) {
+      return this.storageKey;
+    }
+    const config = await this.configProvider.getConfig();
+    this.storageKey = config.trackedAssetsStorageKey;
+    return this.storageKey;
+  }
+
   async list(owner: EVMAccountAddressType): Promise<TrackedAsset[]> {
-    const assets = this.mergeWithDefaults(this.readStoredAssets());
+    const storageKey = await this.resolveStorageKey();
+    const assets = this.mergeWithDefaults(this.readStoredAssets(storageKey));
     return this.ensureBalances(assets, owner, false);
   }
 
@@ -78,8 +85,9 @@ export class LocalStorageTrackedAssetRepository
     if (isDefaultTrackedUsdc(chainId, address)) {
       return true;
     }
+    const storageKey = await this.resolveStorageKey();
     const key = makeTrackedAssetId(chainId, address);
-    return this.readStoredAssets().some((asset) => asset.id === key);
+    return this.readStoredAssets(storageKey).some((asset) => asset.id === key);
   }
 
   async add(
@@ -92,7 +100,8 @@ export class LocalStorageTrackedAssetRepository
       return withBalance!;
     }
 
-    const assets = this.readStoredAssets();
+    const storageKey = await this.resolveStorageKey();
+    const assets = this.readStoredAssets(storageKey);
     const key = makeTrackedAssetId(asset.chainId, asset.address);
     const found = assets.find((a) => a.id === key);
     if (found) {
@@ -102,7 +111,7 @@ export class LocalStorageTrackedAssetRepository
 
     const tracked = TrackedAsset.fromNew(asset);
     assets.push(tracked);
-    this.writeAssets(assets);
+    this.writeAssets(storageKey, assets);
     const [withBalance] = await this.ensureBalances([tracked], owner, false);
     return withBalance!;
   }
@@ -114,9 +123,12 @@ export class LocalStorageTrackedAssetRepository
     if (isDefaultTrackedUsdc(chainId, address)) {
       return;
     }
+    const storageKey = await this.resolveStorageKey();
     const key = makeTrackedAssetId(chainId, address);
-    const next = this.readStoredAssets().filter((asset) => asset.id !== key);
-    this.writeAssets(next);
+    const next = this.readStoredAssets(storageKey).filter(
+      (asset) => asset.id !== key,
+    );
+    this.writeAssets(storageKey, next);
     this.balanceCache.delete(key);
   }
 
@@ -129,7 +141,8 @@ export class LocalStorageTrackedAssetRepository
     } else {
       this.balanceCache.clear();
     }
-    const assets = this.mergeWithDefaults(this.readStoredAssets());
+    const storageKey = await this.resolveStorageKey();
+    const assets = this.mergeWithDefaults(this.readStoredAssets(storageKey));
     const targets = id ? assets.filter((asset) => asset.id === id) : assets;
     return this.ensureBalances(targets, owner, true);
   }
@@ -202,8 +215,8 @@ export class LocalStorageTrackedAssetRepository
     }
   }
 
-  private readStoredAssets(): TrackedAsset[] {
-    const raw = this.storage.getItem(this.storageKey);
+  private readStoredAssets(storageKey: string): TrackedAsset[] {
+    const raw = this.storage.getItem(storageKey);
     if (!raw) return [];
     try {
       const parsed = JSON.parse(raw) as StoredBlob;
@@ -244,7 +257,7 @@ export class LocalStorageTrackedAssetRepository
     }
   }
 
-  private writeAssets(assets: TrackedAsset[]): void {
+  private writeAssets(storageKey: string, assets: TrackedAsset[]): void {
     // Persist only user-added (non-default) rows as NewTrackedAsset fields + id.
     const userAssets = assets.filter(
       (asset) => !isDefaultTrackedUsdc(asset.chainId, asset.address),
@@ -260,6 +273,6 @@ export class LocalStorageTrackedAssetRepository
         id: asset.id,
       })),
     };
-    this.storage.setItem(this.storageKey, JSON.stringify(blob));
+    this.storage.setItem(storageKey, JSON.stringify(blob));
   }
 }

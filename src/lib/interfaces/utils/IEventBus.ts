@@ -1,6 +1,7 @@
 import type {
   BalanceUpdatedEvent,
   RefreshBalanceRequestedEvent,
+  TransactionHistoryUpdatedEvent,
   WalletDomainEvent,
 } from "../../types/events";
 
@@ -13,6 +14,10 @@ export interface IEventBus {
 
   onRefreshBalanceRequested(
     handler: (event: RefreshBalanceRequestedEvent) => void,
+  ): () => void;
+
+  onTransactionHistoryUpdated(
+    handler: (event: TransactionHistoryUpdatedEvent) => void,
   ): () => void;
 }
 

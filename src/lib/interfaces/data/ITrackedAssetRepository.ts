@@ -1,6 +1,6 @@
 import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
 import type { TrackedAssetId } from "../../types/primitives";
-import type { NewTrackedAsset, TrackedAsset } from "../../types/business";
+import type { NewTrackedAsset, TrackedAsset } from "../../types/domain";
 
 export interface ITrackedAssetRepository {
   list(owner: EVMAccountAddress): Promise<TrackedAsset[]>;

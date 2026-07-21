@@ -1,5 +1,5 @@
 import type { COSEPublicKey } from "@1shotapi/ows-types";
-import { RELAYER_BASE_URL } from "./constants";
+import type { IConfigProvider } from "../lib/interfaces/utils/IConfigProvider";
 import type {
   IRecoveredCredentialBlob,
   IRelayerCredentialsErrorBody,
@@ -22,13 +22,10 @@ export class RelayerCredentialsError extends Error {
 /**
  * Thin REST client for 1Shot Relayer wallet credential endpoints
  * (`/wallet/credentials/*`, `/wallet/passkeys/register`).
+ * Base URL comes from {@link IConfigProvider} (iframe host → prod/dev relayer).
  */
 export class RelayerCredentialsClient {
-  private readonly baseUrl: string;
-
-  constructor(baseUrl: string = RELAYER_BASE_URL) {
-    this.baseUrl = baseUrl.replace(/\/$/, "");
-  }
+  constructor(private readonly configProvider: IConfigProvider) {}
 
   async createChallenge(): Promise<IWalletCredentialChallengeResponse> {
     return this.postJson<IWalletCredentialChallengeResponse>(
@@ -73,7 +70,8 @@ export class RelayerCredentialsClient {
   }
 
   private async postJson<T>(path: string, body?: unknown): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
+    const { relayerBaseUrl } = await this.configProvider.getConfig();
+    const response = await fetch(`${relayerBaseUrl}${path}`, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
