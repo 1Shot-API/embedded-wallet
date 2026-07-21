@@ -9,15 +9,21 @@ import {
   SendIcon,
   ShoppingBagIcon,
 } from "lucide-react";
+import { AddressUtils } from "@1shotapi/ows-wallet-utils";
 import type { TrackedAsset } from "../lib/types/business";
+import { EAssetType } from "../lib/types/enum";
 import type { EVMChainId } from "@1shotapi/ows-types";
 import { DEMO_CHAINS } from "../ows/demoChains";
+import { DemoChainsBlockchainProvider } from "../lib/implementations/utils";
 import { useStyle } from "../style";
 import { useWallet } from "../wallet/WalletProvider";
 import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { ReceiveModal } from "./modals/ReceiveModal";
+import { TransferTokensModal } from "./modals/TransferTokensModal";
+
+const addressUtils = new AddressUtils(new DemoChainsBlockchainProvider());
 
 type ActivityKind = "received" | "sent" | "purchase";
 
@@ -90,6 +96,7 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
     })),
   );
   const [receiveOpen, setReceiveOpen] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
 
   useEffect(() => {
     requestBalanceRefresh(asset.id);
@@ -101,6 +108,7 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
     evmAddress,
     solanaAddress,
   });
+  const canSend = asset.type === EAssetType.Erc20;
 
   return (
     <div className="flex flex-col gap-5" aria-label={`${asset.symbol} details`}>
@@ -134,7 +142,12 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
         <ActionButton label="Buy" variant="outline" disabled>
           <PlusIcon className="size-5" />
         </ActionButton>
-        <ActionButton label="Send" variant="primary" disabled>
+        <ActionButton
+          label={copy.sendLabel}
+          variant="primary"
+          disabled={!canSend}
+          onClick={() => setSendOpen(true)}
+        >
           <SendIcon className="size-5" />
         </ActionButton>
         <ActionButton
@@ -191,6 +204,16 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
           address={active.address}
           chainLabel={network}
           onClose={() => setReceiveOpen(false)}
+        />
+      ) : null}
+      {sendOpen ? (
+        <TransferTokensModal
+          asset={asset}
+          addressUtils={addressUtils}
+          onClose={() => setSendOpen(false)}
+          onSuccess={() => {
+            requestBalanceRefresh(asset.id);
+          }}
         />
       ) : null}
     </div>

@@ -31,9 +31,11 @@ When adding or changing UI strings:
 
 ### Domain layers (assets example)
 
-- **Utils:** `IBlockchainProvider` / `DemoChainsBlockchainProvider`, `IEventBus` / `EventBus`
-- **Data:** `IKnownAssetRepository`, `ITrackedAssetRepository` and their implementations
+- **Utils:** `IBlockchainProvider` / `AddressUtils` (from `@1shotapi/ows-wallet-utils`) / `DemoChainsBlockchainProvider`, `IEventBus` / `EventBus`, `ITransactionUtils` / `TransactionUtils`
+- **Data:** `IKnownAssetRepository`, `ITrackedAssetRepository`, `IOneshotRelayerRepository` (`src/lib`) and their implementations
 - **Business:** services that orchestrate domain logic (add as needed)
+
+`IOneshotRelayerRepository.sendTransaction` owns prepare + passkey sign + broadcast (interim: `eth_sendRawTransaction`). Host EIP-1193 sends go SignHelper → branding `approveAndSignTransaction` (ConfirmTransfer / SendTransaction consent) → relayer. In-wallet Send uses `TransferTokensModal` → `WalletProvider.sendTransaction` → relayer directly (no host consent / no preapproval).
 
 ## Branded types
 

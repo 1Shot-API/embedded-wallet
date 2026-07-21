@@ -11,6 +11,7 @@ import {
 import { OWSSigner } from "@1shotapi/ows-signer-utils";
 import { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
 import {
+  HexString,
   OwsUserRejectedError,
   type CredentialId,
   type CredentialOfferApprovalRequest,
@@ -18,6 +19,7 @@ import {
   type CredentialSummary,
   type EVMAccountAddress,
   type EVMChainId,
+  type EVMTransactionHash,
   type StoredCredential,
 } from "@1shotapi/ows-types";
 import type {
@@ -47,10 +49,12 @@ import { registerSetStyleRpc } from "../style";
 import {
   HardcodedKnownAssetRepository,
   LocalStorageTrackedAssetRepository,
+  OneshotRelayerRepository,
 } from "../lib/implementations/data";
 import {
   DemoChainsBlockchainProvider,
   EventBus,
+  TransactionUtils,
 } from "../lib/implementations/utils";
 import type { IEventBus } from "../lib/interfaces/utils";
 import type { KnownAsset, TrackedAsset } from "../lib/types/business";
@@ -73,9 +77,11 @@ import { useWalletSessionStore } from "./sessionStore";
 
 /** Filled once the Signing Layer iframe finishes loading. */
 const signerHolder: { current: OWSSigner | null } = { current: null };
+const rpcHelperHolder: { current: RpcHelper | null } = { current: null };
 
 const blockchainProvider = new DemoChainsBlockchainProvider();
 const eventBus: IEventBus = new EventBus();
+const transactionUtils = new TransactionUtils();
 const knownAssetRepository = new HardcodedKnownAssetRepository(
   blockchainProvider,
 );
@@ -83,6 +89,21 @@ const trackedAssetRepository = new LocalStorageTrackedAssetRepository(
   blockchainProvider,
   eventBus,
 );
+const oneshotRelayerRepository = new OneshotRelayerRepository({
+  blockchain: blockchainProvider,
+  getSigner: () => {
+    if (!signerHolder.current) {
+      throw new Error("Signing Layer not ready");
+    }
+    return signerHolder.current;
+  },
+  getChainRpc: () => {
+    if (!rpcHelperHolder.current) {
+      throw new Error("RPC helper not ready");
+    }
+    return rpcHelperHolder.current;
+  },
+});
 
 const credentialRepository = new CachedRelayerCredentialRepository({
   client: new RelayerCredentialsClient(),
@@ -200,6 +221,16 @@ export type WalletContextValue = {
     address: EVMAccountAddress,
   ) => Promise<TrackedAsset>;
   requestBalanceRefresh: (id?: TrackedAssetId) => void;
+  /**
+   * In-wallet submit (TransferTokensModal). Does not show host consent —
+   * callers already collected amount/recipient. Routes to the relayer only.
+   */
+  sendTransaction: (
+    chainId: EVMChainId,
+    to: EVMAccountAddress,
+    data: HexString,
+    value?: bigint,
+  ) => Promise<EVMTransactionHash>;
   eventBus: IEventBus;
   openCreateBackup: () => Promise<void>;
   openRestoreBackup: () => Promise<void>;
@@ -421,6 +452,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const ensureReadyRef = useRef(ensureReadyImpl);
   ensureReadyRef.current = ensureReadyImpl;
 
+  /**
+   * Stable forever: always reads {@link awaitSignerRef} / {@link ensureReadyRef}
+   * so boot-time registrations never capture a stale unlock implementation.
+   */
   const awaitSignerReady = useCallback(async (): Promise<OWSSigner> => {
     const awaitSigner = awaitSignerRef.current;
     if (!awaitSigner) {
@@ -432,21 +467,33 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const ensureReady = useCallback(async () => {
-    await awaitSignerReady();
+    const awaitSigner = awaitSignerRef.current;
+    if (!awaitSigner) {
+      throw new Error(
+        "Signing Layer not started — wallet boot has not begun yet",
+      );
+    }
+    await awaitSigner();
     await ensureReadyRef.current();
-  }, [awaitSignerReady]);
+  }, []);
 
   /**
    * Signed-action gate: only run setup/login when no credential exists.
    * With a known credential, the signing ceremony itself unlocks.
    */
   const ensureOnboardedForSigning = useCallback(async () => {
-    await awaitSignerReady();
+    const awaitSigner = awaitSignerRef.current;
+    if (!awaitSigner) {
+      throw new Error(
+        "Signing Layer not started — wallet boot has not begun yet",
+      );
+    }
+    await awaitSigner();
     if (isWalletCreated()) {
       return;
     }
     await ensureReadyRef.current();
-  }, [awaitSignerReady]);
+  }, []);
 
   const onSigningAuthenticated = useCallback(async () => {
     await refreshAddresses();
@@ -556,6 +603,30 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     eventBus.emit(new RefreshBalanceRequestedEvent(id));
   }, []);
 
+  /**
+   * In-wallet send path: setup gate → relayer prepare/sign/broadcast → unlock.
+   * Host EIP-1193 sends use SignHelper → approveAndSignTransaction instead.
+   */
+  const sendTransaction = useCallback(
+    async (
+      chainId: EVMChainId,
+      to: EVMAccountAddress,
+      data: HexString,
+      value?: bigint,
+    ) => {
+      await ensureOnboardedForSigning();
+      const result = await oneshotRelayerRepository.sendTransaction(
+        chainId,
+        to,
+        data,
+        value,
+      );
+      await onSigningAuthenticated();
+      return result.transactionHash;
+    },
+    [ensureOnboardedForSigning, onSigningAuthenticated],
+  );
+
   const openCreateBackup = useCallback(async () => {
     const wallet = walletRef.current;
     if (!wallet) return;
@@ -662,6 +733,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         { defaultChainId },
       );
       rpcHelperRef.current = rpcHelper;
+      rpcHelperHolder.current = rpcHelper;
       session.setChainId(rpcHelper.getChainId());
       rpcHelper.events.on("chainChanged", (next) => {
         useWalletSessionStore.getState().setChainId(next);
@@ -702,15 +774,82 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             request,
             resolve,
           })),
-        requestSendTransactionApproval: (
+        approveAndSignTransaction: async (
           request: SendTransactionApprovalRequest,
-        ) =>
-          ask<boolean>(({ id, resolve }) => ({
-            id,
-            kind: "sendTransaction",
-            request,
-            resolve,
-          })),
+        ) => {
+          const transfer = transactionUtils.tryDecodeErc20Transfer(
+            request.to,
+            request.data,
+          );
+          let approved: boolean;
+          if (transfer) {
+            const known = await knownAssetRepository.getKnownAsset(
+              request.chainId,
+              transfer.tokenAddress,
+            );
+            const owner = useWalletSessionStore.getState().evmAddress;
+            const tracked = (await trackedAssetRepository.list(owner)).find(
+              (asset) =>
+                asset.chainId === request.chainId &&
+                asset.address === transfer.tokenAddress,
+            );
+            const tokenName =
+              tracked?.name ?? known?.name ?? transfer.tokenAddress;
+            const tokenSymbol = tracked?.symbol ?? known?.symbol ?? "TOKEN";
+            const decimals = tracked?.decimals ?? known?.decimals ?? null;
+            approved = await ask<boolean>(({ id, resolve }) => ({
+              id,
+              kind: "confirmTransfer",
+              request: {
+                domain: transactionUtils.resolveHostDomain(),
+                amount: transactionUtils.formatTokenAmount(
+                  transfer.amount,
+                  decimals,
+                ),
+                tokenName,
+                tokenSymbol,
+                receiver: transfer.recipient,
+                chainName: transactionUtils.chainLabelFor(
+                  request.chainId,
+                  DEMO_CHAINS,
+                ),
+              },
+              resolve,
+            }));
+          } else {
+            approved = await ask<boolean>(({ id, resolve }) => ({
+              id,
+              kind: "sendTransaction",
+              request,
+              resolve,
+            }));
+          }
+          if (!approved) {
+            throw new OwsUserRejectedError(
+              "User rejected the transaction request",
+            );
+          }
+
+          if (!request.to) {
+            throw new OwsUserRejectedError(
+              "Contract creation is not supported yet",
+            );
+          }
+
+          const valueRaw = String(request.value);
+          const value =
+            valueRaw && valueRaw !== "0x0" && valueRaw !== "0x"
+              ? BigInt(valueRaw)
+              : undefined;
+          const result = await oneshotRelayerRepository.sendTransaction(
+            request.chainId,
+            request.to,
+            request.data,
+            value,
+          );
+          await onSigningAuthenticated();
+          return result.transactionHash;
+        },
       });
 
       registerCredentialsProvider(wallet, signer, {
@@ -821,6 +960,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       getKnownAsset,
       resolveTrackedAsset,
       requestBalanceRefresh,
+      sendTransaction,
       eventBus,
       openCreateBackup,
       openRestoreBackup,
@@ -846,6 +986,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       getKnownAsset,
       resolveTrackedAsset,
       requestBalanceRefresh,
+      sendTransaction,
       openCreateBackup,
       openRestoreBackup,
       loginWithPasskey,

@@ -89,6 +89,41 @@ export interface IStyleCopySendTransaction {
 }
 
 /**
+ * Friendly host ERC-20 transfer confirm.
+ * `body` supports `{domain}`, `{amount}`, `{tokenName}`, `{tokenSymbol}`,
+ * `{receiver}`, `{chainName}`.
+ */
+export interface IStyleCopyConfirmTransfer {
+  title: string;
+  body: string;
+  amountLabel: string;
+  tokenLabel: string;
+  receiverLabel: string;
+  chainLabel: string;
+  rejectLabel: string;
+  confirmLabel: string;
+}
+
+/**
+ * In-wallet send / transfer tokens modal.
+ */
+export interface IStyleCopyTransferTokens {
+  title: string;
+  body: string;
+  amountLabel: string;
+  amountPlaceholder: string;
+  recipientLabel: string;
+  recipientPlaceholder: string;
+  scanQrLabel: string;
+  cancelLabel: string;
+  sendLabel: string;
+  invalidAmountError: string;
+  insufficientBalanceError: string;
+  invalidAddressError: string;
+  sendFailedError: string;
+}
+
+/**
  * OID4VCI credential-offer approval modal.
  * `body` supports `{issuerName}` and `{issuerId}`.
  */
@@ -191,6 +226,7 @@ export interface IStyleCopyBalances {
   receiveCopiedLabel: string;
   receiveCopyFailedLabel: string;
   receiveCloseLabel: string;
+  sendLabel: string;
 }
 
 /**
@@ -252,6 +288,10 @@ export interface IStyleCopyOptions {
   typedData?: Partial<IStyleCopyTypedData>;
   /** Partial patch for the eth_sendTransaction modal */
   sendTransaction?: Partial<IStyleCopySendTransaction>;
+  /** Partial patch for the friendly ERC-20 transfer confirm */
+  confirmTransfer?: Partial<IStyleCopyConfirmTransfer>;
+  /** Partial patch for the in-wallet transfer tokens modal */
+  transferTokens?: Partial<IStyleCopyTransferTokens>;
   /** Partial patch for the credential offer modal */
   credentialOffer?: Partial<IStyleCopyCredentialOffer>;
   /** Partial patch for the credential presentation modal */
@@ -277,6 +317,8 @@ export interface IResolvedCopy {
   personalSign: IStyleCopyPersonalSign;
   typedData: IStyleCopyTypedData;
   sendTransaction: IStyleCopySendTransaction;
+  confirmTransfer: IStyleCopyConfirmTransfer;
+  transferTokens: IStyleCopyTransferTokens;
   credentialOffer: IStyleCopyCredentialOffer;
   credentialPresentation: IStyleCopyCredentialPresentation;
   credentials: IStyleCopyCredentials;

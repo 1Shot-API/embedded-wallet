@@ -5,11 +5,11 @@ import {
   type EVMAccountAddress as EVMAccountAddressType,
   type EVMChainId as EVMChainIdType,
 } from "@1shotapi/ows-types";
+import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import {
   createMemoryStorageBackend,
   type CredentialStorageBackend,
 } from "../../../demo/local-storage-store";
-import type { IBlockchainProvider } from "../../interfaces/utils/IBlockchainProvider";
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
 import type { ITrackedAssetRepository } from "../../interfaces/data/ITrackedAssetRepository";
 import {

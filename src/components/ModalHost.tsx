@@ -7,6 +7,7 @@ import {
 import {
   PersonalSignModal,
   SendTransactionModal,
+  ConfirmTransferModal,
   TypedDataModal,
 } from "./modals/SignModals";
 import {
@@ -44,6 +45,13 @@ export function ModalHost() {
     case "sendTransaction":
       return (
         <SendTransactionModal
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+        />
+      );
+    case "confirmTransfer":
+      return (
+        <ConfirmTransferModal
           request={activeModal.request}
           onResolve={activeModal.resolve}
         />

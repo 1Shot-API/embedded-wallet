@@ -5,7 +5,7 @@ import {
   type EVMAccountAddress as EVMAccountAddressType,
   type EVMChainId as EVMChainIdType,
 } from "@1shotapi/ows-types";
-import type { IBlockchainProvider } from "../../interfaces/utils/IBlockchainProvider";
+import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import type { IKnownAssetRepository } from "../../interfaces/data/IKnownAssetRepository";
 import {
   KnownAsset,

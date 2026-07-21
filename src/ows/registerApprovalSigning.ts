@@ -7,6 +7,7 @@ import type {
   SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+import type { EVMTransactionHash } from "@1shotapi/ows-types";
 
 export type RegisterApprovalSigningOptions = {
   /**
@@ -24,9 +25,12 @@ export type RegisterApprovalSigningOptions = {
   requestSignTypedDataApproval: (
     request: SignTypedDataApprovalRequest,
   ) => Promise<boolean>;
-  requestSendTransactionApproval: (
+  /**
+   * Branding owns consent + prepare + sign + broadcast for eth_sendTransaction.
+   */
+  approveAndSignTransaction: (
     request: SendTransactionApprovalRequest,
-  ) => Promise<boolean>;
+  ) => Promise<EVMTransactionHash>;
 };
 
 /**
@@ -40,10 +44,10 @@ export function registerApprovalSigning(
   const helper = new SignHelper(signer, wallet, {
     ensureReady: options.ensureReady,
     onAuthenticated: options.onAuthenticated,
-    chainRpc: options.chainRpc,
+    getChainId: () => options.chainRpc.getChainId(),
     requestPersonalSignApproval: options.requestPersonalSignApproval,
     requestSignTypedDataApproval: options.requestSignTypedDataApproval,
-    requestSendTransactionApproval: options.requestSendTransactionApproval,
+    approveAndSignTransaction: options.approveAndSignTransaction,
   });
 
   for (const [method, handler] of Object.entries(helper.handlers)) {

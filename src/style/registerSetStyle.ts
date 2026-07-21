@@ -95,6 +95,39 @@ const sendTransactionCopySchema = z
   .strict()
   .optional();
 
+const confirmTransferCopySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    amountLabel: z.string().optional(),
+    tokenLabel: z.string().optional(),
+    receiverLabel: z.string().optional(),
+    chainLabel: z.string().optional(),
+    rejectLabel: z.string().optional(),
+    confirmLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
+const transferTokensCopySchema = z
+  .object({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    amountLabel: z.string().optional(),
+    amountPlaceholder: z.string().optional(),
+    recipientLabel: z.string().optional(),
+    recipientPlaceholder: z.string().optional(),
+    scanQrLabel: z.string().optional(),
+    cancelLabel: z.string().optional(),
+    sendLabel: z.string().optional(),
+    invalidAmountError: z.string().optional(),
+    insufficientBalanceError: z.string().optional(),
+    invalidAddressError: z.string().optional(),
+    sendFailedError: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
 const credentialOfferCopySchema = z
   .object({
     title: z.string().optional(),
@@ -188,6 +221,7 @@ const balancesCopySchema = z
     receiveCopiedLabel: z.string().optional(),
     receiveCopyFailedLabel: z.string().optional(),
     receiveCloseLabel: z.string().optional(),
+    sendLabel: z.string().optional(),
   })
   .strict()
   .optional();
@@ -240,6 +274,8 @@ const copySchema = z
     personalSign: personalSignCopySchema,
     typedData: typedDataCopySchema,
     sendTransaction: sendTransactionCopySchema,
+    confirmTransfer: confirmTransferCopySchema,
+    transferTokens: transferTokensCopySchema,
     credentialOffer: credentialOfferCopySchema,
     credentialPresentation: credentialPresentationCopySchema,
     credentials: credentialsCopySchema,

@@ -12,6 +12,16 @@ import type { IAddAssetApprovalRequest } from "./registerAddAsset";
 
 export type WalletSetupChoice = "login" | "create" | "cancel";
 
+/** Friendly host ERC-20 transfer consent (decoded transfer calldata). */
+export interface IConfirmTransferRequest {
+  domain: string;
+  amount: string;
+  tokenName: string;
+  tokenSymbol: string;
+  receiver: string;
+  chainName: string;
+}
+
 export type ModalRequest =
   | {
       id: string;
@@ -44,6 +54,12 @@ export type ModalRequest =
       id: string;
       kind: "sendTransaction";
       request: SendTransactionApprovalRequest;
+      resolve: (approved: boolean) => void;
+    }
+  | {
+      id: string;
+      kind: "confirmTransfer";
+      request: IConfirmTransferRequest;
       resolve: (approved: boolean) => void;
     }
   | {

@@ -38,6 +38,14 @@ export function mergeStyle(
         ...current.copy.sendTransaction,
         ...patch.copy?.sendTransaction,
       },
+      confirmTransfer: {
+        ...current.copy.confirmTransfer,
+        ...patch.copy?.confirmTransfer,
+      },
+      transferTokens: {
+        ...current.copy.transferTokens,
+        ...patch.copy?.transferTokens,
+      },
       credentialOffer: {
         ...current.copy.credentialOffer,
         ...patch.copy?.credentialOffer,
@@ -79,6 +87,8 @@ function cloneDefaultStyle(): IResolvedStyle {
       personalSign: { ...DEFAULT_STYLE.copy.personalSign },
       typedData: { ...DEFAULT_STYLE.copy.typedData },
       sendTransaction: { ...DEFAULT_STYLE.copy.sendTransaction },
+      confirmTransfer: { ...DEFAULT_STYLE.copy.confirmTransfer },
+      transferTokens: { ...DEFAULT_STYLE.copy.transferTokens },
       credentialOffer: { ...DEFAULT_STYLE.copy.credentialOffer },
       credentialPresentation: { ...DEFAULT_STYLE.copy.credentialPresentation },
       credentials: { ...DEFAULT_STYLE.copy.credentials },

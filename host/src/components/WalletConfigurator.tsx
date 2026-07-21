@@ -579,6 +579,54 @@ export function WalletConfigurator({
                   value={form.receiveCloseLabel}
                   onChange={(value) => patch("receiveCloseLabel", value)}
                 />
+                <TextField
+                  id="send-label"
+                  label="Send button"
+                  value={form.sendLabel}
+                  onChange={(value) => patch("sendLabel", value)}
+                />
+                <TextField
+                  id="confirm-transfer-title"
+                  label="Confirm transfer title"
+                  value={form.confirmTransferTitle}
+                  onChange={(value) => patch("confirmTransferTitle", value)}
+                />
+                <BodyField
+                  id="confirm-transfer-body"
+                  label="Confirm transfer body"
+                  value={form.confirmTransferBody}
+                  onChange={(value) => patch("confirmTransferBody", value)}
+                />
+                <TextField
+                  id="confirm-transfer-confirm"
+                  label="Confirm transfer confirm"
+                  value={form.confirmTransferConfirm}
+                  onChange={(value) => patch("confirmTransferConfirm", value)}
+                />
+                <TextField
+                  id="confirm-transfer-reject"
+                  label="Confirm transfer reject"
+                  value={form.confirmTransferReject}
+                  onChange={(value) => patch("confirmTransferReject", value)}
+                />
+                <TextField
+                  id="transfer-tokens-title"
+                  label="Transfer modal title"
+                  value={form.transferTokensTitle}
+                  onChange={(value) => patch("transferTokensTitle", value)}
+                />
+                <TextField
+                  id="transfer-tokens-send"
+                  label="Transfer send"
+                  value={form.transferTokensSend}
+                  onChange={(value) => patch("transferTokensSend", value)}
+                />
+                <TextField
+                  id="transfer-tokens-cancel"
+                  label="Transfer cancel"
+                  value={form.transferTokensCancel}
+                  onChange={(value) => patch("transferTokensCancel", value)}
+                />
               </AccordionContent>
             </AccordionItem>
 

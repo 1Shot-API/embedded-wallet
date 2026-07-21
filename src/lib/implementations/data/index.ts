@@ -8,3 +8,5 @@ export {
   OWS_TRACKED_ASSETS_STORAGE_KEY,
 } from "./LocalStorageTrackedAssetRepository";
 export type { TrackedAssetRepositoryOptions } from "./LocalStorageTrackedAssetRepository";
+export { OneshotRelayerRepository } from "./OneshotRelayerRepository";
+export type { OneshotRelayerRepositoryOptions } from "./OneshotRelayerRepository";

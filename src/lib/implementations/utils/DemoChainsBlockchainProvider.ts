@@ -1,6 +1,6 @@
 import { createPublicClient, http, type PublicClient } from "viem";
 import type { EVMChainId } from "@1shotapi/ows-types";
-import type { IBlockchainProvider } from "../../interfaces/utils/IBlockchainProvider";
+import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import { DEMO_CHAINS } from "../../../ows/demoChains";
 
 /** Caches viem public clients keyed by demo-chain id. */

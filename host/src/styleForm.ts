@@ -87,6 +87,18 @@ export interface IStyleFormState {
   receiveCopiedLabel: string;
   receiveCopyFailedLabel: string;
   receiveCloseLabel: string;
+  sendLabel: string;
+
+  // Text — Confirm transfer (host ERC-20)
+  confirmTransferTitle: string;
+  confirmTransferBody: string;
+  confirmTransferConfirm: string;
+  confirmTransferReject: string;
+
+  // Text — Transfer tokens (in-wallet send)
+  transferTokensTitle: string;
+  transferTokensSend: string;
+  transferTokensCancel: string;
 
   // Text — Create backup
   backupTitle: string;
@@ -167,6 +179,15 @@ export const ACME_PRESET: IStyleFormState = {
   receiveCopiedLabel: "Address copied",
   receiveCopyFailedLabel: "Copy failed",
   receiveCloseLabel: "Close",
+  sendLabel: "Send",
+  confirmTransferTitle: "Confirm transfer",
+  confirmTransferBody:
+    "{domain} wants to send {amount} {tokenSymbol} ({tokenName}) to {receiver} on {chainName}.",
+  confirmTransferConfirm: "Confirm",
+  confirmTransferReject: "Reject",
+  transferTokensTitle: "Send",
+  transferTokensSend: "Send",
+  transferTokensCancel: "Cancel",
   backupTitle: "Create a backup",
   backupBody: "Encrypt a recovery blob with a passphrase.",
   backupContinue: "Continue",
@@ -261,6 +282,15 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   receiveCopiedLabel: "Address copied",
   receiveCopyFailedLabel: "Copy failed",
   receiveCloseLabel: "Close",
+  sendLabel: "Send",
+  confirmTransferTitle: "Confirm transfer",
+  confirmTransferBody:
+    "{domain} wants to send {amount} {tokenSymbol} ({tokenName}) to {receiver} on {chainName}.",
+  confirmTransferConfirm: "Confirm",
+  confirmTransferReject: "Reject",
+  transferTokensTitle: "Send",
+  transferTokensSend: "Send",
+  transferTokensCancel: "Cancel",
   backupTitle: "Create backup",
   backupBody: "",
   restoreTitle: "Restore backup",
@@ -340,6 +370,23 @@ export function buildSetStylePayload(
     copy.sendTransaction = sendTransaction;
   }
 
+  const confirmTransfer: Record<string, string> = {};
+  put(confirmTransfer, "title", form.confirmTransferTitle);
+  put(confirmTransfer, "body", form.confirmTransferBody);
+  put(confirmTransfer, "confirmLabel", form.confirmTransferConfirm);
+  put(confirmTransfer, "rejectLabel", form.confirmTransferReject);
+  if (Object.keys(confirmTransfer).length > 0) {
+    copy.confirmTransfer = confirmTransfer;
+  }
+
+  const transferTokens: Record<string, string> = {};
+  put(transferTokens, "title", form.transferTokensTitle);
+  put(transferTokens, "sendLabel", form.transferTokensSend);
+  put(transferTokens, "cancelLabel", form.transferTokensCancel);
+  if (Object.keys(transferTokens).length > 0) {
+    copy.transferTokens = transferTokens;
+  }
+
   const credentialOffer: Record<string, string> = {};
   put(credentialOffer, "title", form.credOfferTitle);
   put(credentialOffer, "body", form.credOfferBody);
@@ -381,6 +428,7 @@ export function buildSetStylePayload(
   put(balances, "receiveCopiedLabel", form.receiveCopiedLabel);
   put(balances, "receiveCopyFailedLabel", form.receiveCopyFailedLabel);
   put(balances, "receiveCloseLabel", form.receiveCloseLabel);
+  put(balances, "sendLabel", form.sendLabel);
   if (Object.keys(balances).length > 0) copy.balances = balances;
 
   const createBackup: Record<string, string> = {};
