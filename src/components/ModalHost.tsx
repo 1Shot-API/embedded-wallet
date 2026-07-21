@@ -1,0 +1,98 @@
+import { useModalStore } from "../wallet/modalStore";
+import {
+  ConnectModal,
+  PasskeyNameModal,
+  WalletSetupModal,
+} from "./modals/SetupModals";
+import {
+  PersonalSignModal,
+  SendTransactionModal,
+  ConfirmTransferModal,
+  TypedDataModal,
+} from "./modals/SignModals";
+import {
+  CredentialOfferModal,
+  CredentialPresentationModal,
+} from "./modals/CredentialModals";
+import { CreateBackupModal, RestoreBackupModal } from "./modals/BackupModals";
+import { AddAssetModal } from "./modals/AddAssetModal";
+
+export function ModalHost() {
+  const activeModal = useModalStore((state) => state.activeModal);
+  if (!activeModal) return null;
+
+  switch (activeModal.kind) {
+    case "walletSetup":
+      return <WalletSetupModal onResolve={activeModal.resolve} />;
+    case "passkeyName":
+      return <PasskeyNameModal onResolve={activeModal.resolve} />;
+    case "connect":
+      return <ConnectModal onResolve={activeModal.resolve} />;
+    case "personalSign":
+      return (
+        <PersonalSignModal
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+        />
+      );
+    case "typedData":
+      return (
+        <TypedDataModal
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+        />
+      );
+    case "sendTransaction":
+      return (
+        <SendTransactionModal
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+        />
+      );
+    case "confirmTransfer":
+      return (
+        <ConfirmTransferModal
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+        />
+      );
+    case "credentialOffer":
+      return (
+        <CredentialOfferModal
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+        />
+      );
+    case "credentialPresentation":
+      return (
+        <CredentialPresentationModal
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+        />
+      );
+    case "addAsset":
+      return (
+        <AddAssetModal
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+        />
+      );
+    case "createBackup":
+      return (
+        <CreateBackupModal
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    case "restoreBackup":
+      return (
+        <RestoreBackupModal
+          encryptedPrivateKey={activeModal.encryptedPrivateKey}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    default:
+      return null;
+  }
+}

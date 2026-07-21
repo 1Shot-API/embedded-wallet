@@ -141,3 +141,12 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Local HTTPS certs (mkcert) for host tester
+host/certs/*.pem
+
+# Deploy SSH keypairs (never commit)
+oneshot-wallet-*-deploy
+oneshot-wallet-*-deploy.pub
+*-deploy
+*-deploy.pub
