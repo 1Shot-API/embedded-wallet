@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { CheckIcon, CopyIcon } from "lucide-react";
+import { CheckIcon, CopyIcon, XIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { copyText } from "@/lib/clipboard";
 import type { TrackedAsset } from "../lib/types/domain";
@@ -89,6 +90,9 @@ export function MainPanel() {
     })),
   );
   const [networkModalOpen, setNetworkModalOpen] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<TrackedAsset | null>(
+    null,
+  );
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -98,8 +102,31 @@ export function MainPanel() {
     };
   }, []);
 
+  useEffect(() => {
+    setSelectedAsset(null);
+  }, [chainId]);
+
   if (mode === EWalletMode.Focused && focusedAssetAddress) {
     return <FocusedAssetPanel />;
+  }
+
+  if (selectedAsset) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label={style.copy.balances.closeLabel}
+            onClick={() => setSelectedAsset(null)}
+          >
+            <XIcon />
+          </Button>
+        </div>
+        <AssetDetails asset={selectedAsset} />
+      </div>
+    );
   }
 
   const active = resolveActiveAddress({
@@ -193,7 +220,7 @@ export function MainPanel() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="balances">
-          <BalancesTab />
+          <BalancesTab onView={setSelectedAsset} />
         </TabsContent>
         <TabsContent value="credentials">
           <CredentialsTab />

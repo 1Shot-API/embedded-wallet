@@ -88,31 +88,18 @@ export function AssetList({
       {
         id: "balance",
         header: copy.balanceColumn,
+        meta: { align: "end" as const },
         cell: ({ row }) => (
           <BalanceDisplay
             trackedAssetId={row.original.id}
             balance={row.original.balance}
             decimals={row.original.decimals}
-            className="text-xs"
+            className="text-xs tabular-nums"
           />
         ),
       },
-      {
-        id: "actions",
-        header: "",
-        cell: ({ row }) => (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => onView(row.original)}
-          >
-            {copy.viewLabel}
-          </Button>
-        ),
-      },
     ],
-    [onView, copy.assetColumn, copy.balanceColumn, copy.viewLabel],
+    [copy.assetColumn, copy.balanceColumn],
   );
 
   const table = useReactTable({
@@ -159,34 +146,75 @@ export function AssetList({
         <p className="text-muted-foreground m-0 text-sm">{copy.emptyBody}</p>
       ) : (
         <>
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="h-8 px-2 text-xs">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </TableHead>
-                  ))}
+                  {headerGroup.headers.map((header) => {
+                    const align =
+                      (
+                        header.column.columnDef.meta as
+                          | { align?: "end" }
+                          | undefined
+                      )?.align === "end"
+                        ? "text-right"
+                        : "text-left";
+                    const widthClass =
+                      header.column.id === "asset" ? "w-[60%]" : "w-[40%]";
+                    return (
+                      <TableHead
+                        key={header.id}
+                        className={`h-8 px-2 text-xs ${align} ${widthClass}`}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableHeader>
             <TableBody>
               {table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-2 py-2 align-top">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
+                <TableRow
+                  key={row.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${copy.viewLabel} ${row.original.symbol}`}
+                  className="cursor-pointer"
+                  onClick={() => onView(row.original)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onView(row.original);
+                    }
+                  }}
+                >
+                  {row.getVisibleCells().map((cell) => {
+                    const align =
+                      (
+                        cell.column.columnDef.meta as
+                          | { align?: "end" }
+                          | undefined
+                      )?.align === "end"
+                        ? "text-right"
+                        : "text-left";
+                    return (
+                      <TableCell
+                        key={cell.id}
+                        className={`px-2 py-2 align-middle ${align}`}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableBody>
