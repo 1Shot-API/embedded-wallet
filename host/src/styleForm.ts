@@ -37,6 +37,13 @@ export interface IStyleFormState {
   setupLogin: string;
   setupCancel: string;
 
+  // Text — Account shell (network + address chips)
+  selectNetworkTitle: string;
+  selectNetworkCancelLabel: string;
+  copyAddressLabel: string;
+  addressCopiedLabel: string;
+  addressCopyFailedLabel: string;
+
   // Text — Passkey name
   passkeyTitle: string;
   passkeyBody: string;
@@ -177,6 +184,11 @@ export const ACME_PRESET: IStyleFormState = {
   setupCreate: "Get started",
   setupLogin: "Log in",
   setupCancel: "Cancel",
+  selectNetworkTitle: "Select network",
+  selectNetworkCancelLabel: "Cancel",
+  copyAddressLabel: "Copy address",
+  addressCopiedLabel: "Address copied",
+  addressCopyFailedLabel: "Copy failed",
   passkeyTitle: "Name this passkey",
   passkeyBody: "Choose a name for this wallet passkey.",
   passkeyContinue: "Save name",
@@ -401,6 +413,14 @@ export function buildSetStylePayload(
   put(walletSetup, "loginLabel", form.setupLogin);
   put(walletSetup, "cancelLabel", form.setupCancel);
   if (Object.keys(walletSetup).length > 0) copy.walletSetup = walletSetup;
+
+  const account: Record<string, string> = {};
+  put(account, "selectNetworkTitle", form.selectNetworkTitle);
+  put(account, "selectNetworkCancelLabel", form.selectNetworkCancelLabel);
+  put(account, "copyAddressLabel", form.copyAddressLabel);
+  put(account, "addressCopiedLabel", form.addressCopiedLabel);
+  put(account, "addressCopyFailedLabel", form.addressCopyFailedLabel);
+  if (Object.keys(account).length > 0) copy.account = account;
 
   const passkeyName: Record<string, string> = {};
   put(passkeyName, "title", form.passkeyTitle);

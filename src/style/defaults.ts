@@ -21,6 +21,13 @@ export const DEFAULT_STYLE: IResolvedStyle = {
     tagline:
       "Permissionless Embedded Wallet.\nSecurely log in with passkeys or start fresh.",
     logoUrl: "",
+    account: {
+      selectNetworkTitle: "Select network",
+      selectNetworkCancelLabel: "Cancel",
+      copyAddressLabel: "Copy address",
+      addressCopiedLabel: "Address copied",
+      addressCopyFailedLabel: "Copy failed",
+    },
     connect: {
       title: "Connect wallet",
       body: "The connected app is requesting your wallet address. You may be asked to verify with your passkey after you continue.",

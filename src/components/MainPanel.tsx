@@ -1,14 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CheckIcon, CopyIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { SupportedChain, TrackedAsset } from "../lib/types/domain";
+import { copyText } from "@/lib/clipboard";
+import type { TrackedAsset } from "../lib/types/domain";
 import { useWallet } from "../wallet/WalletProvider";
 import {
   EWalletMode,
@@ -16,22 +11,20 @@ import {
 } from "../wallet/sessionStore";
 import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useStyle } from "../style";
+import { AccountMetaChip } from "./AccountMetaChip";
 import { AssetDetails } from "./AssetDetails";
-import { CopyableText } from "./CopyableText";
 import { BalancesTab } from "./balances/BalancesTab";
 import { CredentialsTab } from "./credentials/CredentialsTab";
+import { SelectNetworkModal } from "./modals/SelectNetworkModal";
 
-function ChainOptionLabel({ chain }: { chain: SupportedChain }) {
-  return (
-    <span className="flex items-center gap-2 min-w-0">
-      <img
-        src={chain.logoUrl}
-        alt=""
-        className="size-5 shrink-0 rounded-full object-cover"
-      />
-      <span className="truncate">{chain.label}</span>
-    </span>
-  );
+const TRUNCATE_CHARS = 5;
+const COPY_FEEDBACK_MS = 1500;
+
+type CopyState = "idle" | "copied" | "failed";
+
+function formatTruncated(text: string): string {
+  if (text.length <= TRUNCATE_CHARS * 2 + 1) return text;
+  return `${text.slice(0, TRUNCATE_CHARS)}…${text.slice(-TRUNCATE_CHARS)}`;
 }
 
 function FocusedAssetPanel() {
@@ -78,6 +71,7 @@ function FocusedAssetPanel() {
  */
 export function MainPanel() {
   const { style } = useStyle();
+  const { account: accountCopy } = style.copy;
   const { chains, switchChain } = useWallet();
   const {
     evmAddress,
@@ -94,6 +88,15 @@ export function MainPanel() {
       focusedAssetAddress: state.focusedAssetAddress,
     })),
   );
+  const [networkModalOpen, setNetworkModalOpen] = useState(false);
+  const [copyState, setCopyState] = useState<CopyState>("idle");
+  const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+    };
+  }, []);
 
   if (mode === EWalletMode.Focused && focusedAssetAddress) {
     return <FocusedAssetPanel />;
@@ -110,53 +113,74 @@ export function MainPanel() {
       (chain) =>
         String(chain.chainId).toLowerCase() === String(chainId).toLowerCase(),
     ) ?? null;
+  const networkLabel = selectedChain?.label ?? String(chainId);
+
+  const copyFeedbackLabel =
+    copyState === "copied"
+      ? accountCopy.addressCopiedLabel
+      : copyState === "failed"
+        ? accountCopy.addressCopyFailedLabel
+        : accountCopy.copyAddressLabel;
+
+  const onCopyAddress = () => {
+    if (!hasAddress) return;
+    void copyText(active.address).then((ok) => {
+      setCopyState(ok ? "copied" : "failed");
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+      copyResetRef.current = setTimeout(
+        () => setCopyState("idle"),
+        COPY_FEEDBACK_MS,
+      );
+    });
+  };
+
+  const onSelectNetwork = (next: string) => {
+    setNetworkModalOpen(false);
+    if (
+      String(next).toLowerCase() !== String(chainId).toLowerCase()
+    ) {
+      void switchChain(next);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="flex flex-col gap-3" aria-label="Account">
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="wallet-chain"
-            className="text-muted-foreground text-xs font-medium tracking-wide uppercase"
-          >
-            Network
-          </label>
-          <Select
-            value={chainId}
-            onValueChange={(value) => {
-              if (value) void switchChain(value);
-            }}
-          >
-            <SelectTrigger id="wallet-chain" className="w-full">
-              <SelectValue placeholder="Select chain">
-                {selectedChain ? (
-                  <ChainOptionLabel chain={selectedChain} />
-                ) : null}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {chains.map((chain) => (
-                <SelectItem key={chain.chainId} value={chain.chainId}>
-                  <ChainOptionLabel chain={chain} />
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-            {active.label} address
-          </span>
-          <CopyableText
-            text={hasAddress ? active.address : "—"}
-            truncate
-            disabled={!hasAddress}
-            copyLabel="Copy address"
-            copiedLabel="Address copied"
-            copyFailedLabel="Copy failed"
-          />
-        </div>
+      <section
+        className="grid grid-cols-2 gap-2"
+        aria-label="Account"
+      >
+        <AccountMetaChip
+          ariaLabel={networkLabel}
+          value={networkLabel}
+          onClick={() => setNetworkModalOpen(true)}
+          icon={
+            selectedChain ? (
+              <img
+                src={selectedChain.logoUrl}
+                alt=""
+                className="size-7 rounded-full object-cover"
+              />
+            ) : (
+              <span className="bg-muted size-7 rounded-full" aria-hidden />
+            )
+          }
+        />
+        <AccountMetaChip
+          ariaLabel={copyFeedbackLabel}
+          title={hasAddress ? active.address : undefined}
+          value={hasAddress ? formatTruncated(active.address) : "—"}
+          disabled={!hasAddress}
+          onClick={onCopyAddress}
+          icon={
+            <span className="bg-muted text-muted-foreground flex size-7 items-center justify-center rounded-full">
+              {copyState === "copied" ? (
+                <CheckIcon className="size-3.5" />
+              ) : (
+                <CopyIcon className="size-3.5" />
+              )}
+            </span>
+          }
+        />
       </section>
 
       <Tabs defaultValue="balances" className="gap-3">
@@ -175,6 +199,15 @@ export function MainPanel() {
           <CredentialsTab />
         </TabsContent>
       </Tabs>
+
+      {networkModalOpen ? (
+        <SelectNetworkModal
+          chains={chains}
+          selectedChainId={chainId}
+          onSelect={onSelectNetwork}
+          onClose={() => setNetworkModalOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

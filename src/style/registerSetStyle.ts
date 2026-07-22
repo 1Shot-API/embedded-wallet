@@ -24,6 +24,17 @@ const themeSchema = z
   .strict()
   .optional();
 
+const accountCopySchema = z
+  .object({
+    selectNetworkTitle: z.string().optional(),
+    selectNetworkCancelLabel: z.string().optional(),
+    copyAddressLabel: z.string().optional(),
+    addressCopiedLabel: z.string().optional(),
+    addressCopyFailedLabel: z.string().optional(),
+  })
+  .strict()
+  .optional();
+
 const connectCopySchema = z
   .object({
     title: z.string().optional(),
@@ -299,6 +310,7 @@ const copySchema = z
     productName: z.string().optional(),
     tagline: z.string().optional(),
     logoUrl: z.string().optional(),
+    account: accountCopySchema,
     connect: connectCopySchema,
     walletSetup: walletSetupCopySchema,
     passkeyName: passkeyNameCopySchema,

@@ -335,6 +335,46 @@ export function WalletConfigurator({
               </AccordionContent>
             </AccordionItem>
 
+            <AccordionItem value="account">
+              <AccordionTrigger>Account shell</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="select-network-title"
+                  label="Select network title"
+                  value={form.selectNetworkTitle}
+                  onChange={(value) => patch("selectNetworkTitle", value)}
+                />
+                <TextField
+                  id="select-network-cancel"
+                  label="Select network cancel"
+                  value={form.selectNetworkCancelLabel}
+                  onChange={(value) =>
+                    patch("selectNetworkCancelLabel", value)
+                  }
+                />
+                <TextField
+                  id="copy-address-label"
+                  label="Copy address"
+                  value={form.copyAddressLabel}
+                  onChange={(value) => patch("copyAddressLabel", value)}
+                />
+                <TextField
+                  id="address-copied-label"
+                  label="Address copied"
+                  value={form.addressCopiedLabel}
+                  onChange={(value) => patch("addressCopiedLabel", value)}
+                />
+                <TextField
+                  id="address-copy-failed-label"
+                  label="Address copy failed"
+                  value={form.addressCopyFailedLabel}
+                  onChange={(value) =>
+                    patch("addressCopyFailedLabel", value)
+                  }
+                />
+              </AccordionContent>
+            </AccordionItem>
+
             <AccordionItem value="passkey">
               <AccordionTrigger>Passkey name</AccordionTrigger>
               <AccordionContent className="flex flex-col gap-3">
