@@ -298,6 +298,17 @@ export interface IStyleCopyRestoreBackup {
   failedError: string;
 }
 
+/**
+ * Account shell chips + select-network modal on the default MainPanel.
+ */
+export interface IStyleCopyAccount {
+  selectNetworkTitle: string;
+  selectNetworkCancelLabel: string;
+  copyAddressLabel: string;
+  addressCopiedLabel: string;
+  addressCopyFailedLabel: string;
+}
+
 export interface IStyleCopyOptions {
   /** Product / wallet title shown in chrome and onboarding */
   productName?: string;
@@ -305,6 +316,8 @@ export interface IStyleCopyOptions {
   tagline?: string;
   /** Optional brand logo URL on the login screen (falls back to bundled 1Shot icon) */
   logoUrl?: string;
+  /** Partial patch for account chips + select-network modal */
+  account?: Partial<IStyleCopyAccount>;
   /** Partial patch for the connect modal */
   connect?: Partial<IStyleCopyConnect>;
   /** Partial patch for the wallet setup modal */
@@ -350,6 +363,7 @@ export interface IResolvedCopy {
   productName: string;
   tagline: string;
   logoUrl: string;
+  account: IStyleCopyAccount;
   connect: IStyleCopyConnect;
   walletSetup: IStyleCopyWalletSetup;
   passkeyName: IStyleCopyPasskeyName;
