@@ -1,4 +1,3 @@
-import type { EVMChainId } from "@1shotapi/ows-types";
 import { Modal } from "../Modal";
 import { useStyle } from "../../style";
 import { useWallet } from "../../wallet/WalletProvider";
