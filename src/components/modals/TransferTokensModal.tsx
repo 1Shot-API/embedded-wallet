@@ -5,7 +5,6 @@ import {
   parseUnits,
   type Hex,
 } from "viem";
-import { AddressUtils } from "@1shotapi/ows-wallet-utils";
 import {
   EChainTechnology,
   HexString,
@@ -28,7 +27,6 @@ import { TokenAmountInput } from "../TokenAmountInput";
 
 export interface ITransferTokensModalProps {
   asset: TrackedAsset;
-  addressUtils: AddressUtils;
   onClose: () => void;
   onSuccess: (hash: EVMTransactionHash) => void;
 }
@@ -67,13 +65,13 @@ function amountValidationError(
  */
 export function TransferTokensModal({
   asset,
-  addressUtils,
   onClose,
   onSuccess,
 }: ITransferTokensModalProps) {
   const { style } = useStyle();
   const copy = style.copy.transferTokens;
-  const { switchChain, sendTransaction, recordSentActivity } = useWallet();
+  const { switchChain, sendTransaction, recordSentActivity, addressUtils } =
+    useWallet();
   const [amount, setAmount] = useState("");
   const [recipientText, setRecipientText] = useState("");
   const [recipient, setRecipient] = useState<AddressInputValue>(null);

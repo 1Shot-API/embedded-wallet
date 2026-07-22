@@ -39,7 +39,7 @@ When adding or changing UI strings:
 
 ### Domain layers (assets example)
 
-- **Utils:** `IBlockchainProvider` / `AddressUtils` (from `@1shotapi/ows-wallet-utils`) / `DemoChainsBlockchainProvider`, `IEventBus` / `EventBus`, `ITransactionUtils` / `TransactionUtils`
+- **Utils:** `IBlockchainProvider` / `AddressUtils` (from `@1shotapi/ows-wallet-utils`) / `SupportedChainsBlockchainProvider`, `IEventBus` / `EventBus`, `ITransactionUtils` / `TransactionUtils`, `IConfigProvider` / `ConfigProvider`, `IChainRepository` / `HardcodedChainRepository`
 - **Data:** `IKnownAssetRepository`, `ITrackedAssetRepository`, `IOneshotRelayerRepository` (`src/lib`) and their implementations
 - **Business:** services that orchestrate domain logic (add as needed)
 

@@ -10,10 +10,6 @@ import {
   EAssetActivityKind,
   EAssetActivityStatus,
 } from "../lib/types/enum";
-import {
-  demoAddressExplorerUrl,
-  demoTxExplorerUrl,
-} from "../ows/demoChains";
 import { useWallet } from "../wallet/WalletProvider";
 import { useTransactionHistoryUpdated } from "../wallet/useWalletEvent";
 
@@ -83,7 +79,7 @@ export function TransactionHistory({
   asset,
   owner,
 }: ITransactionHistoryProps) {
-  const { listAssetActivity } = useWallet();
+  const { listAssetActivity, resolveChain } = useWallet();
   const [rows, setRows] = useState<AssetActivity[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,8 +126,11 @@ export function TransactionHistory({
     ),
   );
 
+  const chain = resolveChain(asset.chainId);
   const viewAllUrl =
-    owner !== null ? demoAddressExplorerUrl(asset.chainId, String(owner)) : null;
+    owner !== null && chain
+      ? chain.addressExplorerUrl(owner)
+      : null;
 
   return (
     <section className="border-border flex flex-col gap-3 border-t pt-4">
@@ -174,10 +173,7 @@ export function TransactionHistory({
       {rows.length > 0 ? (
         <ul className="flex flex-col gap-1">
           {rows.map((item) => {
-            const explorerUrl = demoTxExplorerUrl(
-              item.chainId,
-              String(item.hash),
-            );
+            const explorerUrl = chain?.txExplorerUrl(item.hash);
             const positive = item.kind === EAssetActivityKind.Received;
             const content = (
               <>

@@ -5,11 +5,17 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
   type RefObject,
 } from "react";
 import { OWSSigner } from "@1shotapi/ows-signer-utils";
-import { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
+import {
+  AddressUtils,
+  OWSWallet,
+  RpcHelper,
+  type IBlockchainProvider,
+} from "@1shotapi/ows-wallet-utils";
 import {
   HexString,
   OwsUserRejectedError,
@@ -37,7 +43,6 @@ import {
   HttpOid4vpClient,
   ParseUtils,
 } from "@1shotapi/ows-oid4";
-import { DEMO_CHAINS } from "../ows/demoChains";
 import {
   registerAccountConnect,
   type AccountConnectStorage,
@@ -48,6 +53,8 @@ import { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
 import { registerSetStyleRpc } from "../style";
 import { wrapSignerWithPasskeyPrompts } from "./wrapSignerWithPasskeyPrompts";
 import {
+  DEFAULT_CHAIN_ID,
+  HardcodedChainRepository,
   HardcodedKnownAssetRepository,
   LocalStorageTrackedAssetRepository,
   BlockscoutAssetActivityRepository,
@@ -55,15 +62,27 @@ import {
 } from "../lib/implementations/data";
 import {
   ConfigProvider,
-  DemoChainsBlockchainProvider,
+  SupportedChainsBlockchainProvider,
   EventBus,
   TransactionUtils,
 } from "../lib/implementations/utils";
-import type { IEventBus } from "../lib/interfaces/utils";
-import type { IRecordSentActivityParams } from "../lib/interfaces/data";
+import type {
+  IAssetActivityRepository,
+  IChainRepository,
+  IKnownAssetRepository,
+  IOneshotRelayerRepository,
+  IRecordSentActivityParams,
+  ITrackedAssetRepository,
+} from "../lib/interfaces/data";
+import type {
+  IConfigProvider,
+  IEventBus,
+  ITransactionUtils,
+} from "../lib/interfaces/utils";
 import type {
   AssetActivity,
   KnownAsset,
+  SupportedChain,
   TrackedAsset,
 } from "../lib/types/domain";
 import { RefreshBalanceRequestedEvent } from "../lib/types/events";
@@ -87,40 +106,42 @@ import { useWalletSessionStore } from "./sessionStore";
 const signerHolder: { current: OWSSigner | null } = { current: null };
 const rpcHelperHolder: { current: RpcHelper | null } = { current: null };
 
-const configProvider = new ConfigProvider();
-const blockchainProvider = new DemoChainsBlockchainProvider();
+const configProvider: IConfigProvider = new ConfigProvider();
+const chainRepository: IChainRepository = new HardcodedChainRepository();
+const blockchainProvider: IBlockchainProvider =
+  new SupportedChainsBlockchainProvider(chainRepository);
+const addressUtils = new AddressUtils(blockchainProvider);
 const eventBus: IEventBus = new EventBus();
-const transactionUtils = new TransactionUtils();
-const knownAssetRepository = new HardcodedKnownAssetRepository(
-  blockchainProvider,
-);
-const trackedAssetRepository = new LocalStorageTrackedAssetRepository(
-  blockchainProvider,
-  eventBus,
-  configProvider,
-);
-const assetActivityRepository = new BlockscoutAssetActivityRepository(
-  eventBus,
-  configProvider,
-);
-const oneshotRelayerRepository = new OneshotRelayerRepository(
-  {
-    blockchain: blockchainProvider,
-    getSigner: () => {
-      if (!signerHolder.current) {
-        throw new Error("Signing Layer not ready");
-      }
-      return signerHolder.current;
+const transactionUtils: ITransactionUtils = new TransactionUtils();
+const knownAssetRepository: IKnownAssetRepository =
+  new HardcodedKnownAssetRepository(blockchainProvider);
+const trackedAssetRepository: ITrackedAssetRepository =
+  new LocalStorageTrackedAssetRepository(
+    blockchainProvider,
+    eventBus,
+    configProvider,
+  );
+const assetActivityRepository: IAssetActivityRepository =
+  new BlockscoutAssetActivityRepository(eventBus, configProvider);
+const oneshotRelayerRepository: IOneshotRelayerRepository =
+  new OneshotRelayerRepository(
+    {
+      blockchain: blockchainProvider,
+      getSigner: () => {
+        if (!signerHolder.current) {
+          throw new Error("Signing Layer not ready");
+        }
+        return signerHolder.current;
+      },
+      getChainRpc: () => {
+        if (!rpcHelperHolder.current) {
+          throw new Error("RPC helper not ready");
+        }
+        return rpcHelperHolder.current;
+      },
     },
-    getChainRpc: () => {
-      if (!rpcHelperHolder.current) {
-        throw new Error("RPC helper not ready");
-      }
-      return rpcHelperHolder.current;
-    },
-  },
-  configProvider,
-);
+    configProvider,
+  );
 
 const credentialRepository = new CachedRelayerCredentialRepository({
   client: new RelayerCredentialsClient(configProvider),
@@ -204,7 +225,20 @@ function createDeferredSigner(
 
 /** Imperative wallet APIs that need refs / boot (not UI session state). */
 export type WalletContextValue = {
-  chains: typeof DEMO_CHAINS;
+  /** Startup singletons — prefer these over constructing repos/utils in components. */
+  chainRepository: IChainRepository;
+  blockchainProvider: IBlockchainProvider;
+  addressUtils: AddressUtils;
+  configProvider: IConfigProvider;
+  transactionUtils: ITransactionUtils;
+  knownAssetRepository: IKnownAssetRepository;
+  trackedAssetRepository: ITrackedAssetRepository;
+  assetActivityRepository: IAssetActivityRepository;
+  oneshotRelayerRepository: IOneshotRelayerRepository;
+  eventBus: IEventBus;
+
+  chains: SupportedChain[];
+  resolveChain: (chainId: EVMChainId) => SupportedChain | null;
   signerContainerRef: RefObject<HTMLDivElement | null>;
   getSigner: () => OWSSigner | null;
   /** Resolves when the Signing Layer iframe has finished loading. */
@@ -257,7 +291,6 @@ export type WalletContextValue = {
     data: HexString,
     value?: bigint,
   ) => Promise<EVMTransactionHash>;
-  eventBus: IEventBus;
   openCreateBackup: () => Promise<void>;
   openRestoreBackup: () => Promise<void>;
   loginWithPasskey: () => Promise<void>;
@@ -291,9 +324,50 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const signerRef = useRef<OWSSigner | null>(null);
   const rpcHelperRef = useRef<RpcHelper | null>(null);
   const unlockInFlightRef = useRef<Promise<void> | undefined>(undefined);
+  const [chains, setChains] = useState<SupportedChain[]>(() =>
+    [...chainRepository.getCatalog()].filter((c) => c.enabled),
+  );
 
   /** Resolves once `OWSSigner.create` finishes; set during boot. */
   const awaitSignerRef = useRef<(() => Promise<OWSSigner>) | null>(null);
+
+  const resolveChain = useCallback((chainId: EVMChainId): SupportedChain | null => {
+    const key = String(chainId).toLowerCase();
+    return (
+      chainRepository
+        .getCatalog()
+        .find((chain) => String(chain.chainId).toLowerCase() === key) ?? null
+    );
+  }, []);
+
+  const refreshAllowedChains = useCallback(async () => {
+    const listed = await chainRepository.list();
+    setChains(listed);
+    const session = useWalletSessionStore.getState();
+    const stillAllowed = listed.some(
+      (chain) =>
+        String(chain.chainId).toLowerCase() ===
+        String(session.chainId).toLowerCase(),
+    );
+    if (!stillAllowed && listed[0]) {
+      const next = listed[0];
+      session.setChainId(next.chainId);
+      const rpc = rpcHelperRef.current;
+      if (rpc) {
+        try {
+          await rpc.switchChain(next.chainId);
+        } catch (error: unknown) {
+          console.warn("[oneshot-wallet] failed to switch after allowlist", error);
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    return chainRepository.onAllowedChainsChanged(() => {
+      void refreshAllowedChains();
+    });
+  }, [refreshAllowedChains]);
 
   const setUnlocked = useCallback((value: boolean) => {
     useWalletSessionStore.getState().setUnlocked(value);
@@ -760,7 +834,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }) => ActiveModal,
       ) => pushModal(build);
 
-      registerSetStyleRpc(wallet);
+      registerSetStyleRpc(wallet, chainRepository);
 
       registerAccountConnect(wallet, signer, {
         storage: walletStorage,
@@ -773,9 +847,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           })),
       });
 
-      const defaultChainId = DEMO_CHAINS[0]!.chainId;
+      const catalog = chainRepository.getCatalog();
+      const defaultChainId = DEFAULT_CHAIN_ID;
       const rpcHelper = new RpcHelper(
-        new Map(DEMO_CHAINS.map((chain) => [chain.chainId, chain.rpcUrl])),
+        new Map(catalog.map((chain) => [chain.chainId, chain.rpcUrl])),
         wallet,
         signer,
         { defaultChainId },
@@ -859,7 +934,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 receiver: transfer.recipient,
                 chainName: transactionUtils.chainLabelFor(
                   request.chainId,
-                  DEMO_CHAINS,
+                  chainRepository.getCatalog(),
                 ),
               },
               resolve,
@@ -989,7 +1064,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<WalletContextValue>(
     () => ({
-      chains: DEMO_CHAINS,
+      chainRepository,
+      blockchainProvider,
+      addressUtils,
+      configProvider,
+      transactionUtils,
+      knownAssetRepository,
+      trackedAssetRepository,
+      assetActivityRepository,
+      oneshotRelayerRepository,
+      eventBus,
+      chains,
+      resolveChain,
       signerContainerRef,
       getSigner,
       awaitSignerReady,
@@ -1011,7 +1097,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       listAssetActivity,
       recordSentActivity,
       sendTransaction,
-      eventBus,
       openCreateBackup,
       openRestoreBackup,
       loginWithPasskey,
@@ -1019,6 +1104,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       persistBackup,
     }),
     [
+      chains,
+      resolveChain,
       getSigner,
       awaitSignerReady,
       ensureReady,

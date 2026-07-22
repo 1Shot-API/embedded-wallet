@@ -298,6 +298,17 @@ export interface IStyleCopyRestoreBackup {
   failedError: string;
 }
 
+/**
+ * Account shell chips + select-network modal on the default MainPanel.
+ */
+export interface IStyleCopyAccount {
+  selectNetworkTitle: string;
+  selectNetworkCancelLabel: string;
+  copyAddressLabel: string;
+  addressCopiedLabel: string;
+  addressCopyFailedLabel: string;
+}
+
 export interface IStyleCopyOptions {
   /** Product / wallet title shown in chrome and onboarding */
   productName?: string;
@@ -305,6 +316,8 @@ export interface IStyleCopyOptions {
   tagline?: string;
   /** Optional brand logo URL on the login screen (falls back to bundled 1Shot icon) */
   logoUrl?: string;
+  /** Partial patch for account chips + select-network modal */
+  account?: Partial<IStyleCopyAccount>;
   /** Partial patch for the connect modal */
   connect?: Partial<IStyleCopyConnect>;
   /** Partial patch for the wallet setup modal */
@@ -350,6 +363,7 @@ export interface IResolvedCopy {
   productName: string;
   tagline: string;
   logoUrl: string;
+  account: IStyleCopyAccount;
   connect: IStyleCopyConnect;
   walletSetup: IStyleCopyWalletSetup;
   passkeyName: IStyleCopyPasskeyName;
@@ -372,6 +386,11 @@ export interface IStyleOptions {
   copy?: IStyleCopyOptions;
   /** When true, add `.dark` on <html>; when false, remove it; omit = unchanged */
   dark?: boolean;
+  /**
+   * Hex EVM chain ids the Network dropdown may show.
+   * Omit or empty ⇒ all catalog-enabled chains.
+   */
+  allowedChains?: string[];
 }
 
 /** Fully resolved style after merging defaults + setStyle patches. */
@@ -379,4 +398,6 @@ export interface IResolvedStyle {
   theme: Required<IStyleThemeOptions>;
   copy: IResolvedCopy;
   dark: boolean;
+  /** `null` means no host allowlist (all enabled catalog chains). */
+  allowedChains: string[] | null;
 }

@@ -23,7 +23,7 @@ export function App() {
 
   return (
     <div className="bg-background text-foreground flex h-full min-h-full flex-col">
-      {embedded ? <WalletChrome /> : null}
+      {embedded && !showOnboarding ? <WalletChrome /> : null}
 
       <div
         className={

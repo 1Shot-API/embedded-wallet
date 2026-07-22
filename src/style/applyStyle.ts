@@ -14,6 +14,10 @@ export function mergeStyle(
       productName: patch.copy?.productName ?? current.copy.productName,
       tagline: patch.copy?.tagline ?? current.copy.tagline,
       logoUrl: patch.copy?.logoUrl ?? current.copy.logoUrl,
+      account: {
+        ...current.copy.account,
+        ...patch.copy?.account,
+      },
       connect: {
         ...current.copy.connect,
         ...patch.copy?.connect,
@@ -102,6 +106,12 @@ export function mergeStyle(
       },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
+    allowedChains:
+      patch.allowedChains === undefined
+        ? current.allowedChains
+        : patch.allowedChains.length === 0
+          ? null
+          : [...patch.allowedChains],
   };
 }
 
@@ -111,6 +121,7 @@ function cloneDefaultStyle(): IResolvedStyle {
     theme: { ...DEFAULT_STYLE.theme },
     copy: {
       ...DEFAULT_STYLE.copy,
+      account: { ...DEFAULT_STYLE.copy.account },
       connect: { ...DEFAULT_STYLE.copy.connect },
       walletSetup: { ...DEFAULT_STYLE.copy.walletSetup },
       passkeyName: { ...DEFAULT_STYLE.copy.passkeyName },
@@ -135,6 +146,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       createBackup: { ...DEFAULT_STYLE.copy.createBackup },
       restoreBackup: { ...DEFAULT_STYLE.copy.restoreBackup },
     },
+    allowedChains: null,
   };
 }
 

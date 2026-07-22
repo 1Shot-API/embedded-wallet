@@ -6,12 +6,8 @@ import {
   QrCodeIcon,
   SendIcon,
 } from "lucide-react";
-import { AddressUtils } from "@1shotapi/ows-wallet-utils";
 import type { TrackedAsset } from "../lib/types/domain";
 import { EAssetType } from "../lib/types/enum";
-import type { EVMChainId } from "@1shotapi/ows-types";
-import { DEMO_CHAINS } from "../ows/demoChains";
-import { DemoChainsBlockchainProvider } from "../lib/implementations/utils";
 import { useStyle } from "../style";
 import { useWallet } from "../wallet/WalletProvider";
 import { resolveActiveAddress } from "../wallet/activeAddress";
@@ -21,14 +17,6 @@ import { TransactionHistory } from "./TransactionHistory";
 import { ReceiveModal } from "./modals/ReceiveModal";
 import { PurchaseComingSoonModal } from "./modals/PurchaseComingSoonModal";
 import { TransferTokensModal } from "./modals/TransferTokensModal";
-
-const addressUtils = new AddressUtils(new DemoChainsBlockchainProvider());
-
-function chainLabel(chainId: EVMChainId): string {
-  return (
-    DEMO_CHAINS.find((chain) => chain.chainId === chainId)?.label ?? chainId
-  );
-}
 
 export interface IAssetDetailsProps {
   asset: TrackedAsset;
@@ -41,7 +29,7 @@ export interface IAssetDetailsProps {
 export function AssetDetails({ asset }: IAssetDetailsProps) {
   const { style } = useStyle();
   const { balances: copy } = style.copy;
-  const { requestBalanceRefresh } = useWallet();
+  const { requestBalanceRefresh, resolveChain } = useWallet();
   const { evmAddress, solanaAddress } = useWalletSessionStore(
     useShallow((state) => ({
       evmAddress: state.evmAddress,
@@ -56,7 +44,8 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
     requestBalanceRefresh(asset.id);
   }, [asset.id, requestBalanceRefresh]);
 
-  const network = chainLabel(asset.chainId);
+  const network =
+    resolveChain(asset.chainId)?.label ?? String(asset.chainId);
   const active = resolveActiveAddress({
     chainId: asset.chainId,
     evmAddress,
@@ -129,7 +118,6 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
       {sendOpen ? (
         <TransferTokensModal
           asset={asset}
-          addressUtils={addressUtils}
           onClose={() => setSendOpen(false)}
           onSuccess={() => {
             requestBalanceRefresh(asset.id);

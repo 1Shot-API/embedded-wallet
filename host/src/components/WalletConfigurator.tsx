@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ColorPickerField } from "./ColorPickerField";
 import {
   ACME_PRESET,
+  CATALOG_CHAIN_OPTIONS,
   DEFAULTS_PRESET,
   OCEAN_PRESET,
   buildSetStylePayload,
@@ -143,6 +144,46 @@ export function WalletConfigurator({
             value={form.tagline}
             onChange={(value) => patch("tagline", value)}
           />
+          <fieldset className="grid gap-2">
+            <legend className="text-sm font-medium">
+              Allowed chains
+            </legend>
+            <p className="text-muted-foreground text-xs">
+              Leave all unchecked to allow every catalog network. Checking any
+              restricts the wallet Network dropdown via{" "}
+              <code className="text-[0.7rem]">setStyle.allowedChains</code>.
+            </p>
+            <div className="grid max-h-48 gap-1.5 overflow-y-auto rounded-md border p-2">
+              {CATALOG_CHAIN_OPTIONS.map((chain) => {
+                const checked = form.allowedChainIds.includes(chain.chainId);
+                return (
+                  <label
+                    key={chain.chainId}
+                    className="flex cursor-pointer items-center gap-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        patch(
+                          "allowedChainIds",
+                          checked
+                            ? form.allowedChainIds.filter(
+                                (id) => id !== chain.chainId,
+                              )
+                            : [...form.allowedChainIds, chain.chainId],
+                        );
+                      }}
+                    />
+                    <span>{chain.label}</span>
+                    <span className="text-muted-foreground font-mono text-[0.7rem]">
+                      {chain.chainId}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
         </TabsContent>
 
         <TabsContent value="style" className="mt-4 flex flex-col gap-3">
@@ -290,6 +331,46 @@ export function WalletConfigurator({
                   label="Cancel"
                   value={form.setupCancel}
                   onChange={(value) => patch("setupCancel", value)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="account">
+              <AccordionTrigger>Account shell</AccordionTrigger>
+              <AccordionContent className="flex flex-col gap-3">
+                <TextField
+                  id="select-network-title"
+                  label="Select network title"
+                  value={form.selectNetworkTitle}
+                  onChange={(value) => patch("selectNetworkTitle", value)}
+                />
+                <TextField
+                  id="select-network-cancel"
+                  label="Select network cancel"
+                  value={form.selectNetworkCancelLabel}
+                  onChange={(value) =>
+                    patch("selectNetworkCancelLabel", value)
+                  }
+                />
+                <TextField
+                  id="copy-address-label"
+                  label="Copy address"
+                  value={form.copyAddressLabel}
+                  onChange={(value) => patch("copyAddressLabel", value)}
+                />
+                <TextField
+                  id="address-copied-label"
+                  label="Address copied"
+                  value={form.addressCopiedLabel}
+                  onChange={(value) => patch("addressCopiedLabel", value)}
+                />
+                <TextField
+                  id="address-copy-failed-label"
+                  label="Address copy failed"
+                  value={form.addressCopyFailedLabel}
+                  onChange={(value) =>
+                    patch("addressCopyFailedLabel", value)
+                  }
                 />
               </AccordionContent>
             </AccordionItem>
