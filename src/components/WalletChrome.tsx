@@ -11,9 +11,10 @@ import {
   MenubarSeparator,
   MenubarTrigger,
 } from "@/components/ui/menubar";
+import { BrandLogo } from "./BrandLogo";
 
 /**
- * Top shell bar: brand + lock status + menu (backup / close).
+ * Top shell bar: brand logo + product name + menu (backup / close).
  * Uses shadcn Menubar — https://ui.shadcn.com/docs/components/base/menubar
  */
 export function WalletChrome() {
@@ -26,11 +27,10 @@ export function WalletChrome() {
     <header className="border-border shrink-0 border-b" aria-label="Wallet panel">
       <Menubar className="h-auto w-full justify-between gap-2 rounded-none border-0 bg-transparent px-3 py-2.5 shadow-none">
         <div className="flex min-w-0 items-center gap-2">
-          <span
-            className={`size-2 shrink-0 rounded-full ${unlocked ? "bg-emerald-500" : "bg-primary"}`}
-            aria-label={unlocked ? "Unlocked" : "Locked"}
-            role="status"
-            title={unlocked ? "Unlocked" : "Locked"}
+          <BrandLogo
+            logoUrl={style.copy.logoUrl}
+            className="size-5"
+            alt=""
           />
           <h2 className="m-0 truncate text-[0.9rem] font-semibold tracking-tight">
             {style.copy.productName}
