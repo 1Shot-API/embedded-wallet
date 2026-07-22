@@ -13,3 +13,5 @@ export type {
   ISendTransactionResult,
 } from "./IOneshotRelayerRepository";
 export { IOneshotRelayerRepositoryType } from "./IOneshotRelayerRepository";
+export type { IChainRepository } from "./IChainRepository";
+export { IChainRepositoryType } from "./IChainRepository";

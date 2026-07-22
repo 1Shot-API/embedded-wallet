@@ -14,7 +14,7 @@ import {
 import { EAssetType } from "../../types/enum";
 import { makeTrackedAssetId } from "@/lib/types/primitives";
 
-/** Seeded known ERC-20s for demos (USDC on every DEMO_CHAINS network + Base USDT). */
+/** Seeded known ERC-20s for demos (USDC on Arc / Sepolia / Base Sepolia / Base + Base USDT). */
 const SEEDED_KNOWN: readonly KnownAsset[] = [
   new KnownAsset(
     EVMChainId("0x4cef52"),

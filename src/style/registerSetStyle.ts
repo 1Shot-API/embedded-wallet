@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { EVMChainId } from "@1shotapi/ows-types";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+import type { IChainRepository } from "../lib/interfaces/data/IChainRepository";
 import { styleController } from "./styleController";
 
 /** Custom RPC method name — host: `await proxy.rpc("setStyle", options)`. */
@@ -321,16 +323,35 @@ export const setStyleParamsSchema = z
     theme: themeSchema,
     copy: copySchema,
     dark: z.boolean().optional(),
+    allowedChains: z
+      .array(z.string().regex(/^0x[0-9a-fA-F]+$/))
+      .optional(),
   })
   .strict();
 
 export type ISetStyleParams = z.infer<typeof setStyleParamsSchema>;
 
-export function registerSetStyleRpc(wallet: OWSWallet): void {
+export function registerSetStyleRpc(
+  wallet: OWSWallet,
+  chainRepository: IChainRepository,
+): void {
   wallet.registerRpc(
     SET_STYLE_RPC_METHOD,
     async (params) => {
-      const resolved = styleController.merge(params as ISetStyleParams);
+      const styleParams = params as ISetStyleParams;
+      const resolved = styleController.merge(styleParams);
+      if (styleParams.allowedChains !== undefined) {
+        const catalogIds = new Set(
+          chainRepository
+            .getCatalog()
+            .map((chain) => String(chain.chainId).toLowerCase()),
+        );
+        const valid = styleParams.allowedChains
+          .map((id: string) => id.toLowerCase())
+          .filter((id: string) => catalogIds.has(id))
+          .map((id: string) => EVMChainId(id as `0x${string}`));
+        chainRepository.setAllowedChains(valid.length === 0 ? null : valid);
+      }
       return {
         ok: true as const,
         productName: resolved.copy.productName,

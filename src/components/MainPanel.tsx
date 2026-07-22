@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { TrackedAsset } from "../lib/types/domain";
+import type { SupportedChain, TrackedAsset } from "../lib/types/domain";
 import { useWallet } from "../wallet/WalletProvider";
 import {
   EWalletMode,
@@ -20,6 +20,19 @@ import { AssetDetails } from "./AssetDetails";
 import { CopyableText } from "./CopyableText";
 import { BalancesTab } from "./balances/BalancesTab";
 import { CredentialsTab } from "./credentials/CredentialsTab";
+
+function ChainOptionLabel({ chain }: { chain: SupportedChain }) {
+  return (
+    <span className="flex items-center gap-2 min-w-0">
+      <img
+        src={chain.logoUrl}
+        alt=""
+        className="size-5 shrink-0 rounded-full object-cover"
+      />
+      <span className="truncate">{chain.label}</span>
+    </span>
+  );
+}
 
 function FocusedAssetPanel() {
   const { resolveTrackedAsset } = useWallet();
@@ -92,6 +105,11 @@ export function MainPanel() {
     solanaAddress,
   });
   const hasAddress = Boolean(active.address && active.address !== "—");
+  const selectedChain =
+    chains.find(
+      (chain) =>
+        String(chain.chainId).toLowerCase() === String(chainId).toLowerCase(),
+    ) ?? null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -110,12 +128,16 @@ export function MainPanel() {
             }}
           >
             <SelectTrigger id="wallet-chain" className="w-full">
-              <SelectValue placeholder="Select chain" />
+              <SelectValue placeholder="Select chain">
+                {selectedChain ? (
+                  <ChainOptionLabel chain={selectedChain} />
+                ) : null}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {chains.map((chain) => (
                 <SelectItem key={chain.chainId} value={chain.chainId}>
-                  {chain.label}
+                  <ChainOptionLabel chain={chain} />
                 </SelectItem>
               ))}
             </SelectContent>

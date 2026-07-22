@@ -102,6 +102,12 @@ export function mergeStyle(
       },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
+    allowedChains:
+      patch.allowedChains === undefined
+        ? current.allowedChains
+        : patch.allowedChains.length === 0
+          ? null
+          : [...patch.allowedChains],
   };
 }
 
@@ -135,6 +141,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       createBackup: { ...DEFAULT_STYLE.copy.createBackup },
       restoreBackup: { ...DEFAULT_STYLE.copy.restoreBackup },
     },
+    allowedChains: null,
   };
 }
 

@@ -1,4 +1,4 @@
 export { ConfigProvider } from "./ConfigProvider";
-export { DemoChainsBlockchainProvider } from "./DemoChainsBlockchainProvider";
+export { SupportedChainsBlockchainProvider } from "./SupportedChainsBlockchainProvider";
 export { EventBus } from "./EventBus";
 export { TransactionUtils } from "./TransactionUtils";

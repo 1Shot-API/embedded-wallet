@@ -9,3 +9,7 @@ export { BlockscoutAssetActivityRepository } from "./BlockscoutAssetActivityRepo
 export type { AssetActivityRepositoryOptions } from "./BlockscoutAssetActivityRepository";
 export { OneshotRelayerRepository } from "./OneshotRelayerRepository";
 export type { OneshotRelayerRepositoryOptions } from "./OneshotRelayerRepository";
+export {
+  DEFAULT_CHAIN_ID,
+  HardcodedChainRepository,
+} from "./HardcodedChainRepository";

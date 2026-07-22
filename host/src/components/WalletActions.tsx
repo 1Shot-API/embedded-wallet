@@ -30,6 +30,12 @@ export const HOST_CHAINS = [
     usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     blockExplorerUrl: "https://sepolia.basescan.org",
   },
+  {
+    value: "0x2105",
+    label: "Base",
+    usdc: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    blockExplorerUrl: "https://basescan.org",
+  },
 ] as const;
 
 /** Focus demo: Arc Testnet USDC. */

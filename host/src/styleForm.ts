@@ -18,6 +18,11 @@ export interface IStyleFormState {
   radius: string;
   fontSans: string;
   dark: boolean;
+  /**
+   * Hex chain ids to pass as `allowedChains`.
+   * Empty ⇒ omit (all catalog-enabled chains).
+   */
+  allowedChainIds: string[];
 
   // Text — Connect
   connectTitle: string;
@@ -125,6 +130,27 @@ export interface IStyleFormState {
   restoreCancel: string;
 }
 
+/** Catalog options for the Allowed chains configurator (matches HardcodedChainRepository). */
+export const CATALOG_CHAIN_OPTIONS: ReadonlyArray<{
+  chainId: string;
+  label: string;
+}> = [
+  { chainId: "0x4cef52", label: "Arc Testnet" },
+  { chainId: "0xaa36a7", label: "Sepolia" },
+  { chainId: "0x14a34", label: "Base Sepolia" },
+  { chainId: "0x1", label: "Ethereum" },
+  { chainId: "0xe708", label: "Linea" },
+  { chainId: "0xa4b1", label: "Arbitrum" },
+  { chainId: "0xa", label: "Optimism" },
+  { chainId: "0x38", label: "BSC" },
+  { chainId: "0x2105", label: "Base" },
+  { chainId: "0x89", label: "Polygon" },
+  { chainId: "0x92", label: "Sonic" },
+  { chainId: "0x82", label: "Unichain" },
+  { chainId: "0x8f", label: "Monad" },
+  { chainId: "0xa4ec", label: "Celo" },
+];
+
 export const ACME_PRESET: IStyleFormState = {
   logoUrl: "",
   productName: "Acme Wallet",
@@ -141,6 +167,7 @@ export const ACME_PRESET: IStyleFormState = {
   radius: "0.625rem",
   fontSans: "",
   dark: false,
+  allowedChainIds: [],
   connectTitle: "Connect to Acme",
   connectBody: "Acme is requesting your wallet address.",
   connectContinue: "Allow",
@@ -525,5 +552,8 @@ export function buildSetStylePayload(
   const payload: Record<string, unknown> = { dark: form.dark };
   if (Object.keys(theme).length > 0) payload.theme = theme;
   if (Object.keys(copy).length > 0) payload.copy = copy;
+  if (form.allowedChainIds.length > 0) {
+    payload.allowedChains = [...form.allowedChainIds];
+  }
   return payload;
 }

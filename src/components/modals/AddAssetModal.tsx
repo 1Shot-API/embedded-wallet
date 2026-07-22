@@ -1,15 +1,9 @@
 import type { EVMChainId } from "@1shotapi/ows-types";
 import { Modal } from "../Modal";
 import { useStyle } from "../../style";
-import { DEMO_CHAINS } from "../../ows/demoChains";
+import { useWallet } from "../../wallet/WalletProvider";
 import type { IAddAssetApprovalRequest } from "../../wallet/registerAddAsset";
 import { CopyableText } from "../CopyableText";
-
-function chainLabel(chainId: EVMChainId): string {
-  return (
-    DEMO_CHAINS.find((chain) => chain.chainId === chainId)?.label ?? chainId
-  );
-}
 
 export function AddAssetModal({
   request,
@@ -19,9 +13,12 @@ export function AddAssetModal({
   onResolve: (approved: boolean) => void;
 }) {
   const { style } = useStyle();
+  const { resolveChain } = useWallet();
   const { balances: copy } = style.copy;
   const displayName = request.assetSymbol || request.assetName;
-  const network = chainLabel(request.chainId);
+  const network =
+    resolveChain(request.chainId)?.label ??
+    String(request.chainId);
 
   return (
     <Modal

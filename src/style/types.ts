@@ -372,6 +372,11 @@ export interface IStyleOptions {
   copy?: IStyleCopyOptions;
   /** When true, add `.dark` on <html>; when false, remove it; omit = unchanged */
   dark?: boolean;
+  /**
+   * Hex EVM chain ids the Network dropdown may show.
+   * Omit or empty ⇒ all catalog-enabled chains.
+   */
+  allowedChains?: string[];
 }
 
 /** Fully resolved style after merging defaults + setStyle patches. */
@@ -379,4 +384,6 @@ export interface IResolvedStyle {
   theme: Required<IStyleThemeOptions>;
   copy: IResolvedCopy;
   dark: boolean;
+  /** `null` means no host allowlist (all enabled catalog chains). */
+  allowedChains: string[] | null;
 }
