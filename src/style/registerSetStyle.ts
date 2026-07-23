@@ -165,6 +165,7 @@ const passkeyPromptCopySchema = z
     encrypt: passkeyPromptEntrySchema,
     decrypt: passkeyPromptEntrySchema,
     relayerAuth: passkeyPromptEntrySchema,
+    walletUpgrade: passkeyPromptEntrySchema,
     backup: passkeyPromptEntrySchema,
   })
   .strict()

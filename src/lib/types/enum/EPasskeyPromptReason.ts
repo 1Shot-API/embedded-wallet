@@ -7,4 +7,6 @@ export enum EPasskeyPromptReason {
   Decrypt = "decrypt",
   RelayerAuth = "relayerAuth",
   Backup = "backup",
+  /** EIP-7702 wallet upgrade authorization (informational overlay during ceremony). */
+  WalletUpgrade = "walletUpgrade",
 }

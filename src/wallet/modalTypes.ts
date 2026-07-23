@@ -6,6 +6,8 @@ import type {
 import type {
   CredentialOfferApprovalRequest,
   CredentialPresentationApprovalRequest,
+  EVMAccountAddress,
+  EVMChainId,
   RecoveryDataCreatedData,
 } from "@1shotapi/ows-types";
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
@@ -20,7 +22,18 @@ export interface IConfirmTransferRequest {
   tokenSymbol: string;
   receiver: string;
   chainName: string;
+  chainId: EVMChainId;
+  ownerAddress: EVMAccountAddress;
+  useRelayer: boolean;
 }
+
+/** Result from TX confirm modals (relayer path includes payment selection). */
+export type IConfirmSendResult =
+  | false
+  | {
+      paymentToken?: EVMAccountAddress;
+      feeAtoms?: bigint;
+    };
 
 export type ModalRequest =
   | {
@@ -53,14 +66,14 @@ export type ModalRequest =
   | {
       id: string;
       kind: "sendTransaction";
-      request: SendTransactionApprovalRequest;
-      resolve: (approved: boolean) => void;
+      request: SendTransactionApprovalRequest & { useRelayer?: boolean };
+      resolve: (result: IConfirmSendResult) => void;
     }
   | {
       id: string;
       kind: "confirmTransfer";
       request: IConfirmTransferRequest;
-      resolve: (approved: boolean) => void;
+      resolve: (result: IConfirmSendResult) => void;
     }
   | {
       id: string;

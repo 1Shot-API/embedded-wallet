@@ -1,0 +1,698 @@
+import {
+  createDelegation,
+  getSmartAccountsEnvironment,
+  Implementation,
+  ScopeType,
+  toMetaMaskSmartAccount,
+} from "@metamask/smart-accounts-kit";
+import { toViemLocalAccount, type OWSSigner } from "@1shotapi/ows-signer-utils";
+import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
+import {
+  EVMAccountAddress,
+  EVMTransactionHash,
+  type EVMChainId,
+  type HexString,
+  type RelayerTransactionId,
+} from "@1shotapi/ows-types";
+import {
+  encodeFunctionData,
+  erc20Abi,
+  formatUnits,
+  getAddress,
+  parseUnits,
+  type Hex,
+} from "viem";
+import { recoverAuthorizationAddress } from "viem/utils";
+import type { IChainRepository } from "../../interfaces/data/IChainRepository";
+import type {
+  IOneshotRelayerRepository,
+  IRelayer7710Params,
+  IRelayerAuthorizationEntry,
+  ISendTransactionResult,
+} from "../../interfaces/data/IOneshotRelayerRepository";
+import type {
+  IPaymentQuote,
+  IPaymentTokenOption,
+  ITransactionService,
+  ITransactionWork,
+} from "../../interfaces/business/ITransactionService";
+import type { ITransactionUtils } from "../../interfaces/utils/ITransactionUtils";
+import type { IRelayerSendPrefetch } from "../../interfaces/business/ITransactionService";
+import { EPasskeyPromptReason } from "../../types/enum";
+import type { LocalAccount } from "viem/accounts";
+
+const STATELESS_DELEGATOR_IMPL =
+  "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B" as const;
+
+const DELEGATION_SECRET_KEY = "oneshot.delegationSecret";
+const POLL_MS = 1000;
+const MAX_POLL_ATTEMPTS = 180;
+
+export type TransactionServiceOptions = {
+  chainRepository: IChainRepository;
+  relayerRepository: IOneshotRelayerRepository;
+  blockchain: IBlockchainProvider;
+  transactionUtils: ITransactionUtils;
+  getSigner: () => OWSSigner;
+  /** Show informational passkey overlay while {@link run} executes. */
+  withPasskeyPrompt: <T>(
+    reason: EPasskeyPromptReason,
+    run: () => Promise<T>,
+  ) => Promise<T>;
+  /**
+   * Re-show / focus the branding iframe before WebAuthn so the host does not
+   * leave the panel hidden (and so user activation can attach to a visible frame).
+   * Implementations that call `requestDisplay` must `release()` so display depth
+   * does not leak and block hide after SignHelper finishes.
+   */
+  ensureDisplay?: () => Promise<void>;
+  /** Force-hide after the last passkey; estimate/submit/poll can continue headlessly. */
+  hideDisplay?: () => Promise<void>;
+};
+
+/**
+ * Business orchestration for raw and public-relayer (EIP-7710) sends.
+ */
+export class TransactionService implements ITransactionService {
+  private cachedViemAccount: LocalAccount | null = null;
+
+  constructor(private readonly options: TransactionServiceOptions) {}
+
+  async needsWalletUpgrade(
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ): Promise<boolean> {
+    const cached = await this.options.chainRepository.getWalletUpgraded(
+      chainId,
+      address,
+    );
+    if (cached === true) return false;
+    if (cached === false) return true;
+
+    const upgraded = await this.isCodeUpgraded(chainId, address);
+    await this.options.chainRepository.setWalletUpgraded(
+      chainId,
+      address,
+      upgraded,
+    );
+    return !upgraded;
+  }
+
+  async prefetchForRelayerSend(
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ): Promise<IRelayerSendPrefetch> {
+    // Warm viem account while unlock activation may still be live.
+    await this.getViemAccount();
+
+    const needsUpgrade = await this.needsWalletUpgrade(chainId, address);
+    if (!needsUpgrade) {
+      return { needsUpgrade: false };
+    }
+
+    const client = this.options.blockchain.getPublicClient(chainId);
+    const chainIdNumber = Number(BigInt(chainId));
+    let upgradeContractAddress: `0x${string}` = STATELESS_DELEGATOR_IMPL;
+    try {
+      const env = getSmartAccountsEnvironment(chainIdNumber);
+      upgradeContractAddress = getAddress(
+        env.implementations.EIP7702StatelessDeleGatorImpl,
+      );
+    } catch {
+      // keep hardcoded fallback
+    }
+
+    const upgradeNonce = await client.getTransactionCount({
+      address,
+      blockTag: "pending",
+    });
+
+    return {
+      needsUpgrade: true,
+      upgradeNonce,
+      upgradeContractAddress,
+    };
+  }
+
+  async signWalletUpgradeAuthorization(
+    chainId: EVMChainId,
+    prefetch?: IRelayerSendPrefetch,
+  ): Promise<IRelayerAuthorizationEntry> {
+    await this.options.ensureDisplay?.();
+    return this.options.withPasskeyPrompt(
+      EPasskeyPromptReason.WalletUpgrade,
+      () => this.signWalletUpgradeAuthorizationInner(chainId, prefetch),
+    );
+  }
+
+  private async signWalletUpgradeAuthorizationInner(
+    chainId: EVMChainId,
+    prefetch?: IRelayerSendPrefetch,
+  ): Promise<IRelayerAuthorizationEntry> {
+    const account = await this.getViemAccount();
+    const chainIdNumber = Number(BigInt(chainId));
+
+    let contractAddress: `0x${string}` =
+      prefetch?.upgradeContractAddress ?? STATELESS_DELEGATOR_IMPL;
+    let nonce = prefetch?.upgradeNonce;
+
+    if (nonce === undefined) {
+      const client = this.options.blockchain.getPublicClient(chainId);
+      try {
+        const env = getSmartAccountsEnvironment(chainIdNumber);
+        contractAddress = getAddress(
+          env.implementations.EIP7702StatelessDeleGatorImpl,
+        );
+      } catch {
+        // Fall back to the known Stateless7702 implementation address.
+      }
+      nonce = await client.getTransactionCount({
+        address: account.address,
+        blockTag: "pending",
+      });
+    }
+
+    if (!account.signAuthorization) {
+      throw new Error("Signer does not support EIP-7702 signAuthorization");
+    }
+
+    const signed = await account.signAuthorization({
+      chainId: chainIdNumber,
+      contractAddress,
+      nonce,
+    });
+
+    const yParity = yParityFromSignedAuthorization(signed);
+    const entry: IRelayerAuthorizationEntry = {
+      address: getAddress(signed.address),
+      chainId: Number(signed.chainId),
+      nonce: Number(signed.nonce),
+      r: signed.r as `0x${string}`,
+      s: signed.s as `0x${string}`,
+      yParity,
+    };
+
+    // Verify the auth list entry recovers to this EOA before sending to the relayer.
+    const recovered = await recoverAuthorizationAddress({
+      authorization: {
+        address: entry.address,
+        chainId: entry.chainId,
+        nonce: entry.nonce,
+        r: entry.r,
+        s: entry.s,
+        yParity: entry.yParity as 0 | 1,
+      },
+    });
+    if (getAddress(recovered) !== getAddress(account.address)) {
+      throw new Error(
+        `EIP-7702 authorization recovers to ${recovered}, expected ${account.address}`,
+      );
+    }
+    console.debug("[TransactionService] EIP-7702 authorization verified", {
+      eoa: account.address,
+      contractAddress: entry.address,
+      chainId: entry.chainId,
+      nonce: entry.nonce,
+      yParity: entry.yParity,
+      r: entry.r,
+      s: entry.s,
+      recovered,
+    });
+
+    return entry;
+  }
+
+  async quotePayment(
+    chainId: EVMChainId,
+    owner: EVMAccountAddress,
+    preferredToken?: EVMAccountAddress,
+  ): Promise<IPaymentQuote> {
+    const chain = await this.requireRelayerChain(chainId);
+    const capabilities = await this.options.relayerRepository.getCapabilities(
+      chain.relayerUrl,
+      chainId,
+    );
+
+    const client = this.options.blockchain.getPublicClient(chainId);
+    const tokens: IPaymentTokenOption[] = [];
+    for (const token of capabilities.tokens) {
+      let balance = 0n;
+      try {
+        balance = await client.readContract({
+          address: token.address,
+          abi: erc20Abi,
+          functionName: "balanceOf",
+          args: [owner],
+        });
+      } catch {
+        balance = 0n;
+      }
+      tokens.push({ ...token, balance });
+    }
+
+    const selected = pickPaymentToken(tokens, preferredToken);
+    if (!selected) {
+      throw new Error("No relayer payment token with a positive balance");
+    }
+
+    // Confirm UI uses a conservative mock (≥ typical $0.01 minFee). The real fee
+    // comes from relayer_estimate7710Transaction at submit — not getFeeData
+    // (whose minFee is a human decimal string, not atoms).
+    const feeAtoms = parseUnits("0.01", selected.decimals);
+
+    return {
+      tokens,
+      selectedToken: selected.address,
+      feeAtoms,
+      feeFormatted: formatUnits(feeAtoms, selected.decimals),
+      feeCollector: capabilities.feeCollector,
+      targetAddress: capabilities.targetAddress,
+      minFee: feeAtoms,
+    };
+  }
+
+  async sendTransaction(
+    chainId: EVMChainId,
+    work: ITransactionWork,
+    options?: {
+      paymentToken?: EVMAccountAddress;
+      feeAtoms?: bigint;
+      authorizationList?: IRelayerAuthorizationEntry[];
+      prefetch?: IRelayerSendPrefetch;
+    },
+  ): Promise<ISendTransactionResult> {
+    const chain = await this.options.chainRepository.get(chainId);
+    if (!chain) {
+      throw new Error(`Unsupported chain: ${chainId}`);
+    }
+
+    if (!chain.useRelayer) {
+      return this.options.relayerRepository.broadcastRawTransaction(
+        chainId,
+        work.to,
+        work.data,
+        work.value,
+      );
+    }
+
+    if (!options?.paymentToken || options.feeAtoms === undefined) {
+      throw new Error(
+        "Relayer sends require paymentToken and feeAtoms from the confirm UI",
+      );
+    }
+
+    return this.sendViaRelayer({
+      chainId,
+      work,
+      paymentToken: options.paymentToken,
+      feeAtoms: options.feeAtoms,
+      authorizationList: options.authorizationList,
+      prefetch: options.prefetch,
+      relayerUrl: chain.relayerUrl,
+    });
+  }
+
+  private async sendViaRelayer(args: {
+    chainId: EVMChainId;
+    work: ITransactionWork;
+    paymentToken: EVMAccountAddress;
+    feeAtoms: bigint;
+    authorizationList?: IRelayerAuthorizationEntry[];
+    prefetch?: IRelayerSendPrefetch;
+    relayerUrl: string;
+  }): Promise<ISendTransactionResult> {
+    const { chainId, work, paymentToken, relayerUrl, prefetch } = args;
+    let feeAtoms = args.feeAtoms;
+    let authorizationList = args.authorizationList;
+
+    const signer = this.options.getSigner();
+    const eoa =
+      signer.getCachedAddress?.() ?? (await signer.evm.getAccountAddress());
+
+    // Upgrade immediately after confirm — no network awaits before WebAuthn when
+    // prefetch supplied (avoids "The operation is insecure" / lost user activation).
+    if (!authorizationList?.length) {
+      const needsUpgrade =
+        prefetch?.needsUpgrade ??
+        (await this.needsWalletUpgrade(chainId, eoa));
+      if (needsUpgrade) {
+        authorizationList = [
+          await this.signWalletUpgradeAuthorization(chainId, prefetch),
+        ];
+      }
+    }
+
+    await this.options.ensureDisplay?.();
+    const viemAccount = await this.getViemAccount();
+    const publicClient = this.options.blockchain.getPublicClient(chainId);
+    const chainIdNumber = Number(BigInt(chainId));
+
+    const smartAccount = await toMetaMaskSmartAccount({
+      client: publicClient as never,
+      implementation: Implementation.Stateless7702,
+      address: eoa,
+      signer: { account: viemAccount },
+    });
+
+    const capabilities = await this.options.relayerRepository.getCapabilities(
+      relayerUrl,
+      chainId,
+    );
+
+    const feeCalldata = HexStringCompat(
+      encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "transfer",
+        args: [capabilities.feeCollector, feeAtoms],
+      }),
+    );
+    const workData = (work.data || "0x") as Hex;
+    const workValue = work.value ?? 0n;
+
+    let feeDelegation = await this.createAndSignExactCalldataDelegation({
+      smartAccount,
+      delegate: capabilities.targetAddress,
+      target: paymentToken,
+      value: 0n,
+      callData: feeCalldata,
+      chainIdNumber,
+    });
+    const workDelegation = await this.createAndSignExactCalldataDelegation({
+      smartAccount,
+      delegate: capabilities.targetAddress,
+      target: work.to,
+      value: workValue,
+      callData: workData,
+      chainIdNumber,
+    });
+
+    const buildParams = (
+      feeSig: unknown,
+      feeAmount: bigint,
+      context?: string,
+    ): IRelayer7710Params => {
+      const feeData = HexStringCompat(
+        encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "transfer",
+          args: [capabilities.feeCollector, feeAmount],
+        }),
+      );
+      return {
+        chainId: chainIdNumber.toString(10),
+        transactions: [
+          {
+            permissionContext: [toRelayerJson(feeSig)],
+            executions: [
+              {
+                target: paymentToken,
+                value: "0",
+                data: feeData as HexString,
+              },
+            ],
+          },
+          {
+            permissionContext: [toRelayerJson(workDelegation)],
+            executions: [
+              {
+                target: work.to,
+                value: workValue === 0n ? "0" : `0x${workValue.toString(16)}`,
+                data: workData as HexString,
+              },
+            ],
+          },
+        ],
+        ...(authorizationList?.length
+          ? { authorizationList }
+          : {}),
+        ...(context ? { context } : {}),
+        memo: buildMemo(eoa, this.options.transactionUtils.resolveHostDomain()),
+        delegationSecret: loadOrCreateDelegationSecret(),
+      };
+    };
+
+    let params = buildParams(feeDelegation, feeAtoms);
+    let estimate =
+      await this.options.relayerRepository.estimate7710Transaction(
+        relayerUrl,
+        params,
+      );
+
+    if (
+      estimate.success &&
+      estimate.requiredPaymentAmount &&
+      BigInt(estimate.requiredPaymentAmount) !== feeAtoms
+    ) {
+      feeAtoms = BigInt(estimate.requiredPaymentAmount);
+      const nextFeeCalldata = HexStringCompat(
+        encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "transfer",
+          args: [capabilities.feeCollector, feeAtoms],
+        }),
+      );
+      feeDelegation = await this.createAndSignExactCalldataDelegation({
+        smartAccount,
+        delegate: capabilities.targetAddress,
+        target: paymentToken,
+        value: 0n,
+        callData: nextFeeCalldata,
+        chainIdNumber,
+      });
+      params = buildParams(feeDelegation, feeAtoms);
+      estimate =
+        await this.options.relayerRepository.estimate7710Transaction(
+          relayerUrl,
+          params,
+        );
+    }
+
+    if (!estimate.success) {
+      throw new Error(
+        estimate.error ?? "relayer_estimate7710Transaction failed",
+      );
+    }
+
+    // Last passkey is done — collapse the flyout while submit/poll run.
+    await this.options.hideDisplay?.();
+
+    params = buildParams(feeDelegation, feeAtoms, estimate.context);
+    const taskId = await this.options.relayerRepository.send7710Transaction(
+      relayerUrl,
+      params,
+    );
+
+    if (authorizationList?.length) {
+      await this.options.chainRepository.setWalletUpgraded(chainId, eoa, true);
+    }
+
+    const hash = await this.pollUntilTerminal(relayerUrl, taskId);
+    return {
+      relayerTransactionId: taskId,
+      transactionHash: hash,
+    };
+  }
+
+  private async createAndSignExactCalldataDelegation(args: {
+    smartAccount: Awaited<ReturnType<typeof toMetaMaskSmartAccount>>;
+    delegate: EVMAccountAddress;
+    target: EVMAccountAddress;
+    value: bigint;
+    callData: Hex;
+    chainIdNumber: number;
+  }): Promise<unknown> {
+    const { smartAccount, delegate, target, value, callData } = args;
+    const salt = randomSalt32();
+    const selector = methodSelector(callData);
+
+    const delegation = createDelegation({
+      to: getAddress(delegate),
+      from: smartAccount.address,
+      environment: smartAccount.environment,
+      salt,
+      scope: {
+        type: ScopeType.FunctionCall,
+        targets: [getAddress(target)],
+        selectors: [selector],
+        exactCalldata: { calldata: callData },
+        valueLte: { maxValue: value },
+      },
+    });
+
+    await this.options.ensureDisplay?.();
+    const signature = await smartAccount.signDelegation({ delegation });
+    return { ...delegation, signature };
+  }
+
+  private async getViemAccount(): Promise<LocalAccount> {
+    if (this.cachedViemAccount) {
+      return this.cachedViemAccount;
+    }
+    const account = await toViemLocalAccount(this.options.getSigner());
+    this.cachedViemAccount = account;
+    return account;
+  }
+
+  private async pollUntilTerminal(
+    relayerUrl: string,
+    taskId: RelayerTransactionId,
+  ): Promise<EVMTransactionHash> {
+    let lastHash: EVMTransactionHash | undefined;
+
+    for (let i = 0; i < MAX_POLL_ATTEMPTS; i += 1) {
+      const status = await this.options.relayerRepository.getStatus(
+        relayerUrl,
+        taskId,
+      );
+      // 110: top-level `hash`; 200: `receipt.transactionHash` (mapped in getStatus).
+      if (status.hash) {
+        lastHash = status.hash;
+      }
+
+      if (status.status === 200) {
+        if (status.hash) return status.hash;
+        if (lastHash) return lastHash;
+        throw new Error(
+          "Relayer reported confirmed (200) without a transaction hash",
+        );
+      }
+      if (status.status === 400 || status.status === 500) {
+        throw new Error(
+          status.message ?? `Relayer task failed with status ${status.status}`,
+        );
+      }
+      await sleep(POLL_MS);
+    }
+
+    if (lastHash) {
+      return lastHash;
+    }
+    throw new Error("Timed out waiting for relayer transaction status");
+  }
+
+  private async isCodeUpgraded(
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ): Promise<boolean> {
+    const client = this.options.blockchain.getPublicClient(chainId);
+    const code = await client.getCode({ address });
+    if (!code || code === "0x") return false;
+
+    let impl = STATELESS_DELEGATOR_IMPL.toLowerCase();
+    try {
+      const env = getSmartAccountsEnvironment(Number(BigInt(chainId)));
+      impl = env.implementations.EIP7702StatelessDeleGatorImpl.toLowerCase();
+    } catch {
+      // keep hardcoded fallback
+    }
+
+    const normalized = code.toLowerCase();
+    // EIP-7702 designator: 0xef0100 || address
+    if (normalized.startsWith("0xef0100") && normalized.length >= 48) {
+      const delegated = `0x${normalized.slice(8, 48)}`;
+      return delegated === impl;
+    }
+    return normalized.includes(impl.slice(2));
+  }
+
+  private async requireRelayerChain(chainId: EVMChainId) {
+    const chain = await this.options.chainRepository.get(chainId);
+    if (!chain) {
+      throw new Error(`Unsupported chain: ${chainId}`);
+    }
+    if (!chain.useRelayer) {
+      throw new Error(`Chain ${chainId} does not support the 1Shot relayer`);
+    }
+    return chain;
+  }
+}
+
+function pickPaymentToken(
+  tokens: IPaymentTokenOption[],
+  preferred?: EVMAccountAddress,
+): IPaymentTokenOption | null {
+  const withBalance = tokens.filter((t) => t.balance > 0n);
+  if (preferred) {
+    const match = withBalance.find(
+      (t) => String(t.address).toLowerCase() === String(preferred).toLowerCase(),
+    );
+    if (match) return match;
+  }
+  const usdc = withBalance.find((t) => t.symbol.toUpperCase() === "USDC");
+  if (usdc) return usdc;
+  const usdt = withBalance.find((t) => t.symbol.toUpperCase() === "USDT");
+  if (usdt) return usdt;
+  return withBalance[0] ?? null;
+}
+
+function methodSelector(callData: Hex): Hex {
+  if (callData.length >= 10) {
+    return callData.slice(0, 10) as Hex;
+  }
+  // Empty / short calldata (e.g. plain ETH transfer): pin via exactCalldata alone.
+  return "0x00000000";
+}
+
+function randomSalt32(): Hex {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return `0x${Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")}` as Hex;
+}
+
+function loadOrCreateDelegationSecret(): string {
+  try {
+    const existing = localStorage.getItem(DELEGATION_SECRET_KEY);
+    if (existing && existing.length >= 10) return existing;
+    const next = crypto.randomUUID();
+    localStorage.setItem(DELEGATION_SECRET_KEY, next);
+    return next;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
+
+function buildMemo(wallet: EVMAccountAddress, host: string): string {
+  const memo = JSON.stringify({ wallet: String(wallet), host });
+  return memo.length <= 256 ? memo : memo.slice(0, 256);
+}
+
+function toRelayerJson(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  if (typeof value === "bigint") return `0x${value.toString(16)}`;
+  if (value instanceof Uint8Array) {
+    return `0x${Array.from(value, (b) => b.toString(16).padStart(2, "0")).join("")}`;
+  }
+  if (Array.isArray(value)) return value.map(toRelayerJson);
+  if (typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = toRelayerJson(v);
+    }
+    return out;
+  }
+  return value;
+}
+
+function HexStringCompat(value: string): Hex {
+  return value as Hex;
+}
+
+function yParityFromSignedAuthorization(signed: {
+  yParity?: number | undefined;
+  v?: bigint | number | undefined;
+}): 0 | 1 {
+  if (signed.yParity === 0 || signed.yParity === 1) {
+    return signed.yParity;
+  }
+  if (signed.v !== undefined) {
+    const v = Number(signed.v);
+    if (v === 0 || v === 1) return v;
+    if (v === 27 || v === 28) return (v - 27) as 0 | 1;
+  }
+  throw new Error(
+    "EIP-7702 authorization missing yParity (relayer requires 0|1)",
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

@@ -1,4 +1,4 @@
-import { createPublicClient, http, type PublicClient } from "viem";
+import { createPublicClient, defineChain, http, type PublicClient } from "viem";
 import type { EVMChainId } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
@@ -22,7 +22,20 @@ export class SupportedChainsBlockchainProvider implements IBlockchainProvider {
       throw new Error(`Unsupported chain for RPC: ${chainId}`);
     }
 
+    const viemChain = defineChain({
+      id: Number(BigInt(chain.chainId)),
+      name: chain.label,
+      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+      rpcUrls: {
+        default: { http: [chain.rpcUrl] },
+      },
+      blockExplorers: {
+        default: { name: "Explorer", url: chain.blockExplorerUrl },
+      },
+    });
+
     const client = createPublicClient({
+      chain: viemChain,
       transport: http(chain.rpcUrl),
     });
     this.clients.set(key, client);

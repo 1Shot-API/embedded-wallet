@@ -4,7 +4,6 @@ import type {
   EVMTransactionHash,
   HexString,
   RelayerTransactionId,
-  UriString,
 } from "@1shotapi/ows-types";
 
 export interface ISendTransactionResult {
@@ -12,17 +11,118 @@ export interface ISendTransactionResult {
   transactionHash: EVMTransactionHash;
 }
 
+export interface IRelayerPaymentToken {
+  address: EVMAccountAddress;
+  symbol: string;
+  name?: string;
+  decimals: number;
+}
+
+export interface IRelayerCapabilities {
+  feeCollector: EVMAccountAddress;
+  targetAddress: EVMAccountAddress;
+  tokens: IRelayerPaymentToken[];
+}
+
+export interface IRelayerFeeData {
+  chainId: string;
+  token: IRelayerPaymentToken;
+  rate: number;
+  minFee: string;
+  expiry: number;
+  gasPrice: HexString;
+  feeCollector: EVMAccountAddress;
+  targetAddress?: EVMAccountAddress;
+  context?: string;
+}
+
+export interface IRelayer7710Execution {
+  target: EVMAccountAddress;
+  value: string;
+  data: HexString;
+}
+
+export interface IRelayer7710TransactionEntry {
+  permissionContext: unknown[];
+  executions: IRelayer7710Execution[];
+}
+
+export interface IRelayerAuthorizationEntry {
+  address: `0x${string}`;
+  chainId: number;
+  nonce: number;
+  r: `0x${string}`;
+  s: `0x${string}`;
+  yParity: number;
+}
+
+export interface IRelayer7710Params {
+  chainId: string;
+  transactions: IRelayer7710TransactionEntry[];
+  authorizationList?: IRelayerAuthorizationEntry[];
+  context?: string;
+  memo?: string;
+  delegationSecret?: string;
+}
+
+export interface IRelayerEstimateResult {
+  success: boolean;
+  paymentTokenAddress?: EVMAccountAddress;
+  paymentChain?: number;
+  gasUsed: Record<string, string>;
+  requiredPaymentAmount?: string;
+  context?: string;
+  error?: string;
+}
+
+export type ERelayerTaskStatus = 100 | 110 | 200 | 400 | 500;
+
+export interface IRelayerStatusResult {
+  id: string;
+  status: ERelayerTaskStatus;
+  chainId?: string;
+  hash?: EVMTransactionHash;
+  message?: string;
+  memo?: string;
+}
+
 /**
- * Submits an EVM transaction (prepare + sign + broadcast).
- * Interim: eth_sendRawTransaction via public RPC; later: 1Shot relayer.
+ * Data client for the public 1Shot relayer JSON-RPC + interim raw broadcast.
+ * Orchestration lives in {@link ITransactionService}.
  */
 export interface IOneshotRelayerRepository {
-  sendTransaction(
+  getCapabilities(
+    relayerUrl: string,
     chainId: EVMChainId,
-    contractAddress: EVMAccountAddress,
-    transactionData: HexString,
+  ): Promise<IRelayerCapabilities>;
+
+  getFeeData(
+    relayerUrl: string,
+    chainId: EVMChainId,
+    token: EVMAccountAddress,
+  ): Promise<IRelayerFeeData>;
+
+  estimate7710Transaction(
+    relayerUrl: string,
+    params: IRelayer7710Params,
+  ): Promise<IRelayerEstimateResult>;
+
+  send7710Transaction(
+    relayerUrl: string,
+    params: IRelayer7710Params,
+  ): Promise<RelayerTransactionId>;
+
+  getStatus(
+    relayerUrl: string,
+    taskId: RelayerTransactionId,
+  ): Promise<IRelayerStatusResult>;
+
+  /** Non-relayer path: prepare + sign + eth_sendRawTransaction. */
+  broadcastRawTransaction(
+    chainId: EVMChainId,
+    to: EVMAccountAddress,
+    data: HexString,
     value?: bigint,
-    options?: { webhookDestination?: UriString },
   ): Promise<ISendTransactionResult>;
 }
 
