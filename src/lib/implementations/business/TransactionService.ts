@@ -5,7 +5,7 @@ import {
   ScopeType,
   toMetaMaskSmartAccount,
 } from "@metamask/smart-accounts-kit";
-import { toViemLocalAccount, type OWSSigner } from "@1shotapi/ows-signer-utils";
+import { toViemLocalAccount } from "@1shotapi/ows-signer-utils";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import {
   EVMAccountAddress,
@@ -37,6 +37,7 @@ import type {
   ITransactionWork,
 } from "../../interfaces/business/ITransactionService";
 import type { ITransactionUtils } from "../../interfaces/utils/ITransactionUtils";
+import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
 import type { IRelayerSendPrefetch } from "../../interfaces/business/ITransactionService";
 import { EPasskeyPromptReason } from "../../types/enum";
 import type { LocalAccount } from "viem/accounts";
@@ -53,21 +54,12 @@ export type TransactionServiceOptions = {
   relayerRepository: IOneshotRelayerRepository;
   blockchain: IBlockchainProvider;
   transactionUtils: ITransactionUtils;
-  getSigner: () => OWSSigner;
+  owsProvider: IOWSProvider;
   /** Show informational passkey overlay while {@link run} executes. */
   withPasskeyPrompt: <T>(
     reason: EPasskeyPromptReason,
     run: () => Promise<T>,
   ) => Promise<T>;
-  /**
-   * Re-show / focus the branding iframe before WebAuthn so the host does not
-   * leave the panel hidden (and so user activation can attach to a visible frame).
-   * Implementations that call `requestDisplay` must `release()` so display depth
-   * does not leak and block hide after SignHelper finishes.
-   */
-  ensureDisplay?: () => Promise<void>;
-  /** Force-hide after the last passkey; estimate/submit/poll can continue headlessly. */
-  hideDisplay?: () => Promise<void>;
 };
 
 /**
@@ -138,7 +130,7 @@ export class TransactionService implements ITransactionService {
     chainId: EVMChainId,
     prefetch?: IRelayerSendPrefetch,
   ): Promise<IRelayerAuthorizationEntry> {
-    await this.options.ensureDisplay?.();
+    await this.options.owsProvider.ensureDisplay();
     return this.options.withPasskeyPrompt(
       EPasskeyPromptReason.WalletUpgrade,
       () => this.signWalletUpgradeAuthorizationInner(chainId, prefetch),
@@ -325,7 +317,7 @@ export class TransactionService implements ITransactionService {
     let feeAtoms = args.feeAtoms;
     let authorizationList = args.authorizationList;
 
-    const signer = this.options.getSigner();
+    const signer = await this.options.owsProvider.getSigner();
     const eoa =
       signer.getCachedAddress?.() ?? (await signer.evm.getAccountAddress());
 
@@ -342,7 +334,7 @@ export class TransactionService implements ITransactionService {
       }
     }
 
-    await this.options.ensureDisplay?.();
+    await this.options.owsProvider.ensureDisplay();
     const viemAccount = await this.getViemAccount();
     const publicClient = this.options.blockchain.getPublicClient(chainId);
     const chainIdNumber = Number(BigInt(chainId));
@@ -474,7 +466,7 @@ export class TransactionService implements ITransactionService {
     }
 
     // Last passkey is done — collapse the flyout while submit/poll run.
-    await this.options.hideDisplay?.();
+    await this.options.owsProvider.hideDisplay();
 
     params = buildParams(feeDelegation, feeAtoms, estimate.context);
     const taskId = await this.options.relayerRepository.send7710Transaction(
@@ -519,7 +511,7 @@ export class TransactionService implements ITransactionService {
       },
     });
 
-    await this.options.ensureDisplay?.();
+    await this.options.owsProvider.ensureDisplay();
     const signature = await smartAccount.signDelegation({ delegation });
     return { ...delegation, signature };
   }
@@ -528,7 +520,9 @@ export class TransactionService implements ITransactionService {
     if (this.cachedViemAccount) {
       return this.cachedViemAccount;
     }
-    const account = await toViemLocalAccount(this.options.getSigner());
+    const account = await toViemLocalAccount(
+      await this.options.owsProvider.getSigner(),
+    );
     this.cachedViemAccount = account;
     return account;
   }

@@ -65,6 +65,7 @@ import {
 import { TransactionService } from "../lib/implementations/business";
 import {
   ConfigProvider,
+  OWSProvider,
   SupportedChainsBlockchainProvider,
   EventBus,
   TransactionUtils,
@@ -81,6 +82,7 @@ import type { ITransactionService } from "../lib/interfaces/business";
 import type {
   IConfigProvider,
   IEventBus,
+  IOWSProvider,
   ITransactionUtils,
 } from "../lib/interfaces/utils";
 import type {
@@ -110,13 +112,9 @@ import type {
 } from "./modalTypes";
 import { useWalletSessionStore } from "./sessionStore";
 
-/** Filled once the Signing Layer iframe finishes loading. */
-const signerHolder: { current: OWSSigner | null } = { current: null };
-const rpcHelperHolder: { current: RpcHelper | null } = { current: null };
-/** Filled when branding OWSWallet finishes Postmate handshake. */
-const walletHolder: { current: OWSWallet | null } = { current: null };
-
+/** Filled once the Signing Layer iframe finishes loading / wallet handshake. */
 const configProvider: IConfigProvider = new ConfigProvider();
+const owsProvider: IOWSProvider = new OWSProvider(configProvider);
 const chainRepository: IChainRepository = new HardcodedChainRepository();
 const blockchainProvider: IBlockchainProvider =
   new SupportedChainsBlockchainProvider(chainRepository);
@@ -136,18 +134,7 @@ const assetActivityRepository: IAssetActivityRepository =
 const oneshotRelayerRepository: IOneshotRelayerRepository =
   new OneshotRelayerRepository({
     blockchain: blockchainProvider,
-    getSigner: () => {
-      if (!signerHolder.current) {
-        throw new Error("Signing Layer not ready");
-      }
-      return signerHolder.current;
-    },
-    getChainRpc: () => {
-      if (!rpcHelperHolder.current) {
-        throw new Error("RPC helper not ready");
-      }
-      return rpcHelperHolder.current;
-    },
+    owsProvider,
   });
 
 const transactionService: ITransactionService = new TransactionService({
@@ -155,43 +142,14 @@ const transactionService: ITransactionService = new TransactionService({
   relayerRepository: oneshotRelayerRepository,
   blockchain: blockchainProvider,
   transactionUtils,
-  getSigner: () => {
-    if (!signerHolder.current) {
-      throw new Error("Signing Layer not ready");
-    }
-    return signerHolder.current;
-  },
+  owsProvider,
   withPasskeyPrompt,
-  ensureDisplay: async () => {
-    const wallet = walletHolder.current;
-    if (!wallet) return;
-    // requestDisplay increments nested display depth when a session is already
-    // open (SignHelper withDisplay). Release immediately so depth does not leak
-    // and block host hide after the outer eth_sendTransaction completes.
-    // Visibility is still held by SignHelper / host rpcAccessCount.
-    const session = await wallet.requestDisplay({ width: 448, height: 520 });
-    session.release();
-  },
-  hideDisplay: async () => {
-    const wallet = walletHolder.current;
-    if (!wallet) return;
-    try {
-      await wallet.requestHide();
-    } catch {
-      // Already hidden or host ignored — do not fail the send.
-    }
-  },
 });
 
 const credentialRepository = new CachedRelayerCredentialRepository({
   client: new RelayerCredentialsClient(configProvider),
   configProvider,
-  getSigner: () => {
-    if (!signerHolder.current) {
-      throw new Error("Signing Layer not ready");
-    }
-    return signerHolder.current;
-  },
+  owsProvider,
 });
 const issuerTrust = new InMemoryIssuerTrustRegistry();
 const fetchUtils = new FetchUtils();
@@ -555,7 +513,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const runSetupFlow = useCallback(async () => {
     const wallet = walletRef.current;
     if (!wallet) throw new Error("Wallet not ready");
-    const display = await wallet.requestDisplay({ width: 420, height: 480 });
+    const config = await configProvider.getConfig();
+    const display = await wallet.requestDisplay(config.displayModalSize);
     try {
       const choice = await requestWalletSetupChoice();
       if (choice === "cancel") {
@@ -820,7 +779,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const openCreateBackup = useCallback(async () => {
     const wallet = walletRef.current;
     if (!wallet) return;
-    const display = await wallet.requestDisplay({ width: 480, height: 420 });
+    const config = await configProvider.getConfig();
+    const display = await wallet.requestDisplay(config.displayBackupSize);
     try {
       await pushModal<void>(({ id, resolve, reject }) => ({
         id,
@@ -841,7 +801,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     const wallet = walletRef.current;
     if (!wallet) return;
-    const display = await wallet.requestDisplay({ width: 480, height: 420 });
+    const config = await configProvider.getConfig();
+    const display = await wallet.requestDisplay(config.displayBackupSize);
     try {
       const restored = await pushModal<boolean>(({ id, resolve, reject }) => ({
         id,
@@ -885,7 +846,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const awaitSigner = async (): Promise<OWSSigner> => {
         const loaded = wrapSignerWithPasskeyPrompts(await signerPromise);
         signerRef.current = loaded;
-        signerHolder.current = loaded;
+        owsProvider.setSigner(loaded);
         return loaded;
       };
       awaitSignerRef.current = awaitSigner;
@@ -893,7 +854,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
       const wallet = OWSWallet.prepare({ debug: true });
       walletRef.current = wallet;
-      walletHolder.current = wallet;
+      owsProvider.setWallet(wallet);
 
       const ask = <T,>(
         build: (handlers: {
@@ -902,6 +863,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           reject: (error: unknown) => void;
         }) => ActiveModal,
       ) => pushModal(build);
+
+      const walletConfig = await configProvider.getConfig();
 
       registerSetStyleRpc(wallet, chainRepository);
 
@@ -914,6 +877,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             kind: "connect",
             resolve,
           })),
+        displaySize: walletConfig.displayCompactSize,
       });
 
       const catalog = chainRepository.getCatalog();
@@ -925,7 +889,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         { defaultChainId },
       );
       rpcHelperRef.current = rpcHelper;
-      rpcHelperHolder.current = rpcHelper;
+      owsProvider.setRpcHelper(rpcHelper);
       session.setChainId(rpcHelper.getChainId());
       rpcHelper.events.on("chainChanged", (next) => {
         useWalletSessionStore.getState().setChainId(next);
@@ -944,6 +908,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             request,
             resolve,
           })),
+        displaySize: walletConfig.displayCompactSize,
       });
 
       registerApprovalSigning(wallet, signer, {

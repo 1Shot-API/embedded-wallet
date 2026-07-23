@@ -10,6 +10,7 @@ import type {
   IKnownAssetRepository,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
+import type { IWalletDisplaySize } from "../lib/types/domain";
 import { useWalletSessionStore } from "./sessionStore";
 
 /** Custom RPC — host: `await proxy.rpc("addAsset", { chainId, assetAddress })`. */
@@ -45,6 +46,7 @@ export type RegisterAddAssetOptions = {
   requestAddAssetApproval: (
     request: IAddAssetApprovalRequest,
   ) => Promise<boolean>;
+  displaySize: IWalletDisplaySize;
 };
 
 /**
@@ -66,7 +68,7 @@ export function registerAddAssetRpc(
         owner,
       );
 
-      const display = await wallet.requestDisplay({ width: 420, height: 360 });
+      const display = await wallet.requestDisplay(options.displaySize);
       try {
         const approved = await options.requestAddAssetApproval({
           chainId,

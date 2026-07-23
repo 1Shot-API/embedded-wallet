@@ -1,8 +1,4 @@
-import {
-  prepareEvmTransaction,
-  type OWSSigner,
-  type SignHelperChainRpc,
-} from "@1shotapi/ows-signer-utils";
+import { prepareEvmTransaction } from "@1shotapi/ows-signer-utils";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import {
   EVMAccountAddress,
@@ -21,14 +17,14 @@ import type {
   IRelayerStatusResult,
   ISendTransactionResult,
 } from "../../interfaces/data/IOneshotRelayerRepository";
+import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
 
 const ZERO_VALUE = HexString("0x0");
 const EMPTY_DATA = HexString("0x");
 
 export type OneshotRelayerRepositoryOptions = {
   blockchain: IBlockchainProvider;
-  getSigner: () => OWSSigner;
-  getChainRpc: () => SignHelperChainRpc;
+  owsProvider: IOWSProvider;
 };
 
 type JsonRpcSuccess<T> = { jsonrpc: "2.0"; id: unknown; result: T };
@@ -221,8 +217,8 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
     data: HexString,
     value?: bigint,
   ): Promise<ISendTransactionResult> {
-    const signer = this.options.getSigner();
-    const chainRpc = this.options.getChainRpc();
+    const signer = await this.options.owsProvider.getSigner();
+    const chainRpc = await this.options.owsProvider.getRpcHelper();
     const active = chainRpc.getChainId();
     if (active !== chainId) {
       throw new OwsInvalidParamsError(
