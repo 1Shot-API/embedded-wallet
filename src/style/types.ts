@@ -222,9 +222,11 @@ export interface IStyleCopyBalances {
   emptyCountLabel: string;
   countLabel: string;
   addLabel: string;
+  refreshLabel: string;
   loadingBody: string;
   emptyBody: string;
   loadFailedError: string;
+  refreshFailedError: string;
   addFailedError: string;
   invalidAddressError: string;
   assetColumn: string;

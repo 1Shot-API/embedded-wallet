@@ -272,7 +272,7 @@ export type WalletContextValue = {
     chainId: EVMChainId,
     address: EVMAccountAddress,
   ) => Promise<TrackedAsset>;
-  requestBalanceRefresh: (id?: TrackedAssetId) => void;
+  requestBalanceRefresh: (id?: TrackedAssetId) => Promise<void>;
   listAssetActivity: (
     owner: EVMAccountAddress,
     asset: TrackedAsset,
@@ -703,9 +703,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  const requestBalanceRefresh = useCallback((id?: TrackedAssetId) => {
-    eventBus.emit(new RefreshBalanceRequestedEvent(id));
-  }, []);
+  const requestBalanceRefresh = useCallback(
+    async (id?: TrackedAssetId) => {
+      eventBus.emit(new RefreshBalanceRequestedEvent(id));
+      const owner = useWalletSessionStore.getState().evmAddress;
+      try {
+        await trackedAssetRepository.getBalances(owner, id);
+        useWalletSessionStore.getState().setTrackedAssetCount(
+          (await trackedAssetRepository.list(owner)).length,
+        );
+      } catch (error: unknown) {
+        console.error("[oneshot-wallet] balance refresh failed", error);
+        throw error;
+      }
+    },
+    [trackedAssetRepository],
+  );
 
   const listAssetActivity = useCallback(
     async (
@@ -1043,23 +1056,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     };
     // Boot once; handlers close over ensureReady via ensureReadyRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only boot
-  }, []);
-
-  useEffect(() => {
-    return eventBus.onRefreshBalanceRequested((event) => {
-      const owner = useWalletSessionStore.getState().evmAddress;
-      void trackedAssetRepository
-        .getBalances(owner, event.trackedAssetId)
-        .then(async (assets) => {
-          useWalletSessionStore.getState().setTrackedAssetCount(
-            (await trackedAssetRepository.list(owner)).length,
-          );
-          return assets;
-        })
-        .catch((error: unknown) => {
-          console.error("[oneshot-wallet] balance refresh failed", error);
-        });
-    });
   }, []);
 
   const value = useMemo<WalletContextValue>(

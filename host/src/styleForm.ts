@@ -90,6 +90,7 @@ export interface IStyleFormState {
 
   // Text — Balances / Receive
   balTabLabel: string;
+  balRefresh: string;
   receiveLabel: string;
   receiveTitle: string;
   receiveBody: string;
@@ -221,6 +222,7 @@ export const ACME_PRESET: IStyleFormState = {
   credClaimsHeading: "Claims",
   credClose: "Close",
   balTabLabel: "Balances",
+  balRefresh: "Refresh",
   receiveLabel: "Receive",
   receiveTitle: "Receive",
   receiveBody: "Scan this QR code or copy your {chainLabel} address.",
@@ -334,6 +336,7 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   credClaimsHeading: "Claims",
   credClose: "Close",
   balTabLabel: "Balances",
+  balRefresh: "Refresh",
   receiveLabel: "Receive",
   receiveTitle: "Receive",
   receiveBody: "Scan this QR code or copy your {chainLabel} address.",
@@ -541,6 +544,7 @@ export function buildSetStylePayload(
 
   const balances: Record<string, string> = {};
   put(balances, "tabLabel", form.balTabLabel);
+  put(balances, "refreshLabel", form.balRefresh);
   put(balances, "receiveLabel", form.receiveLabel);
   put(balances, "receiveTitle", form.receiveTitle);
   put(balances, "receiveBody", form.receiveBody);
