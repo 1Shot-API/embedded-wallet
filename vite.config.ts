@@ -142,6 +142,8 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
-    sourcemap: true,
+    // Do not ship source maps to the browser — maps embed original sources
+    // (including crypto PEM-header validation strings) and can leak secrets.
+    sourcemap: false,
   },
 });

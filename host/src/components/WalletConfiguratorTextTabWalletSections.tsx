@@ -1,0 +1,256 @@
+import {
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { BodyField, TextField } from "./configuratorFields";
+import type { IWalletConfiguratorTextTabSectionProps } from "./walletConfiguratorTextTabTypes";
+
+export function WalletConfiguratorTextTabWalletSections({
+  form,
+  patch,
+}: IWalletConfiguratorTextTabSectionProps) {
+  return (
+    <>
+      <AccordionItem value="balances">
+        <AccordionTrigger>Balances / Receive</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <TextField
+            id="bal-tab-label"
+            label="Tab label"
+            value={form.balTabLabel}
+            onChange={(value) => patch("balTabLabel", value)}
+          />
+          <TextField
+            id="bal-refresh"
+            label="Refresh"
+            value={form.balRefresh}
+            onChange={(value) => patch("balRefresh", value)}
+          />
+          <TextField
+            id="receive-label"
+            label="Receive button"
+            value={form.receiveLabel}
+            onChange={(value) => patch("receiveLabel", value)}
+          />
+          <TextField
+            id="receive-title"
+            label="Receive title"
+            value={form.receiveTitle}
+            onChange={(value) => patch("receiveTitle", value)}
+          />
+          <BodyField
+            id="receive-body"
+            label="Receive body ({chainLabel})"
+            value={form.receiveBody}
+            onChange={(value) => patch("receiveBody", value)}
+          />
+          <TextField
+            id="receive-address-label"
+            label="Address label"
+            value={form.receiveAddressLabel}
+            onChange={(value) => patch("receiveAddressLabel", value)}
+          />
+          <TextField
+            id="receive-qr-alt"
+            label="QR alt ({chainLabel})"
+            value={form.receiveQrAlt}
+            onChange={(value) => patch("receiveQrAlt", value)}
+          />
+          <TextField
+            id="receive-copy"
+            label="Copy"
+            value={form.receiveCopyLabel}
+            onChange={(value) => patch("receiveCopyLabel", value)}
+          />
+          <TextField
+            id="receive-copied"
+            label="Copied"
+            value={form.receiveCopiedLabel}
+            onChange={(value) => patch("receiveCopiedLabel", value)}
+          />
+          <TextField
+            id="receive-copy-failed"
+            label="Copy failed"
+            value={form.receiveCopyFailedLabel}
+            onChange={(value) => patch("receiveCopyFailedLabel", value)}
+          />
+          <TextField
+            id="receive-close"
+            label="Close"
+            value={form.receiveCloseLabel}
+            onChange={(value) => patch("receiveCloseLabel", value)}
+          />
+          <TextField
+            id="send-label"
+            label="Send button"
+            value={form.sendLabel}
+            onChange={(value) => patch("sendLabel", value)}
+          />
+          <TextField
+            id="confirm-transfer-title"
+            label="Confirm transfer title"
+            value={form.confirmTransferTitle}
+            onChange={(value) => patch("confirmTransferTitle", value)}
+          />
+          <BodyField
+            id="confirm-transfer-body"
+            label="Confirm transfer body"
+            value={form.confirmTransferBody}
+            onChange={(value) => patch("confirmTransferBody", value)}
+          />
+          <TextField
+            id="confirm-transfer-confirm"
+            label="Confirm transfer confirm"
+            value={form.confirmTransferConfirm}
+            onChange={(value) => patch("confirmTransferConfirm", value)}
+          />
+          <TextField
+            id="confirm-transfer-reject"
+            label="Confirm transfer reject"
+            value={form.confirmTransferReject}
+            onChange={(value) => patch("confirmTransferReject", value)}
+          />
+          <TextField
+            id="transfer-tokens-title"
+            label="Transfer modal title"
+            value={form.transferTokensTitle}
+            onChange={(value) => patch("transferTokensTitle", value)}
+          />
+          <TextField
+            id="transfer-tokens-send"
+            label="Transfer send"
+            value={form.transferTokensSend}
+            onChange={(value) => patch("transferTokensSend", value)}
+          />
+          <TextField
+            id="transfer-tokens-cancel"
+            label="Transfer cancel"
+            value={form.transferTokensCancel}
+            onChange={(value) => patch("transferTokensCancel", value)}
+          />
+          <TextField
+            id="transfer-tokens-sent-title"
+            label="Transfer sent title"
+            value={form.transferTokensSentTitle}
+            onChange={(value) => patch("transferTokensSentTitle", value)}
+          />
+          <TextField
+            id="transfer-tokens-view-explorer"
+            label="Transfer view on explorer"
+            value={form.transferTokensViewExplorer}
+            onChange={(value) => patch("transferTokensViewExplorer", value)}
+          />
+          <TextField
+            id="transfer-tokens-done"
+            label="Transfer done"
+            value={form.transferTokensDone}
+            onChange={(value) => patch("transferTokensDone", value)}
+          />
+          <TextField
+            id="passkey-prompt-unlock-title"
+            label="Passkey unlock title"
+            value={form.passkeyPromptUnlockTitle}
+            onChange={(value) => patch("passkeyPromptUnlockTitle", value)}
+          />
+          <TextField
+            id="passkey-prompt-create-title"
+            label="Passkey create title"
+            value={form.passkeyPromptCreateTitle}
+            onChange={(value) => patch("passkeyPromptCreateTitle", value)}
+          />
+          <TextField
+            id="passkey-prompt-sign-title"
+            label="Passkey sign title"
+            value={form.passkeyPromptSignTitle}
+            onChange={(value) => patch("passkeyPromptSignTitle", value)}
+          />
+          <TextField
+            id="passkey-prompt-encrypt-title"
+            label="Passkey encrypt title"
+            value={form.passkeyPromptEncryptTitle}
+            onChange={(value) => patch("passkeyPromptEncryptTitle", value)}
+          />
+          <TextField
+            id="passkey-prompt-decrypt-title"
+            label="Passkey decrypt title"
+            value={form.passkeyPromptDecryptTitle}
+            onChange={(value) => patch("passkeyPromptDecryptTitle", value)}
+          />
+          <TextField
+            id="passkey-prompt-relayer-title"
+            label="Passkey relayer auth title"
+            value={form.passkeyPromptRelayerTitle}
+            onChange={(value) => patch("passkeyPromptRelayerTitle", value)}
+          />
+          <TextField
+            id="passkey-prompt-backup-title"
+            label="Passkey backup title"
+            value={form.passkeyPromptBackupTitle}
+            onChange={(value) => patch("passkeyPromptBackupTitle", value)}
+          />
+        </AccordionContent>
+      </AccordionItem>
+
+      <AccordionItem value="backup">
+        <AccordionTrigger>Create backup</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <TextField
+            id="backup-title"
+            label="Title"
+            value={form.backupTitle}
+            onChange={(value) => patch("backupTitle", value)}
+          />
+          <BodyField
+            id="backup-body"
+            label="Body"
+            value={form.backupBody}
+            onChange={(value) => patch("backupBody", value)}
+          />
+          <TextField
+            id="backup-continue"
+            label="Continue"
+            value={form.backupContinue}
+            onChange={(value) => patch("backupContinue", value)}
+          />
+          <TextField
+            id="backup-cancel"
+            label="Cancel"
+            value={form.backupCancel}
+            onChange={(value) => patch("backupCancel", value)}
+          />
+        </AccordionContent>
+      </AccordionItem>
+
+      <AccordionItem value="restore">
+        <AccordionTrigger>Restore backup</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <TextField
+            id="restore-title"
+            label="Title"
+            value={form.restoreTitle}
+            onChange={(value) => patch("restoreTitle", value)}
+          />
+          <BodyField
+            id="restore-body"
+            label="Body"
+            value={form.restoreBody}
+            onChange={(value) => patch("restoreBody", value)}
+          />
+          <TextField
+            id="restore-label"
+            label="Restore"
+            value={form.restoreLabel}
+            onChange={(value) => patch("restoreLabel", value)}
+          />
+          <TextField
+            id="restore-cancel"
+            label="Cancel"
+            value={form.restoreCancel}
+            onChange={(value) => patch("restoreCancel", value)}
+          />
+        </AccordionContent>
+      </AccordionItem>
+    </>
+  );
+}
