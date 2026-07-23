@@ -31,9 +31,16 @@ export interface IConfirmTransferRequest {
 export type IConfirmSendResult =
   | false
   | {
+      /** Required when the confirm modal was opened with `useRelayer: true`. */
       paymentToken?: EVMAccountAddress;
       feeAtoms?: bigint;
     };
+
+/** Relayer confirm payload after UI validation. */
+export type IRelayerConfirmSendResult = {
+  paymentToken: EVMAccountAddress;
+  feeAtoms: bigint;
+};
 
 export type ModalRequest =
   | {

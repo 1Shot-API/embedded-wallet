@@ -18,6 +18,7 @@ import {
 } from "@1shotapi/ows-wallet-utils";
 import {
   HexString,
+  OwsInvalidParamsError,
   OwsUserRejectedError,
   type CredentialId,
   type CredentialOfferApprovalRequest,
@@ -102,7 +103,11 @@ import {
   saveWalletCreated,
 } from "../storage";
 import { useModalStore } from "./modalStore";
-import type { ActiveModal, WalletSetupChoice } from "./modalTypes";
+import type {
+  ActiveModal,
+  IRelayerConfirmSendResult,
+  WalletSetupChoice,
+} from "./modalTypes";
 import { useWalletSessionStore } from "./sessionStore";
 
 /** Filled once the Signing Layer iframe finishes loading. */
@@ -1053,6 +1058,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             );
           }
 
+          let relayerOptions:
+            | {
+                paymentToken: EVMAccountAddress;
+                feeAtoms: bigint;
+                prefetch: typeof prefetch;
+              }
+            | undefined;
+          if (useRelayer) {
+            const payment = requireRelayerConfirmPayment(confirmed);
+            relayerOptions = {
+              paymentToken: payment.paymentToken,
+              feeAtoms: payment.feeAtoms,
+              prefetch,
+            };
+          }
+
           const valueRaw = String(request.value);
           const value =
             valueRaw && valueRaw !== "0x0" && valueRaw !== "0x"
@@ -1066,13 +1087,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
               data: request.data,
               value,
             },
-            useRelayer
-              ? {
-                  paymentToken: confirmed.paymentToken,
-                  feeAtoms: confirmed.feeAtoms,
-                  prefetch,
-                }
-              : undefined,
+            relayerOptions,
           );
           await onSigningAuthenticated();
           return result.transactionHash;
@@ -1225,4 +1240,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   return (
     <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
   );
+}
+
+function requireRelayerConfirmPayment(confirmed: {
+  paymentToken?: EVMAccountAddress;
+  feeAtoms?: bigint;
+}): IRelayerConfirmSendResult {
+  if (!confirmed.paymentToken || confirmed.feeAtoms === undefined) {
+    throw new OwsInvalidParamsError(
+      "Select a relayer payment token and fee before confirming the transaction",
+    );
+  }
+  return {
+    paymentToken: confirmed.paymentToken,
+    feeAtoms: confirmed.feeAtoms,
+  };
 }

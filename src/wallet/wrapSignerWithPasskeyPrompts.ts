@@ -28,13 +28,13 @@ export function wrapSignerWithPasskeyPrompts(signer: OWSSigner): OWSSigner {
       getPublicKey(...args),
     )) as OWSSigner["getPublicKey"];
 
-  signer.signDigest = ((...args: Parameters<OWSSigner["signDigest"]>) => {
+  signer.signDigest = (async (...args: Parameters<OWSSigner["signDigest"]>) => {
     // Keep an outer ceremony overlay (e.g. WalletUpgrade) visible — do not
     // replace it with the generic Sign copy for nested digest signing.
     if (usePasskeyPromptStore.getState().activeReason) {
-      return signDigest(...args);
+      return await signDigest(...args);
     }
-    return withPasskeyPrompt(EPasskeyPromptReason.Sign, () =>
+    return await withPasskeyPrompt(EPasskeyPromptReason.Sign, () =>
       signDigest(...args),
     );
   }) as OWSSigner["signDigest"];
