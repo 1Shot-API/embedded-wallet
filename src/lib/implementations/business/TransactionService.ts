@@ -335,154 +335,160 @@ export class TransactionService implements ITransactionService {
     }
 
     await this.options.owsProvider.ensureDisplay();
-    const viemAccount = await this.getViemAccount();
-    const publicClient = this.options.blockchain.getPublicClient(chainId);
-    const chainIdNumber = Number(BigInt(chainId));
+    try {
+      const viemAccount = await this.getViemAccount();
+      const publicClient = this.options.blockchain.getPublicClient(chainId);
+      const chainIdNumber = Number(BigInt(chainId));
 
-    const smartAccount = await toMetaMaskSmartAccount({
-      client: publicClient as never,
-      implementation: Implementation.Stateless7702,
-      address: eoa,
-      signer: { account: viemAccount },
-    });
+      const smartAccount = await toMetaMaskSmartAccount({
+        client: publicClient as never,
+        implementation: Implementation.Stateless7702,
+        address: eoa,
+        signer: { account: viemAccount },
+      });
 
-    const capabilities = await this.options.relayerRepository.getCapabilities(
-      relayerUrl,
-      chainId,
-    );
-
-    const feeCalldata = HexStringCompat(
-      encodeFunctionData({
-        abi: erc20Abi,
-        functionName: "transfer",
-        args: [capabilities.feeCollector, feeAtoms],
-      }),
-    );
-    const workData = (work.data || "0x") as Hex;
-    const workValue = work.value ?? 0n;
-
-    let feeDelegation = await this.createAndSignExactCalldataDelegation({
-      smartAccount,
-      delegate: capabilities.targetAddress,
-      target: paymentToken,
-      value: 0n,
-      callData: feeCalldata,
-      chainIdNumber,
-    });
-    const workDelegation = await this.createAndSignExactCalldataDelegation({
-      smartAccount,
-      delegate: capabilities.targetAddress,
-      target: work.to,
-      value: workValue,
-      callData: workData,
-      chainIdNumber,
-    });
-
-    const buildParams = (
-      feeSig: unknown,
-      feeAmount: bigint,
-      context?: string,
-    ): IRelayer7710Params => {
-      const feeData = HexStringCompat(
-        encodeFunctionData({
-          abi: erc20Abi,
-          functionName: "transfer",
-          args: [capabilities.feeCollector, feeAmount],
-        }),
-      );
-      return {
-        chainId: chainIdNumber.toString(10),
-        transactions: [
-          {
-            permissionContext: [toRelayerJson(feeSig)],
-            executions: [
-              {
-                target: paymentToken,
-                value: "0",
-                data: feeData as HexString,
-              },
-            ],
-          },
-          {
-            permissionContext: [toRelayerJson(workDelegation)],
-            executions: [
-              {
-                target: work.to,
-                value: workValue === 0n ? "0" : `0x${workValue.toString(16)}`,
-                data: workData as HexString,
-              },
-            ],
-          },
-        ],
-        ...(authorizationList?.length
-          ? { authorizationList }
-          : {}),
-        ...(context ? { context } : {}),
-        memo: buildMemo(eoa, this.options.transactionUtils.resolveHostDomain()),
-        delegationSecret: loadOrCreateDelegationSecret(),
-      };
-    };
-
-    let params = buildParams(feeDelegation, feeAtoms);
-    let estimate =
-      await this.options.relayerRepository.estimate7710Transaction(
+      const capabilities = await this.options.relayerRepository.getCapabilities(
         relayerUrl,
-        params,
+        chainId,
       );
 
-    if (
-      estimate.success &&
-      estimate.requiredPaymentAmount &&
-      BigInt(estimate.requiredPaymentAmount) !== feeAtoms
-    ) {
-      feeAtoms = BigInt(estimate.requiredPaymentAmount);
-      const nextFeeCalldata = HexStringCompat(
+      const feeCalldata = HexStringCompat(
         encodeFunctionData({
           abi: erc20Abi,
           functionName: "transfer",
           args: [capabilities.feeCollector, feeAtoms],
         }),
       );
-      feeDelegation = await this.createAndSignExactCalldataDelegation({
+      const workData = (work.data || "0x") as Hex;
+      const workValue = work.value ?? 0n;
+
+      let feeDelegation = await this.createAndSignExactCalldataDelegation({
         smartAccount,
         delegate: capabilities.targetAddress,
         target: paymentToken,
         value: 0n,
-        callData: nextFeeCalldata,
+        callData: feeCalldata,
         chainIdNumber,
       });
-      params = buildParams(feeDelegation, feeAtoms);
-      estimate =
+      const workDelegation = await this.createAndSignExactCalldataDelegation({
+        smartAccount,
+        delegate: capabilities.targetAddress,
+        target: work.to,
+        value: workValue,
+        callData: workData,
+        chainIdNumber,
+      });
+
+      const buildParams = (
+        feeSig: unknown,
+        feeAmount: bigint,
+        context?: string,
+      ): IRelayer7710Params => {
+        const feeData = HexStringCompat(
+          encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "transfer",
+            args: [capabilities.feeCollector, feeAmount],
+          }),
+        );
+        return {
+          chainId: chainIdNumber.toString(10),
+          transactions: [
+            {
+              permissionContext: [toRelayerJson(feeSig)],
+              executions: [
+                {
+                  target: paymentToken,
+                  value: "0",
+                  data: feeData as HexString,
+                },
+              ],
+            },
+            {
+              permissionContext: [toRelayerJson(workDelegation)],
+              executions: [
+                {
+                  target: work.to,
+                  value: workValue === 0n ? "0" : `0x${workValue.toString(16)}`,
+                  data: workData as HexString,
+                },
+              ],
+            },
+          ],
+          ...(authorizationList?.length
+            ? { authorizationList }
+            : {}),
+          ...(context ? { context } : {}),
+          memo: buildMemo(eoa, this.options.transactionUtils.resolveHostDomain()),
+          delegationSecret: loadOrCreateDelegationSecret(),
+        };
+      };
+
+      let params = buildParams(feeDelegation, feeAtoms);
+      let estimate =
         await this.options.relayerRepository.estimate7710Transaction(
           relayerUrl,
           params,
         );
-    }
 
-    if (!estimate.success) {
-      throw new Error(
-        estimate.error ?? "relayer_estimate7710Transaction failed",
+      if (
+        estimate.success &&
+        estimate.requiredPaymentAmount &&
+        BigInt(estimate.requiredPaymentAmount) !== feeAtoms
+      ) {
+        feeAtoms = BigInt(estimate.requiredPaymentAmount);
+        const nextFeeCalldata = HexStringCompat(
+          encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "transfer",
+            args: [capabilities.feeCollector, feeAtoms],
+          }),
+        );
+        feeDelegation = await this.createAndSignExactCalldataDelegation({
+          smartAccount,
+          delegate: capabilities.targetAddress,
+          target: paymentToken,
+          value: 0n,
+          callData: nextFeeCalldata,
+          chainIdNumber,
+        });
+        params = buildParams(feeDelegation, feeAtoms);
+        estimate =
+          await this.options.relayerRepository.estimate7710Transaction(
+            relayerUrl,
+            params,
+          );
+      }
+
+      if (!estimate.success) {
+        throw new Error(
+          estimate.error ?? "relayer_estimate7710Transaction failed",
+        );
+      }
+
+      // Last passkey is done — collapse the flyout while submit/poll run.
+      await this.options.owsProvider.hideDisplay();
+
+      params = buildParams(feeDelegation, feeAtoms, estimate.context);
+      const taskId = await this.options.relayerRepository.send7710Transaction(
+        relayerUrl,
+        params,
       );
+
+      if (authorizationList?.length) {
+        await this.options.chainRepository.setWalletUpgraded(chainId, eoa, true);
+      }
+
+      const hash = await this.pollUntilTerminal(relayerUrl, taskId);
+      return {
+        relayerTransactionId: taskId,
+        transactionHash: hash,
+      };
+    } catch (error) {
+      // ensureDisplay may have left the flyout open; hideDisplay is idempotent.
+      await this.options.owsProvider.hideDisplay();
+      throw error;
     }
-
-    // Last passkey is done — collapse the flyout while submit/poll run.
-    await this.options.owsProvider.hideDisplay();
-
-    params = buildParams(feeDelegation, feeAtoms, estimate.context);
-    const taskId = await this.options.relayerRepository.send7710Transaction(
-      relayerUrl,
-      params,
-    );
-
-    if (authorizationList?.length) {
-      await this.options.chainRepository.setWalletUpgraded(chainId, eoa, true);
-    }
-
-    const hash = await this.pollUntilTerminal(relayerUrl, taskId);
-    return {
-      relayerTransactionId: taskId,
-      transactionHash: hash,
-    };
   }
 
   private async createAndSignExactCalldataDelegation(args: {

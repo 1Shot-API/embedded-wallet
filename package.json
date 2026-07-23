@@ -16,7 +16,8 @@
     "clean": "node scripts/clean.mjs && npm run clean -w @1shotapi/oneshot-wallet-host",
     "lint": "tsc -p tsconfig.json --noEmit",
     "preview": "vite preview",
-    "dockerize": "docker build -t oneshot-wallet ."
+    "dockerize": "docker build -t oneshot-wallet .",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@1shotapi/ows-oid4": "^0.1.1",
@@ -51,6 +52,7 @@
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
     "dotenv": "^16.4.7",
+    "react-doctor": "^0.9.1",
     "tailwindcss": "^4.1.11",
     "tw-animate-css": "^1.3.5",
     "typescript": "~5.8.0",
