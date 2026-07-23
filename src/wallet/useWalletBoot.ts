@@ -153,6 +153,10 @@ export function useWalletBoot({
 }: IUseWalletBootParams): void {
   useEffect(() => {
     let cancelled = false;
+    let chainEvents: RpcHelper["events"] | undefined;
+    const onChainChanged = (next: EVMChainId) => {
+      useWalletSessionStore.getState().setChainId(next);
+    };
     const session = useWalletSessionStore.getState();
 
     const issuerTrust = new InMemoryIssuerTrustRegistry();
@@ -220,14 +224,12 @@ export function useWalletBoot({
         new Map(catalog.map((chain) => [chain.chainId, chain.rpcUrl])),
         wallet,
         signer,
-        { defaultChainId },
+        { defaultChainId, onChainChanged },
       );
       rpcHelperRef.current = rpcHelper;
       owsProvider.setRpcHelper(rpcHelper);
       session.setChainId(rpcHelper.getChainId());
-      rpcHelper.events.on("chainChanged", (next) => {
-        useWalletSessionStore.getState().setChainId(next);
-      });
+      chainEvents = rpcHelper.events;
 
       registerFocusModeRpc(wallet, rpcHelper);
 
@@ -455,6 +457,7 @@ export function useWalletBoot({
 
     return () => {
       cancelled = true;
+      chainEvents?.off("chainChanged", onChainChanged);
     };
     // Boot once; handlers close over ensureReady via ensureReadyRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only boot

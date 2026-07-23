@@ -1,4 +1,4 @@
-import { useCallback, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useRef, type RefObject } from "react";
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import { OwsUserRejectedError } from "@1shotapi/ows-types";
@@ -38,8 +38,10 @@ export function useWalletAuth({
   const refreshAddresses = useCallback(async () => {
     const signer = signerRef.current;
     if (!signer) return;
-    const evm = await signer.evm.getAccountAddress();
-    const solana = await signer.solana.getAccountAddress();
+    const [evm, solana] = await Promise.all([
+      signer.evm.getAccountAddress(),
+      signer.solana.getAccountAddress(),
+    ]);
     useWalletSessionStore.getState().setAddresses(evm, solana);
     saveCachedAddresses(evm, solana);
   }, [signerRef]);
@@ -221,7 +223,9 @@ export function useWalletAuth({
   }, [runSetupFlow, unlockWithStoredCredential]);
 
   const ensureReadyRef = useRef(ensureReadyImpl);
-  ensureReadyRef.current = ensureReadyImpl;
+  useEffect(() => {
+    ensureReadyRef.current = ensureReadyImpl;
+  }, [ensureReadyImpl]);
 
   const awaitSignerReady = useCallback(async (): Promise<OWSSigner> => {
     const awaitSigner = awaitSignerRef.current;

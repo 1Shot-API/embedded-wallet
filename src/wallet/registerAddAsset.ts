@@ -62,21 +62,24 @@ export function registerAddAssetRpc(
     async (params) => {
       const { chainId, assetAddress } = params as IAddAssetParams;
       const owner = options.getOwnerAddress();
-      const resolved = await options.knownAssetRepository.resolveForTracking(
-        chainId,
-        assetAddress,
-        owner,
-      );
-
-      const display = await wallet.requestDisplay(options.displaySize);
-      try {
-        const approved = await options.requestAddAssetApproval({
+      const [resolved, display] = await Promise.all([
+        options.knownAssetRepository.resolveForTracking(
           chainId,
           assetAddress,
-          assetName: resolved.name,
-          assetSymbol: resolved.symbol,
-        });
-        if (!approved) {
+          owner,
+        ),
+        wallet.requestDisplay(options.displaySize),
+      ]);
+      try {
+        // Consent UI requires the flyout already open — keep sequential.
+        if (
+          !(await options.requestAddAssetApproval({
+            chainId,
+            assetAddress,
+            assetName: resolved.name,
+            assetSymbol: resolved.symbol,
+          }))
+        ) {
           throw new OwsUserRejectedError("User rejected add asset request");
         }
 

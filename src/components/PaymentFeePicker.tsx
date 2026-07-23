@@ -28,7 +28,9 @@ export function PaymentFeePicker({
   const { transactionService } = useWallet();
   const [busy, setBusy] = useState(false);
   const onQuoteChangeRef = useRef(onQuoteChange);
-  onQuoteChangeRef.current = onQuoteChange;
+  useEffect(() => {
+    onQuoteChangeRef.current = onQuoteChange;
+  }, [onQuoteChange]);
 
   useEffect(() => {
     let cancelled = false;

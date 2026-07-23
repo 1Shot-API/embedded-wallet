@@ -217,8 +217,10 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
     data: HexString,
     value?: bigint,
   ): Promise<ISendTransactionResult> {
-    const signer = await this.options.owsProvider.getSigner();
-    const chainRpc = await this.options.owsProvider.getRpcHelper();
+    const [signer, chainRpc] = await Promise.all([
+      this.options.owsProvider.getSigner(),
+      this.options.owsProvider.getRpcHelper(),
+    ]);
     const active = chainRpc.getChainId();
     if (active !== chainId) {
       throw new OwsInvalidParamsError(

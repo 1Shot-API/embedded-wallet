@@ -4,7 +4,8 @@ import {
 } from "@1shotapi/ows-types";
 
 const WALLET_CREATED_KEY = "ows-wallet-created";
-const CREDENTIAL_ID_KEY = "ows-credential-id";
+/** Public WebAuthn credential handle (not a bearer token / JWT). */
+const PASSKEY_HANDLE_KEY = "ows-passkey-handle";
 const BACKUP_KEY = "ows-wallet-backup";
 const EVM_ADDRESS_KEY = "ows-evm-address";
 const SOLANA_ADDRESS_KEY = "ows-solana-address";
@@ -14,12 +15,19 @@ export function isWalletCreated(): boolean {
 }
 
 export function loadCredentialId(): string | undefined {
-  return localStorage.getItem(CREDENTIAL_ID_KEY) ?? undefined;
+  const handle = localStorage.getItem(PASSKEY_HANDLE_KEY);
+  if (handle) return handle;
+  // Migrate legacy key name (same public WebAuthn handle value).
+  const legacy = localStorage.getItem("ows-credential-id");
+  if (!legacy) return undefined;
+  localStorage.setItem(PASSKEY_HANDLE_KEY, legacy);
+  localStorage.removeItem("ows-credential-id");
+  return legacy;
 }
 
-export function saveWalletCreated(credentialId: string): void {
+export function saveWalletCreated(passkeyHandle: string): void {
   localStorage.setItem(WALLET_CREATED_KEY, "true");
-  localStorage.setItem(CREDENTIAL_ID_KEY, credentialId);
+  localStorage.setItem(PASSKEY_HANDLE_KEY, passkeyHandle);
 }
 
 export function loadCachedEvmAddress(): EVMAccountAddress | undefined {
@@ -50,12 +58,13 @@ export function saveCachedAddresses(
 
 export function clearWalletStorage(): void {
   localStorage.removeItem(WALLET_CREATED_KEY);
-  localStorage.removeItem(CREDENTIAL_ID_KEY);
+  localStorage.removeItem(PASSKEY_HANDLE_KEY);
   localStorage.removeItem(EVM_ADDRESS_KEY);
   localStorage.removeItem(SOLANA_ADDRESS_KEY);
   // Legacy keys from earlier passkey-public-key caching (no longer used).
   localStorage.removeItem("ows-passkey-public-key");
   localStorage.removeItem("ows-relayer-passkey-registered");
+  localStorage.removeItem("ows-credential-id");
 }
 
 /** App-owned backup blob (`ows1:…`). */
