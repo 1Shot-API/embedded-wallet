@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import QRCodeLib from "qrcode";
 import { cn } from "@/lib/utils";
+import { useStyle } from "../style";
 
 export interface IQRCodeProps {
   /** Payload encoded in the QR (e.g. a wallet address). */
@@ -14,6 +15,7 @@ export interface IQRCodeProps {
 
 /**
  * Renders a QR code for `value`. All QR encoding lives in this module.
+ * Module/quiet-zone colors follow host `setStyle` theme foreground/background.
  */
 export function QRCode({
   value,
@@ -21,6 +23,9 @@ export function QRCode({
   className,
   alt = "QR code",
 }: IQRCodeProps) {
+  const { style } = useStyle();
+  const dark = style.theme.foreground;
+  const light = style.theme.background;
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
@@ -39,8 +44,8 @@ export function QRCode({
       margin: 1,
       errorCorrectionLevel: "M",
       color: {
-        dark: "#000000",
-        light: "#ffffff",
+        dark,
+        light,
       },
     })
       .then((url) => {
@@ -56,7 +61,7 @@ export function QRCode({
     return () => {
       cancelled = true;
     };
-  }, [value, size]);
+  }, [value, size, dark, light]);
 
   if (!value || error) {
     return (
@@ -90,7 +95,7 @@ export function QRCode({
       width={size}
       height={size}
       alt={alt}
-      className={cn("rounded-lg bg-white p-2", className)}
+      className={cn("bg-background rounded-lg p-2", className)}
     />
   );
 }

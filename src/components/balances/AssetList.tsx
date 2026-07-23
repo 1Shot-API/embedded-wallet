@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TrackedAsset } from "../../lib/types/domain";
+import { EAssetType } from "../../lib/types/enum";
 import { useStyle } from "../../style";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
@@ -94,12 +95,17 @@ export function AssetList({
             trackedAssetId={row.original.id}
             balance={row.original.balance}
             decimals={row.original.decimals}
+            fallback={
+              row.original.type !== EAssetType.Erc20
+                ? copy.balanceNonErc20
+                : undefined
+            }
             className="text-xs tabular-nums"
           />
         ),
       },
     ],
-    [copy.assetColumn, copy.balanceColumn],
+    [copy.assetColumn, copy.balanceColumn, copy.balanceNonErc20],
   );
 
   const table = useReactTable({

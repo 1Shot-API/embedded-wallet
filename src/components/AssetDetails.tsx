@@ -74,6 +74,9 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
           trackedAssetId={asset.id}
           balance={asset.balance}
           decimals={asset.decimals}
+          fallback={
+            asset.type !== EAssetType.Erc20 ? copy.balanceNonErc20 : undefined
+          }
           className="text-primary text-3xl font-semibold tracking-tight"
         />
       </header>
