@@ -10,7 +10,7 @@ export interface IReceiveModalProps {
 }
 
 /**
- * Show the wallet address for the current chain as a QR + full copyable text.
+ * Show the wallet address for the current chain as a QR + copyable truncated address.
  */
 export function ReceiveModal({
   address,
@@ -49,6 +49,7 @@ export function ReceiveModal({
           </span>
           <CopyableText
             text={hasAddress ? address : "—"}
+            truncate
             disabled={!hasAddress}
             copyLabel={copy.receiveCopyLabel}
             copiedLabel={copy.receiveCopiedLabel}
