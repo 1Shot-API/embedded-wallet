@@ -17,11 +17,9 @@ import type {
 import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
 import { AssetActivity } from "../../types/domain/AssetActivity";
-import {
-  EAssetActivityKind,
-  EAssetActivityStatus,
-} from "../../types/enum";
-import { TransactionHistoryUpdatedEvent } from "../../types/events";
+import { EAssetActivityKind } from "../../types/enum/EAssetActivityKind";
+import { EAssetActivityStatus } from "../../types/enum/EAssetActivityStatus";
+import { TransactionHistoryUpdatedEvent } from "../../types/events/TransactionHistoryUpdatedEvent";
 import {
   makeTrackedAssetId,
   type TrackedAssetId,

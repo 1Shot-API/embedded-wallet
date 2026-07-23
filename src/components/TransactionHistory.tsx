@@ -6,10 +6,8 @@ import {
 } from "lucide-react";
 import type { EVMAccountAddress } from "@1shotapi/ows-types";
 import type { AssetActivity, TrackedAsset } from "../lib/types/domain";
-import {
-  EAssetActivityKind,
-  EAssetActivityStatus,
-} from "../lib/types/enum";
+import { EAssetActivityKind } from "../lib/types/enum/EAssetActivityKind";
+import { EAssetActivityStatus } from "../lib/types/enum/EAssetActivityStatus";
 import { useWallet } from "../wallet/WalletProvider";
 import { useTransactionHistoryUpdated } from "../wallet/useWalletEvent";
 

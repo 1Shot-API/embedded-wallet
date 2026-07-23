@@ -16,7 +16,7 @@ import type {
   AssetActivity,
   TrackedAsset,
 } from "../lib/types/domain";
-import { RefreshBalanceRequestedEvent } from "../lib/types/events";
+import { RefreshBalanceRequestedEvent } from "../lib/types/events/RefreshBalanceRequestedEvent";
 import type { TrackedAssetId } from "../lib/types/primitives";
 import { useWalletSessionStore } from "./sessionStore";
 

@@ -16,8 +16,7 @@ import { useWalletSessionStore } from "./sessionStore";
 /** Custom RPC — host: `await proxy.rpc("addAsset", { chainId, assetAddress })`. */
 export const ADD_ASSET_RPC_METHOD = "addAsset";
 
-const addAssetParamsSchema = z
-  .object({
+const addAssetParamsSchema = z.strictObject({
     chainId: z
       .string()
       .regex(/^0x[0-9a-fA-F]+$/)
@@ -26,8 +25,7 @@ const addAssetParamsSchema = z
       .string()
       .regex(/^0x[0-9a-fA-F]{40}$/)
       .transform((value) => EVMAccountAddress(value as `0x${string}`)),
-  })
-  .strict();
+  });
 
 export type IAddAssetParams = z.infer<typeof addAssetParamsSchema>;
 

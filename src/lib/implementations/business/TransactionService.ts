@@ -39,7 +39,7 @@ import type {
 import type { ITransactionUtils } from "../../interfaces/utils/ITransactionUtils";
 import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
 import type { IRelayerSendPrefetch } from "../../interfaces/business/ITransactionService";
-import { EPasskeyPromptReason } from "../../types/enum";
+import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
 import type { LocalAccount } from "viem/accounts";
 import { idbGetString, idbSetString } from "../../utils/idbStringStore";
 

@@ -1,5 +1,5 @@
 import { startAuthentication } from "@simplewebauthn/browser";
-import { EPasskeyPromptReason } from "../lib/types/enum";
+import { EPasskeyPromptReason } from "../lib/types/enum/EPasskeyPromptReason";
 import { withPasskeyPrompt } from "../wallet/withPasskeyPrompt";
 import type { IWebAuthnAssertionRequest } from "./types";
 import type { RelayerCredentialsClient } from "./RelayerCredentialsClient";

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatUnits } from "viem";
 import { cn } from "@/lib/utils";
 import type { TrackedAssetId } from "../lib/types/primitives";
-import { useStyle } from "../style";
+import { useStyle } from "../style/StyleProvider";
 import { useBalanceUpdated } from "../wallet/useWalletEvent";
 
 export interface IBalanceDisplayProps {

@@ -29,9 +29,9 @@ import {
 } from "../ows/registerAccountConnect";
 import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
-import { registerSetStyleRpc } from "../style";
+import { registerSetStyleRpc } from "../style/registerSetStyle";
 import { wrapSignerWithPasskeyPrompts } from "./wrapSignerWithPasskeyPrompts";
-import { DEFAULT_CHAIN_ID } from "../lib/implementations/data";
+import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
 import type {
   IChainRepository,
   IKnownAssetRepository,

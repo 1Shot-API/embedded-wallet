@@ -7,11 +7,9 @@ import {
 } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import type { IKnownAssetRepository } from "../../interfaces/data/IKnownAssetRepository";
-import {
-  KnownAsset,
-  NewTrackedAsset,
-} from "../../types/domain";
-import { EAssetType } from "../../types/enum";
+import { KnownAsset } from "../../types/domain/KnownAsset";
+import { NewTrackedAsset } from "../../types/domain/TrackedAsset";
+import { EAssetType } from "../../types/enum/EAssetType";
 import { makeTrackedAssetId } from "@/lib/types/primitives";
 
 /** Seeded known ERC-20s for demos (USDC on Arc / Sepolia / Base Sepolia / Base + Base USDT). */

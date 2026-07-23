@@ -12,9 +12,9 @@ import {
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import type { TrackedAsset } from "../../lib/types/domain";
-import { EAssetType } from "../../lib/types/enum";
+import { EAssetType } from "../../lib/types/enum/EAssetType";
 import type { IPaymentQuote } from "../../lib/interfaces/business";
-import { useStyle } from "../../style";
+import { useStyle } from "../../style/StyleProvider";
 import { chainTechnologyFor } from "../../wallet/activeAddress";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";

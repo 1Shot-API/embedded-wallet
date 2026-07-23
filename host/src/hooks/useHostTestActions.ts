@@ -24,7 +24,7 @@ import {
   HOST_CHAINS,
   hostChainMeta,
   type UsdcMode,
-} from "../components/WalletActions";
+} from "../components/hostChains";
 
 const USDC_DECIMALS = 6;
 

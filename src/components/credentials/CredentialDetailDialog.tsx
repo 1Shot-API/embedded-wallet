@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useStyle } from "../../style";
+import { useStyle } from "../../style/StyleProvider";
 
 function formatClaimValue(value: unknown): string {
   if (value === null || value === undefined) return "—";

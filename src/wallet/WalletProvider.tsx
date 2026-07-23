@@ -29,13 +29,11 @@ import { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerC
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
 import { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
 import { withPasskeyPrompt } from "./withPasskeyPrompt";
-import {
-  HardcodedChainRepository,
-  HardcodedKnownAssetRepository,
-  LocalStorageTrackedAssetRepository,
-  BlockscoutAssetActivityRepository,
-  OneshotRelayerRepository,
-} from "../lib/implementations/data";
+import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
+import { HardcodedKnownAssetRepository } from "../lib/implementations/data/HardcodedKnownAssetRepository";
+import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
+import { BlockscoutAssetActivityRepository } from "../lib/implementations/data/BlockscoutAssetActivityRepository";
+import { OneshotRelayerRepository } from "../lib/implementations/data/OneshotRelayerRepository";
 import { TransactionService } from "../lib/implementations/business";
 import {
   ConfigProvider,

@@ -11,7 +11,7 @@ import {
   useWalletSessionStore,
 } from "../wallet/sessionStore";
 import { resolveActiveAddress } from "../wallet/activeAddress";
-import { useStyle } from "../style";
+import { useStyle } from "../style/StyleProvider";
 import { AccountMetaChip } from "./AccountMetaChip";
 import { AssetDetails } from "./AssetDetails";
 import { BalancesTab } from "./balances/BalancesTab";

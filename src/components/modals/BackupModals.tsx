@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { overlaySignerIframe } from "@1shotapi/ows-signer-utils";
 import type { RecoveryDataCreatedData } from "@1shotapi/ows-types";
-import {
-  useStyle,
-  type IStyleCopyCreateBackup,
-  type IStyleCopyRestoreBackup,
-} from "../../style";
+import { useStyle } from "../../style/StyleProvider";
+import type {
+  IStyleCopyCreateBackup,
+  IStyleCopyRestoreBackup,
+} from "../../style/types";
 import { CopyableText } from "../CopyableText";
 import { Modal } from "../Modal";
 import { useWallet } from "../../wallet/WalletProvider";

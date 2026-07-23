@@ -1,7 +1,7 @@
 import { Modal } from "../Modal";
 import { QRCode } from "../QRCode";
 import { CopyableText } from "../CopyableText";
-import { useStyle } from "../../style";
+import { useStyle } from "../../style/StyleProvider";
 
 export interface IReceiveModalProps {
   address: string;

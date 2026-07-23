@@ -17,9 +17,9 @@ import {
   DEFAULT_TRACKED_USDC,
   isDefaultTrackedUsdc,
 } from "./HardcodedKnownAssetRepository";
-import { NewTrackedAsset, TrackedAsset } from "../../types/domain";
-import { EAssetType } from "../../types/enum";
-import { BalanceUpdatedEvent } from "../../types/events";
+import { NewTrackedAsset, TrackedAsset } from "../../types/domain/TrackedAsset";
+import { EAssetType } from "../../types/enum/EAssetType";
+import { BalanceUpdatedEvent } from "../../types/events/BalanceUpdatedEvent";
 import {
   makeTrackedAssetId,
   type TrackedAssetId,
