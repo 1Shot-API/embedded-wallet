@@ -151,8 +151,9 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
   async list(filter?: CredentialFilter): Promise<CredentialSummary[]> {
     await this.ensureStorageKey();
     const blob = this.readBlob();
+    const revoked = new Set(blob.revoked);
     const active = Object.values(blob.credentials).filter(
-      (c) => !blob.revoked.includes(c.credentialId),
+      (c) => !revoked.has(c.credentialId),
     );
     return summarize(active, filter);
   }

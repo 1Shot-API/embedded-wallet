@@ -321,10 +321,13 @@ export function registerSetStyleRpc(
             .getCatalog()
             .map((chain) => String(chain.chainId).toLowerCase()),
         );
-        const valid = styleParams.allowedChains
-          .map((id: string) => id.toLowerCase())
-          .filter((id: string) => catalogIds.has(id))
-          .map((id: string) => EVMChainId(id as `0x${string}`));
+        const valid: ReturnType<typeof EVMChainId>[] = [];
+        for (const id of styleParams.allowedChains) {
+          const lower = id.toLowerCase();
+          if (catalogIds.has(lower)) {
+            valid.push(EVMChainId(lower as `0x${string}`));
+          }
+        }
         chainRepository.setAllowedChains(valid.length === 0 ? null : valid);
       }
       return {

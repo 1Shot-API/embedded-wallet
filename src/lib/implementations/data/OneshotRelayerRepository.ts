@@ -281,15 +281,22 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
       }),
     });
 
+    if (!response.ok) {
+      let detail = "";
+      try {
+        detail = await response.text();
+      } catch {
+        // ignore body read failures on error responses
+      }
+      throw new Error(
+        `Relayer HTTP ${response.status}${detail ? `: ${detail}` : ""}`,
+      );
+    }
+
     const json = (await response.json()) as
       | JsonRpcSuccess<T>
       | JsonRpcFailure;
 
-    if (!response.ok) {
-      throw new Error(
-        `Relayer HTTP ${response.status}: ${JSON.stringify(json)}`,
-      );
-    }
     if ("error" in json && json.error) {
       throw new Error(
         `Relayer ${method} error ${json.error.code}: ${json.error.message}`,

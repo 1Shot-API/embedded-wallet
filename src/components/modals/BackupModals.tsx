@@ -12,6 +12,10 @@ import { useWallet } from "../../wallet/WalletProvider";
 
 const DEFAULT_MIN_PASSWORD_LENGTH = 12;
 
+const CREATE_BACKUP_MIN_LENGTH_VARS = {
+  minLength: String(DEFAULT_MIN_PASSWORD_LENGTH),
+};
+
 const SIGNER_SLOT_CLASS =
   "border-border bg-muted/40 mb-4 min-h-28 overflow-hidden rounded-md border";
 
@@ -32,6 +36,7 @@ async function waitForSignerSlot(
   getSlot: () => HTMLElement | null,
   isAborted: () => boolean,
 ): Promise<{ home: HTMLElement; slot: HTMLElement } | null> {
+  // Ordered rAF poll until the dialog mounts the signer slot — not independent work.
   for (let attempt = 0; attempt < 60; attempt++) {
     if (isAborted()) return null;
     const home = getHome();
@@ -39,6 +44,7 @@ async function waitForSignerSlot(
     if (home && slot) {
       return { home, slot };
     }
+    // react-doctor-disable-next-line react-doctor/async-await-in-loop
     await waitForPaint();
   }
   if (isAborted()) return null;
@@ -106,9 +112,6 @@ export function CreateBackupModal({
     useWallet();
   const { style } = useStyle();
   const createBackup = style.copy.createBackup;
-  const minLengthVars = {
-    minLength: String(DEFAULT_MIN_PASSWORD_LENGTH),
-  };
   const signerSlotRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<"prompt" | "result" | "error">("prompt");
   const [error, setError] = useState<string | null>(null);
@@ -154,7 +157,7 @@ export function CreateBackupModal({
         await waitForPaint();
 
         const created = await signer.createRecoveryData(
-          fillTemplate(createBackup.passphrasePrompt, minLengthVars),
+          fillTemplate(createBackup.passphrasePrompt, CREATE_BACKUP_MIN_LENGTH_VARS),
           createBackup.continueLabel,
           DEFAULT_MIN_PASSWORD_LENGTH,
         );
@@ -252,7 +255,7 @@ export function CreateBackupModal({
     >
       {phase === "prompt" ? (
         <p className="mb-4">
-          {fillTemplate(createBackup.body, minLengthVars)}
+          {fillTemplate(createBackup.body, CREATE_BACKUP_MIN_LENGTH_VARS)}
         </p>
       ) : null}
       {error ? (
