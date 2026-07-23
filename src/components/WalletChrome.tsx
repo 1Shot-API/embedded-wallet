@@ -55,7 +55,7 @@ export function WalletChrome() {
                     });
                   }}
                 >
-                  Create backup
+                  {style.copy.createBackup.title}
                 </MenubarItem>
               ) : null}
               {!unlocked && canRestore ? (
@@ -66,7 +66,7 @@ export function WalletChrome() {
                     });
                   }}
                 >
-                  Restore backup
+                  {style.copy.restoreBackup.title}
                 </MenubarItem>
               ) : null}
               <MenubarSeparator />

@@ -21,7 +21,7 @@ export function OnboardingPanel() {
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-8 text-center">
         <BrandLogo
           logoUrl={logoUrl}
-          className="mb-6 size-[4.5rem] rounded-2xl"
+          className="mb-6 size-[4.5rem]"
         />
 
         <h1 className="text-foreground m-0 text-[1.35rem] font-bold tracking-tight">
@@ -40,7 +40,7 @@ export function OnboardingPanel() {
           <Button
             type="button"
             size="lg"
-            className="h-11 w-full rounded-full text-[0.95rem] font-semibold"
+            className="h-11 w-full text-[0.95rem] font-semibold"
             onClick={() => {
               void loginWithPasskey().catch((error: unknown) => {
                 console.error("[wallet-setup] embedded login failed", error);
@@ -53,7 +53,7 @@ export function OnboardingPanel() {
             type="button"
             variant="outline"
             size="lg"
-            className="h-11 w-full rounded-full text-[0.95rem] font-semibold"
+            className="h-11 w-full text-[0.95rem] font-semibold"
             onClick={() => {
               void createNewWalletFromUi().catch((error: unknown) => {
                 console.error("[wallet-setup] embedded create failed", error);

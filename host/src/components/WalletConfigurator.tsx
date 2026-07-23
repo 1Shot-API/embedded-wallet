@@ -607,6 +607,12 @@ export function WalletConfigurator({
                   onChange={(value) => patch("balTabLabel", value)}
                 />
                 <TextField
+                  id="bal-refresh"
+                  label="Refresh"
+                  value={form.balRefresh}
+                  onChange={(value) => patch("balRefresh", value)}
+                />
+                <TextField
                   id="receive-label"
                   label="Receive button"
                   value={form.receiveLabel}

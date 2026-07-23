@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TrackedAsset } from "../../lib/types/domain";
+import { EAssetType } from "../../lib/types/enum";
 import { useStyle } from "../../style";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
@@ -47,6 +48,7 @@ export function AssetList({
 
   const [rows, setRows] = useState<TrackedAsset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
@@ -67,6 +69,21 @@ export function AssetList({
   useEffect(() => {
     void reload();
   }, [reload, trackedAssetCount, evmAddress]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setError(null);
+    try {
+      await requestBalanceRefresh();
+      await reload();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : copy.refreshFailedError,
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const columns = useMemo<ColumnDef<TrackedAsset>[]>(
     () => [
@@ -94,12 +111,17 @@ export function AssetList({
             trackedAssetId={row.original.id}
             balance={row.original.balance}
             decimals={row.original.decimals}
+            fallback={
+              row.original.type !== EAssetType.Erc20
+                ? copy.balanceNonErc20
+                : undefined
+            }
             className="text-xs tabular-nums"
           />
         ),
       },
     ],
-    [copy.assetColumn, copy.balanceColumn],
+    [copy.assetColumn, copy.balanceColumn, copy.balanceNonErc20],
   );
 
   const table = useReactTable({
@@ -119,20 +141,24 @@ export function AssetList({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground m-0 text-xs">
           {rows.length === 0
             ? copy.emptyCountLabel
             : copy.countLabel.replace("{count}", String(rows.length))}
         </p>
         <Button
           type="button"
-          size="sm"
+          size="icon-sm"
           variant="outline"
-          disabled={loading}
-          onClick={() => requestBalanceRefresh()}
-          aria-label="Refresh balances"
+          aria-label={copy.refreshLabel}
+          disabled={refreshing || loading}
+          onClick={() => {
+            void onRefresh();
+          }}
         >
-          <RefreshCwIcon className="size-3.5" />
+          <RefreshCwIcon
+            className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
+          />
         </Button>
       </div>
 

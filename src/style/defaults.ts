@@ -193,10 +193,12 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       emptyCountLabel: "No assets tracked yet.",
       countLabel: "{count} asset(s)",
       addLabel: "Add asset",
+      refreshLabel: "Refresh",
       loadingBody: "Loading…",
       emptyBody:
         "Add an asset yourself or accept a host addAsset request to start tracking balances.",
       loadFailedError: "Failed to load tracked assets",
+      refreshFailedError: "Failed to refresh balances",
       addFailedError: "Failed to add asset",
       invalidAddressError: "Enter a valid 0x address.",
       assetColumn: "Asset",

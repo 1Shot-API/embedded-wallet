@@ -181,7 +181,7 @@ export function CredentialsTab() {
   const pageIndex = table.getState().pagination.pageIndex;
 
   return (
-    <div className="flex flex-col gap-3 pt-1">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-muted-foreground m-0 text-xs">
           {rows.length === 0
@@ -190,8 +190,9 @@ export function CredentialsTab() {
         </p>
         <Button
           type="button"
-          size="sm"
+          size="icon-sm"
           variant="outline"
+          aria-label={copy.refreshLabel}
           disabled={refreshing || loading}
           onClick={() => {
             void onRefresh();
@@ -200,7 +201,6 @@ export function CredentialsTab() {
           <RefreshCwIcon
             className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
           />
-          {copy.refreshLabel}
         </Button>
       </div>
 
