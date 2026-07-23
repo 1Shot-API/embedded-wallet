@@ -229,21 +229,22 @@ export class TransactionService implements ITransactionService {
     );
 
     const client = this.options.blockchain.getPublicClient(chainId);
-    const tokens: IPaymentTokenOption[] = [];
-    for (const token of capabilities.tokens) {
-      let balance = 0n;
-      try {
-        balance = await client.readContract({
-          address: token.address,
-          abi: erc20Abi,
-          functionName: "balanceOf",
-          args: [owner],
-        });
-      } catch {
-        balance = 0n;
-      }
-      tokens.push({ ...token, balance });
-    }
+    const tokens: IPaymentTokenOption[] = await Promise.all(
+      capabilities.tokens.map(async (token) => {
+        let balance = 0n;
+        try {
+          balance = await client.readContract({
+            address: token.address,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [owner],
+          });
+        } catch {
+          balance = 0n;
+        }
+        return { ...token, balance };
+      }),
+    );
 
     const selected = pickPaymentToken(tokens, preferredToken);
     if (!selected) {

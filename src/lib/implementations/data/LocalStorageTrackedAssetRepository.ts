@@ -169,21 +169,21 @@ export class LocalStorageTrackedAssetRepository
     forceEmit: boolean,
   ): Promise<TrackedAsset[]> {
     let anyFetched = forceEmit;
-    const result: TrackedAsset[] = [];
 
-    for (const asset of assets) {
-      if (this.balanceCache.has(asset.id)) {
-        result.push(asset.withBalance(this.balanceCache.get(asset.id)!));
-        continue;
-      }
+    const result = await Promise.all(
+      assets.map(async (asset) => {
+        if (this.balanceCache.has(asset.id)) {
+          return asset.withBalance(this.balanceCache.get(asset.id)!);
+        }
 
-      anyFetched = true;
-      const balance = await this.fetchBalance(asset, owner);
-      if (balance !== null) {
-        this.balanceCache.set(asset.id, balance);
-      }
-      result.push(asset.withBalance(balance));
-    }
+        anyFetched = true;
+        const balance = await this.fetchBalance(asset, owner);
+        if (balance !== null) {
+          this.balanceCache.set(asset.id, balance);
+        }
+        return asset.withBalance(balance);
+      }),
+    );
 
     if (anyFetched && result.length > 0) {
       this.eventBus.emit(new BalanceUpdatedEvent(result));

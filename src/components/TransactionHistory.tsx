@@ -14,6 +14,11 @@ import { useTransactionHistoryUpdated } from "../wallet/useWalletEvent";
 const RECENT_LIMIT = 10;
 const TRUNCATE_CHARS = 5;
 
+const ACTIVITY_WHEN_FORMAT = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
 export interface ITransactionHistoryProps {
   asset: TrackedAsset;
   owner: EVMAccountAddress | null;
@@ -31,10 +36,7 @@ function formatWhen(timestampMs: number): string {
     return "Unknown time";
   }
   try {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(timestampMs));
+    return ACTIVITY_WHEN_FORMAT.format(new Date(timestampMs));
   } catch {
     return new Date(timestampMs).toLocaleString();
   }
