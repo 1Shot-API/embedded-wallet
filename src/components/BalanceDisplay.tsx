@@ -1,9 +1,8 @@
-import { useCallback, useState } from "react";
-import { formatUnits } from "viem";
 import { cn } from "@/lib/utils";
 import type { TrackedAssetId } from "../lib/types/primitives";
 import { useStyle } from "../style/StyleProvider";
-import { useBalanceUpdated } from "../wallet/useWalletEvent";
+import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
+import { formatUnits } from "viem";
 
 export interface IBalanceDisplayProps {
   trackedAssetId: TrackedAssetId;
@@ -27,15 +26,9 @@ function formatBalance(
   }
 }
 
-type LiveBalance = {
-  balance: bigint | null;
-  decimals: number;
-};
-
 /**
  * Formats a raw token balance and stays live via BalanceUpdated events.
- * Props are the source of truth; event updates override until the asset or
- * props change (reset during render — no prop→state sync effect).
+ * Props are the source of truth until an event overrides them.
  */
 export function BalanceDisplay({
   trackedAssetId,
@@ -46,37 +39,11 @@ export function BalanceDisplay({
 }: IBalanceDisplayProps) {
   const { style } = useStyle();
   const unavailable = fallback ?? style.copy.balances.balanceUnavailable;
-  const [live, setLive] = useState<LiveBalance | null>(null);
-  const [prev, setPrev] = useState({
+  const { balance, decimals } = useLiveTrackedBalance(
     trackedAssetId,
     propBalance,
     propDecimals,
-  });
-
-  if (
-    trackedAssetId !== prev.trackedAssetId ||
-    propBalance !== prev.propBalance ||
-    propDecimals !== prev.propDecimals
-  ) {
-    setPrev({ trackedAssetId, propBalance, propDecimals });
-    setLive(null);
-  }
-
-  useBalanceUpdated(
-    useCallback(
-      (event) => {
-        const next = event.assets.find(
-          (asset) => asset.id === trackedAssetId,
-        );
-        if (!next) return;
-        setLive({ balance: next.balance, decimals: next.decimals });
-      },
-      [trackedAssetId],
-    ),
   );
-
-  const balance = live?.balance ?? propBalance;
-  const decimals = live?.decimals ?? propDecimals;
 
   return (
     <span className={cn("font-mono tabular-nums", className)}>

@@ -16,6 +16,7 @@ import { EAssetType } from "../../lib/types/enum/EAssetType";
 import type { IPaymentQuote } from "../../lib/interfaces/business";
 import { useStyle } from "../../style/StyleProvider";
 import { chainTechnologyFor } from "../../wallet/activeAddress";
+import { useLiveTrackedBalance } from "../../wallet/useLiveTrackedBalance";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
 import { Modal } from "../Modal";
@@ -92,15 +93,22 @@ export function TransferTokensModal({
   const chainMeta = resolveChain(asset.chainId);
   const useRelayer = chainMeta?.useRelayer === true;
 
+  // AssetDetails / list pass a snapshot; BalanceDisplay is live via events.
+  // Validate against the same live balance or Send always hits insufficient.
+  const { balance, decimals } = useLiveTrackedBalance(
+    asset.id,
+    asset.balance,
+    asset.decimals,
+  );
+
   const technology = useMemo(
     () => chainTechnologyFor(asset.chainId),
     [asset.chainId],
   );
 
   const amountError = useMemo(
-    () =>
-      amountValidationError(amount, asset.decimals, asset.balance, copy),
-    [amount, asset.balance, asset.decimals, copy],
+    () => amountValidationError(amount, decimals, balance, copy),
+    [amount, balance, decimals, copy],
   );
 
   const onQuoteChange = useCallback(
@@ -155,8 +163,12 @@ export function TransferTokensModal({
 
     let parsed: bigint;
     try {
-      parsed = parseUnits(amount.trim(), asset.decimals);
+      parsed = parseUnits(amount.trim(), decimals);
     } catch {
+      return;
+    }
+    if (balance !== null && parsed > balance) {
+      setSubmitError(copy.insufficientBalanceError);
       return;
     }
 
@@ -189,7 +201,7 @@ export function TransferTokensModal({
         owner: evmAddress,
         to: recipient as EVMAccountAddress,
         amount: parsed,
-        decimals: asset.decimals,
+        decimals,
         hash,
       });
       onSuccess(hash);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -6,11 +6,12 @@ import {
   QrCodeIcon,
   SendIcon,
 } from "lucide-react";
-import type { TrackedAsset } from "../lib/types/domain";
+import { TrackedAsset } from "../lib/types/domain";
 import { EAssetType } from "../lib/types/enum/EAssetType";
 import { useStyle } from "../style/StyleProvider";
 import { useWallet } from "../wallet/WalletProvider";
 import { resolveActiveAddress } from "../wallet/activeAddress";
+import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { TransactionHistory } from "./TransactionHistory";
@@ -26,7 +27,7 @@ export interface IAssetDetailsProps {
  * Shared focused-asset / asset-detail shell.
  * Balance and recent activity are live.
  */
-export function AssetDetails({ asset }: IAssetDetailsProps) {
+export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   const { style } = useStyle();
   const { balances: copy } = style.copy;
   const { requestBalanceRefresh, resolveChain } = useWallet();
@@ -40,9 +41,28 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
   const [sendOpen, setSendOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
 
+  const { balance, decimals } = useLiveTrackedBalance(
+    assetProp.id,
+    assetProp.balance,
+    assetProp.decimals,
+  );
+  const asset =
+    balance === assetProp.balance && decimals === assetProp.decimals
+      ? assetProp
+      : new TrackedAsset(
+          assetProp.chainId,
+          assetProp.address,
+          assetProp.type,
+          assetProp.name,
+          assetProp.symbol,
+          decimals,
+          assetProp.id,
+          balance,
+        );
+
   useEffect(() => {
-    requestBalanceRefresh(asset.id);
-  }, [asset.id, requestBalanceRefresh]);
+    void requestBalanceRefresh(assetProp.id);
+  }, [assetProp.id, requestBalanceRefresh]);
 
   const network =
     resolveChain(asset.chainId)?.label ?? String(asset.chainId);
@@ -52,6 +72,11 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
     solanaAddress,
   });
   const canSend = asset.type === EAssetType.Erc20;
+
+  const openSend = useCallback(() => {
+    void requestBalanceRefresh(asset.id);
+    setSendOpen(true);
+  }, [asset.id, requestBalanceRefresh]);
 
   return (
     <div className="flex flex-col gap-5" aria-label={`${asset.symbol} details`}>
@@ -96,7 +121,7 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
           label={copy.sendLabel}
           variant="primary"
           disabled={!canSend}
-          onClick={() => setSendOpen(true)}
+          onClick={openSend}
         >
           <SendIcon className="size-5" />
         </ActionButton>
@@ -123,7 +148,7 @@ export function AssetDetails({ asset }: IAssetDetailsProps) {
           asset={asset}
           onClose={() => setSendOpen(false)}
           onSuccess={() => {
-            requestBalanceRefresh(asset.id);
+            void requestBalanceRefresh(asset.id);
           }}
         />
       ) : null}
