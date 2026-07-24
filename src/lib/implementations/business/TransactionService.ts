@@ -299,7 +299,9 @@ export class TransactionService implements ITransactionService {
     await this.options.owsProvider.ensureDisplay();
     try {
       const delegationSecret = await loadOrCreateDelegationBinding();
-      const viemAccount = await this.getViemAccount();
+      // Bind the LocalAccount to the same EOA used for upgrade checks / nonce /
+      // smartAccount — do not re-resolve address inside getViemAccount.
+      const viemAccount = await this.getViemAccount(eoa);
       const publicClient = this.options.blockchain.getPublicClient(chainId);
       const chainIdNumber = Number(BigInt(chainId));
 
@@ -331,7 +333,7 @@ export class TransactionService implements ITransactionService {
           // keep hardcoded fallback
         }
         upgradeNonce = await publicClient.getTransactionCount({
-          address: eoa,
+          address: getAddress(eoa),
           blockTag: "pending",
         });
       }
@@ -539,17 +541,25 @@ export class TransactionService implements ITransactionService {
       },
     });
 
-    // Display is already held by sendViaRelayer / callers — do not re-enter
-    // ensureDisplay here; parallel awaits stagger signDigest and cancel the
-    // coalesced ceremony.
+    // Callers must already have the flyout open (SignHelper.withDisplay for
+    // eth_sendTransaction, plus sendViaRelayer.ensureDisplay for size). Do not
+    // call ensureDisplay here: parallel requestDisplay awaits stagger the two
+    // signDelegation → signDigest paths and the second signer RPC cancels the
+    // first Confirm UI (`ceremonyCancelled`). withCeremonyUiReason only sets
+    // Confirm copy — it does not open/close display and awaits this method.
     const signature = await smartAccount.signDelegation({ delegation });
     return { ...delegation, signature };
   }
 
-  private async getViemAccount(): Promise<LocalAccount> {
+  private async getViemAccount(
+    addressOverride?: EVMAccountAddress,
+  ): Promise<LocalAccount> {
     const signer = await this.options.owsProvider.getSigner();
     const address =
-      signer.getCachedAddress?.() ?? loadCachedEvmAddress() ?? undefined;
+      addressOverride ??
+      signer.getCachedAddress?.() ??
+      loadCachedEvmAddress() ??
+      undefined;
     const publicKey =
       signer.getLastPublicKeyData?.()?.secp256k1PublicKey ??
       loadCachedSecp256k1PublicKey() ??
