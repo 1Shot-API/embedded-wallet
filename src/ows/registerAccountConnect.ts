@@ -5,6 +5,7 @@ import {
   OwsUserRejectedError,
   type SolanaAccountAddress,
 } from "@1shotapi/ows-types";
+import type { IWalletDisplaySize } from "../lib/types/domain";
 
 export type AccountConnectStorage = {
   loadCachedEvmAddress: () => EVMAccountAddress | undefined;
@@ -18,6 +19,7 @@ export type RegisterAccountConnectOptions = {
   storage: AccountConnectStorage;
   ensureReady: () => Promise<void>;
   requestConnectApproval: () => Promise<boolean>;
+  displaySize: IWalletDisplaySize;
 };
 
 /**
@@ -42,7 +44,7 @@ export function registerAccountConnect(
       return [cached];
     }
 
-    const display = await wallet.requestDisplay({ width: 420, height: 360 });
+    const display = await wallet.requestDisplay(options.displaySize);
     try {
       const approved = await options.requestConnectApproval();
       if (!approved) {

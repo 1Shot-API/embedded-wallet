@@ -149,6 +149,7 @@ export interface IStyleCopyPasskeyPrompt {
   encrypt: IStyleCopyPasskeyPromptEntry;
   decrypt: IStyleCopyPasskeyPromptEntry;
   relayerAuth: IStyleCopyPasskeyPromptEntry;
+  walletUpgrade: IStyleCopyPasskeyPromptEntry;
   backup: IStyleCopyPasskeyPromptEntry;
 }
 
@@ -344,6 +345,7 @@ export interface IStyleCopyOptions {
     encrypt?: Partial<IStyleCopyPasskeyPromptEntry>;
     decrypt?: Partial<IStyleCopyPasskeyPromptEntry>;
     relayerAuth?: Partial<IStyleCopyPasskeyPromptEntry>;
+    walletUpgrade?: Partial<IStyleCopyPasskeyPromptEntry>;
     backup?: Partial<IStyleCopyPasskeyPromptEntry>;
   };
   /** Partial patch for the credential offer modal */

@@ -135,6 +135,10 @@ export const DEFAULT_STYLE: IResolvedStyle = {
         title: "Authenticate with passkey",
         body: "Confirm with your passkey to authenticate with the 1Shot Relayer.",
       },
+      walletUpgrade: {
+        title: "Authorize upgrading your wallet",
+        body: "Confirm with your passkey for a one-time network upgrade so the 1Shot Relayer can submit gas-abstracted transactions for you.",
+      },
       backup: {
         title: "Confirm backup",
         body: "Confirm with your passkey to create an encrypted recovery backup.",

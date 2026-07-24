@@ -1,5 +1,6 @@
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import { EPasskeyPromptReason } from "../lib/types/enum";
+import { usePasskeyPromptStore } from "./passkeyPromptStore";
 import { withPasskeyPrompt } from "./withPasskeyPrompt";
 
 /**
@@ -27,10 +28,16 @@ export function wrapSignerWithPasskeyPrompts(signer: OWSSigner): OWSSigner {
       getPublicKey(...args),
     )) as OWSSigner["getPublicKey"];
 
-  signer.signDigest = ((...args: Parameters<OWSSigner["signDigest"]>) =>
-    withPasskeyPrompt(EPasskeyPromptReason.Sign, () =>
+  signer.signDigest = (async (...args: Parameters<OWSSigner["signDigest"]>) => {
+    // Keep an outer ceremony overlay (e.g. WalletUpgrade) visible — do not
+    // replace it with the generic Sign copy for nested digest signing.
+    if (usePasskeyPromptStore.getState().activeReason) {
+      return await signDigest(...args);
+    }
+    return await withPasskeyPrompt(EPasskeyPromptReason.Sign, () =>
       signDigest(...args),
-    )) as OWSSigner["signDigest"];
+    );
+  }) as OWSSigner["signDigest"];
 
   signer.encryptAES256 = ((...args: Parameters<OWSSigner["encryptAES256"]>) =>
     withPasskeyPrompt(EPasskeyPromptReason.Encrypt, () =>

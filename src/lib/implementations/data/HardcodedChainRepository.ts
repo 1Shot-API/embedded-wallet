@@ -1,4 +1,8 @@
-import { EVMChainId, type EVMChainId as EVMChainIdType } from "@1shotapi/ows-types";
+import {
+  EVMChainId,
+  type EVMAccountAddress,
+  type EVMChainId as EVMChainIdType,
+} from "@1shotapi/ows-types";
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
 import { SupportedChain } from "../../types/domain/SupportedChain";
 import { EChainNetworkType } from "../../types/enum/EChainNetworkType";
@@ -231,4 +235,42 @@ export class HardcodedChainRepository implements IChainRepository {
   getCatalog(): readonly SupportedChain[] {
     return CATALOG;
   }
+
+  async getWalletUpgraded(
+    chainId: EVMChainIdType,
+    address: EVMAccountAddress,
+  ): Promise<boolean | null> {
+    try {
+      const raw = localStorage.getItem(this.upgradeStorageKey(chainId, address));
+      if (raw === "true") return true;
+      if (raw === "false") return false;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  async setWalletUpgraded(
+    chainId: EVMChainIdType,
+    address: EVMAccountAddress,
+    upgraded: boolean,
+  ): Promise<void> {
+    try {
+      localStorage.setItem(
+        this.upgradeStorageKey(chainId, address),
+        upgraded ? "true" : "false",
+      );
+    } catch {
+      // Ignore quota / private-mode failures; getCode remains the source of truth.
+    }
+  }
+
+  private upgradeStorageKey(
+    chainId: EVMChainIdType,
+    address: EVMAccountAddress,
+  ): string {
+    return `oneshot.walletUpgraded.${String(chainId).toLowerCase()}.${String(address).toLowerCase()}`;
+  }
 }
+
+

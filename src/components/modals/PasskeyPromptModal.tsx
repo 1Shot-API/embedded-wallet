@@ -21,6 +21,8 @@ function copyForReason(
       return prompts.decrypt;
     case EPasskeyPromptReason.RelayerAuth:
       return prompts.relayerAuth;
+    case EPasskeyPromptReason.WalletUpgrade:
+      return prompts.walletUpgrade;
     case EPasskeyPromptReason.Backup:
       return prompts.backup;
   }

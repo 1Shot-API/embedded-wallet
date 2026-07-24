@@ -75,6 +75,10 @@ export function mergeStyle(
           ...current.copy.passkeyPrompt.relayerAuth,
           ...patch.copy?.passkeyPrompt?.relayerAuth,
         },
+        walletUpgrade: {
+          ...current.copy.passkeyPrompt.walletUpgrade,
+          ...patch.copy?.passkeyPrompt?.walletUpgrade,
+        },
         backup: {
           ...current.copy.passkeyPrompt.backup,
           ...patch.copy?.passkeyPrompt?.backup,
@@ -137,6 +141,7 @@ function cloneDefaultStyle(): IResolvedStyle {
         encrypt: { ...DEFAULT_STYLE.copy.passkeyPrompt.encrypt },
         decrypt: { ...DEFAULT_STYLE.copy.passkeyPrompt.decrypt },
         relayerAuth: { ...DEFAULT_STYLE.copy.passkeyPrompt.relayerAuth },
+        walletUpgrade: { ...DEFAULT_STYLE.copy.passkeyPrompt.walletUpgrade },
         backup: { ...DEFAULT_STYLE.copy.passkeyPrompt.backup },
       },
       credentialOffer: { ...DEFAULT_STYLE.copy.credentialOffer },

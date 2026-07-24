@@ -4,8 +4,15 @@ import type {
   SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
 import { ConversionUtils, HexString } from "@1shotapi/ows-types";
+import { useState } from "react";
+import type { IPaymentQuote } from "../../lib/interfaces/business";
+import type {
+  IConfirmSendResult,
+  IConfirmTransferRequest,
+} from "../../wallet/modalTypes";
 import { useStyle } from "../../style";
 import { Modal } from "../Modal";
+import { PaymentFeePicker } from "../PaymentFeePicker";
 
 export function PersonalSignModal({
   request,
@@ -94,11 +101,16 @@ export function SendTransactionModal({
   request,
   onResolve,
 }: {
-  request: SendTransactionApprovalRequest;
-  onResolve: (approved: boolean) => void;
+  request: SendTransactionApprovalRequest & { useRelayer?: boolean };
+  onResolve: (result: IConfirmSendResult) => void;
 }) {
   const { style } = useStyle();
   const { sendTransaction: copy } = style.copy;
+  const [quote, setQuote] = useState<IPaymentQuote | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
+  const canConfirm =
+    !request.useRelayer || (quote !== null && quoteError === null);
 
   return (
     <Modal
@@ -114,7 +126,17 @@ export function SendTransactionModal({
           label: copy.signLabel,
           variant: "primary",
           autoFocus: true,
-          onClick: () => onResolve(true),
+          disabled: !canConfirm,
+          onClick: () => {
+            if (request.useRelayer && quote) {
+              onResolve({
+                paymentToken: quote.selectedToken,
+                feeAtoms: quote.feeAtoms,
+              });
+            } else {
+              onResolve({});
+            }
+          },
         },
       ]}
     >
@@ -127,6 +149,19 @@ export function SendTransactionModal({
       <LabeledBlock label={copy.valueLabel} content={request.value} />
       <LabeledBlock label={copy.dataLabel} content={request.data} />
       <LabeledBlock label={copy.chainLabel} content={request.chainId} />
+      {request.useRelayer ? (
+        <PaymentFeePicker
+          chainId={request.chainId}
+          ownerAddress={request.address}
+          quote={quote}
+          error={quoteError}
+          loading={false}
+          onQuoteChange={(next, err) => {
+            setQuote(next);
+            setQuoteError(err);
+          }}
+        />
+      ) : null}
     </Modal>
   );
 }
@@ -135,18 +170,13 @@ export function ConfirmTransferModal({
   request,
   onResolve,
 }: {
-  request: {
-    domain: string;
-    amount: string;
-    tokenName: string;
-    tokenSymbol: string;
-    receiver: string;
-    chainName: string;
-  };
-  onResolve: (approved: boolean) => void;
+  request: IConfirmTransferRequest;
+  onResolve: (result: IConfirmSendResult) => void;
 }) {
   const { style } = useStyle();
   const { confirmTransfer: copy } = style.copy;
+  const [quote, setQuote] = useState<IPaymentQuote | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
   const body = copy.body
     .replace("{domain}", request.domain)
     .replace("{amount}", request.amount)
@@ -154,6 +184,9 @@ export function ConfirmTransferModal({
     .replace("{tokenSymbol}", request.tokenSymbol)
     .replace("{receiver}", request.receiver)
     .replace("{chainName}", request.chainName);
+
+  const canConfirm =
+    !request.useRelayer || (quote !== null && quoteError === null);
 
   return (
     <Modal
@@ -169,7 +202,17 @@ export function ConfirmTransferModal({
           label: copy.confirmLabel,
           variant: "primary",
           autoFocus: true,
-          onClick: () => onResolve(true),
+          disabled: !canConfirm,
+          onClick: () => {
+            if (request.useRelayer && quote) {
+              onResolve({
+                paymentToken: quote.selectedToken,
+                feeAtoms: quote.feeAtoms,
+              });
+            } else {
+              onResolve({});
+            }
+          },
         },
       ]}
     >
@@ -180,6 +223,19 @@ export function ConfirmTransferModal({
         <LabeledBlock label={copy.receiverLabel} content={request.receiver} />
         <LabeledBlock label={copy.chainLabel} content={request.chainName} />
       </div>
+      {request.useRelayer ? (
+        <PaymentFeePicker
+          chainId={request.chainId}
+          ownerAddress={request.ownerAddress}
+          quote={quote}
+          error={quoteError}
+          loading={false}
+          onQuoteChange={(next, err) => {
+            setQuote(next);
+            setQuoteError(err);
+          }}
+        />
+      ) : null}
     </Modal>
   );
 }
