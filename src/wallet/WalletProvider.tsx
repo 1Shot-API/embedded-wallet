@@ -28,7 +28,6 @@ import {
 import { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerCredentialRepository";
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
 import { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
-import { withPasskeyPrompt } from "./withPasskeyPrompt";
 import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
 import { HardcodedKnownAssetRepository } from "../lib/implementations/data/HardcodedKnownAssetRepository";
 import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
@@ -107,7 +106,6 @@ const transactionService: ITransactionService = new TransactionService({
   blockchain: blockchainProvider,
   transactionUtils,
   owsProvider,
-  withPasskeyPrompt,
 });
 
 const credentialRepository = new CachedRelayerCredentialRepository({

@@ -29,8 +29,9 @@ function copyForReason(
 }
 
 /**
- * Non-interactive explanation while a WebAuthn ceremony is in flight.
- * No Continue/Done — dismisses when {@link withPasskeyPrompt} finishes.
+ * Non-interactive Branding overlay for Branding-native WebAuthn only
+ * (e.g. Relayer assertion). Signing Layer PRF uses Confirm UI in the signer.
+ * Dismisses when {@link withPasskeyPrompt} finishes.
  */
 export function PasskeyPromptModal() {
   const reason = usePasskeyPromptStore((state) => state.activeReason);

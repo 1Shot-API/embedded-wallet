@@ -30,7 +30,7 @@ import {
 import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
 import { registerSetStyleRpc } from "../style/registerSetStyle";
-import { wrapSignerWithPasskeyPrompts } from "./wrapSignerWithPasskeyPrompts";
+import { wrapSignerWithCeremonyCopy } from "./wrapSignerWithCeremonyCopy";
 import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
 import type {
   IChainRepository,
@@ -182,7 +182,7 @@ export function useWalletBoot({
         credentialId: loadCredentialId(),
       });
       const awaitSigner = async (): Promise<OWSSigner> => {
-        const loaded = wrapSignerWithPasskeyPrompts(await signerPromise);
+        const loaded = wrapSignerWithCeremonyCopy(await signerPromise);
         signerRef.current = loaded;
         owsProvider.setSigner(loaded);
         return loaded;

@@ -42,6 +42,7 @@ import type { IRelayerSendPrefetch } from "../../interfaces/business/ITransactio
 import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
 import type { LocalAccount } from "viem/accounts";
 import { idbGetString, idbSetString } from "../../utils/idbStringStore";
+import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
 
 const STATELESS_DELEGATOR_IMPL =
   "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B" as const;
@@ -58,11 +59,6 @@ export type TransactionServiceOptions = {
   blockchain: IBlockchainProvider;
   transactionUtils: ITransactionUtils;
   owsProvider: IOWSProvider;
-  /** Show informational passkey overlay while {@link run} executes. */
-  withPasskeyPrompt: <T>(
-    reason: EPasskeyPromptReason,
-    run: () => Promise<T>,
-  ) => Promise<T>;
 };
 
 /**
@@ -134,9 +130,8 @@ export class TransactionService implements ITransactionService {
     prefetch?: IRelayerSendPrefetch,
   ): Promise<IRelayerAuthorizationEntry> {
     await this.options.owsProvider.ensureDisplay();
-    return this.options.withPasskeyPrompt(
-      EPasskeyPromptReason.WalletUpgrade,
-      () => this.signWalletUpgradeAuthorizationInner(chainId, prefetch),
+    return withCeremonyUiReason(EPasskeyPromptReason.WalletUpgrade, () =>
+      this.signWalletUpgradeAuthorizationInner(chainId, prefetch),
     );
   }
 

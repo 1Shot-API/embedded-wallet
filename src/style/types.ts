@@ -132,14 +132,15 @@ export interface IStyleCopyTransferTokens {
   doneLabel: string;
 }
 
-/** Title + body for one passkey-ceremony explanation overlay. */
+/** Title + body mapped to Signing Layer ceremony Confirm UI (`explanationHeader` / `explanationText`). Relayer Branding-native WebAuthn still uses the same keys via `PasskeyPromptModal`. */
 export interface IStyleCopyPasskeyPromptEntry {
   title: string;
   body: string;
 }
 
 /**
- * Non-interactive overlays shown while a WebAuthn ceremony is in flight.
+ * Passkey ceremony copy. Signing Layer PRF paths receive these as
+ * `CeremonyUiParams`; Relayer assertion uses the Branding overlay.
  * Keys align with {@link EPasskeyPromptReason}.
  */
 export interface IStyleCopyPasskeyPrompt {
@@ -337,7 +338,7 @@ export interface IStyleCopyOptions {
   confirmTransfer?: Partial<IStyleCopyConfirmTransfer>;
   /** Partial patch for the in-wallet transfer tokens modal */
   transferTokens?: Partial<IStyleCopyTransferTokens>;
-  /** Partial patch for passkey-ceremony explanation overlays */
+  /** Partial patch for passkey ceremony Confirm copy (Signing) / Relayer overlay */
   passkeyPrompt?: {
     unlock?: Partial<IStyleCopyPasskeyPromptEntry>;
     create?: Partial<IStyleCopyPasskeyPromptEntry>;
