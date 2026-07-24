@@ -1,13 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CheckIcon, CopyIcon, XIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { copyText } from "@/lib/clipboard";
 import type { TrackedAsset } from "../lib/types/domain";
 import { useWallet } from "../wallet/WalletProvider";
 import {
@@ -15,11 +11,22 @@ import {
   useWalletSessionStore,
 } from "../wallet/sessionStore";
 import { resolveActiveAddress } from "../wallet/activeAddress";
-import { useStyle } from "../style";
+import { useStyle } from "../style/StyleProvider";
+import { AccountMetaChip } from "./AccountMetaChip";
 import { AssetDetails } from "./AssetDetails";
-import { CopyableText } from "./CopyableText";
 import { BalancesTab } from "./balances/BalancesTab";
 import { CredentialsTab } from "./credentials/CredentialsTab";
+import { SelectNetworkModal } from "./modals/SelectNetworkModal";
+
+const TRUNCATE_CHARS = 5;
+const COPY_FEEDBACK_MS = 1500;
+
+type CopyState = "idle" | "copied" | "failed";
+
+function formatTruncated(text: string): string {
+  if (text.length <= TRUNCATE_CHARS * 2 + 1) return text;
+  return `${text.slice(0, TRUNCATE_CHARS)}…${text.slice(-TRUNCATE_CHARS)}`;
+}
 
 function FocusedAssetPanel() {
   const { resolveTrackedAsset } = useWallet();
@@ -65,6 +72,7 @@ function FocusedAssetPanel() {
  */
 export function MainPanel() {
   const { style } = useStyle();
+  const { account: accountCopy } = style.copy;
   const { chains, switchChain } = useWallet();
   const {
     evmAddress,
@@ -81,9 +89,44 @@ export function MainPanel() {
       focusedAssetAddress: state.focusedAssetAddress,
     })),
   );
+  const [networkModalOpen, setNetworkModalOpen] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<TrackedAsset | null>(
+    null,
+  );
+  const [copyState, setCopyState] = useState<CopyState>("idle");
+  const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    setSelectedAsset(null);
+  }, [chainId]);
 
   if (mode === EWalletMode.Focused && focusedAssetAddress) {
     return <FocusedAssetPanel />;
+  }
+
+  if (selectedAsset) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label={style.copy.balances.closeLabel}
+            onClick={() => setSelectedAsset(null)}
+          >
+            <XIcon />
+          </Button>
+        </div>
+        <AssetDetails asset={selectedAsset} />
+      </div>
+    );
   }
 
   const active = resolveActiveAddress({
@@ -92,49 +135,79 @@ export function MainPanel() {
     solanaAddress,
   });
   const hasAddress = Boolean(active.address && active.address !== "—");
+  const selectedChain =
+    chains.find(
+      (chain) =>
+        String(chain.chainId).toLowerCase() === String(chainId).toLowerCase(),
+    ) ?? null;
+  const networkLabel = selectedChain?.label ?? String(chainId);
+
+  const copyFeedbackLabel =
+    copyState === "copied"
+      ? accountCopy.addressCopiedLabel
+      : copyState === "failed"
+        ? accountCopy.addressCopyFailedLabel
+        : accountCopy.copyAddressLabel;
+
+  const onCopyAddress = () => {
+    if (!hasAddress) return;
+    void copyText(active.address).then((ok) => {
+      setCopyState(ok ? "copied" : "failed");
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+      copyResetRef.current = setTimeout(
+        () => setCopyState("idle"),
+        COPY_FEEDBACK_MS,
+      );
+    });
+  };
+
+  const onSelectNetwork = (next: string) => {
+    setNetworkModalOpen(false);
+    if (
+      String(next).toLowerCase() !== String(chainId).toLowerCase()
+    ) {
+      void switchChain(next);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="flex flex-col gap-3" aria-label="Account">
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="wallet-chain"
-            className="text-muted-foreground text-xs font-medium tracking-wide uppercase"
-          >
-            Network
-          </label>
-          <Select
-            value={chainId}
-            onValueChange={(value) => {
-              if (value) void switchChain(value);
-            }}
-          >
-            <SelectTrigger id="wallet-chain" className="w-full">
-              <SelectValue placeholder="Select chain" />
-            </SelectTrigger>
-            <SelectContent>
-              {chains.map((chain) => (
-                <SelectItem key={chain.chainId} value={chain.chainId}>
-                  {chain.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-            {active.label} address
-          </span>
-          <CopyableText
-            text={hasAddress ? active.address : "—"}
-            truncate
-            disabled={!hasAddress}
-            copyLabel="Copy address"
-            copiedLabel="Address copied"
-            copyFailedLabel="Copy failed"
-          />
-        </div>
+      <section
+        className="grid grid-cols-2 gap-2"
+        aria-label="Account"
+      >
+        <AccountMetaChip
+          ariaLabel={networkLabel}
+          value={networkLabel}
+          onClick={() => setNetworkModalOpen(true)}
+          icon={
+            selectedChain ? (
+              <img
+                src={selectedChain.logoUrl}
+                alt=""
+                className="size-7 rounded-full object-cover"
+              />
+            ) : (
+              <span className="bg-muted size-7 rounded-full" aria-hidden />
+            )
+          }
+        />
+        <AccountMetaChip
+          ariaLabel={copyFeedbackLabel}
+          title={hasAddress ? active.address : undefined}
+          value={hasAddress ? formatTruncated(active.address) : "—"}
+          disabled={!hasAddress}
+          onClick={onCopyAddress}
+          icon={
+            <span className="bg-muted text-muted-foreground flex size-7 items-center justify-center rounded-full">
+              {copyState === "copied" ? (
+                <CheckIcon className="size-3.5" />
+              ) : (
+                <CopyIcon className="size-3.5" />
+              )}
+            </span>
+          }
+        />
       </section>
 
       <Tabs defaultValue="balances" className="gap-3">
@@ -147,12 +220,21 @@ export function MainPanel() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="balances">
-          <BalancesTab />
+          <BalancesTab onView={setSelectedAsset} />
         </TabsContent>
         <TabsContent value="credentials">
           <CredentialsTab />
         </TabsContent>
       </Tabs>
+
+      {networkModalOpen ? (
+        <SelectNetworkModal
+          chains={chains}
+          selectedChainId={chainId}
+          onSelect={onSelectNetwork}
+          onClose={() => setNetworkModalOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

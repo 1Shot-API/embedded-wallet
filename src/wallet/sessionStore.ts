@@ -4,7 +4,7 @@ import {
   EVMChainId,
   SolanaAccountAddress,
 } from "@1shotapi/ows-types";
-import { DEMO_CHAINS } from "../ows/demoChains";
+import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
 import {
   isWalletCreated,
   loadCachedEvmAddress,
@@ -82,7 +82,7 @@ export const useWalletSessionStore = create<IWalletSessionState>((set) => ({
   walletCreated: initialWalletCreated(),
   evmAddress: initialEvmAddress(),
   solanaAddress: initialSolanaAddress(),
-  chainId: DEMO_CHAINS[0]!.chainId,
+  chainId: DEFAULT_CHAIN_ID,
   credentialCount: 0,
   trackedAssetCount: 0,
   mode: EWalletMode.General,

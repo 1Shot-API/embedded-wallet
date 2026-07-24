@@ -6,19 +6,18 @@ import {
 } from "lucide-react";
 import type { EVMAccountAddress } from "@1shotapi/ows-types";
 import type { AssetActivity, TrackedAsset } from "../lib/types/domain";
-import {
-  EAssetActivityKind,
-  EAssetActivityStatus,
-} from "../lib/types/enum";
-import {
-  demoAddressExplorerUrl,
-  demoTxExplorerUrl,
-} from "../ows/demoChains";
+import { EAssetActivityKind } from "../lib/types/enum/EAssetActivityKind";
+import { EAssetActivityStatus } from "../lib/types/enum/EAssetActivityStatus";
 import { useWallet } from "../wallet/WalletProvider";
 import { useTransactionHistoryUpdated } from "../wallet/useWalletEvent";
 
 const RECENT_LIMIT = 10;
 const TRUNCATE_CHARS = 5;
+
+const ACTIVITY_WHEN_FORMAT = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
 export interface ITransactionHistoryProps {
   asset: TrackedAsset;
@@ -37,10 +36,7 @@ function formatWhen(timestampMs: number): string {
     return "Unknown time";
   }
   try {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(timestampMs));
+    return ACTIVITY_WHEN_FORMAT.format(new Date(timestampMs));
   } catch {
     return new Date(timestampMs).toLocaleString();
   }
@@ -83,7 +79,7 @@ export function TransactionHistory({
   asset,
   owner,
 }: ITransactionHistoryProps) {
-  const { listAssetActivity } = useWallet();
+  const { listAssetActivity, resolveChain } = useWallet();
   const [rows, setRows] = useState<AssetActivity[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,8 +126,11 @@ export function TransactionHistory({
     ),
   );
 
+  const chain = resolveChain(asset.chainId);
   const viewAllUrl =
-    owner !== null ? demoAddressExplorerUrl(asset.chainId, String(owner)) : null;
+    owner !== null && chain
+      ? chain.addressExplorerUrl(owner)
+      : null;
 
   return (
     <section className="border-border flex flex-col gap-3 border-t pt-4">
@@ -174,10 +173,7 @@ export function TransactionHistory({
       {rows.length > 0 ? (
         <ul className="flex flex-col gap-1">
           {rows.map((item) => {
-            const explorerUrl = demoTxExplorerUrl(
-              item.chainId,
-              String(item.hash),
-            );
+            const explorerUrl = chain?.txExplorerUrl(item.hash);
             const positive = item.kind === EAssetActivityKind.Received;
             const content = (
               <>

@@ -18,6 +18,11 @@ export interface IStyleFormState {
   radius: string;
   fontSans: string;
   dark: boolean;
+  /**
+   * Hex chain ids to pass as `allowedChains`.
+   * Empty ⇒ omit (all catalog-enabled chains).
+   */
+  allowedChainIds: string[];
 
   // Text — Connect
   connectTitle: string;
@@ -31,6 +36,13 @@ export interface IStyleFormState {
   setupCreate: string;
   setupLogin: string;
   setupCancel: string;
+
+  // Text — Account shell (network + address chips)
+  selectNetworkTitle: string;
+  selectNetworkCancelLabel: string;
+  copyAddressLabel: string;
+  addressCopiedLabel: string;
+  addressCopyFailedLabel: string;
 
   // Text — Passkey name
   passkeyTitle: string;
@@ -78,6 +90,7 @@ export interface IStyleFormState {
 
   // Text — Balances / Receive
   balTabLabel: string;
+  balRefresh: string;
   receiveLabel: string;
   receiveTitle: string;
   receiveBody: string;
@@ -125,6 +138,27 @@ export interface IStyleFormState {
   restoreCancel: string;
 }
 
+/** Catalog options for the Allowed chains configurator (matches HardcodedChainRepository). */
+export const CATALOG_CHAIN_OPTIONS: ReadonlyArray<{
+  chainId: string;
+  label: string;
+}> = [
+  { chainId: "0x4cef52", label: "Arc Testnet" },
+  { chainId: "0xaa36a7", label: "Sepolia" },
+  { chainId: "0x14a34", label: "Base Sepolia" },
+  { chainId: "0x1", label: "Ethereum" },
+  { chainId: "0xe708", label: "Linea" },
+  { chainId: "0xa4b1", label: "Arbitrum" },
+  { chainId: "0xa", label: "Optimism" },
+  { chainId: "0x38", label: "BSC" },
+  { chainId: "0x2105", label: "Base" },
+  { chainId: "0x89", label: "Polygon" },
+  { chainId: "0x92", label: "Sonic" },
+  { chainId: "0x82", label: "Unichain" },
+  { chainId: "0x8f", label: "Monad" },
+  { chainId: "0xa4ec", label: "Celo" },
+];
+
 export const ACME_PRESET: IStyleFormState = {
   logoUrl: "",
   productName: "Acme Wallet",
@@ -141,6 +175,7 @@ export const ACME_PRESET: IStyleFormState = {
   radius: "0.625rem",
   fontSans: "",
   dark: false,
+  allowedChainIds: [],
   connectTitle: "Connect to Acme",
   connectBody: "Acme is requesting your wallet address.",
   connectContinue: "Allow",
@@ -150,6 +185,11 @@ export const ACME_PRESET: IStyleFormState = {
   setupCreate: "Get started",
   setupLogin: "Log in",
   setupCancel: "Cancel",
+  selectNetworkTitle: "Select network",
+  selectNetworkCancelLabel: "Cancel",
+  copyAddressLabel: "Copy address",
+  addressCopiedLabel: "Address copied",
+  addressCopyFailedLabel: "Copy failed",
   passkeyTitle: "Name this passkey",
   passkeyBody: "Choose a name for this wallet passkey.",
   passkeyContinue: "Save name",
@@ -182,6 +222,7 @@ export const ACME_PRESET: IStyleFormState = {
   credClaimsHeading: "Claims",
   credClose: "Close",
   balTabLabel: "Balances",
+  balRefresh: "Refresh",
   receiveLabel: "Receive",
   receiveTitle: "Receive",
   receiveBody: "Scan this QR code or copy your {chainLabel} address.",
@@ -295,6 +336,7 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   credClaimsHeading: "Claims",
   credClose: "Close",
   balTabLabel: "Balances",
+  balRefresh: "Refresh",
   receiveLabel: "Receive",
   receiveTitle: "Receive",
   receiveBody: "Scan this QR code or copy your {chainLabel} address.",
@@ -374,6 +416,14 @@ export function buildSetStylePayload(
   put(walletSetup, "loginLabel", form.setupLogin);
   put(walletSetup, "cancelLabel", form.setupCancel);
   if (Object.keys(walletSetup).length > 0) copy.walletSetup = walletSetup;
+
+  const account: Record<string, string> = {};
+  put(account, "selectNetworkTitle", form.selectNetworkTitle);
+  put(account, "selectNetworkCancelLabel", form.selectNetworkCancelLabel);
+  put(account, "copyAddressLabel", form.copyAddressLabel);
+  put(account, "addressCopiedLabel", form.addressCopiedLabel);
+  put(account, "addressCopyFailedLabel", form.addressCopyFailedLabel);
+  if (Object.keys(account).length > 0) copy.account = account;
 
   const passkeyName: Record<string, string> = {};
   put(passkeyName, "title", form.passkeyTitle);
@@ -494,6 +544,7 @@ export function buildSetStylePayload(
 
   const balances: Record<string, string> = {};
   put(balances, "tabLabel", form.balTabLabel);
+  put(balances, "refreshLabel", form.balRefresh);
   put(balances, "receiveLabel", form.receiveLabel);
   put(balances, "receiveTitle", form.receiveTitle);
   put(balances, "receiveBody", form.receiveBody);
@@ -525,5 +576,8 @@ export function buildSetStylePayload(
   const payload: Record<string, unknown> = { dark: form.dark };
   if (Object.keys(theme).length > 0) payload.theme = theme;
   if (Object.keys(copy).length > 0) payload.copy = copy;
+  if (form.allowedChainIds.length > 0) {
+    payload.allowedChains = [...form.allowedChainIds];
+  }
   return payload;
 }

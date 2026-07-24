@@ -132,14 +132,15 @@ export interface IStyleCopyTransferTokens {
   doneLabel: string;
 }
 
-/** Title + body for one passkey-ceremony explanation overlay. */
+/** Title + body mapped to Signing Layer ceremony Confirm UI (`explanationHeader` / `explanationText`). Relayer Branding-native WebAuthn still uses the same keys via `PasskeyPromptModal`. */
 export interface IStyleCopyPasskeyPromptEntry {
   title: string;
   body: string;
 }
 
 /**
- * Non-interactive overlays shown while a WebAuthn ceremony is in flight.
+ * Passkey ceremony copy. Signing Layer PRF paths receive these as
+ * `CeremonyUiParams`; Relayer assertion uses the Branding overlay.
  * Keys align with {@link EPasskeyPromptReason}.
  */
 export interface IStyleCopyPasskeyPrompt {
@@ -149,6 +150,9 @@ export interface IStyleCopyPasskeyPrompt {
   encrypt: IStyleCopyPasskeyPromptEntry;
   decrypt: IStyleCopyPasskeyPromptEntry;
   relayerAuth: IStyleCopyPasskeyPromptEntry;
+  walletUpgrade: IStyleCopyPasskeyPromptEntry;
+  approveTransaction: IStyleCopyPasskeyPromptEntry;
+  adjustFee: IStyleCopyPasskeyPromptEntry;
   backup: IStyleCopyPasskeyPromptEntry;
 }
 
@@ -222,9 +226,11 @@ export interface IStyleCopyBalances {
   emptyCountLabel: string;
   countLabel: string;
   addLabel: string;
+  refreshLabel: string;
   loadingBody: string;
   emptyBody: string;
   loadFailedError: string;
+  refreshFailedError: string;
   addFailedError: string;
   invalidAddressError: string;
   assetColumn: string;
@@ -298,6 +304,17 @@ export interface IStyleCopyRestoreBackup {
   failedError: string;
 }
 
+/**
+ * Account shell chips + select-network modal on the default MainPanel.
+ */
+export interface IStyleCopyAccount {
+  selectNetworkTitle: string;
+  selectNetworkCancelLabel: string;
+  copyAddressLabel: string;
+  addressCopiedLabel: string;
+  addressCopyFailedLabel: string;
+}
+
 export interface IStyleCopyOptions {
   /** Product / wallet title shown in chrome and onboarding */
   productName?: string;
@@ -305,6 +322,8 @@ export interface IStyleCopyOptions {
   tagline?: string;
   /** Optional brand logo URL on the login screen (falls back to bundled 1Shot icon) */
   logoUrl?: string;
+  /** Partial patch for account chips + select-network modal */
+  account?: Partial<IStyleCopyAccount>;
   /** Partial patch for the connect modal */
   connect?: Partial<IStyleCopyConnect>;
   /** Partial patch for the wallet setup modal */
@@ -321,7 +340,7 @@ export interface IStyleCopyOptions {
   confirmTransfer?: Partial<IStyleCopyConfirmTransfer>;
   /** Partial patch for the in-wallet transfer tokens modal */
   transferTokens?: Partial<IStyleCopyTransferTokens>;
-  /** Partial patch for passkey-ceremony explanation overlays */
+  /** Partial patch for passkey ceremony Confirm copy (Signing) / Relayer overlay */
   passkeyPrompt?: {
     unlock?: Partial<IStyleCopyPasskeyPromptEntry>;
     create?: Partial<IStyleCopyPasskeyPromptEntry>;
@@ -329,6 +348,9 @@ export interface IStyleCopyOptions {
     encrypt?: Partial<IStyleCopyPasskeyPromptEntry>;
     decrypt?: Partial<IStyleCopyPasskeyPromptEntry>;
     relayerAuth?: Partial<IStyleCopyPasskeyPromptEntry>;
+    walletUpgrade?: Partial<IStyleCopyPasskeyPromptEntry>;
+    approveTransaction?: Partial<IStyleCopyPasskeyPromptEntry>;
+    adjustFee?: Partial<IStyleCopyPasskeyPromptEntry>;
     backup?: Partial<IStyleCopyPasskeyPromptEntry>;
   };
   /** Partial patch for the credential offer modal */
@@ -350,6 +372,7 @@ export interface IResolvedCopy {
   productName: string;
   tagline: string;
   logoUrl: string;
+  account: IStyleCopyAccount;
   connect: IStyleCopyConnect;
   walletSetup: IStyleCopyWalletSetup;
   passkeyName: IStyleCopyPasskeyName;
@@ -372,6 +395,11 @@ export interface IStyleOptions {
   copy?: IStyleCopyOptions;
   /** When true, add `.dark` on <html>; when false, remove it; omit = unchanged */
   dark?: boolean;
+  /**
+   * Hex EVM chain ids the Network dropdown may show.
+   * Omit or empty ⇒ all catalog-enabled chains.
+   */
+  allowedChains?: string[];
 }
 
 /** Fully resolved style after merging defaults + setStyle patches. */
@@ -379,4 +407,6 @@ export interface IResolvedStyle {
   theme: Required<IStyleThemeOptions>;
   copy: IResolvedCopy;
   dark: boolean;
+  /** `null` means no host allowlist (all enabled catalog chains). */
+  allowedChains: string[] | null;
 }

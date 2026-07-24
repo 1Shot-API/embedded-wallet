@@ -5,7 +5,6 @@ import {
   parseUnits,
   type Hex,
 } from "viem";
-import { AddressUtils } from "@1shotapi/ows-wallet-utils";
 import {
   EChainTechnology,
   HexString,
@@ -13,8 +12,9 @@ import {
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import type { TrackedAsset } from "../../lib/types/domain";
-import { EAssetType } from "../../lib/types/enum";
-import { useStyle } from "../../style";
+import { EAssetType } from "../../lib/types/enum/EAssetType";
+import type { IPaymentQuote } from "../../lib/interfaces/business";
+import { useStyle } from "../../style/StyleProvider";
 import { chainTechnologyFor } from "../../wallet/activeAddress";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
@@ -23,12 +23,12 @@ import {
   AddressInput,
   type AddressInputValue,
 } from "../AddressInput";
+import { PaymentFeePicker } from "../PaymentFeePicker";
 import { SentTransactionModal } from "./SentTransactionModal";
 import { TokenAmountInput } from "../TokenAmountInput";
 
 export interface ITransferTokensModalProps {
   asset: TrackedAsset;
-  addressUtils: AddressUtils;
   onClose: () => void;
   onSuccess: (hash: EVMTransactionHash) => void;
 }
@@ -63,25 +63,34 @@ function amountValidationError(
 
 /**
  * User-initiated ERC-20 send. Collects recipient/amount, then submits via the
- * relayer (`sendTransaction`) — not through host EIP-1193 consent.
+ * TransactionService (relayer 7710 or raw RPC) — not through host EIP-1193 consent.
  */
 export function TransferTokensModal({
   asset,
-  addressUtils,
   onClose,
   onSuccess,
 }: ITransferTokensModalProps) {
   const { style } = useStyle();
   const copy = style.copy.transferTokens;
-  const { switchChain, sendTransaction, recordSentActivity } = useWallet();
+  const {
+    switchChain,
+    sendTransaction,
+    recordSentActivity,
+    addressUtils,
+    resolveChain,
+  } = useWallet();
   const [amount, setAmount] = useState("");
   const [recipientText, setRecipientText] = useState("");
   const [recipient, setRecipient] = useState<AddressInputValue>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sentHash, setSentHash] = useState<EVMTransactionHash | null>(null);
+  const [quote, setQuote] = useState<IPaymentQuote | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
 
   const evmAddress = useWalletSessionStore((state) => state.evmAddress);
+  const chainMeta = resolveChain(asset.chainId);
+  const useRelayer = chainMeta?.useRelayer === true;
 
   const technology = useMemo(
     () => chainTechnologyFor(asset.chainId),
@@ -94,6 +103,14 @@ export function TransferTokensModal({
     [amount, asset.balance, asset.decimals, copy],
   );
 
+  const onQuoteChange = useCallback(
+    (next: IPaymentQuote | null, error: string | null) => {
+      setQuote(next);
+      setQuoteError(error);
+    },
+    [],
+  );
+
   const canSubmit = useMemo(() => {
     if (busy || asset.type !== EAssetType.Erc20) {
       return false;
@@ -104,14 +121,20 @@ export function TransferTokensModal({
     if (!amount.trim() || amountError) {
       return false;
     }
+    if (useRelayer && (!quote || quoteError)) {
+      return false;
+    }
     return true;
   }, [
     amount,
     amountError,
     asset.type,
     busy,
+    quote,
+    quoteError,
     recipient,
     technology,
+    useRelayer,
   ]);
 
   const onValidated = useCallback((address: AddressInputValue) => {
@@ -126,7 +149,7 @@ export function TransferTokensModal({
   async function handleSend(): Promise<void> {
     setSubmitError(null);
 
-    if (!canSubmit || !recipient) {
+    if (!canSubmit || !recipient || !evmAddress) {
       return;
     }
 
@@ -140,6 +163,7 @@ export function TransferTokensModal({
     setBusy(true);
     try {
       await switchChain(asset.chainId);
+
       const data = HexString(
         encodeFunctionData({
           abi: erc20Abi,
@@ -147,18 +171,27 @@ export function TransferTokensModal({
           args: [recipient as EVMAccountAddress, parsed],
         }) as Hex,
       );
-      const hash = await sendTransaction(asset.chainId, asset.address, data);
-      if (evmAddress) {
-        await recordSentActivity({
-          chainId: asset.chainId,
-          tokenAddress: asset.address,
-          owner: evmAddress,
-          to: recipient as EVMAccountAddress,
-          amount: parsed,
-          decimals: asset.decimals,
-          hash,
-        });
-      }
+      const hash = await sendTransaction(
+        asset.chainId,
+        asset.address,
+        data,
+        undefined,
+        useRelayer && quote
+          ? {
+              paymentToken: quote.selectedToken,
+              feeAtoms: quote.feeAtoms,
+            }
+          : undefined,
+      );
+      await recordSentActivity({
+        chainId: asset.chainId,
+        tokenAddress: asset.address,
+        owner: evmAddress,
+        to: recipient as EVMAccountAddress,
+        amount: parsed,
+        decimals: asset.decimals,
+        hash,
+      });
       onSuccess(hash);
       setSentHash(hash);
     } catch (error: unknown) {
@@ -225,6 +258,16 @@ export function TransferTokensModal({
           invalidAddressError={copy.invalidAddressError}
           disabled={busy}
         />
+        {useRelayer && evmAddress ? (
+          <PaymentFeePicker
+            chainId={asset.chainId}
+            ownerAddress={evmAddress}
+            quote={quote}
+            error={quoteError}
+            loading={false}
+            onQuoteChange={onQuoteChange}
+          />
+        ) : null}
         {submitError ? (
           <p className="text-destructive text-xs" role="alert">
             {submitError}

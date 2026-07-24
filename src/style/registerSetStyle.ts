@@ -1,12 +1,13 @@
 import { z } from "zod";
+import { EVMChainId } from "@1shotapi/ows-types";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+import type { IChainRepository } from "../lib/interfaces/data/IChainRepository";
 import { styleController } from "./styleController";
 
 /** Custom RPC method name — host: `await proxy.rpc("setStyle", options)`. */
 export const SET_STYLE_RPC_METHOD = "setStyle";
 
-const themeSchema = z
-  .object({
+const themeSchema = z.strictObject({
     primary: z.string().optional(),
     primaryForeground: z.string().optional(),
     background: z.string().optional(),
@@ -19,32 +20,35 @@ const themeSchema = z
     radius: z.string().optional(),
     fontSans: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const connectCopySchema = z
-  .object({
+const accountCopySchema = z.strictObject({
+    selectNetworkTitle: z.string().optional(),
+    selectNetworkCancelLabel: z.string().optional(),
+    copyAddressLabel: z.string().optional(),
+    addressCopiedLabel: z.string().optional(),
+    addressCopyFailedLabel: z.string().optional(),
+  })
+  .optional();
+
+const connectCopySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
     rejectLabel: z.string().optional(),
     continueLabel: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const walletSetupCopySchema = z
-  .object({
+const walletSetupCopySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
     cancelLabel: z.string().optional(),
     loginLabel: z.string().optional(),
     createLabel: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const passkeyNameCopySchema = z
-  .object({
+const passkeyNameCopySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
     fieldLabel: z.string().optional(),
@@ -53,22 +57,18 @@ const passkeyNameCopySchema = z
     cancelLabel: z.string().optional(),
     continueLabel: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const personalSignCopySchema = z
-  .object({
+const personalSignCopySchema = z.strictObject({
     title: z.string().optional(),
     accountLabel: z.string().optional(),
     messageLabel: z.string().optional(),
     rejectLabel: z.string().optional(),
     signLabel: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const typedDataCopySchema = z
-  .object({
+const typedDataCopySchema = z.strictObject({
     title: z.string().optional(),
     accountLabel: z.string().optional(),
     primaryTypeLabel: z.string().optional(),
@@ -77,11 +77,9 @@ const typedDataCopySchema = z
     rejectLabel: z.string().optional(),
     signLabel: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const sendTransactionCopySchema = z
-  .object({
+const sendTransactionCopySchema = z.strictObject({
     title: z.string().optional(),
     accountLabel: z.string().optional(),
     contractLabel: z.string().optional(),
@@ -92,11 +90,9 @@ const sendTransactionCopySchema = z
     rejectLabel: z.string().optional(),
     signLabel: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const confirmTransferCopySchema = z
-  .object({
+const confirmTransferCopySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
     amountLabel: z.string().optional(),
@@ -106,11 +102,9 @@ const confirmTransferCopySchema = z
     rejectLabel: z.string().optional(),
     confirmLabel: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const transferTokensCopySchema = z
-  .object({
+const transferTokensCopySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
     amountLabel: z.string().optional(),
@@ -133,32 +127,29 @@ const transferTokensCopySchema = z
     viewOnExplorerLabel: z.string().optional(),
     doneLabel: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const passkeyPromptEntrySchema = z
-  .object({
+const passkeyPromptEntrySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const passkeyPromptCopySchema = z
-  .object({
+const passkeyPromptCopySchema = z.strictObject({
     unlock: passkeyPromptEntrySchema,
     create: passkeyPromptEntrySchema,
     sign: passkeyPromptEntrySchema,
     encrypt: passkeyPromptEntrySchema,
     decrypt: passkeyPromptEntrySchema,
     relayerAuth: passkeyPromptEntrySchema,
+    walletUpgrade: passkeyPromptEntrySchema,
+    approveTransaction: passkeyPromptEntrySchema,
+    adjustFee: passkeyPromptEntrySchema,
     backup: passkeyPromptEntrySchema,
   })
-  .strict()
   .optional();
 
-const credentialOfferCopySchema = z
-  .object({
+const credentialOfferCopySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
     offeredHeading: z.string().optional(),
@@ -166,11 +157,9 @@ const credentialOfferCopySchema = z
     rejectLabel: z.string().optional(),
     acceptLabel: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const credentialPresentationCopySchema = z
-  .object({
+const credentialPresentationCopySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
     credentialDetail: z.string().optional(),
@@ -179,11 +168,9 @@ const credentialPresentationCopySchema = z
     rejectLabel: z.string().optional(),
     shareLabel: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const credentialsCopySchema = z
-  .object({
+const credentialsCopySchema = z.strictObject({
     tabLabel: z.string().optional(),
     emptyCountLabel: z.string().optional(),
     countLabel: z.string().optional(),
@@ -210,18 +197,18 @@ const credentialsCopySchema = z
     claimsEmpty: z.string().optional(),
     closeLabel: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const balancesCopySchema = z
-  .object({
+const balancesCopySchema = z.strictObject({
     tabLabel: z.string().optional(),
     emptyCountLabel: z.string().optional(),
     countLabel: z.string().optional(),
     addLabel: z.string().optional(),
+    refreshLabel: z.string().optional(),
     loadingBody: z.string().optional(),
     emptyBody: z.string().optional(),
     loadFailedError: z.string().optional(),
+    refreshFailedError: z.string().optional(),
     addFailedError: z.string().optional(),
     invalidAddressError: z.string().optional(),
     assetColumn: z.string().optional(),
@@ -252,11 +239,9 @@ const balancesCopySchema = z
     receiveCloseLabel: z.string().optional(),
     sendLabel: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const createBackupCopySchema = z
-  .object({
+const createBackupCopySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
     passphrasePrompt: z.string().optional(),
@@ -272,11 +257,9 @@ const createBackupCopySchema = z
     cancelledError: z.string().optional(),
     failedError: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const restoreBackupCopySchema = z
-  .object({
+const restoreBackupCopySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
     passphraseLabel: z.string().optional(),
@@ -289,14 +272,13 @@ const restoreBackupCopySchema = z
     cancelledError: z.string().optional(),
     failedError: z.string().optional(),
   })
-  .strict()
   .optional();
 
-const copySchema = z
-  .object({
+const copySchema = z.strictObject({
     productName: z.string().optional(),
     tagline: z.string().optional(),
     logoUrl: z.string().optional(),
+    account: accountCopySchema,
     connect: connectCopySchema,
     walletSetup: walletSetupCopySchema,
     passkeyName: passkeyNameCopySchema,
@@ -313,24 +295,43 @@ const copySchema = z
     createBackup: createBackupCopySchema,
     restoreBackup: restoreBackupCopySchema,
   })
-  .strict()
   .optional();
 
-export const setStyleParamsSchema = z
-  .object({
+export const setStyleParamsSchema = z.strictObject({
     theme: themeSchema,
     copy: copySchema,
     dark: z.boolean().optional(),
-  })
-  .strict();
+    allowedChains: z
+      .array(z.string().regex(/^0x[0-9a-fA-F]+$/))
+      .optional(),
+  });
 
 export type ISetStyleParams = z.infer<typeof setStyleParamsSchema>;
 
-export function registerSetStyleRpc(wallet: OWSWallet): void {
+export function registerSetStyleRpc(
+  wallet: OWSWallet,
+  chainRepository: IChainRepository,
+): void {
   wallet.registerRpc(
     SET_STYLE_RPC_METHOD,
     async (params) => {
-      const resolved = styleController.merge(params as ISetStyleParams);
+      const styleParams = params as ISetStyleParams;
+      const resolved = styleController.merge(styleParams);
+      if (styleParams.allowedChains !== undefined) {
+        const catalogIds = new Set(
+          chainRepository
+            .getCatalog()
+            .map((chain) => String(chain.chainId).toLowerCase()),
+        );
+        const valid: ReturnType<typeof EVMChainId>[] = [];
+        for (const id of styleParams.allowedChains) {
+          const lower = id.toLowerCase();
+          if (catalogIds.has(lower)) {
+            valid.push(EVMChainId(lower as `0x${string}`));
+          }
+        }
+        chainRepository.setAllowedChains(valid.length === 0 ? null : valid);
+      }
       return {
         ok: true as const,
         productName: resolved.copy.productName,

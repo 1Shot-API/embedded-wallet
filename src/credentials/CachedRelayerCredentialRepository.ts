@@ -1,4 +1,3 @@
-import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import {
   AES256CipherText,
   type COSEPublicKey,
@@ -9,6 +8,7 @@ import {
   type StoredCredential,
 } from "@1shotapi/ows-types";
 import type { IConfigProvider } from "../lib/interfaces/utils/IConfigProvider";
+import type { IOWSProvider } from "../lib/interfaces/utils/IOWSProvider";
 import type { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
 import { createRelayerAssertion } from "../relayer/webauthnAuth";
 import { loadCredentialId } from "../storage";
@@ -28,7 +28,7 @@ type StoredBlob = {
 
 export interface ICachedRelayerCredentialRepositoryDeps {
   client: RelayerCredentialsClient;
-  getSigner: () => OWSSigner;
+  owsProvider: IOWSProvider;
   configProvider: IConfigProvider;
   storage?: CredentialStorageBackend;
 }
@@ -68,21 +68,27 @@ function isStoredCredential(value: unknown): value is StoredCredential {
   );
 }
 
-/**
- * Local plaintext cache + encrypted official copies on the 1Shot Relayer.
- * `list`/`get` read the cache; `store`/`delete`/`revoke` sync to the relayer;
- * `refreshFromRelayer` replaces the cache from recover.
- */
+  /**
+   * Local plaintext cache + encrypted official copies on the 1Shot Relayer.
+   * `list`/`get` read the cache; `store`/`delete`/`revoke` sync to the relayer;
+   * `refreshFromRelayer` replaces the cache from recover.
+   *
+   * Store remains two ceremonies (OWS encrypt, then Branding Relayer WebAuthn):
+   * the relayer requires a full SimpleWebAuthn assertion
+   * (`authenticatorData` / `clientDataJSON` / `signature`), while OWS
+   * `executeBatch` only returns `challengeSignature` — not enough to auth
+   * mutative credential HTTP without a relayer/API change.
+   */
 export class CachedRelayerCredentialRepository implements ICredentialRepository {
   private readonly client: RelayerCredentialsClient;
-  private readonly getSigner: () => OWSSigner;
+  private readonly owsProvider: IOWSProvider;
   private readonly configProvider: IConfigProvider;
   private readonly storage: CredentialStorageBackend;
   private storageKey: string | null = null;
 
   constructor(deps: ICachedRelayerCredentialRepositoryDeps) {
     this.client = deps.client;
-    this.getSigner = deps.getSigner;
+    this.owsProvider = deps.owsProvider;
     this.configProvider = deps.configProvider;
     this.storage =
       deps.storage ??
@@ -109,7 +115,7 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
     this.writeBlob(blob);
 
     try {
-      const signer = this.getSigner();
+      const signer = await this.owsProvider.getSigner();
       const [ciphertext] = await signer.encryptAES256([
         JSON.stringify(credential),
       ]);
@@ -151,8 +157,9 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
   async list(filter?: CredentialFilter): Promise<CredentialSummary[]> {
     await this.ensureStorageKey();
     const blob = this.readBlob();
+    const revoked = new Set(blob.revoked);
     const active = Object.values(blob.credentials).filter(
-      (c) => !blob.revoked.includes(c.credentialId),
+      (c) => !revoked.has(c.credentialId),
     );
     return summarize(active, filter);
   }
@@ -227,7 +234,7 @@ export class CachedRelayerCredentialRepository implements ICredentialRepository 
       return;
     }
 
-    const signer = this.getSigner();
+    const signer = await this.owsProvider.getSigner();
     const ciphertexts = remote.map((item) =>
       AES256CipherText(item.ciphertext),
     );

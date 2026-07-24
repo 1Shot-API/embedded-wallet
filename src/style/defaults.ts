@@ -15,11 +15,19 @@ export const DEFAULT_STYLE: IResolvedStyle = {
     radius: "0.625rem",
     fontSans: "'Geist Variable', ui-sans-serif, system-ui, sans-serif",
   },
+  allowedChains: null,
   copy: {
     productName: "1Shot Wallet",
     tagline:
       "Permissionless Embedded Wallet.\nSecurely log in with passkeys or start fresh.",
     logoUrl: "",
+    account: {
+      selectNetworkTitle: "Select network",
+      selectNetworkCancelLabel: "Cancel",
+      copyAddressLabel: "Copy address",
+      addressCopiedLabel: "Address copied",
+      addressCopyFailedLabel: "Copy failed",
+    },
     connect: {
       title: "Connect wallet",
       body: "The connected app is requesting your wallet address. You may be asked to verify with your passkey after you continue.",
@@ -112,8 +120,8 @@ export const DEFAULT_STYLE: IResolvedStyle = {
         body: "Follow the device prompt to create a passkey for this wallet.",
       },
       sign: {
-        title: "Confirm with passkey",
-        body: "Confirm with your passkey to approve this signature or transaction.",
+        title: "Sign with passkey",
+        body: "Confirm with your passkey to approve this signature.",
       },
       encrypt: {
         title: "Encrypt with passkey",
@@ -126,6 +134,18 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       relayerAuth: {
         title: "Authenticate with passkey",
         body: "Confirm with your passkey to authenticate with the 1Shot Relayer.",
+      },
+      walletUpgrade: {
+        title: "Authorize upgrading your wallet",
+        body: "Confirm with your passkey for a one-time network upgrade so the 1Shot Relayer can submit gas-abstracted transactions for you.",
+      },
+      approveTransaction: {
+        title: "Approve transaction",
+        body: "Confirm with your passkey to authorize this transaction for the 1Shot Relayer.",
+      },
+      adjustFee: {
+        title: "Confirm fee update",
+        body: "Confirm with your passkey to authorize the updated relayer fee for this transaction.",
       },
       backup: {
         title: "Confirm backup",
@@ -185,10 +205,12 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       emptyCountLabel: "No assets tracked yet.",
       countLabel: "{count} asset(s)",
       addLabel: "Add asset",
+      refreshLabel: "Refresh",
       loadingBody: "Loading…",
       emptyBody:
         "Add an asset yourself or accept a host addAsset request to start tracking balances.",
       loadFailedError: "Failed to load tracked assets",
+      refreshFailedError: "Failed to refresh balances",
       addFailedError: "Failed to add asset",
       invalidAddressError: "Enter a valid 0x address.",
       assetColumn: "Asset",

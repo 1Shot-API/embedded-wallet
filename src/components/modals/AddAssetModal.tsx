@@ -1,15 +1,8 @@
-import type { EVMChainId } from "@1shotapi/ows-types";
 import { Modal } from "../Modal";
-import { useStyle } from "../../style";
-import { DEMO_CHAINS } from "../../ows/demoChains";
+import { useStyle } from "../../style/StyleProvider";
+import { useWallet } from "../../wallet/WalletProvider";
 import type { IAddAssetApprovalRequest } from "../../wallet/registerAddAsset";
 import { CopyableText } from "../CopyableText";
-
-function chainLabel(chainId: EVMChainId): string {
-  return (
-    DEMO_CHAINS.find((chain) => chain.chainId === chainId)?.label ?? chainId
-  );
-}
 
 export function AddAssetModal({
   request,
@@ -19,9 +12,12 @@ export function AddAssetModal({
   onResolve: (approved: boolean) => void;
 }) {
   const { style } = useStyle();
-  const { balances: copy } = style.copy;
+  const { resolveChain } = useWallet();
+  const { balances: copy, account, createBackup } = style.copy;
   const displayName = request.assetSymbol || request.assetName;
-  const network = chainLabel(request.chainId);
+  const network =
+    resolveChain(request.chainId)?.label ??
+    String(request.chainId);
 
   return (
     <Modal
@@ -61,15 +57,15 @@ export function AddAssetModal({
         </div>
         <div className="flex flex-col gap-0.5">
           <dt className="text-muted-foreground text-xs font-medium uppercase">
-            Address
+            {copy.addressLabel}
           </dt>
           <dd className="m-0 min-w-0">
             <CopyableText
               text={request.assetAddress}
               truncate
-              copyLabel="Copy address"
-              copiedLabel="Copied"
-              copyFailedLabel="Copy failed"
+              copyLabel={account.copyAddressLabel}
+              copiedLabel={createBackup.copiedLabel}
+              copyFailedLabel={createBackup.copyFailedLabel}
             />
           </dd>
         </div>

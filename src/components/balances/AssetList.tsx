@@ -24,7 +24,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TrackedAsset } from "../../lib/types/domain";
-import { useStyle } from "../../style";
+import { EAssetType } from "../../lib/types/enum/EAssetType";
+import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
 import { BalanceDisplay } from "../BalanceDisplay";
@@ -47,6 +48,7 @@ export function AssetList({
 
   const [rows, setRows] = useState<TrackedAsset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
@@ -68,6 +70,21 @@ export function AssetList({
     void reload();
   }, [reload, trackedAssetCount, evmAddress]);
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setError(null);
+    try {
+      await requestBalanceRefresh();
+      await reload();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : copy.refreshFailedError,
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const columns = useMemo<ColumnDef<TrackedAsset>[]>(
     () => [
       {
@@ -88,31 +105,23 @@ export function AssetList({
       {
         id: "balance",
         header: copy.balanceColumn,
+        meta: { align: "end" as const },
         cell: ({ row }) => (
           <BalanceDisplay
             trackedAssetId={row.original.id}
             balance={row.original.balance}
             decimals={row.original.decimals}
-            className="text-xs"
+            fallback={
+              row.original.type !== EAssetType.Erc20
+                ? copy.balanceNonErc20
+                : undefined
+            }
+            className="text-xs tabular-nums"
           />
         ),
       },
-      {
-        id: "actions",
-        header: "",
-        cell: ({ row }) => (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => onView(row.original)}
-          >
-            {copy.viewLabel}
-          </Button>
-        ),
-      },
     ],
-    [onView, copy.assetColumn, copy.balanceColumn, copy.viewLabel],
+    [copy.assetColumn, copy.balanceColumn, copy.balanceNonErc20],
   );
 
   const table = useReactTable({
@@ -132,20 +141,24 @@ export function AssetList({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground m-0 text-xs">
           {rows.length === 0
             ? copy.emptyCountLabel
             : copy.countLabel.replace("{count}", String(rows.length))}
         </p>
         <Button
           type="button"
-          size="sm"
+          size="icon-sm"
           variant="outline"
-          disabled={loading}
-          onClick={() => requestBalanceRefresh()}
-          aria-label="Refresh balances"
+          aria-label={copy.refreshLabel}
+          disabled={refreshing || loading}
+          onClick={() => {
+            void onRefresh();
+          }}
         >
-          <RefreshCwIcon className="size-3.5" />
+          <RefreshCwIcon
+            className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
+          />
         </Button>
       </div>
 
@@ -159,34 +172,75 @@ export function AssetList({
         <p className="text-muted-foreground m-0 text-sm">{copy.emptyBody}</p>
       ) : (
         <>
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="h-8 px-2 text-xs">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </TableHead>
-                  ))}
+                  {headerGroup.headers.map((header) => {
+                    const align =
+                      (
+                        header.column.columnDef.meta as
+                          | { align?: "end" }
+                          | undefined
+                      )?.align === "end"
+                        ? "text-right"
+                        : "text-left";
+                    const widthClass =
+                      header.column.id === "asset" ? "w-[60%]" : "w-[40%]";
+                    return (
+                      <TableHead
+                        key={header.id}
+                        className={`h-8 px-2 text-xs ${align} ${widthClass}`}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableHeader>
             <TableBody>
               {table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-2 py-2 align-top">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
+                <TableRow
+                  key={row.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${copy.viewLabel} ${row.original.symbol}`}
+                  className="cursor-pointer"
+                  onClick={() => onView(row.original)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onView(row.original);
+                    }
+                  }}
+                >
+                  {row.getVisibleCells().map((cell) => {
+                    const align =
+                      (
+                        cell.column.columnDef.meta as
+                          | { align?: "end" }
+                          | undefined
+                      )?.align === "end"
+                        ? "text-right"
+                        : "text-left";
+                    return (
+                      <TableCell
+                        key={cell.id}
+                        className={`px-2 py-2 align-middle ${align}`}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableBody>

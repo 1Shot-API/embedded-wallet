@@ -17,11 +17,9 @@ import type {
 import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
 import { AssetActivity } from "../../types/domain/AssetActivity";
-import {
-  EAssetActivityKind,
-  EAssetActivityStatus,
-} from "../../types/enum";
-import { TransactionHistoryUpdatedEvent } from "../../types/events";
+import { EAssetActivityKind } from "../../types/enum/EAssetActivityKind";
+import { EAssetActivityStatus } from "../../types/enum/EAssetActivityStatus";
+import { TransactionHistoryUpdatedEvent } from "../../types/events/TransactionHistoryUpdatedEvent";
 import {
   makeTrackedAssetId,
   type TrackedAssetId,
@@ -92,14 +90,16 @@ export class BlockscoutAssetActivityRepository
     const { owner, asset } = params;
     const trackedAssetId = asset.id;
 
-    const optimistic = this.readOptimistic(config.assetActivityStorageKey)
-      .filter(
-        (row) =>
-          row.chainId === String(asset.chainId) &&
-          row.tokenAddress.toLowerCase() === asset.address.toLowerCase() &&
-          row.owner.toLowerCase() === owner.toLowerCase(),
-      )
-      .map((row) => this.optimisticToActivity(row, trackedAssetId));
+    const optimistic: AssetActivity[] = [];
+    for (const row of this.readOptimistic(config.assetActivityStorageKey)) {
+      if (
+        row.chainId === String(asset.chainId) &&
+        row.tokenAddress.toLowerCase() === asset.address.toLowerCase() &&
+        row.owner.toLowerCase() === owner.toLowerCase()
+      ) {
+        optimistic.push(this.optimisticToActivity(row, trackedAssetId));
+      }
+    }
 
     let indexed: AssetActivity[] = [];
     try {

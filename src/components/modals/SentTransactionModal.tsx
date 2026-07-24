@@ -1,6 +1,6 @@
 import type { EVMChainId, EVMTransactionHash } from "@1shotapi/ows-types";
-import { demoTxExplorerUrl } from "../../ows/demoChains";
-import { useStyle } from "../../style";
+import { useStyle } from "../../style/StyleProvider";
+import { useWallet } from "../../wallet/WalletProvider";
 import { CopyableText } from "../CopyableText";
 import { Modal } from "../Modal";
 
@@ -20,8 +20,11 @@ export function SentTransactionModal({
   onClose,
 }: ISentTransactionModalProps) {
   const { style } = useStyle();
+  const { resolveChain } = useWallet();
   const copy = style.copy.transferTokens;
-  const explorerUrl = demoTxExplorerUrl(chainId, transactionHash);
+  const explorerUrl = resolveChain(chainId)?.txExplorerUrl(
+    transactionHash,
+  );
 
   return (
     <Modal

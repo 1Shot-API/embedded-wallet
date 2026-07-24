@@ -11,5 +11,17 @@ export { IAssetActivityRepositoryType } from "./IAssetActivityRepository";
 export type {
   IOneshotRelayerRepository,
   ISendTransactionResult,
+  IRelayerCapabilities,
+  IRelayerFeeData,
+  IRelayer7710Params,
+  IRelayerAuthorizationEntry,
+  IRelayerEstimateResult,
+  IRelayerStatusResult,
+  IRelayerPaymentToken,
+  IRelayer7710Execution,
+  IRelayer7710TransactionEntry,
+  ERelayerTaskStatus,
 } from "./IOneshotRelayerRepository";
 export { IOneshotRelayerRepositoryType } from "./IOneshotRelayerRepository";
+export type { IChainRepository } from "./IChainRepository";
+export { IChainRepositoryType } from "./IChainRepository";

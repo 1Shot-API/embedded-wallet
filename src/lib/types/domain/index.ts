@@ -1,4 +1,5 @@
 export { AssetActivity } from "./AssetActivity";
 export { KnownAsset } from "./KnownAsset";
 export { NewTrackedAsset, TrackedAsset } from "./TrackedAsset";
-export { WalletConfig } from "./WalletConfig";
+export { SupportedChain } from "./SupportedChain";
+export { WalletConfig, type IWalletDisplaySize } from "./WalletConfig";

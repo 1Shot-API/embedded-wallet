@@ -39,6 +39,7 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
-    sourcemap: true,
+    // Do not ship source maps to the browser (avoids leaking original sources).
+    sourcemap: false,
   },
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { EVMAccountAddress } from "@1shotapi/ows-types";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,47 +12,27 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { TrackedAsset } from "../../lib/types/domain";
-import { useStyle } from "../../style";
+import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
-import { AssetDetails } from "../AssetDetails";
 import { AssetList } from "./AssetList";
 
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
-export function BalancesTab() {
+export interface IBalancesTabProps {
+  onView: (asset: TrackedAsset) => void;
+}
+
+export function BalancesTab({ onView }: IBalancesTabProps) {
   const { style } = useStyle();
   const { balances: copy } = style.copy;
   const { addTrackedAsset } = useWallet();
   const chainId = useWalletSessionStore((state) => state.chainId);
 
-  const [selected, setSelected] = useState<TrackedAsset | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addressInput, setAddressInput] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-
-  useEffect(() => {
-    setSelected(null);
-  }, [chainId]);
-
-  if (selected) {
-    return (
-      <div className="flex flex-col gap-3">
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setSelected(null)}
-          >
-            {copy.closeLabel}
-          </Button>
-        </div>
-        <AssetDetails asset={selected} />
-      </div>
-    );
-  }
 
   const onSubmitAdd = async () => {
     const trimmed = addressInput.trim();
@@ -78,12 +58,12 @@ export function BalancesTab() {
 
   return (
     <div className="flex flex-col gap-3">
-      <AssetList onView={setSelected} />
+      <AssetList onView={onView} />
 
       <Button
         type="button"
         size="sm"
-        className="self-stretch sm:self-end"
+        className="self-center"
         onClick={() => {
           setAddError(null);
           setAddressInput("");

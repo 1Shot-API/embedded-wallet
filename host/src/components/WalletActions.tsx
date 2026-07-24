@@ -10,47 +10,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  HOST_CHAINS,
+  hostChainMeta,
+  type UsdcMode,
+} from "./hostChains";
 
-export const HOST_CHAINS = [
-  {
-    value: "0x4cef52",
-    label: "Arc Testnet",
-    usdc: "0x3600000000000000000000000000000000000000",
-    blockExplorerUrl: "https://testnet.arcscan.app",
-  },
-  {
-    value: "0xaa36a7",
-    label: "Sepolia",
-    usdc: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
-    blockExplorerUrl: "https://sepolia.etherscan.io",
-  },
-  {
-    value: "0x14a34",
-    label: "Base Sepolia",
-    usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-    blockExplorerUrl: "https://sepolia.basescan.org",
-  },
-] as const;
-
-/** Focus demo: Arc Testnet USDC. */
-export const FOCUS_USDC_ARC = {
-  chainId: "0x4cef52",
-  assetAddress: "0x3600000000000000000000000000000000000000",
-  label: "USDC (Arc)",
-} as const;
-
-/** Focus demo: Base mainnet USDT. */
-export const FOCUS_USDT_BASE = {
-  chainId: "0x2105",
-  assetAddress: "0xfde4c96c8593536e31f229ea8f37b2ada2699bb2",
-  label: "Tether (Base)",
-} as const;
-
-export type UsdcMode = "balance" | "send";
-
-export function hostChainMeta(chainId: string) {
-  return HOST_CHAINS.find((chain) => chain.value === chainId) ?? null;
-}
+export type { UsdcMode } from "./hostChains";
 
 export interface IWalletActionsProps {
   ready: boolean;
