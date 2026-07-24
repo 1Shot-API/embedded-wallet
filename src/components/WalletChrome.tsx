@@ -1,5 +1,5 @@
 import { MenuIcon } from "lucide-react";
-import { useStyle } from "../style";
+import { useStyle } from "../style/StyleProvider";
 import { hasBackup } from "../storage";
 import { useWallet } from "../wallet/WalletProvider";
 import { useWalletSessionStore } from "../wallet/sessionStore";

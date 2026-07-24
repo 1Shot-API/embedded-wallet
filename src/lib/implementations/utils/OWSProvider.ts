@@ -71,8 +71,10 @@ export class OWSProvider implements IOWSProvider {
   }
 
   async ensureDisplay(): Promise<void> {
-    const wallet = await this.getWallet();
-    const config = await this.configProvider.getConfig();
+    const [wallet, config] = await Promise.all([
+      this.getWallet(),
+      this.configProvider.getConfig(),
+    ]);
     // requestDisplay increments nested display depth when a session is already
     // open (SignHelper withDisplay). Release immediately so depth does not leak
     // and block host hide after the outer eth_sendTransaction completes.

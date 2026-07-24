@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { formatUnits } from "viem";
 import { cn } from "@/lib/utils";
 import type { TrackedAssetId } from "../lib/types/primitives";
-import { useStyle } from "../style";
+import { useStyle } from "../style/StyleProvider";
 import { useBalanceUpdated } from "../wallet/useWalletEvent";
 
 export interface IBalanceDisplayProps {
@@ -27,25 +27,40 @@ function formatBalance(
   }
 }
 
+type LiveBalance = {
+  balance: bigint | null;
+  decimals: number;
+};
+
 /**
  * Formats a raw token balance and stays live via BalanceUpdated events.
+ * Props are the source of truth; event updates override until the asset or
+ * props change (reset during render — no prop→state sync effect).
  */
 export function BalanceDisplay({
   trackedAssetId,
-  balance: initialBalance,
-  decimals: initialDecimals,
+  balance: propBalance,
+  decimals: propDecimals,
   fallback,
   className,
 }: IBalanceDisplayProps) {
   const { style } = useStyle();
   const unavailable = fallback ?? style.copy.balances.balanceUnavailable;
-  const [balance, setBalance] = useState(initialBalance);
-  const [decimals, setDecimals] = useState(initialDecimals);
+  const [live, setLive] = useState<LiveBalance | null>(null);
+  const [prev, setPrev] = useState({
+    trackedAssetId,
+    propBalance,
+    propDecimals,
+  });
 
-  useEffect(() => {
-    setBalance(initialBalance);
-    setDecimals(initialDecimals);
-  }, [initialBalance, initialDecimals, trackedAssetId]);
+  if (
+    trackedAssetId !== prev.trackedAssetId ||
+    propBalance !== prev.propBalance ||
+    propDecimals !== prev.propDecimals
+  ) {
+    setPrev({ trackedAssetId, propBalance, propDecimals });
+    setLive(null);
+  }
 
   useBalanceUpdated(
     useCallback(
@@ -54,12 +69,14 @@ export function BalanceDisplay({
           (asset) => asset.id === trackedAssetId,
         );
         if (!next) return;
-        setBalance(next.balance);
-        setDecimals(next.decimals);
+        setLive({ balance: next.balance, decimals: next.decimals });
       },
       [trackedAssetId],
     ),
   );
+
+  const balance = live?.balance ?? propBalance;
+  const decimals = live?.decimals ?? propDecimals;
 
   return (
     <span className={cn("font-mono tabular-nums", className)}>

@@ -17,9 +17,9 @@ import {
   DEFAULT_TRACKED_USDC,
   isDefaultTrackedUsdc,
 } from "./HardcodedKnownAssetRepository";
-import { NewTrackedAsset, TrackedAsset } from "../../types/domain";
-import { EAssetType } from "../../types/enum";
-import { BalanceUpdatedEvent } from "../../types/events";
+import { NewTrackedAsset, TrackedAsset } from "../../types/domain/TrackedAsset";
+import { EAssetType } from "../../types/enum/EAssetType";
+import { BalanceUpdatedEvent } from "../../types/events/BalanceUpdatedEvent";
 import {
   makeTrackedAssetId,
   type TrackedAssetId,
@@ -169,21 +169,21 @@ export class LocalStorageTrackedAssetRepository
     forceEmit: boolean,
   ): Promise<TrackedAsset[]> {
     let anyFetched = forceEmit;
-    const result: TrackedAsset[] = [];
 
-    for (const asset of assets) {
-      if (this.balanceCache.has(asset.id)) {
-        result.push(asset.withBalance(this.balanceCache.get(asset.id)!));
-        continue;
-      }
+    const result = await Promise.all(
+      assets.map(async (asset) => {
+        if (this.balanceCache.has(asset.id)) {
+          return asset.withBalance(this.balanceCache.get(asset.id)!);
+        }
 
-      anyFetched = true;
-      const balance = await this.fetchBalance(asset, owner);
-      if (balance !== null) {
-        this.balanceCache.set(asset.id, balance);
-      }
-      result.push(asset.withBalance(balance));
-    }
+        anyFetched = true;
+        const balance = await this.fetchBalance(asset, owner);
+        if (balance !== null) {
+          this.balanceCache.set(asset.id, balance);
+        }
+        return asset.withBalance(balance);
+      }),
+    );
 
     if (anyFetched && result.length > 0) {
       this.eventBus.emit(new BalanceUpdatedEvent(result));
@@ -221,27 +221,29 @@ export class LocalStorageTrackedAssetRepository
     try {
       const parsed = JSON.parse(raw) as StoredBlob;
       if (!parsed || !Array.isArray(parsed.assets)) return [];
-      return parsed.assets
-        .filter(
-          (row) =>
-            typeof row?.chainId === "string" &&
-            typeof row?.address === "string" &&
-            typeof row?.name === "string" &&
-            typeof row?.symbol === "string" &&
-            typeof row?.decimals === "number" &&
-            /^0x[0-9a-fA-F]+$/.test(row.chainId) &&
-            /^0x[0-9a-fA-F]{40}$/.test(row.address),
-        )
-        .map((row) => {
-          const chainId = EVMChainId(row.chainId as `0x${string}`);
-          const address = EVMAccountAddress(row.address as `0x${string}`);
-          const type =
-            row.type === EAssetType.Erc721
-              ? EAssetType.Erc721
-              : row.type === EAssetType.Erc1155
-                ? EAssetType.Erc1155
-                : EAssetType.Erc20;
-          return new TrackedAsset(
+      const assets: TrackedAsset[] = [];
+      for (const row of parsed.assets) {
+        if (
+          typeof row?.chainId !== "string" ||
+          typeof row?.address !== "string" ||
+          typeof row?.name !== "string" ||
+          typeof row?.symbol !== "string" ||
+          typeof row?.decimals !== "number" ||
+          !/^0x[0-9a-fA-F]+$/.test(row.chainId) ||
+          !/^0x[0-9a-fA-F]{40}$/.test(row.address)
+        ) {
+          continue;
+        }
+        const chainId = EVMChainId(row.chainId as `0x${string}`);
+        const address = EVMAccountAddress(row.address as `0x${string}`);
+        const type =
+          row.type === EAssetType.Erc721
+            ? EAssetType.Erc721
+            : row.type === EAssetType.Erc1155
+              ? EAssetType.Erc1155
+              : EAssetType.Erc20;
+        assets.push(
+          new TrackedAsset(
             chainId,
             address,
             type,
@@ -250,8 +252,10 @@ export class LocalStorageTrackedAssetRepository
             row.decimals,
             makeTrackedAssetId(chainId, address),
             null,
-          );
-        });
+          ),
+        );
+      }
+      return assets;
     } catch {
       return [];
     }

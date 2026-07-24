@@ -1,11 +1,9 @@
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
-import { EWalletEventKind } from "../../types/enum";
-import type {
-  BalanceUpdatedEvent,
-  RefreshBalanceRequestedEvent,
-  TransactionHistoryUpdatedEvent,
-  WalletDomainEvent,
-} from "../../types/events";
+import { EWalletEventKind } from "../../types/enum/EWalletEventKind";
+import type { BalanceUpdatedEvent } from "../../types/events/BalanceUpdatedEvent";
+import type { RefreshBalanceRequestedEvent } from "../../types/events/RefreshBalanceRequestedEvent";
+import type { TransactionHistoryUpdatedEvent } from "../../types/events/TransactionHistoryUpdatedEvent";
+import type { WalletDomainEvent } from "../../types/events/WalletDomainEvent";
 
 type Listener = (event: WalletDomainEvent) => void;
 

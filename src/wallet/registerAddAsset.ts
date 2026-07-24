@@ -16,8 +16,7 @@ import { useWalletSessionStore } from "./sessionStore";
 /** Custom RPC — host: `await proxy.rpc("addAsset", { chainId, assetAddress })`. */
 export const ADD_ASSET_RPC_METHOD = "addAsset";
 
-const addAssetParamsSchema = z
-  .object({
+const addAssetParamsSchema = z.strictObject({
     chainId: z
       .string()
       .regex(/^0x[0-9a-fA-F]+$/)
@@ -26,8 +25,7 @@ const addAssetParamsSchema = z
       .string()
       .regex(/^0x[0-9a-fA-F]{40}$/)
       .transform((value) => EVMAccountAddress(value as `0x${string}`)),
-  })
-  .strict();
+  });
 
 export type IAddAssetParams = z.infer<typeof addAssetParamsSchema>;
 
@@ -62,21 +60,24 @@ export function registerAddAssetRpc(
     async (params) => {
       const { chainId, assetAddress } = params as IAddAssetParams;
       const owner = options.getOwnerAddress();
-      const resolved = await options.knownAssetRepository.resolveForTracking(
-        chainId,
-        assetAddress,
-        owner,
-      );
-
-      const display = await wallet.requestDisplay(options.displaySize);
-      try {
-        const approved = await options.requestAddAssetApproval({
+      const [resolved, display] = await Promise.all([
+        options.knownAssetRepository.resolveForTracking(
           chainId,
           assetAddress,
-          assetName: resolved.name,
-          assetSymbol: resolved.symbol,
-        });
-        if (!approved) {
+          owner,
+        ),
+        wallet.requestDisplay(options.displaySize),
+      ]);
+      try {
+        // Consent UI requires the flyout already open — keep sequential.
+        if (
+          !(await options.requestAddAssetApproval({
+            chainId,
+            assetAddress,
+            assetName: resolved.name,
+            assetSymbol: resolved.symbol,
+          }))
+        ) {
           throw new OwsUserRejectedError("User rejected add asset request");
         }
 

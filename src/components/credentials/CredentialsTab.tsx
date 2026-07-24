@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useStyle } from "../../style";
+import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
 import { CredentialDetailDialog } from "./CredentialDetailDialog";

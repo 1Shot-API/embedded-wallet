@@ -12,8 +12,7 @@ export const FOCUS_WALLET_RPC_METHOD = "focusWallet";
 /** Custom RPC — host: `await proxy.rpc("unfocusWallet")`. */
 export const UNFOCUS_WALLET_RPC_METHOD = "unfocusWallet";
 
-const focusWalletParamsSchema = z
-  .object({
+const focusWalletParamsSchema = z.strictObject({
     chainId: z
       .string()
       .regex(/^0x[0-9a-fA-F]+$/)
@@ -22,8 +21,7 @@ const focusWalletParamsSchema = z
       .string()
       .regex(/^0x[0-9a-fA-F]{40}$/)
       .transform((value) => EVMAccountAddress(value as `0x${string}`)),
-  })
-  .strict();
+  });
 
 export type IFocusWalletParams = z.infer<typeof focusWalletParamsSchema>;
 

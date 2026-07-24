@@ -10,7 +10,7 @@ import type {
   IConfirmSendResult,
   IConfirmTransferRequest,
 } from "../../wallet/modalTypes";
-import { useStyle } from "../../style";
+import { useStyle } from "../../style/StyleProvider";
 import { Modal } from "../Modal";
 import { PaymentFeePicker } from "../PaymentFeePicker";
 

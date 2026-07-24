@@ -1,5 +1,5 @@
 import type { EVMChainId, EVMTransactionHash } from "@1shotapi/ows-types";
-import { useStyle } from "../../style";
+import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { CopyableText } from "../CopyableText";
 import { Modal } from "../Modal";

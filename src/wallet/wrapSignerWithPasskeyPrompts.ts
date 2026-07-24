@@ -1,5 +1,5 @@
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
-import { EPasskeyPromptReason } from "../lib/types/enum";
+import { EPasskeyPromptReason } from "../lib/types/enum/EPasskeyPromptReason";
 import { usePasskeyPromptStore } from "./passkeyPromptStore";
 import { withPasskeyPrompt } from "./withPasskeyPrompt";
 

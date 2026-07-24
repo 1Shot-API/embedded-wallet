@@ -6,15 +6,18 @@ import {
 } from "lucide-react";
 import type { EVMAccountAddress } from "@1shotapi/ows-types";
 import type { AssetActivity, TrackedAsset } from "../lib/types/domain";
-import {
-  EAssetActivityKind,
-  EAssetActivityStatus,
-} from "../lib/types/enum";
+import { EAssetActivityKind } from "../lib/types/enum/EAssetActivityKind";
+import { EAssetActivityStatus } from "../lib/types/enum/EAssetActivityStatus";
 import { useWallet } from "../wallet/WalletProvider";
 import { useTransactionHistoryUpdated } from "../wallet/useWalletEvent";
 
 const RECENT_LIMIT = 10;
 const TRUNCATE_CHARS = 5;
+
+const ACTIVITY_WHEN_FORMAT = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
 export interface ITransactionHistoryProps {
   asset: TrackedAsset;
@@ -33,10 +36,7 @@ function formatWhen(timestampMs: number): string {
     return "Unknown time";
   }
   try {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(timestampMs));
+    return ACTIVITY_WHEN_FORMAT.format(new Date(timestampMs));
   } catch {
     return new Date(timestampMs).toLocaleString();
   }

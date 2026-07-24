@@ -2,7 +2,7 @@ import type {
   CredentialOfferApprovalRequest,
   CredentialPresentationApprovalRequest,
 } from "@1shotapi/ows-types";
-import { useStyle } from "../../style";
+import { useStyle } from "../../style/StyleProvider";
 import { Modal } from "../Modal";
 
 export function CredentialOfferModal({

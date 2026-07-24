@@ -39,13 +39,16 @@ import type {
 import type { ITransactionUtils } from "../../interfaces/utils/ITransactionUtils";
 import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
 import type { IRelayerSendPrefetch } from "../../interfaces/business/ITransactionService";
-import { EPasskeyPromptReason } from "../../types/enum";
+import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
 import type { LocalAccount } from "viem/accounts";
+import { idbGetString, idbSetString } from "../../utils/idbStringStore";
 
 const STATELESS_DELEGATOR_IMPL =
   "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B" as const;
 
-const DELEGATION_SECRET_KEY = "oneshot.delegationSecret";
+/** IndexedDB key for the client delegation-binding value (not localStorage). */
+const DELEGATION_BINDING_IDB_KEY = "oneshot.dbind";
+const LEGACY_DELEGATION_SECRET_KEY = "oneshot.delegationSecret";
 const POLL_MS = 1000;
 const MAX_POLL_ATTEMPTS = 180;
 
@@ -226,21 +229,22 @@ export class TransactionService implements ITransactionService {
     );
 
     const client = this.options.blockchain.getPublicClient(chainId);
-    const tokens: IPaymentTokenOption[] = [];
-    for (const token of capabilities.tokens) {
-      let balance = 0n;
-      try {
-        balance = await client.readContract({
-          address: token.address,
-          abi: erc20Abi,
-          functionName: "balanceOf",
-          args: [owner],
-        });
-      } catch {
-        balance = 0n;
-      }
-      tokens.push({ ...token, balance });
-    }
+    const tokens: IPaymentTokenOption[] = await Promise.all(
+      capabilities.tokens.map(async (token) => {
+        let balance = 0n;
+        try {
+          balance = await client.readContract({
+            address: token.address,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [owner],
+          });
+        } catch {
+          balance = 0n;
+        }
+        return { ...token, balance };
+      }),
+    );
 
     const selected = pickPaymentToken(tokens, preferredToken);
     if (!selected) {
@@ -336,6 +340,7 @@ export class TransactionService implements ITransactionService {
 
     await this.options.owsProvider.ensureDisplay();
     try {
+      const delegationSecret = await loadOrCreateDelegationBinding();
       const viemAccount = await this.getViemAccount();
       const publicClient = this.options.blockchain.getPublicClient(chainId);
       const chainIdNumber = Number(BigInt(chainId));
@@ -420,7 +425,7 @@ export class TransactionService implements ITransactionService {
             : {}),
           ...(context ? { context } : {}),
           memo: buildMemo(eoa, this.options.transactionUtils.resolveHostDomain()),
-          delegationSecret: loadOrCreateDelegationSecret(),
+          delegationSecret,
         };
       };
 
@@ -638,15 +643,44 @@ function randomSalt32(): Hex {
   return `0x${Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")}` as Hex;
 }
 
-function loadOrCreateDelegationSecret(): string {
+let cachedDelegationBinding: string | undefined;
+
+/**
+ * Stable per-browser binding value for `relayer_send7710Transaction`.
+ * Kept out of localStorage/sessionStorage (XSS-readable by default scrapers);
+ * IndexedDB + in-memory cache. Migrates the legacy localStorage key once.
+ */
+async function loadOrCreateDelegationBinding(): Promise<string> {
+  if (cachedDelegationBinding && cachedDelegationBinding.length >= 10) {
+    return cachedDelegationBinding;
+  }
+
   try {
-    const existing = localStorage.getItem(DELEGATION_SECRET_KEY);
-    if (existing && existing.length >= 10) return existing;
+    const legacy = localStorage.getItem(LEGACY_DELEGATION_SECRET_KEY);
+    if (legacy && legacy.length >= 10) {
+      await idbSetString(DELEGATION_BINDING_IDB_KEY, legacy);
+      localStorage.removeItem(LEGACY_DELEGATION_SECRET_KEY);
+      cachedDelegationBinding = legacy;
+      return legacy;
+    }
+  } catch {
+    // localStorage may be unavailable
+  }
+
+  try {
+    const existing = await idbGetString(DELEGATION_BINDING_IDB_KEY);
+    if (existing && existing.length >= 10) {
+      cachedDelegationBinding = existing;
+      return existing;
+    }
     const next = crypto.randomUUID();
-    localStorage.setItem(DELEGATION_SECRET_KEY, next);
+    await idbSetString(DELEGATION_BINDING_IDB_KEY, next);
+    cachedDelegationBinding = next;
     return next;
   } catch {
-    return crypto.randomUUID();
+    const fallback = crypto.randomUUID();
+    cachedDelegationBinding = fallback;
+    return fallback;
   }
 }
 

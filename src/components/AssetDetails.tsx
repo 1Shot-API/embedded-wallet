@@ -7,8 +7,8 @@ import {
   SendIcon,
 } from "lucide-react";
 import type { TrackedAsset } from "../lib/types/domain";
-import { EAssetType } from "../lib/types/enum";
-import { useStyle } from "../style";
+import { EAssetType } from "../lib/types/enum/EAssetType";
+import { useStyle } from "../style/StyleProvider";
 import { useWallet } from "../wallet/WalletProvider";
 import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useWalletSessionStore } from "../wallet/sessionStore";

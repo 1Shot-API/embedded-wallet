@@ -217,8 +217,10 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
     data: HexString,
     value?: bigint,
   ): Promise<ISendTransactionResult> {
-    const signer = await this.options.owsProvider.getSigner();
-    const chainRpc = await this.options.owsProvider.getRpcHelper();
+    const [signer, chainRpc] = await Promise.all([
+      this.options.owsProvider.getSigner(),
+      this.options.owsProvider.getRpcHelper(),
+    ]);
     const active = chainRpc.getChainId();
     if (active !== chainId) {
       throw new OwsInvalidParamsError(
@@ -279,15 +281,22 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
       }),
     });
 
+    if (!response.ok) {
+      let detail = "";
+      try {
+        detail = await response.text();
+      } catch {
+        // ignore body read failures on error responses
+      }
+      throw new Error(
+        `Relayer HTTP ${response.status}${detail ? `: ${detail}` : ""}`,
+      );
+    }
+
     const json = (await response.json()) as
       | JsonRpcSuccess<T>
       | JsonRpcFailure;
 
-    if (!response.ok) {
-      throw new Error(
-        `Relayer HTTP ${response.status}: ${JSON.stringify(json)}`,
-      );
-    }
     if ("error" in json && json.error) {
       throw new Error(
         `Relayer ${method} error ${json.error.code}: ${json.error.message}`,

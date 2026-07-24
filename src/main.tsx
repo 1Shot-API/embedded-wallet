@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
-import { StyleProvider, styleController } from "./style";
+import { StyleProvider } from "./style/StyleProvider";
+import { styleController } from "./style/styleController";
 import { WalletProvider } from "./wallet/WalletProvider";
 import "./index.css";
 

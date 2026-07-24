@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useWallet } from "../wallet/WalletProvider";
-import { useStyle } from "../style";
+import { useStyle } from "../style/StyleProvider";
 import { BrandLogo } from "./BrandLogo";
 
 function taglineLines(tagline: string): string[] {

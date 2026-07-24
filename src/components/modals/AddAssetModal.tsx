@@ -1,5 +1,5 @@
 import { Modal } from "../Modal";
-import { useStyle } from "../../style";
+import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import type { IAddAssetApprovalRequest } from "../../wallet/registerAddAsset";
 import { CopyableText } from "../CopyableText";

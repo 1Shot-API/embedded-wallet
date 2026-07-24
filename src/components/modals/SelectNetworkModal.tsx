@@ -1,6 +1,6 @@
 import { CheckIcon } from "lucide-react";
 import type { SupportedChain } from "../../lib/types/domain";
-import { useStyle } from "../../style";
+import { useStyle } from "../../style/StyleProvider";
 import { Modal } from "../Modal";
 import { cn } from "@/lib/utils";
 

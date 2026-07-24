@@ -24,8 +24,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TrackedAsset } from "../../lib/types/domain";
-import { EAssetType } from "../../lib/types/enum";
-import { useStyle } from "../../style";
+import { EAssetType } from "../../lib/types/enum/EAssetType";
+import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
 import { BalanceDisplay } from "../BalanceDisplay";

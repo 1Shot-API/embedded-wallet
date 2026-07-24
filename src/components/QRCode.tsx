@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import QRCodeLib from "qrcode";
 import { cn } from "@/lib/utils";
-import { useStyle } from "../style";
+import { useStyle } from "../style/StyleProvider";
 
 export interface IQRCodeProps {
   /** Payload encoded in the QR (e.g. a wallet address). */
