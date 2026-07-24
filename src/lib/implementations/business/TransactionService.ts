@@ -104,25 +104,36 @@ export class TransactionService implements ITransactionService {
 
   private async signWalletUpgradeAuthorizationInner(
     chainId: EVMChainId,
+    options?: {
+      account?: LocalAccount;
+      /** Prefetched so signing can share one passkey with fee/work digests. */
+      nonce?: number;
+      contractAddress?: `0x${string}`;
+    },
   ): Promise<IRelayerAuthorizationEntry> {
-    const account = await this.getViemAccount();
+    const account = options?.account ?? (await this.getViemAccount());
     const chainIdNumber = Number(BigInt(chainId));
     const client = this.options.blockchain.getPublicClient(chainId);
 
-    let contractAddress: `0x${string}` = STATELESS_DELEGATOR_IMPL;
-    try {
-      const env = getSmartAccountsEnvironment(chainIdNumber);
-      contractAddress = getAddress(
-        env.implementations.EIP7702StatelessDeleGatorImpl,
-      );
-    } catch {
-      // Fall back to the known Stateless7702 implementation address.
+    let contractAddress: `0x${string}` =
+      options?.contractAddress ?? STATELESS_DELEGATOR_IMPL;
+    if (!options?.contractAddress) {
+      try {
+        const env = getSmartAccountsEnvironment(chainIdNumber);
+        contractAddress = getAddress(
+          env.implementations.EIP7702StatelessDeleGatorImpl,
+        );
+      } catch {
+        // Fall back to the known Stateless7702 implementation address.
+      }
     }
 
-    const nonce = await client.getTransactionCount({
-      address: account.address,
-      blockTag: "pending",
-    });
+    const nonce =
+      options?.nonce ??
+      (await client.getTransactionCount({
+        address: account.address,
+        blockTag: "pending",
+      }));
 
     if (!account.signAuthorization) {
       throw new Error("Signer does not support EIP-7702 signAuthorization");
@@ -304,6 +315,27 @@ export class TransactionService implements ITransactionService {
         chainId,
       );
 
+      // Prefetch EIP-7702 inputs before the coalesced ceremony. A nonce RPC
+      // inside Promise.all lets fee/work start a signer Confirm first; the
+      // later auth RPC then cancels it (`ceremonyCancelled`).
+      let upgradeNonce: number | undefined;
+      let upgradeContract: `0x${string}` | undefined;
+      if (needsUpgrade) {
+        upgradeContract = STATELESS_DELEGATOR_IMPL;
+        try {
+          const env = getSmartAccountsEnvironment(chainIdNumber);
+          upgradeContract = getAddress(
+            env.implementations.EIP7702StatelessDeleGatorImpl,
+          );
+        } catch {
+          // keep hardcoded fallback
+        }
+        upgradeNonce = await publicClient.getTransactionCount({
+          address: eoa,
+          blockTag: "pending",
+        });
+      }
+
       const feeCalldata = HexStringCompat(
         encodeFunctionData({
           abi: erc20Abi,
@@ -320,31 +352,40 @@ export class TransactionService implements ITransactionService {
       const signed = await withCeremonyUiReason(
         EPasskeyPromptReason.ApproveTransaction,
         () =>
-          withCoalescedSignDigest(signer, approveCopy, async () => {
-            const [authEntry, feeDelegation, workDelegation] =
-              await Promise.all([
-                needsUpgrade
-                  ? this.signWalletUpgradeAuthorizationInner(chainId)
-                  : Promise.resolve(undefined),
-                this.createAndSignExactCalldataDelegation({
-                  smartAccount,
-                  delegate: capabilities.targetAddress,
-                  target: paymentToken,
-                  value: 0n,
-                  callData: feeCalldata,
-                  chainIdNumber,
-                }),
-                this.createAndSignExactCalldataDelegation({
-                  smartAccount,
-                  delegate: capabilities.targetAddress,
-                  target: work.to,
-                  value: workValue,
-                  callData: workData,
-                  chainIdNumber,
-                }),
-              ]);
-            return { authEntry, feeDelegation, workDelegation };
-          }),
+          withCoalescedSignDigest(
+            signer,
+            approveCopy,
+            async () => {
+              const [authEntry, feeDelegation, workDelegation] =
+                await Promise.all([
+                  needsUpgrade
+                    ? this.signWalletUpgradeAuthorizationInner(chainId, {
+                        account: viemAccount,
+                        nonce: upgradeNonce,
+                        contractAddress: upgradeContract,
+                      })
+                    : Promise.resolve(undefined),
+                  this.createAndSignExactCalldataDelegation({
+                    smartAccount,
+                    delegate: capabilities.targetAddress,
+                    target: paymentToken,
+                    value: 0n,
+                    callData: feeCalldata,
+                    chainIdNumber,
+                  }),
+                  this.createAndSignExactCalldataDelegation({
+                    smartAccount,
+                    delegate: capabilities.targetAddress,
+                    target: work.to,
+                    value: workValue,
+                    callData: workData,
+                    chainIdNumber,
+                  }),
+                ]);
+              return { authEntry, feeDelegation, workDelegation };
+            },
+            { minCalls: needsUpgrade ? 3 : 2 },
+          ),
       );
 
       if (signed.authEntry) {
@@ -498,7 +539,9 @@ export class TransactionService implements ITransactionService {
       },
     });
 
-    await this.options.owsProvider.ensureDisplay();
+    // Display is already held by sendViaRelayer / callers — do not re-enter
+    // ensureDisplay here; parallel awaits stagger signDigest and cancel the
+    // coalesced ceremony.
     const signature = await smartAccount.signDelegation({ delegation });
     return { ...delegation, signature };
   }
