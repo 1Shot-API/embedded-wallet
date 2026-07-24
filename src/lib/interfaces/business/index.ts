@@ -1,7 +1,6 @@
 export type {
   IPaymentQuote,
   IPaymentTokenOption,
-  IRelayerSendPrefetch,
   ISendViaRelayerParams,
   ITransactionService,
   ITransactionWork,

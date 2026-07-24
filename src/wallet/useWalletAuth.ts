@@ -7,6 +7,7 @@ import {
   isWalletCreated,
   loadCredentialId,
   saveCachedAddresses,
+  saveCachedSecp256k1PublicKey,
   saveWalletCreated,
 } from "../storage";
 import type { IConfigProvider } from "../lib/interfaces/utils";
@@ -44,6 +45,10 @@ export function useWalletAuth({
     ]);
     useWalletSessionStore.getState().setAddresses(evm, solana);
     saveCachedAddresses(evm, solana);
+    const pk = signer.getLastPublicKeyData?.()?.secp256k1PublicKey;
+    if (pk) {
+      saveCachedSecp256k1PublicKey(pk);
+    }
   }, [signerRef]);
 
   const refreshCredentialCount = useCallback(async () => {

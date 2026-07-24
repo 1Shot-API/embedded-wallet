@@ -358,22 +358,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         feeAtoms: bigint;
       },
     ) => {
-      await ensureReady();
-      const owner = useWalletSessionStore.getState().evmAddress;
-      const chain = await chainRepository.get(chainId);
-      const prefetch =
-        chain?.useRelayer && payment && owner
-          ? await transactionService.prefetchForRelayerSend(chainId, owner)
-          : undefined;
+      await ensureOnboardedForSigning();
       const result = await transactionService.sendTransaction(
         chainId,
         { to, data, value },
-        payment ? { ...payment, prefetch } : undefined,
+        payment,
       );
       await onSigningAuthenticated();
       return result.transactionHash;
     },
-    [ensureReady, onSigningAuthenticated],
+    [ensureOnboardedForSigning, onSigningAuthenticated],
   );
 
   const openCreateBackup = useCallback(async () => {

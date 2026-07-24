@@ -68,11 +68,17 @@ function isStoredCredential(value: unknown): value is StoredCredential {
   );
 }
 
-/**
- * Local plaintext cache + encrypted official copies on the 1Shot Relayer.
- * `list`/`get` read the cache; `store`/`delete`/`revoke` sync to the relayer;
- * `refreshFromRelayer` replaces the cache from recover.
- */
+  /**
+   * Local plaintext cache + encrypted official copies on the 1Shot Relayer.
+   * `list`/`get` read the cache; `store`/`delete`/`revoke` sync to the relayer;
+   * `refreshFromRelayer` replaces the cache from recover.
+   *
+   * Store remains two ceremonies (OWS encrypt, then Branding Relayer WebAuthn):
+   * the relayer requires a full SimpleWebAuthn assertion
+   * (`authenticatorData` / `clientDataJSON` / `signature`), while OWS
+   * `executeBatch` only returns `challengeSignature` — not enough to auth
+   * mutative credential HTTP without a relayer/API change.
+   */
 export class CachedRelayerCredentialRepository implements ICredentialRepository {
   private readonly client: RelayerCredentialsClient;
   private readonly owsProvider: IOWSProvider;

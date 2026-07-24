@@ -136,7 +136,7 @@ export function useWalletBoot({
   signerRef,
   rpcHelperRef,
   awaitSignerRef,
-  ensureReadyRef,
+  ensureReadyRef: _ensureReadyRef,
   ensureReady,
   ensureOnboardedForSigning,
   onSigningAuthenticated,
@@ -276,7 +276,7 @@ export function useWalletBoot({
             );
           }
 
-          await ensureReadyRef.current();
+          await ensureOnboardedForSigning();
 
           const chain = resolveChain(request.chainId);
           const useRelayer = chain?.useRelayer === true;
@@ -292,13 +292,6 @@ export function useWalletBoot({
                 paymentToken?: EVMAccountAddress;
                 feeAtoms?: bigint;
               };
-
-          const prefetch = useRelayer
-            ? await transactionService.prefetchForRelayerSend(
-                request.chainId,
-                request.address,
-              )
-            : undefined;
 
           let confirmed: ConfirmResult;
           if (transfer) {
@@ -360,7 +353,6 @@ export function useWalletBoot({
             | {
                 paymentToken: EVMAccountAddress;
                 feeAtoms: bigint;
-                prefetch: typeof prefetch;
               }
             | undefined;
           if (useRelayer) {
@@ -368,7 +360,6 @@ export function useWalletBoot({
             relayerOptions = {
               paymentToken: payment.paymentToken,
               feeAtoms: payment.feeAtoms,
-              prefetch,
             };
           }
 

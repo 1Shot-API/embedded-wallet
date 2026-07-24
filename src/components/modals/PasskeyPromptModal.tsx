@@ -23,6 +23,10 @@ function copyForReason(
       return prompts.relayerAuth;
     case EPasskeyPromptReason.WalletUpgrade:
       return prompts.walletUpgrade;
+    case EPasskeyPromptReason.ApproveTransaction:
+      return prompts.approveTransaction;
+    case EPasskeyPromptReason.AdjustFee:
+      return prompts.adjustFee;
     case EPasskeyPromptReason.Backup:
       return prompts.backup;
   }

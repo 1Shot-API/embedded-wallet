@@ -31,6 +31,10 @@ function promptCopy(reason: EPasskeyPromptReason): CeremonyUiParams {
       return ceremonyFromEntry(prompts.backup);
     case EPasskeyPromptReason.WalletUpgrade:
       return ceremonyFromEntry(prompts.walletUpgrade);
+    case EPasskeyPromptReason.ApproveTransaction:
+      return ceremonyFromEntry(prompts.approveTransaction);
+    case EPasskeyPromptReason.AdjustFee:
+      return ceremonyFromEntry(prompts.adjustFee);
     case EPasskeyPromptReason.RelayerAuth:
       return ceremonyFromEntry(prompts.relayerAuth);
     default:

@@ -81,7 +81,7 @@ export function CreateBackupModal({
   onResolve: () => void;
   onReject: (error: unknown) => void;
 }) {
-  const { getSigner, ensureReady, persistBackup } = useWallet();
+  const { getSigner, persistBackup } = useWallet();
   const { style } = useStyle();
   const createBackup = style.copy.createBackup;
   const backupPrompt = style.copy.passkeyPrompt.backup;
@@ -95,9 +95,7 @@ export function CreateBackupModal({
 
     void (async () => {
       try {
-        await ensureReady();
-        if (abortedRef.current) return;
-
+        // No separate unlock — createRecoveryData is the sole passkey ceremony.
         const signer = getSigner();
         if (!signer) {
           throw new Error("Signer not ready for backup");
@@ -136,7 +134,7 @@ export function CreateBackupModal({
     // Signing path runs once per modal open. Copy is snapshotted from
     // StyleContext at mount; do not re-run when setStyle patches arrive mid-flow.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
-  }, [ensureReady, getSigner, onReject, persistBackup]);
+  }, [getSigner, onReject, persistBackup]);
 
   if (phase === "result" && result) {
     return (
