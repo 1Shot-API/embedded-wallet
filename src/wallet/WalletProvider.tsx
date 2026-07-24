@@ -28,7 +28,6 @@ import {
 import { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerCredentialRepository";
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
 import { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
-import { withPasskeyPrompt } from "./withPasskeyPrompt";
 import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
 import { HardcodedKnownAssetRepository } from "../lib/implementations/data/HardcodedKnownAssetRepository";
 import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
@@ -107,7 +106,6 @@ const transactionService: ITransactionService = new TransactionService({
   blockchain: blockchainProvider,
   transactionUtils,
   owsProvider,
-  withPasskeyPrompt,
 });
 
 const credentialRepository = new CachedRelayerCredentialRepository({
@@ -360,22 +358,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         feeAtoms: bigint;
       },
     ) => {
-      await ensureReady();
-      const owner = useWalletSessionStore.getState().evmAddress;
-      const chain = await chainRepository.get(chainId);
-      const prefetch =
-        chain?.useRelayer && payment && owner
-          ? await transactionService.prefetchForRelayerSend(chainId, owner)
-          : undefined;
+      await ensureOnboardedForSigning();
       const result = await transactionService.sendTransaction(
         chainId,
         { to, data, value },
-        payment ? { ...payment, prefetch } : undefined,
+        payment,
       );
       await onSigningAuthenticated();
       return result.transactionHash;
     },
-    [ensureReady, onSigningAuthenticated],
+    [ensureOnboardedForSigning, onSigningAuthenticated],
   );
 
   const openCreateBackup = useCallback(async () => {

@@ -10,6 +10,7 @@ import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import {
   EVMAccountAddress,
   EVMTransactionHash,
+  type CeremonyUiParams,
   type EVMChainId,
   type HexString,
   type RelayerTransactionId,
@@ -23,6 +24,7 @@ import {
   type Hex,
 } from "viem";
 import { recoverAuthorizationAddress } from "viem/utils";
+import type { LocalAccount } from "viem/accounts";
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
 import type {
   IOneshotRelayerRepository,
@@ -38,10 +40,15 @@ import type {
 } from "../../interfaces/business/ITransactionService";
 import type { ITransactionUtils } from "../../interfaces/utils/ITransactionUtils";
 import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
-import type { IRelayerSendPrefetch } from "../../interfaces/business/ITransactionService";
 import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
-import type { LocalAccount } from "viem/accounts";
 import { idbGetString, idbSetString } from "../../utils/idbStringStore";
+import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
+import { withCoalescedSignDigest } from "../../../wallet/withCoalescedSignDigest";
+import {
+  loadCachedEvmAddress,
+  loadCachedSecp256k1PublicKey,
+} from "../../../storage";
+import { styleController } from "../../../style/styleController";
 
 const STATELESS_DELEGATOR_IMPL =
   "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B" as const;
@@ -58,19 +65,12 @@ export type TransactionServiceOptions = {
   blockchain: IBlockchainProvider;
   transactionUtils: ITransactionUtils;
   owsProvider: IOWSProvider;
-  /** Show informational passkey overlay while {@link run} executes. */
-  withPasskeyPrompt: <T>(
-    reason: EPasskeyPromptReason,
-    run: () => Promise<T>,
-  ) => Promise<T>;
 };
 
 /**
  * Business orchestration for raw and public-relayer (EIP-7710) sends.
  */
 export class TransactionService implements ITransactionService {
-  private cachedViemAccount: LocalAccount | null = null;
-
   constructor(private readonly options: TransactionServiceOptions) {}
 
   async needsWalletUpgrade(
@@ -93,79 +93,36 @@ export class TransactionService implements ITransactionService {
     return !upgraded;
   }
 
-  async prefetchForRelayerSend(
-    chainId: EVMChainId,
-    address: EVMAccountAddress,
-  ): Promise<IRelayerSendPrefetch> {
-    // Warm viem account while unlock activation may still be live.
-    await this.getViemAccount();
-
-    const needsUpgrade = await this.needsWalletUpgrade(chainId, address);
-    if (!needsUpgrade) {
-      return { needsUpgrade: false };
-    }
-
-    const client = this.options.blockchain.getPublicClient(chainId);
-    const chainIdNumber = Number(BigInt(chainId));
-    let upgradeContractAddress: `0x${string}` = STATELESS_DELEGATOR_IMPL;
-    try {
-      const env = getSmartAccountsEnvironment(chainIdNumber);
-      upgradeContractAddress = getAddress(
-        env.implementations.EIP7702StatelessDeleGatorImpl,
-      );
-    } catch {
-      // keep hardcoded fallback
-    }
-
-    const upgradeNonce = await client.getTransactionCount({
-      address,
-      blockTag: "pending",
-    });
-
-    return {
-      needsUpgrade: true,
-      upgradeNonce,
-      upgradeContractAddress,
-    };
-  }
-
   async signWalletUpgradeAuthorization(
     chainId: EVMChainId,
-    prefetch?: IRelayerSendPrefetch,
   ): Promise<IRelayerAuthorizationEntry> {
     await this.options.owsProvider.ensureDisplay();
-    return this.options.withPasskeyPrompt(
-      EPasskeyPromptReason.WalletUpgrade,
-      () => this.signWalletUpgradeAuthorizationInner(chainId, prefetch),
+    return withCeremonyUiReason(EPasskeyPromptReason.WalletUpgrade, () =>
+      this.signWalletUpgradeAuthorizationInner(chainId),
     );
   }
 
   private async signWalletUpgradeAuthorizationInner(
     chainId: EVMChainId,
-    prefetch?: IRelayerSendPrefetch,
   ): Promise<IRelayerAuthorizationEntry> {
     const account = await this.getViemAccount();
     const chainIdNumber = Number(BigInt(chainId));
+    const client = this.options.blockchain.getPublicClient(chainId);
 
-    let contractAddress: `0x${string}` =
-      prefetch?.upgradeContractAddress ?? STATELESS_DELEGATOR_IMPL;
-    let nonce = prefetch?.upgradeNonce;
-
-    if (nonce === undefined) {
-      const client = this.options.blockchain.getPublicClient(chainId);
-      try {
-        const env = getSmartAccountsEnvironment(chainIdNumber);
-        contractAddress = getAddress(
-          env.implementations.EIP7702StatelessDeleGatorImpl,
-        );
-      } catch {
-        // Fall back to the known Stateless7702 implementation address.
-      }
-      nonce = await client.getTransactionCount({
-        address: account.address,
-        blockTag: "pending",
-      });
+    let contractAddress: `0x${string}` = STATELESS_DELEGATOR_IMPL;
+    try {
+      const env = getSmartAccountsEnvironment(chainIdNumber);
+      contractAddress = getAddress(
+        env.implementations.EIP7702StatelessDeleGatorImpl,
+      );
+    } catch {
+      // Fall back to the known Stateless7702 implementation address.
     }
+
+    const nonce = await client.getTransactionCount({
+      address: account.address,
+      blockTag: "pending",
+    });
 
     if (!account.signAuthorization) {
       throw new Error("Signer does not support EIP-7702 signAuthorization");
@@ -274,7 +231,6 @@ export class TransactionService implements ITransactionService {
       paymentToken?: EVMAccountAddress;
       feeAtoms?: bigint;
       authorizationList?: IRelayerAuthorizationEntry[];
-      prefetch?: IRelayerSendPrefetch;
     },
   ): Promise<ISendTransactionResult> {
     const chain = await this.options.chainRepository.get(chainId);
@@ -303,7 +259,6 @@ export class TransactionService implements ITransactionService {
       paymentToken: options.paymentToken,
       feeAtoms: options.feeAtoms,
       authorizationList: options.authorizationList,
-      prefetch: options.prefetch,
       relayerUrl: chain.relayerUrl,
     });
   }
@@ -314,29 +269,21 @@ export class TransactionService implements ITransactionService {
     paymentToken: EVMAccountAddress;
     feeAtoms: bigint;
     authorizationList?: IRelayerAuthorizationEntry[];
-    prefetch?: IRelayerSendPrefetch;
     relayerUrl: string;
   }): Promise<ISendTransactionResult> {
-    const { chainId, work, paymentToken, relayerUrl, prefetch } = args;
+    const { chainId, work, paymentToken, relayerUrl } = args;
     let feeAtoms = args.feeAtoms;
     let authorizationList = args.authorizationList;
 
     const signer = await this.options.owsProvider.getSigner();
     const eoa =
-      signer.getCachedAddress?.() ?? (await signer.evm.getAccountAddress());
+      signer.getCachedAddress?.() ??
+      loadCachedEvmAddress() ??
+      (await signer.evm.getAccountAddress());
 
-    // Upgrade immediately after confirm — no network awaits before WebAuthn when
-    // prefetch supplied (avoids "The operation is insecure" / lost user activation).
-    if (!authorizationList?.length) {
-      const needsUpgrade =
-        prefetch?.needsUpgrade ??
-        (await this.needsWalletUpgrade(chainId, eoa));
-      if (needsUpgrade) {
-        authorizationList = [
-          await this.signWalletUpgradeAuthorization(chainId, prefetch),
-        ];
-      }
-    }
+    const needsUpgrade =
+      !authorizationList?.length &&
+      (await this.needsWalletUpgrade(chainId, eoa));
 
     await this.options.owsProvider.ensureDisplay();
     try {
@@ -367,22 +314,44 @@ export class TransactionService implements ITransactionService {
       const workData = (work.data || "0x") as Hex;
       const workValue = work.value ?? 0n;
 
-      let feeDelegation = await this.createAndSignExactCalldataDelegation({
-        smartAccount,
-        delegate: capabilities.targetAddress,
-        target: paymentToken,
-        value: 0n,
-        callData: feeCalldata,
-        chainIdNumber,
-      });
-      const workDelegation = await this.createAndSignExactCalldataDelegation({
-        smartAccount,
-        delegate: capabilities.targetAddress,
-        target: work.to,
-        value: workValue,
-        callData: workData,
-        chainIdNumber,
-      });
+      const approveCopy = approveTransactionCeremony(needsUpgrade);
+
+      // One passkey: optional EIP-7702 auth + fee + work delegations.
+      const signed = await withCeremonyUiReason(
+        EPasskeyPromptReason.ApproveTransaction,
+        () =>
+          withCoalescedSignDigest(signer, approveCopy, async () => {
+            const [authEntry, feeDelegation, workDelegation] =
+              await Promise.all([
+                needsUpgrade
+                  ? this.signWalletUpgradeAuthorizationInner(chainId)
+                  : Promise.resolve(undefined),
+                this.createAndSignExactCalldataDelegation({
+                  smartAccount,
+                  delegate: capabilities.targetAddress,
+                  target: paymentToken,
+                  value: 0n,
+                  callData: feeCalldata,
+                  chainIdNumber,
+                }),
+                this.createAndSignExactCalldataDelegation({
+                  smartAccount,
+                  delegate: capabilities.targetAddress,
+                  target: work.to,
+                  value: workValue,
+                  callData: workData,
+                  chainIdNumber,
+                }),
+              ]);
+            return { authEntry, feeDelegation, workDelegation };
+          }),
+      );
+
+      if (signed.authEntry) {
+        authorizationList = [signed.authEntry];
+      }
+      let feeDelegation = signed.feeDelegation;
+      const workDelegation = signed.workDelegation;
 
       const buildParams = (
         feeSig: unknown,
@@ -449,14 +418,21 @@ export class TransactionService implements ITransactionService {
             args: [capabilities.feeCollector, feeAtoms],
           }),
         );
-        feeDelegation = await this.createAndSignExactCalldataDelegation({
-          smartAccount,
-          delegate: capabilities.targetAddress,
-          target: paymentToken,
-          value: 0n,
-          callData: nextFeeCalldata,
-          chainIdNumber,
-        });
+        const adjustCopy = adjustFeeCeremony();
+        feeDelegation = await withCeremonyUiReason(
+          EPasskeyPromptReason.AdjustFee,
+          () =>
+            withCoalescedSignDigest(signer, adjustCopy, () =>
+              this.createAndSignExactCalldataDelegation({
+                smartAccount,
+                delegate: capabilities.targetAddress,
+                target: paymentToken,
+                value: 0n,
+                callData: nextFeeCalldata,
+                chainIdNumber,
+              }),
+            ),
+        );
         params = buildParams(feeDelegation, feeAtoms);
         estimate =
           await this.options.relayerRepository.estimate7710Transaction(
@@ -528,13 +504,17 @@ export class TransactionService implements ITransactionService {
   }
 
   private async getViemAccount(): Promise<LocalAccount> {
-    if (this.cachedViemAccount) {
-      return this.cachedViemAccount;
-    }
-    const account = await toViemLocalAccount(
-      await this.options.owsProvider.getSigner(),
-    );
-    this.cachedViemAccount = account;
+    const signer = await this.options.owsProvider.getSigner();
+    const address =
+      signer.getCachedAddress?.() ?? loadCachedEvmAddress() ?? undefined;
+    const publicKey =
+      signer.getLastPublicKeyData?.()?.secp256k1PublicKey ??
+      loadCachedSecp256k1PublicKey() ??
+      undefined;
+    const account = await toViemLocalAccount(signer, {
+      ...(address ? { address } : {}),
+      ...(publicKey ? { publicKey } : {}),
+    });
     return account;
   }
 
@@ -610,6 +590,24 @@ export class TransactionService implements ITransactionService {
     }
     return chain;
   }
+}
+
+function approveTransactionCeremony(includeUpgrade: boolean): CeremonyUiParams {
+  const prompts = styleController.get().copy.passkeyPrompt;
+  return {
+    explanationHeader: prompts.approveTransaction.title,
+    explanationText: includeUpgrade
+      ? `${prompts.approveTransaction.body} This includes a one-time wallet upgrade authorization.`
+      : prompts.approveTransaction.body,
+  };
+}
+
+function adjustFeeCeremony(): CeremonyUiParams {
+  const prompts = styleController.get().copy.passkeyPrompt;
+  return {
+    explanationHeader: prompts.adjustFee.title,
+    explanationText: prompts.adjustFee.body,
+  };
 }
 
 function pickPaymentToken(

@@ -120,8 +120,8 @@ export const DEFAULT_STYLE: IResolvedStyle = {
         body: "Follow the device prompt to create a passkey for this wallet.",
       },
       sign: {
-        title: "Confirm with passkey",
-        body: "Confirm with your passkey to approve this signature or transaction.",
+        title: "Sign with passkey",
+        body: "Confirm with your passkey to approve this signature.",
       },
       encrypt: {
         title: "Encrypt with passkey",
@@ -138,6 +138,14 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       walletUpgrade: {
         title: "Authorize upgrading your wallet",
         body: "Confirm with your passkey for a one-time network upgrade so the 1Shot Relayer can submit gas-abstracted transactions for you.",
+      },
+      approveTransaction: {
+        title: "Approve transaction",
+        body: "Confirm with your passkey to authorize this transaction for the 1Shot Relayer.",
+      },
+      adjustFee: {
+        title: "Confirm fee update",
+        body: "Confirm with your passkey to authorize the updated relayer fee for this transaction.",
       },
       backup: {
         title: "Confirm backup",

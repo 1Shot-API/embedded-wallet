@@ -243,7 +243,10 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
       value: valueHex,
       chainId,
     });
-    const signed = await signer.evm.signTransaction(prepared);
+    const [signed] = await signer.evm.signTransaction([prepared]);
+    if (!signed) {
+      throw new OwsInvalidParamsError("signTransaction returned no signature");
+    }
 
     const client = this.options.blockchain.getPublicClient(chainId);
     const hash = await client.request({

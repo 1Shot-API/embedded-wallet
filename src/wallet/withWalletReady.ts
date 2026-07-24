@@ -12,11 +12,12 @@
  * - cached credential id → passkey unlock (+ credential recover when cache empty)
  * - otherwise → setup modal (login existing / create new), then recover
  *
- * For **signed** EIP-1193 actions (`personal_sign`, typed data, `eth_sendTransaction`):
- * pass a setup-only gate to `SignHelper` — run setup/login only when no credential
- * id exists. With a known credential, skip a separate `getPublicKey` unlock; the
- * signing ceremony itself authenticates. Pair with `onAuthenticated` to mark
- * unlocked and refresh addresses after a successful sign.
+ * For **signed** EIP-1193 actions (`personal_sign`, typed data, `eth_sendTransaction`)
+ * and in-wallet send: pass a setup-only gate — run setup/login only when no
+ * credential id exists. With a known credential, skip a separate `getPublicKey`
+ * unlock; the signing / approve-transaction ceremony itself authenticates. Pair
+ * with `onAuthenticated` to mark unlocked and refresh addresses after a
+ * successful sign.
  */
 
 export type WalletReadyGate = () => Promise<void>;

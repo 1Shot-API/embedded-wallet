@@ -32,13 +32,6 @@ export interface ITransactionWork {
   value?: bigint;
 }
 
-/** Prefetched before confirm so post-confirm WebAuthn starts without network awaits. */
-export interface IRelayerSendPrefetch {
-  needsUpgrade: boolean;
-  upgradeNonce?: number;
-  upgradeContractAddress?: `0x${string}`;
-}
-
 export interface ISendViaRelayerParams {
   chainId: EVMChainId;
   work: ITransactionWork;
@@ -58,18 +51,8 @@ export interface ITransactionService {
     address: EVMAccountAddress,
   ): Promise<boolean>;
 
-  /**
-   * Warm the viem account (passkey) and prefetch upgrade nonce while the
-   * confirm UI is open — must run before the user clicks Confirm.
-   */
-  prefetchForRelayerSend(
-    chainId: EVMChainId,
-    address: EVMAccountAddress,
-  ): Promise<IRelayerSendPrefetch>;
-
   signWalletUpgradeAuthorization(
     chainId: EVMChainId,
-    prefetch?: IRelayerSendPrefetch,
   ): Promise<IRelayerAuthorizationEntry>;
 
   /**
@@ -95,7 +78,6 @@ export interface ITransactionService {
       paymentToken?: EVMAccountAddress;
       feeAtoms?: bigint;
       authorizationList?: IRelayerAuthorizationEntry[];
-      prefetch?: IRelayerSendPrefetch;
     },
   ): Promise<ISendTransactionResult>;
 }

@@ -143,6 +143,8 @@ const passkeyPromptCopySchema = z.strictObject({
     decrypt: passkeyPromptEntrySchema,
     relayerAuth: passkeyPromptEntrySchema,
     walletUpgrade: passkeyPromptEntrySchema,
+    approveTransaction: passkeyPromptEntrySchema,
+    adjustFee: passkeyPromptEntrySchema,
     backup: passkeyPromptEntrySchema,
   })
   .optional();
