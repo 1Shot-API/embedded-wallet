@@ -8,11 +8,10 @@ import type {
   CredentialPresentationApprovalRequest,
   EVMAccountAddress,
   EVMChainId,
-  RecoveryDataCreatedData,
 } from "@1shotapi/ows-types";
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
 
-export type WalletSetupChoice = "login" | "create" | "cancel";
+export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
 /** Friendly host ERC-20 transfer consent (decoded transfer calldata). */
 export interface IConfirmTransferRequest {
@@ -102,19 +101,26 @@ export type ModalRequest =
     }
   | {
       id: string;
-      kind: "createBackup";
+      kind: "exportPrivateKey";
       resolve: () => void;
       reject: (error: unknown) => void;
     }
   | {
       id: string;
-      kind: "restoreBackup";
-      encryptedPrivateKey: string;
-      resolve: (restored: boolean) => void;
+      kind: "importPrivateKey";
+      resolve: (imported: boolean) => void;
       reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "advancedOptions";
+      allowExport: boolean;
+      resolve: (choice: AdvancedOptionsChoice) => void;
     };
 
 export type ActiveModal = ModalRequest;
+
+export type AdvancedOptionsChoice = "export" | "import" | "close";
 
 let modalId = 0;
 
@@ -122,5 +128,3 @@ export function nextModalId(): string {
   modalId += 1;
   return `modal-${modalId}`;
 }
-
-export type CreateBackupResult = RecoveryDataCreatedData;

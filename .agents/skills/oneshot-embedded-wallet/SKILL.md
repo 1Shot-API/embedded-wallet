@@ -143,31 +143,32 @@ await proxy.rpc("setStyle", options);
 | `copy.credentials.claimsLoading` | string | claims loading text |
 | `copy.credentials.claimsEmpty` | string | no claims text |
 | `copy.credentials.closeLabel` | string | Close button |
-| `copy.createBackup.title` | string | create backup modal title |
-| `copy.createBackup.body` | string | supports `{minLength}` |
-| `copy.createBackup.passphrasePrompt` | string | Signing Layer passphrase label (`{minLength}`) |
-| `copy.createBackup.continueLabel` | string | Signing Layer continue |
-| `copy.createBackup.cancelLabel` | string | Cancel button |
-| `copy.createBackup.closeLabel` | string | Close button |
-| `copy.createBackup.copyLabel` | string | Copy button |
-| `copy.createBackup.copiedLabel` | string | after successful copy |
-| `copy.createBackup.copyFailedLabel` | string | copy failure |
-| `copy.createBackup.doneLabel` | string | Done button |
-| `copy.createBackup.encryptedLabel` | string | result ciphertext label |
-| `copy.createBackup.passwordTooShortError` | string | short passphrase error |
-| `copy.createBackup.cancelledError` | string | passkey cancelled |
-| `copy.createBackup.failedError` | string | generic failure |
-| `copy.restoreBackup.title` | string | restore backup modal title |
-| `copy.restoreBackup.body` | string | restore prompt body |
-| `copy.restoreBackup.passphraseLabel` | string | Signing Layer passphrase label |
-| `copy.restoreBackup.restoreLabel` | string | Signing Layer restore button |
-| `copy.restoreBackup.cancelLabel` | string | Cancel button |
-| `copy.restoreBackup.closeLabel` | string | Close button |
-| `copy.restoreBackup.doneLabel` | string | Done button |
-| `copy.restoreBackup.successBody` | string | success message |
-| `copy.restoreBackup.decryptFailedError` | string | bad passphrase error |
-| `copy.restoreBackup.cancelledError` | string | passkey cancelled |
-| `copy.restoreBackup.failedError` | string | generic failure |
+| `copy.exportPrivateKey.title` | string | export private key modal title |
+| `copy.exportPrivateKey.body` | string | risk warning body |
+| `copy.exportPrivateKey.continueLabel` | string | confirm export button |
+| `copy.exportPrivateKey.cancelLabel` | string | Cancel button |
+| `copy.exportPrivateKey.closeLabel` | string | Close button |
+| `copy.exportPrivateKey.revealingBody` | string | shown while passkey / key UI is open |
+| `copy.exportPrivateKey.cancelledError` | string | passkey cancelled |
+| `copy.exportPrivateKey.failedError` | string | generic failure |
+| `copy.importPrivateKey.title` | string | import private key modal title |
+| `copy.importPrivateKey.body` | string | risk / session warning body |
+| `copy.importPrivateKey.continueLabel` | string | confirm import button |
+| `copy.importPrivateKey.cancelLabel` | string | Cancel button |
+| `copy.importPrivateKey.closeLabel` | string | Close button |
+| `copy.importPrivateKey.importingBody` | string | shown while signer paste UI is open |
+| `copy.importPrivateKey.cancelledError` | string | import cancelled |
+| `copy.importPrivateKey.invalidKeyError` | string | invalid hex key |
+| `copy.importPrivateKey.failedError` | string | generic failure |
+| `copy.advancedOptions.title` | string | advanced options modal title |
+| `copy.advancedOptions.menuLabel` | string | wallet menu item label |
+| `copy.advancedOptions.onboardingLabel` | string | onboarding advanced link |
+| `copy.advancedOptions.body` | string | advanced options description |
+| `copy.advancedOptions.exportLabel` | string | export action label |
+| `copy.advancedOptions.importLabel` | string | import action label |
+| `copy.advancedOptions.closeLabel` | string | Close button |
+| `copy.passkeyPrompt.exportPrivateKey.title` | string | Signing Layer Confirm header for export |
+| `copy.passkeyPrompt.exportPrivateKey.body` | string | Signing Layer Confirm body for export |
 | `dark` | boolean | toggles `html.dark` |
 
 Returns `{ ok: true, productName: string }` with the resolved product name after merge.

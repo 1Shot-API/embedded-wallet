@@ -124,18 +124,24 @@ export interface IStyleFormState {
   passkeyPromptDecryptTitle: string;
   passkeyPromptRelayerTitle: string;
   passkeyPromptBackupTitle: string;
+  passkeyPromptExportPrivateKeyTitle: string;
 
-  // Text — Create backup
-  backupTitle: string;
-  backupBody: string;
-  backupContinue: string;
-  backupCancel: string;
+  // Text — Export private key
+  exportPrivateKeyTitle: string;
+  exportPrivateKeyBody: string;
+  exportPrivateKeyContinue: string;
+  exportPrivateKeyCancel: string;
 
-  // Text — Restore backup
-  restoreTitle: string;
-  restoreBody: string;
-  restoreLabel: string;
-  restoreCancel: string;
+  // Text — Import private key
+  importPrivateKeyTitle: string;
+  importPrivateKeyBody: string;
+  importPrivateKeyContinue: string;
+  importPrivateKeyCancel: string;
+
+  // Text — Advanced options
+  advancedOptionsTitle: string;
+  advancedOptionsMenuLabel: string;
+  advancedOptionsBody: string;
 }
 
 /** Catalog options for the Allowed chains configurator (matches HardcodedChainRepository). */
@@ -251,14 +257,19 @@ export const ACME_PRESET: IStyleFormState = {
   passkeyPromptDecryptTitle: "Decrypt with passkey",
   passkeyPromptRelayerTitle: "Authenticate with passkey",
   passkeyPromptBackupTitle: "Confirm backup",
-  backupTitle: "Create a backup",
-  backupBody: "Encrypt a recovery blob with a passphrase.",
-  backupContinue: "Continue",
-  backupCancel: "Cancel",
-  restoreTitle: "Restore wallet",
-  restoreBody: "Paste a backup and enter your passphrase.",
-  restoreLabel: "Restore",
-  restoreCancel: "Cancel",
+  passkeyPromptExportPrivateKeyTitle: "Export private key",
+  exportPrivateKeyTitle: "Export private key",
+  exportPrivateKeyBody:
+    "Anyone with this private key can control your wallet. Store it safely.",
+  exportPrivateKeyContinue: "Export key",
+  exportPrivateKeyCancel: "Cancel",
+  importPrivateKeyTitle: "Import private key",
+  importPrivateKeyBody: "Paste a private key to unlock this tab only.",
+  importPrivateKeyContinue: "Import key",
+  importPrivateKeyCancel: "Cancel",
+  advancedOptionsTitle: "Advanced options",
+  advancedOptionsMenuLabel: "Advanced options",
+  advancedOptionsBody: "Import or export your private key.",
 };
 
 export const OCEAN_PRESET: IStyleFormState = {
@@ -288,8 +299,8 @@ export const OCEAN_PRESET: IStyleFormState = {
   balTabLabel: "Balances",
   receiveTitle: "Receive to Ocean",
   receiveBody: "Scan or copy your {chainLabel} Ocean address.",
-  backupTitle: "Backup Ocean keys",
-  restoreTitle: "Restore Ocean wallet",
+  exportPrivateKeyTitle: "Export Ocean private key",
+  importPrivateKeyTitle: "Import Ocean private key",
 };
 
 export const DEFAULTS_PRESET: IStyleFormState = {
@@ -365,10 +376,14 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   passkeyPromptDecryptTitle: "Decrypt with passkey",
   passkeyPromptRelayerTitle: "Authenticate with passkey",
   passkeyPromptBackupTitle: "Confirm backup",
-  backupTitle: "Create backup",
-  backupBody: "",
-  restoreTitle: "Restore backup",
-  restoreBody: "",
+  passkeyPromptExportPrivateKeyTitle: "Export private key",
+  exportPrivateKeyTitle: "Export private key",
+  exportPrivateKeyBody: "",
+  importPrivateKeyTitle: "Import private key",
+  importPrivateKeyBody: "",
+  advancedOptionsTitle: "Advanced options",
+  advancedOptionsMenuLabel: "",
+  advancedOptionsBody: "",
 };
 
 function put(
@@ -508,6 +523,11 @@ export function buildSetStylePayload(
   if (Object.keys(backup).length > 0) {
     passkeyPrompt.backup = backup;
   }
+  const exportPrivateKeyPrompt: Record<string, string> = {};
+  put(exportPrivateKeyPrompt, "title", form.passkeyPromptExportPrivateKeyTitle);
+  if (Object.keys(exportPrivateKeyPrompt).length > 0) {
+    passkeyPrompt.exportPrivateKey = exportPrivateKeyPrompt;
+  }
   if (Object.keys(passkeyPrompt).length > 0) {
     copy.passkeyPrompt = passkeyPrompt;
   }
@@ -557,20 +577,30 @@ export function buildSetStylePayload(
   put(balances, "sendLabel", form.sendLabel);
   if (Object.keys(balances).length > 0) copy.balances = balances;
 
-  const createBackup: Record<string, string> = {};
-  put(createBackup, "title", form.backupTitle);
-  put(createBackup, "body", form.backupBody);
-  put(createBackup, "continueLabel", form.backupContinue);
-  put(createBackup, "cancelLabel", form.backupCancel);
-  if (Object.keys(createBackup).length > 0) copy.createBackup = createBackup;
+  const exportPrivateKey: Record<string, string> = {};
+  put(exportPrivateKey, "title", form.exportPrivateKeyTitle);
+  put(exportPrivateKey, "body", form.exportPrivateKeyBody);
+  put(exportPrivateKey, "continueLabel", form.exportPrivateKeyContinue);
+  put(exportPrivateKey, "cancelLabel", form.exportPrivateKeyCancel);
+  if (Object.keys(exportPrivateKey).length > 0) {
+    copy.exportPrivateKey = exportPrivateKey;
+  }
 
-  const restoreBackup: Record<string, string> = {};
-  put(restoreBackup, "title", form.restoreTitle);
-  put(restoreBackup, "body", form.restoreBody);
-  put(restoreBackup, "restoreLabel", form.restoreLabel);
-  put(restoreBackup, "cancelLabel", form.restoreCancel);
-  if (Object.keys(restoreBackup).length > 0) {
-    copy.restoreBackup = restoreBackup;
+  const importPrivateKey: Record<string, string> = {};
+  put(importPrivateKey, "title", form.importPrivateKeyTitle);
+  put(importPrivateKey, "body", form.importPrivateKeyBody);
+  put(importPrivateKey, "continueLabel", form.importPrivateKeyContinue);
+  put(importPrivateKey, "cancelLabel", form.importPrivateKeyCancel);
+  if (Object.keys(importPrivateKey).length > 0) {
+    copy.importPrivateKey = importPrivateKey;
+  }
+
+  const advancedOptions: Record<string, string> = {};
+  put(advancedOptions, "title", form.advancedOptionsTitle);
+  put(advancedOptions, "menuLabel", form.advancedOptionsMenuLabel);
+  put(advancedOptions, "body", form.advancedOptionsBody);
+  if (Object.keys(advancedOptions).length > 0) {
+    copy.advancedOptions = advancedOptions;
   }
 
   const payload: Record<string, unknown> = { dark: form.dark };

@@ -167,7 +167,7 @@ Canonical React + Vite + Tailwind demo: `examples/general-wallet` in [1Shot-API/
 | Account connect | `src/ows/registerAccountConnect.ts` |
 | Sign consent | `src/ows/registerApprovalSigning.ts`, `src/components/modals/SignModals.tsx` |
 | Credentials | `src/ows/registerCredentialsProvider.ts`, `src/components/modals/CredentialModals.tsx` |
-| Recovery | `src/components/modals/BackupModals.tsx` |
+| Recovery | `src/components/modals/ImportPrivateKeyModal.tsx` / `ExportPrivateKeyModal.tsx` |
 | Serve signer | `vite.config.ts`, `scripts/copy-signer.mjs`, `signer-static/index.html` |
 
 ## Out of scope for this skill

@@ -14,7 +14,9 @@ import {
   CredentialOfferModal,
   CredentialPresentationModal,
 } from "./modals/CredentialModals";
-import { CreateBackupModal, RestoreBackupModal } from "./modals/BackupModals";
+import { ExportPrivateKeyModal } from "./modals/ExportPrivateKeyModal";
+import { ImportPrivateKeyModal } from "./modals/ImportPrivateKeyModal";
+import { AdvancedOptionsModal } from "./modals/AdvancedOptionsModal";
 import { AddAssetModal } from "./modals/AddAssetModal";
 
 export function ModalHost() {
@@ -77,19 +79,25 @@ export function ModalHost() {
           onResolve={activeModal.resolve}
         />
       );
-    case "createBackup":
+    case "exportPrivateKey":
       return (
-        <CreateBackupModal
+        <ExportPrivateKeyModal
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
         />
       );
-    case "restoreBackup":
+    case "importPrivateKey":
       return (
-        <RestoreBackupModal
-          encryptedPrivateKey={activeModal.encryptedPrivateKey}
+        <ImportPrivateKeyModal
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
+        />
+      );
+    case "advancedOptions":
+      return (
+        <AdvancedOptionsModal
+          allowExport={activeModal.allowExport}
+          onResolve={activeModal.resolve}
         />
       );
     default:

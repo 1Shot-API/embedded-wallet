@@ -29,6 +29,8 @@ function promptCopy(reason: EPasskeyPromptReason): CeremonyUiParams {
       return ceremonyFromEntry(prompts.decrypt);
     case EPasskeyPromptReason.Backup:
       return ceremonyFromEntry(prompts.backup);
+    case EPasskeyPromptReason.ExportPrivateKey:
+      return ceremonyFromEntry(prompts.exportPrivateKey);
     case EPasskeyPromptReason.WalletUpgrade:
       return ceremonyFromEntry(prompts.walletUpgrade);
     case EPasskeyPromptReason.ApproveTransaction:
@@ -119,7 +121,7 @@ export function wrapSignerWithCeremonyCopy(signer: OWSSigner): OWSSigner {
 
   signer.revealPrivateKey = ((options) =>
     revealPrivateKey(
-      mergeCeremony(EPasskeyPromptReason.Unlock, options),
+      mergeCeremony(EPasskeyPromptReason.ExportPrivateKey, options),
     )) as OWSSigner["revealPrivateKey"];
 
   signer.recoverKey = ((envelope, passwordText, buttonText, options) =>

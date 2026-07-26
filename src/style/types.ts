@@ -154,6 +154,7 @@ export interface IStyleCopyPasskeyPrompt {
   approveTransaction: IStyleCopyPasskeyPromptEntry;
   adjustFee: IStyleCopyPasskeyPromptEntry;
   backup: IStyleCopyPasskeyPromptEntry;
+  exportPrivateKey: IStyleCopyPasskeyPromptEntry;
 }
 
 /**
@@ -265,43 +266,45 @@ export interface IStyleCopyBalances {
 }
 
 /**
- * Create encrypted recovery backup modal.
- * `body` / `passphrasePrompt` support `{minLength}`.
- * `passphrasePrompt` + `continueLabel` are forwarded into the Signing Layer overlay.
+ * Export private key warning modal (before Signing Layer reveal).
  */
-export interface IStyleCopyCreateBackup {
+export interface IStyleCopyExportPrivateKey {
   title: string;
   body: string;
-  passphrasePrompt: string;
   continueLabel: string;
   cancelLabel: string;
   closeLabel: string;
-  copyLabel: string;
-  copiedLabel: string;
-  copyFailedLabel: string;
-  doneLabel: string;
-  encryptedLabel: string;
-  passwordTooShortError: string;
+  revealingBody: string;
   cancelledError: string;
   failedError: string;
 }
 
 /**
- * Restore from encrypted backup modal.
- * `passphraseLabel` + `restoreLabel` are forwarded into the Signing Layer overlay.
+ * Import private key warning modal (before Signing Layer paste UI).
  */
-export interface IStyleCopyRestoreBackup {
+export interface IStyleCopyImportPrivateKey {
   title: string;
   body: string;
-  passphraseLabel: string;
-  restoreLabel: string;
+  continueLabel: string;
   cancelLabel: string;
   closeLabel: string;
-  doneLabel: string;
-  successBody: string;
-  decryptFailedError: string;
+  importingBody: string;
   cancelledError: string;
+  invalidKeyError: string;
   failedError: string;
+}
+
+/**
+ * Advanced options chooser (export / import).
+ */
+export interface IStyleCopyAdvancedOptions {
+  title: string;
+  menuLabel: string;
+  onboardingLabel: string;
+  body: string;
+  exportLabel: string;
+  importLabel: string;
+  closeLabel: string;
 }
 
 /**
@@ -352,6 +355,7 @@ export interface IStyleCopyOptions {
     approveTransaction?: Partial<IStyleCopyPasskeyPromptEntry>;
     adjustFee?: Partial<IStyleCopyPasskeyPromptEntry>;
     backup?: Partial<IStyleCopyPasskeyPromptEntry>;
+    exportPrivateKey?: Partial<IStyleCopyPasskeyPromptEntry>;
   };
   /** Partial patch for the credential offer modal */
   credentialOffer?: Partial<IStyleCopyCredentialOffer>;
@@ -361,10 +365,12 @@ export interface IStyleCopyOptions {
   credentials?: Partial<IStyleCopyCredentials>;
   /** Partial patch for the balances tab + add-asset flows */
   balances?: Partial<IStyleCopyBalances>;
-  /** Partial patch for the create-backup modal */
-  createBackup?: Partial<IStyleCopyCreateBackup>;
-  /** Partial patch for the restore-backup modal */
-  restoreBackup?: Partial<IStyleCopyRestoreBackup>;
+  /** Partial patch for the export-private-key modal */
+  exportPrivateKey?: Partial<IStyleCopyExportPrivateKey>;
+  /** Partial patch for the import-private-key modal */
+  importPrivateKey?: Partial<IStyleCopyImportPrivateKey>;
+  /** Partial patch for the advanced-options chooser */
+  advancedOptions?: Partial<IStyleCopyAdvancedOptions>;
 }
 
 /** Fully resolved copy map after merging defaults + setStyle. */
@@ -386,8 +392,9 @@ export interface IResolvedCopy {
   credentialPresentation: IStyleCopyCredentialPresentation;
   credentials: IStyleCopyCredentials;
   balances: IStyleCopyBalances;
-  createBackup: IStyleCopyCreateBackup;
-  restoreBackup: IStyleCopyRestoreBackup;
+  exportPrivateKey: IStyleCopyExportPrivateKey;
+  importPrivateKey: IStyleCopyImportPrivateKey;
+  advancedOptions: IStyleCopyAdvancedOptions;
 }
 
 export interface IStyleOptions {

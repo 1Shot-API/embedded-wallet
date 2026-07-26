@@ -91,6 +91,10 @@ export function mergeStyle(
           ...current.copy.passkeyPrompt.backup,
           ...patch.copy?.passkeyPrompt?.backup,
         },
+        exportPrivateKey: {
+          ...current.copy.passkeyPrompt.exportPrivateKey,
+          ...patch.copy?.passkeyPrompt?.exportPrivateKey,
+        },
       },
       credentialOffer: {
         ...current.copy.credentialOffer,
@@ -108,13 +112,17 @@ export function mergeStyle(
         ...current.copy.balances,
         ...patch.copy?.balances,
       },
-      createBackup: {
-        ...current.copy.createBackup,
-        ...patch.copy?.createBackup,
+      exportPrivateKey: {
+        ...current.copy.exportPrivateKey,
+        ...patch.copy?.exportPrivateKey,
       },
-      restoreBackup: {
-        ...current.copy.restoreBackup,
-        ...patch.copy?.restoreBackup,
+      importPrivateKey: {
+        ...current.copy.importPrivateKey,
+        ...patch.copy?.importPrivateKey,
+      },
+      advancedOptions: {
+        ...current.copy.advancedOptions,
+        ...patch.copy?.advancedOptions,
       },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
@@ -155,13 +163,17 @@ function cloneDefaultStyle(): IResolvedStyle {
         },
         adjustFee: { ...DEFAULT_STYLE.copy.passkeyPrompt.adjustFee },
         backup: { ...DEFAULT_STYLE.copy.passkeyPrompt.backup },
+        exportPrivateKey: {
+          ...DEFAULT_STYLE.copy.passkeyPrompt.exportPrivateKey,
+        },
       },
       credentialOffer: { ...DEFAULT_STYLE.copy.credentialOffer },
       credentialPresentation: { ...DEFAULT_STYLE.copy.credentialPresentation },
       credentials: { ...DEFAULT_STYLE.copy.credentials },
       balances: { ...DEFAULT_STYLE.copy.balances },
-      createBackup: { ...DEFAULT_STYLE.copy.createBackup },
-      restoreBackup: { ...DEFAULT_STYLE.copy.restoreBackup },
+      exportPrivateKey: { ...DEFAULT_STYLE.copy.exportPrivateKey },
+      importPrivateKey: { ...DEFAULT_STYLE.copy.importPrivateKey },
+      advancedOptions: { ...DEFAULT_STYLE.copy.advancedOptions },
     },
     allowedChains: null,
   };

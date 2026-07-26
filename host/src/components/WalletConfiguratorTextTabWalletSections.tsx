@@ -189,65 +189,97 @@ export function WalletConfiguratorTextTabWalletSections({
             value={form.passkeyPromptBackupTitle}
             onChange={(value) => patch("passkeyPromptBackupTitle", value)}
           />
+          <TextField
+            id="passkey-prompt-export-title"
+            label="Passkey export key title"
+            value={form.passkeyPromptExportPrivateKeyTitle}
+            onChange={(value) =>
+              patch("passkeyPromptExportPrivateKeyTitle", value)
+            }
+          />
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem value="backup">
-        <AccordionTrigger>Create backup</AccordionTrigger>
+      <AccordionItem value="exportPrivateKey">
+        <AccordionTrigger>Export private key</AccordionTrigger>
         <AccordionContent className="flex flex-col gap-3">
           <TextField
-            id="backup-title"
+            id="export-key-title"
             label="Title"
-            value={form.backupTitle}
-            onChange={(value) => patch("backupTitle", value)}
+            value={form.exportPrivateKeyTitle}
+            onChange={(value) => patch("exportPrivateKeyTitle", value)}
           />
           <BodyField
-            id="backup-body"
+            id="export-key-body"
             label="Body"
-            value={form.backupBody}
-            onChange={(value) => patch("backupBody", value)}
+            value={form.exportPrivateKeyBody}
+            onChange={(value) => patch("exportPrivateKeyBody", value)}
           />
           <TextField
-            id="backup-continue"
+            id="export-key-continue"
             label="Continue"
-            value={form.backupContinue}
-            onChange={(value) => patch("backupContinue", value)}
+            value={form.exportPrivateKeyContinue}
+            onChange={(value) => patch("exportPrivateKeyContinue", value)}
           />
           <TextField
-            id="backup-cancel"
+            id="export-key-cancel"
             label="Cancel"
-            value={form.backupCancel}
-            onChange={(value) => patch("backupCancel", value)}
+            value={form.exportPrivateKeyCancel}
+            onChange={(value) => patch("exportPrivateKeyCancel", value)}
           />
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem value="restore">
-        <AccordionTrigger>Restore backup</AccordionTrigger>
+      <AccordionItem value="importPrivateKey">
+        <AccordionTrigger>Import private key</AccordionTrigger>
         <AccordionContent className="flex flex-col gap-3">
           <TextField
-            id="restore-title"
+            id="import-key-title"
             label="Title"
-            value={form.restoreTitle}
-            onChange={(value) => patch("restoreTitle", value)}
+            value={form.importPrivateKeyTitle}
+            onChange={(value) => patch("importPrivateKeyTitle", value)}
           />
           <BodyField
-            id="restore-body"
+            id="import-key-body"
             label="Body"
-            value={form.restoreBody}
-            onChange={(value) => patch("restoreBody", value)}
+            value={form.importPrivateKeyBody}
+            onChange={(value) => patch("importPrivateKeyBody", value)}
           />
           <TextField
-            id="restore-label"
-            label="Restore"
-            value={form.restoreLabel}
-            onChange={(value) => patch("restoreLabel", value)}
+            id="import-key-continue"
+            label="Continue"
+            value={form.importPrivateKeyContinue}
+            onChange={(value) => patch("importPrivateKeyContinue", value)}
           />
           <TextField
-            id="restore-cancel"
+            id="import-key-cancel"
             label="Cancel"
-            value={form.restoreCancel}
-            onChange={(value) => patch("restoreCancel", value)}
+            value={form.importPrivateKeyCancel}
+            onChange={(value) => patch("importPrivateKeyCancel", value)}
+          />
+        </AccordionContent>
+      </AccordionItem>
+
+      <AccordionItem value="advancedOptions">
+        <AccordionTrigger>Advanced options</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <TextField
+            id="advanced-title"
+            label="Title"
+            value={form.advancedOptionsTitle}
+            onChange={(value) => patch("advancedOptionsTitle", value)}
+          />
+          <TextField
+            id="advanced-menu-label"
+            label="Menu label"
+            value={form.advancedOptionsMenuLabel}
+            onChange={(value) => patch("advancedOptionsMenuLabel", value)}
+          />
+          <BodyField
+            id="advanced-body"
+            label="Body"
+            value={form.advancedOptionsBody}
+            onChange={(value) => patch("advancedOptionsBody", value)}
           />
         </AccordionContent>
       </AccordionItem>

@@ -29,6 +29,8 @@ function copyForReason(
       return prompts.adjustFee;
     case EPasskeyPromptReason.Backup:
       return prompts.backup;
+    case EPasskeyPromptReason.ExportPrivateKey:
+      return prompts.exportPrivateKey;
   }
 }
 

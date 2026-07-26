@@ -191,6 +191,21 @@ export function useWalletAuth({
         await loginWithPasskey();
         return;
       }
+      if (choice === "import") {
+        const imported = await pushModal<boolean>(({ id, resolve, reject }) => ({
+          id,
+          kind: "importPrivateKey",
+          resolve,
+          reject,
+        }));
+        if (!imported) {
+          throw new OwsUserRejectedError("User cancelled private key import");
+        }
+        setUnlocked(true);
+        useWalletSessionStore.getState().setWalletCreated(true);
+        await refreshAddresses();
+        return;
+      }
       await createNewWalletFromUi();
     } finally {
       await display.hide();
@@ -199,7 +214,9 @@ export function useWalletAuth({
     configProvider,
     createNewWalletFromUi,
     loginWithPasskey,
+    refreshAddresses,
     requestWalletSetupChoice,
+    setUnlocked,
     walletRef,
   ]);
 

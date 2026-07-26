@@ -1,8 +1,6 @@
 import { MenuIcon } from "lucide-react";
 import { useStyle } from "../style/StyleProvider";
-import { hasBackup } from "../storage";
 import { useWallet } from "../wallet/WalletProvider";
-import { useWalletSessionStore } from "../wallet/sessionStore";
 import {
   Menubar,
   MenubarContent,
@@ -14,14 +12,12 @@ import {
 import { BrandLogo } from "./BrandLogo";
 
 /**
- * Top shell bar: brand logo + product name + menu (backup / close).
+ * Top shell bar: brand logo + product name + menu (advanced / close).
  * Uses shadcn Menubar — https://ui.shadcn.com/docs/components/base/menubar
  */
 export function WalletChrome() {
-  const { requestHide, openCreateBackup, openRestoreBackup } = useWallet();
+  const { requestHide, openAdvancedOptions } = useWallet();
   const { style } = useStyle();
-  const unlocked = useWalletSessionStore((state) => state.unlocked);
-  const canRestore = hasBackup();
 
   return (
     <header className="border-border shrink-0 border-b" aria-label="Wallet panel">
@@ -47,28 +43,15 @@ export function WalletChrome() {
               <span className="sr-only">Menu</span>
             </MenubarTrigger>
             <MenubarContent align="end" className="min-w-44">
-              {unlocked || !canRestore ? (
-                <MenubarItem
-                  onClick={() => {
-                    void openCreateBackup().catch((error: unknown) => {
-                      console.error("[create-backup] failed", error);
-                    });
-                  }}
-                >
-                  {style.copy.createBackup.title}
-                </MenubarItem>
-              ) : null}
-              {!unlocked && canRestore ? (
-                <MenubarItem
-                  onClick={() => {
-                    void openRestoreBackup().catch((error: unknown) => {
-                      console.error("[restore-backup] failed", error);
-                    });
-                  }}
-                >
-                  {style.copy.restoreBackup.title}
-                </MenubarItem>
-              ) : null}
+              <MenubarItem
+                onClick={() => {
+                  void openAdvancedOptions().catch((error: unknown) => {
+                    console.error("[advanced-options] failed", error);
+                  });
+                }}
+              >
+                {style.copy.advancedOptions.menuLabel}
+              </MenubarItem>
               <MenubarSeparator />
               <MenubarItem
                 onClick={() => {

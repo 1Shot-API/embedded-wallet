@@ -118,7 +118,7 @@ Reference: `src/ows/registerApprovalSigning.ts`, `src/components/modals/SignModa
 
 Create / restore encrypted backup — **never reparent** the signer iframe.
 
-Reference: `src/components/modals/BackupModals.tsx`, called from `WalletProvider` `openCreateBackup` / `openRestoreBackup`.
+Reference: `src/components/modals/ExportPrivateKeyModal.tsx` / `ImportPrivateKeyModal.tsx`, via `WalletProvider` `openAdvancedOptions` / `openExportPrivateKey` / `openImportPrivateKey`.
 
 1. Outer `wallet.requestDisplay` for the dialog shell (WalletProvider wrappers).
 2. Call recovery APIs directly — `OWSSigner` shows a centered ceremony panel for passphrase + passkey Confirm automatically.
