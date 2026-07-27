@@ -1,7 +1,6 @@
 import { useStyle } from "../../style/StyleProvider";
 import { Modal } from "../Modal";
 import type { AdvancedOptionsChoice } from "../../wallet/modalTypes";
-import { useWalletSessionStore } from "../../wallet/sessionStore";
 
 /**
  * Chooser for export / import private key (menu + advanced entry points).
@@ -16,8 +15,6 @@ export function AdvancedOptionsModal({
 }) {
   const { style } = useStyle();
   const copy = style.copy.advancedOptions;
-  const unlocked = useWalletSessionStore((state) => state.unlocked);
-  const showExport = allowExport && unlocked;
 
   return (
     <Modal
@@ -33,7 +30,7 @@ export function AdvancedOptionsModal({
     >
       <p className="text-muted-foreground mb-4 m-0 text-[0.9rem]">{copy.body}</p>
       <div className="flex flex-col gap-2">
-        {showExport ? (
+        {allowExport ? (
           <button
             type="button"
             className="border-border bg-background hover:bg-muted text-foreground rounded-md border px-3 py-2.5 text-left text-[0.9rem] font-medium"
