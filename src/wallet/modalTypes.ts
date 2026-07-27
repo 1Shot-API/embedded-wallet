@@ -8,6 +8,8 @@ import type {
   CredentialPresentationApprovalRequest,
   EVMAccountAddress,
   EVMChainId,
+  EVMSignatureHex,
+  EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
 
@@ -26,20 +28,21 @@ export interface IConfirmTransferRequest {
   useRelayer: boolean;
 }
 
-/** Result from TX confirm modals (relayer path includes payment selection). */
-export type IConfirmSendResult =
-  | false
-  | {
-      /** Required when the confirm modal was opened with `useRelayer: true`. */
-      paymentToken?: EVMAccountAddress;
-      feeAtoms?: bigint;
-    };
+/** Relayer payment selection from TX confirm UI (before execute). */
+export type IConfirmSendPayment = {
+  /** Required when the confirm modal was opened with `useRelayer: true`. */
+  paymentToken?: EVMAccountAddress;
+  feeAtoms?: bigint;
+};
 
 /** Relayer confirm payload after UI validation. */
 export type IRelayerConfirmSendResult = {
   paymentToken: EVMAccountAddress;
   feeAtoms: bigint;
 };
+
+/** Result from TX confirm when canceling or selecting payment (legacy shape). */
+export type IConfirmSendResult = false | IConfirmSendPayment;
 
 export type ModalRequest =
   | {
@@ -61,25 +64,31 @@ export type ModalRequest =
       id: string;
       kind: "personalSign";
       request: PersonalSignApprovalRequest;
-      resolve: (approved: boolean) => void;
+      resolve: (signature: EVMSignatureHex) => void;
+      reject: (error: unknown) => void;
     }
   | {
       id: string;
       kind: "typedData";
       request: SignTypedDataApprovalRequest;
-      resolve: (approved: boolean) => void;
+      resolve: (signature: EVMSignatureHex) => void;
+      reject: (error: unknown) => void;
     }
   | {
       id: string;
       kind: "sendTransaction";
       request: SendTransactionApprovalRequest & { useRelayer?: boolean };
-      resolve: (result: IConfirmSendResult) => void;
+      execute: (payment: IConfirmSendPayment) => Promise<EVMTransactionHash>;
+      resolve: (hash: EVMTransactionHash) => void;
+      reject: (error: unknown) => void;
     }
   | {
       id: string;
       kind: "confirmTransfer";
       request: IConfirmTransferRequest;
-      resolve: (result: IConfirmSendResult) => void;
+      execute: (payment: IConfirmSendPayment) => Promise<EVMTransactionHash>;
+      resolve: (hash: EVMTransactionHash) => void;
+      reject: (error: unknown) => void;
     }
   | {
       id: string;

@@ -50,7 +50,11 @@ export function PasskeyPromptModal() {
   const copy = copyForReason(reason, style.copy.passkeyPrompt);
 
   return (
-    <Modal title={copy.title} contentClassName="z-[10001]">
+    <Modal
+      presentation="overlay"
+      title={copy.title}
+      contentClassName="z-[10001]"
+    >
       <p className="m-0">{copy.body}</p>
     </Modal>
   );

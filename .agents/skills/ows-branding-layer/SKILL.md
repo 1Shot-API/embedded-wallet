@@ -112,12 +112,10 @@ const signer = createDeferredSigner(() => signerPromise); // copy pattern from W
 const rpcHelper = new RpcHelper(providers, wallet, signer, { defaultChainId });
 
 const signHelper = new SignHelper(signer, wallet, {
-  // Setup-only when no credential; signing ceremony unlocks when credential exists
-  ensureReady: ensureOnboardedForSigning,
-  onAuthenticated: markUnlockedAndRefreshAddresses,
   getChainId: () => rpcHelper.getChainId(),
-  requestPersonalSignApproval,
-  requestSignTypedDataApproval,
+  // Branding wrappers: ensureReady → consent + OWSSigner → onAuthenticated
+  approveAndSignPersonalMessage,
+  approveAndSignTypedData,
   approveAndSignTransaction, // branding: consent + prepare + sign + broadcast
 });
 for (const [method, handler] of Object.entries(signHelper.handlers)) {
@@ -140,8 +138,8 @@ Split readiness in your app:
 |-----|---------|
 | `awaitSignerReady()` | Nested Signing Layer iframe + `OWSSigner` loaded |
 | `ensureReady()` | Signer loaded **and** unlocked / onboarded (passkey) — for connect, credentials, recovery create |
-| `ensureOnboardedForSigning()` | Setup/login **only if no credential id**; otherwise no-op — for `SignHelper` signed actions |
-| `onAuthenticated` | After successful sign / send: set unlocked + refresh addresses |
+| `ensureOnboardedForSigning()` | Setup/login **only if no credential id**; otherwise no-op — for branding signed-action gates |
+| `onAuthenticated` | After successful sign / send (inside branding `approveAndSign*`): set unlocked + refresh addresses |
 
 For custom RPCs such as `eth_sendTransaction` or future ERC-7710 sends, use the same **centralized signed-action gate**: setup-only before consent when the credential is missing; one passkey ceremony for the sign itself when the credential is known.
 
@@ -167,7 +165,7 @@ Canonical React + Vite + Tailwind demo: `examples/general-wallet` in [1Shot-API/
 | Account connect | `src/ows/registerAccountConnect.ts` |
 | Sign consent | `src/ows/registerApprovalSigning.ts`, `src/components/modals/SignModals.tsx` |
 | Credentials | `src/ows/registerCredentialsProvider.ts`, `src/components/modals/CredentialModals.tsx` |
-| Recovery | `src/components/modals/ImportPrivateKeyModal.tsx` / `ExportPrivateKeyModal.tsx` |
+| Recovery | `src/components/modals/BackupModals.tsx` |
 | Serve signer | `vite.config.ts`, `scripts/copy-signer.mjs`, `signer-static/index.html` |
 
 ## Out of scope for this skill

@@ -35,6 +35,7 @@ export function ModalHost() {
         <PersonalSignModal
           request={activeModal.request}
           onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
         />
       );
     case "typedData":
@@ -42,20 +43,25 @@ export function ModalHost() {
         <TypedDataModal
           request={activeModal.request}
           onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
         />
       );
     case "sendTransaction":
       return (
         <SendTransactionModal
           request={activeModal.request}
+          execute={activeModal.execute}
           onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
         />
       );
     case "confirmTransfer":
       return (
         <ConfirmTransferModal
           request={activeModal.request}
+          execute={activeModal.execute}
           onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
         />
       );
     case "credentialOffer":
