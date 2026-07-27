@@ -145,5 +145,11 @@ export default defineConfig({
     // Do not ship source maps to the browser — maps embed original sources
     // (including crypto PEM-header validation strings) and can leak secrets.
     sourcemap: false,
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        create: path.resolve(__dirname, "create/index.html"),
+      },
+    },
   },
 });

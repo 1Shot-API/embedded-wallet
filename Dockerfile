@@ -9,6 +9,7 @@ RUN npm ci
 
 COPY index.html vite.config.ts tsconfig.json tsconfig.node.json components.json ./
 COPY src ./src
+COPY create ./create
 COPY scripts ./scripts
 COPY signer-static ./signer-static
 

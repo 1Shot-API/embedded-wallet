@@ -46,6 +46,7 @@ import type {
 } from "../lib/interfaces/utils";
 import type { SupportedChain } from "../lib/types/domain";
 import { registerAddAssetRpc } from "./registerAddAsset";
+import { registerCreateAccountRpc } from "./registerCreateAccount";
 import { registerFocusModeRpc } from "./registerFocusMode";
 import { loadCredentialId } from "../storage";
 import { pushModal } from "./pushModal";
@@ -119,6 +120,8 @@ export interface IUseWalletBootParams {
   ensureReady: () => Promise<void>;
   ensureOnboardedForSigning: () => Promise<void>;
   onSigningAuthenticated: () => Promise<void>;
+  createNewWallet: (accountName: string) => Promise<void>;
+  createNewWalletFromUi: () => Promise<void>;
   resolveChain: (chainId: EVMChainId) => SupportedChain | null;
   configProvider: IConfigProvider;
   owsProvider: IOWSProvider;
@@ -141,6 +144,8 @@ export function useWalletBoot({
   ensureReady,
   ensureOnboardedForSigning,
   onSigningAuthenticated,
+  createNewWallet,
+  createNewWalletFromUi,
   resolveChain,
   configProvider,
   owsProvider,
@@ -246,6 +251,12 @@ export function useWalletBoot({
             resolve,
           })),
         displaySize: walletConfig.displayCompactSize,
+      });
+
+      registerCreateAccountRpc(wallet, {
+        displaySize: walletConfig.displayModalSize,
+        createNewWallet,
+        createNewWalletFromUi,
       });
 
       registerApprovalSigning(wallet, signer, {

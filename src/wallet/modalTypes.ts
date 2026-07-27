@@ -125,6 +125,13 @@ export type ModalRequest =
       kind: "advancedOptions";
       allowExport: boolean;
       resolve: (choice: AdvancedOptionsChoice) => void;
+    }
+  | {
+      id: string;
+      kind: "openCreateTab";
+      createUrl: string;
+      /** true when user confirms open; false when cancelled. */
+      resolve: (opened: boolean) => void;
     };
 
 export type ActiveModal = ModalRequest;

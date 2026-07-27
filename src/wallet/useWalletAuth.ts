@@ -14,6 +14,8 @@ import type { IConfigProvider } from "../lib/interfaces/utils";
 import { pushModal } from "./pushModal";
 import type { WalletSetupChoice } from "./modalTypes";
 import { useWalletSessionStore } from "./sessionStore";
+import { needsFirstPartyPasskeyCreate } from "./passkeyCreateSupport";
+import { createAccountViaFirstPartyTab } from "./createAccountHandoff";
 
 export interface IUseWalletAuthParams {
   signerRef: RefObject<OWSSigner | null>;
@@ -102,8 +104,45 @@ export function useWalletAuth({
     signerRef,
   ]);
 
+  const adoptCreatedCredential = useCallback(
+    async (credentialId: string) => {
+      saveWalletCreated(credentialId);
+      useWalletSessionStore.getState().setWalletCreated(true);
+      const signer = signerRef.current;
+      if (!signer) throw new Error("Signer not ready");
+      await signer.getPublicKey({ credentialId });
+      await refreshAddresses();
+      try {
+        const listed = await credentialRepository.list();
+        if (listed.length === 0) {
+          await credentialRepository.refreshFromRelayer();
+          await refreshCredentialCount();
+        }
+      } catch (error: unknown) {
+        console.warn(
+          "[credentials] recover after first-party create failed (passkey may be unregistered)",
+          error,
+        );
+      }
+      setUnlocked(true);
+    },
+    [
+      credentialRepository,
+      refreshAddresses,
+      refreshCredentialCount,
+      setUnlocked,
+      signerRef,
+    ],
+  );
+
   const createNewWallet = useCallback(
     async (accountName: string) => {
+      if (needsFirstPartyPasskeyCreate()) {
+        const credentialId = await createAccountViaFirstPartyTab();
+        await adoptCreatedCredential(credentialId);
+        return;
+      }
+
       const signer = signerRef.current;
       if (!signer) throw new Error("Signer not ready");
       const created = await signer.createCredential(accountName, {
@@ -126,16 +165,28 @@ export function useWalletAuth({
       await refreshAddresses();
       setUnlocked(true);
     },
-    [credentialRepository, refreshAddresses, setUnlocked, signerRef],
+    [
+      adoptCreatedCredential,
+      credentialRepository,
+      refreshAddresses,
+      setUnlocked,
+      signerRef,
+    ],
   );
 
   const createNewWalletFromUi = useCallback(async () => {
+    if (needsFirstPartyPasskeyCreate()) {
+      const credentialId = await createAccountViaFirstPartyTab();
+      await adoptCreatedCredential(credentialId);
+      return;
+    }
+
     const name = await promptPasskeyName();
     if (!name) {
       throw new OwsUserRejectedError("User cancelled passkey creation");
     }
     await createNewWallet(name);
-  }, [createNewWallet, promptPasskeyName]);
+  }, [adoptCreatedCredential, createNewWallet, promptPasskeyName]);
 
   const unlockWithStoredCredential = useCallback(async () => {
     const signer = signerRef.current;
@@ -295,6 +346,7 @@ export function useWalletAuth({
     refreshAddresses,
     refreshCredentialCount,
     loginWithPasskey,
+    createNewWallet,
     createNewWalletFromUi,
     ensureReady,
     ensureReadyRef,
