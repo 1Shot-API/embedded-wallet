@@ -17,10 +17,11 @@ import {
   type IBlockchainProvider,
 } from "@1shotapi/ows-wallet-utils";
 import {
+  EVMAccountAddress,
   HexString,
+  SolanaAccountAddress,
   type CredentialId,
   type CredentialSummary,
-  type EVMAccountAddress,
   type EVMChainId,
   type EVMTransactionHash,
   type StoredCredential,
@@ -66,13 +67,13 @@ import type { TrackedAssetId } from "../lib/types/primitives";
 import {
   loadCachedEvmAddress,
   saveCachedAddresses,
+  clearWalletStorage,
 } from "../storage";
 import { pushModal } from "./pushModal";
 import { useWalletAuth } from "./useWalletAuth";
 import { useWalletAssets } from "./useWalletAssets";
 import { useWalletBoot } from "./useWalletBoot";
 import { useWalletSessionStore } from "./sessionStore";
-
 /** Filled once the Signing Layer iframe finishes loading / wallet handshake. */
 const configProvider: IConfigProvider = new ConfigProvider();
 const owsProvider: IOWSProvider = new OWSProvider(configProvider);
@@ -443,6 +444,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         await openExportPrivateKey();
       } else if (choice === "import") {
         await openImportPrivateKey();
+      } else if (choice === "changeAccount") {
+        clearWalletStorage();
+        signerRef.current?.clearSession();
+        const session = useWalletSessionStore.getState();
+        session.setUnlocked(false);
+        session.setWalletCreated(false);
+        session.setAddresses(
+          EVMAccountAddress("0x0"),
+          SolanaAccountAddress("—"),
+        );
+        session.setCredentialCount(0);
+        session.setTrackedAssetCount(0);
+        session.unfocusWallet();
+        // Land on OnboardingPanel (login / create). Do not call ensureReady —
+        // that would immediately reopen the setup modal.
       }
     },
     [openExportPrivateKey, openImportPrivateKey],

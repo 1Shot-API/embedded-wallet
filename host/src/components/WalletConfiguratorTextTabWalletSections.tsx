@@ -281,6 +281,14 @@ export function WalletConfiguratorTextTabWalletSections({
             value={form.advancedOptionsBody}
             onChange={(value) => patch("advancedOptionsBody", value)}
           />
+          <TextField
+            id="advanced-change-account"
+            label="Change account"
+            value={form.advancedOptionsChangeAccountLabel}
+            onChange={(value) =>
+              patch("advancedOptionsChangeAccountLabel", value)
+            }
+          />
         </AccordionContent>
       </AccordionItem>
     </>

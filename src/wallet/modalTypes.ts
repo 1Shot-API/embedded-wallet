@@ -136,7 +136,11 @@ export type ModalRequest =
 
 export type ActiveModal = ModalRequest;
 
-export type AdvancedOptionsChoice = "export" | "import" | "close";
+export type AdvancedOptionsChoice =
+  | "export"
+  | "import"
+  | "changeAccount"
+  | "close";
 
 let modalId = 0;
 

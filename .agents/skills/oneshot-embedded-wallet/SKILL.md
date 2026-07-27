@@ -172,6 +172,7 @@ await proxy.rpc("setStyle", options);
 | `copy.advancedOptions.body` | string | advanced options description |
 | `copy.advancedOptions.exportLabel` | string | export action label |
 | `copy.advancedOptions.importLabel` | string | import action label |
+| `copy.advancedOptions.changeAccountLabel` | string | clear passkey cache / switch account |
 | `copy.advancedOptions.closeLabel` | string | Close button |
 | `copy.passkeyPrompt.exportPrivateKey.title` | string | Signing Layer Confirm header for export |
 | `copy.passkeyPrompt.exportPrivateKey.body` | string | Signing Layer Confirm body for export |

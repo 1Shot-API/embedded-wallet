@@ -8,22 +8,21 @@ import { ModalHost } from "./components/ModalHost";
 import { PasskeyPromptModal } from "./components/modals/PasskeyPromptModal";
 
 export function App() {
-  const { bootError, ready, unlocked, walletCreated, embedded } =
+  const { bootError, ready, unlocked, walletCreated } =
     useWalletSessionStore(
       useShallow((state) => ({
         bootError: state.bootError,
         ready: state.ready,
         unlocked: state.unlocked,
         walletCreated: state.walletCreated,
-        embedded: state.embedded,
       })),
     );
 
-  const showOnboarding = embedded && !walletCreated && !unlocked;
+  const showOnboarding = !walletCreated && !unlocked;
 
   return (
     <div className="bg-background text-foreground flex h-full min-h-full flex-col">
-      {embedded && !showOnboarding ? <WalletChrome /> : null}
+      {!showOnboarding ? <WalletChrome /> : null}
 
       <div
         className={

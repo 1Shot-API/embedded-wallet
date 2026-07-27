@@ -274,6 +274,7 @@ const advancedOptionsCopySchema = z.strictObject({
     body: z.string().optional(),
     exportLabel: z.string().optional(),
     importLabel: z.string().optional(),
+    changeAccountLabel: z.string().optional(),
     closeLabel: z.string().optional(),
   })
   .optional();

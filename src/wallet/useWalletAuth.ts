@@ -243,18 +243,29 @@ export function useWalletAuth({
         return;
       }
       if (choice === "import") {
-        const imported = await pushModal<boolean>(({ id, resolve, reject }) => ({
-          id,
-          kind: "importPrivateKey",
-          resolve,
-          reject,
-        }));
-        if (!imported) {
-          throw new OwsUserRejectedError("User cancelled private key import");
+        // Signer paste UI needs backup-sized flyout (same as openImportPrivateKey).
+        await display.hide();
+        const backupDisplay = await wallet.requestDisplay(
+          config.displayBackupSize,
+        );
+        try {
+          const imported = await pushModal<boolean>(
+            ({ id, resolve, reject }) => ({
+              id,
+              kind: "importPrivateKey",
+              resolve,
+              reject,
+            }),
+          );
+          if (!imported) {
+            throw new OwsUserRejectedError("User cancelled private key import");
+          }
+          setUnlocked(true);
+          useWalletSessionStore.getState().setWalletCreated(true);
+          await refreshAddresses();
+        } finally {
+          await backupDisplay.hide();
         }
-        setUnlocked(true);
-        useWalletSessionStore.getState().setWalletCreated(true);
-        await refreshAddresses();
         return;
       }
       await createNewWalletFromUi();
