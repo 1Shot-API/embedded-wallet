@@ -11,7 +11,13 @@ import {
   type AccountCreateHandoffMessage,
 } from "@/wallet/createAccountHandoffMessages";
 
-/** Host-owned iframe panel size (branding scales to fit; see OWSProxy.create). */
+/**
+ * First-party Host Layer page (same origin as the Branding Layer) for Safari
+ * passkey create. That is why the wallet package depends on `@1shotapi/ows-provider`
+ * — not for the Branding SPA itself. Integrator hosts use `host/` instead.
+ *
+ * Host-owned iframe panel size (branding scales to fit; see OWSProxy.create).
+ */
 const WALLET_SIZE_X = 420;
 const WALLET_SIZE_Y = 480;
 
