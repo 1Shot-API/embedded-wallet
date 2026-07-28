@@ -76,7 +76,7 @@ import { useWalletBoot } from "./useWalletBoot";
 import { useWalletSessionStore } from "./sessionStore";
 /** Filled once the Signing Layer iframe finishes loading / wallet handshake. */
 const configProvider: IConfigProvider = new ConfigProvider();
-const owsProvider: IOWSProvider = new OWSProvider(configProvider);
+const owsProvider: IOWSProvider = new OWSProvider();
 const chainRepository: IChainRepository = new HardcodedChainRepository();
 const blockchainProvider: IBlockchainProvider =
   new SupportedChainsBlockchainProvider(chainRepository);
@@ -283,7 +283,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     signerRef,
     walletRef,
     awaitSignerRef,
-    configProvider,
     credentialRepository,
   });
 
@@ -340,7 +339,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     createPasskeyRegistrationOnly: (accountName) =>
       createPasskeyRegistrationOnlyRef.current(accountName),
     resolveChain,
-    configProvider,
     owsProvider,
     chainRepository,
     knownAssetRepository,
@@ -394,8 +392,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const openExportPrivateKey = useCallback(async () => {
     const wallet = walletRef.current;
     if (!wallet) return;
-    const config = await configProvider.getConfig();
-    const display = await wallet.requestDisplay(config.displayBackupSize);
+    const display = await wallet.requestDisplay();
     try {
       await pushModal<void>(({ id, resolve, reject }) => ({
         id,
@@ -411,8 +408,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const openImportPrivateKey = useCallback(async () => {
     const wallet = walletRef.current;
     if (!wallet) return false;
-    const config = await configProvider.getConfig();
-    const display = await wallet.requestDisplay(config.displayBackupSize);
+    const display = await wallet.requestDisplay();
     try {
       const imported = await pushModal<boolean>(({ id, resolve, reject }) => ({
         id,
@@ -436,8 +432,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const wallet = walletRef.current;
       if (!wallet) return;
       const allowExport = options?.allowExport !== false;
-      const config = await configProvider.getConfig();
-      const display = await wallet.requestDisplay(config.displayBackupSize);
+      const display = await wallet.requestDisplay();
       let choice: import("./modalTypes").AdvancedOptionsChoice = "close";
       try {
         choice = await pushModal<

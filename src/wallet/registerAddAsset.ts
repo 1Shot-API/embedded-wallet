@@ -10,7 +10,6 @@ import type {
   IKnownAssetRepository,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
-import type { IWalletDisplaySize } from "../lib/types/domain";
 import { useWalletSessionStore } from "./sessionStore";
 
 /** Custom RPC — host: `await proxy.rpc("addAsset", { chainId, assetAddress })`. */
@@ -44,7 +43,6 @@ export type RegisterAddAssetOptions = {
   requestAddAssetApproval: (
     request: IAddAssetApprovalRequest,
   ) => Promise<boolean>;
-  displaySize: IWalletDisplaySize;
 };
 
 /**
@@ -66,7 +64,7 @@ export function registerAddAssetRpc(
           assetAddress,
           owner,
         ),
-        wallet.requestDisplay(options.displaySize),
+        wallet.requestDisplay(),
       ]);
       try {
         // Consent UI requires the flyout already open — keep sequential.

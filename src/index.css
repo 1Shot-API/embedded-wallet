@@ -127,7 +127,7 @@
     margin: 0;
     height: 100%;
     min-height: 100%;
-    /* Match host requestDisplay(~420px): never grow past the iframe. */
+    /* Host owns the iframe panel size: never grow past it. */
     max-width: 100%;
     overflow-x: hidden;
   }
