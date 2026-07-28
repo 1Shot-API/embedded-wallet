@@ -121,7 +121,7 @@ function serveSignerPlugin(): Plugin {
 
 export default defineConfig({
   base: "/",
-  publicDir: false,
+  publicDir: "public",
   plugins: [react(), tailwindcss(), serveSignerPlugin()],
   resolve: {
     alias: {
