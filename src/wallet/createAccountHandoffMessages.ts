@@ -1,3 +1,5 @@
+import { COSEPublicKey, CredentialId } from "@1shotapi/ows-types";
+
 export const OWS_ACCOUNT_CREATED = "ows:accountCreated" as const;
 export const OWS_ACCOUNT_CREATE_FAILED = "ows:accountCreateFailed" as const;
 export const OWS_ACCOUNT_CREATE_CANCELLED =
@@ -11,7 +13,9 @@ export type AccountCreateHandoffType =
 export type AccountCreateHandoffMessage = {
   type: AccountCreateHandoffType;
   handoff: string;
-  credentialId?: string;
+  credentialId?: CredentialId;
+  /** COSE public key from attestation — needed for opener relayer register. */
+  cosePublicKey?: COSEPublicKey;
   message?: string;
 };
 

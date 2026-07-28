@@ -273,6 +273,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     loginWithPasskey,
     createNewWallet,
     createNewWalletFromUi,
+    createPasskeyRegistrationOnly,
     ensureReady,
     ensureReadyRef,
     ensureOnboardedForSigning,
@@ -289,10 +290,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Keep create callbacks current for mount-only wallet boot closures.
   const createNewWalletRef = useRef(createNewWallet);
   const createNewWalletFromUiRef = useRef(createNewWalletFromUi);
+  const createPasskeyRegistrationOnlyRef = useRef(
+    createPasskeyRegistrationOnly,
+  );
   useEffect(() => {
     createNewWalletRef.current = createNewWallet;
     createNewWalletFromUiRef.current = createNewWalletFromUi;
-  }, [createNewWallet, createNewWalletFromUi]);
+    createPasskeyRegistrationOnlyRef.current = createPasskeyRegistrationOnly;
+  }, [
+    createNewWallet,
+    createNewWalletFromUi,
+    createPasskeyRegistrationOnly,
+  ]);
 
   const {
     listCredentials,
@@ -328,6 +337,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     onSigningAuthenticated,
     createNewWallet: (accountName) => createNewWalletRef.current(accountName),
     createNewWalletFromUi: () => createNewWalletFromUiRef.current(),
+    createPasskeyRegistrationOnly: (accountName) =>
+      createPasskeyRegistrationOnlyRef.current(accountName),
     resolveChain,
     configProvider,
     owsProvider,

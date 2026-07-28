@@ -2,7 +2,7 @@ import {
   EWalletPresentationMode,
   OWSProxy,
 } from "@1shotapi/ows-provider";
-import { OwsUserRejectedError } from "@1shotapi/ows-types";
+import { COSEPublicKey, CredentialId, OwsUserRejectedError } from "@1shotapi/ows-types";
 import {
   OWS_ACCOUNT_CREATED,
   OWS_ACCOUNT_CREATE_CANCELLED,
@@ -45,6 +45,7 @@ function notifyOpener(message: AccountCreateHandoffMessage): void {
     type: message.type,
     handoff: message.handoff,
     credentialId: message.credentialId ? "(present)" : undefined,
+    cosePublicKey: message.cosePublicKey ? "(present)" : undefined,
     targetOrigin: window.location.origin,
   });
   postAccountCreateHandoff(opener, message);
@@ -91,23 +92,33 @@ async function main(): Promise<void> {
     proxy.showWallet();
     setStatus("Follow the prompts to create your passkey…");
 
-    const result = (await proxy.rpc("createAccount")) as {
+    const result = (await proxy.rpc("createAccount", {
+      registrationOnly: true,
+    })) as {
       ok?: boolean;
-      credentialId?: string;
+      credentialId?: CredentialId;
+      cosePublicKey?: COSEPublicKey;
     };
 
     if (!result?.credentialId) {
       throw new Error("createAccount returned no credentialId");
     }
+    if (!result.cosePublicKey) {
+      throw new Error(
+        "createAccount returned no cosePublicKey — cannot finish on opener",
+      );
+    }
 
     console.info("[create] createAccount ok", {
       credentialIdPrefix: result.credentialId.slice(0, 8),
+      hasCosePublicKey: true,
     });
 
     notifyOpener({
       type: OWS_ACCOUNT_CREATED,
       handoff,
       credentialId: result.credentialId,
+      cosePublicKey: result.cosePublicKey,
     });
     setStatus("Account created. Closing…");
     await closeOrPrompt();

@@ -1,4 +1,4 @@
-import { OwsUserRejectedError } from "@1shotapi/ows-types";
+import { COSEPublicKey, CredentialId, OwsUserRejectedError } from "@1shotapi/ows-types";
 import { createAccountPageUrl } from "./passkeyCreateSupport";
 import { pushModal } from "./pushModal";
 import {
@@ -23,11 +23,16 @@ const HANDOFF_TIMEOUT_MS = 10 * 60 * 1000;
 /** After popup closes, wait for an in-flight success postMessage before rejecting. */
 const POPUP_CLOSED_GRACE_MS = 1500;
 
+export type IFirstPartyCreateResult = {
+  credentialId: CredentialId;
+  cosePublicKey: COSEPublicKey;
+};
+
 /**
- * Open first-party `/create` and wait for credentialId via opener postMessage.
- * Relayer registration happens inside `/create`; opener only persists + unlocks.
+ * Open first-party `/create` for WebAuthn registration only.
+ * Opener finishes unlock + relayer register via {@link adoptCreatedCredential}.
  */
-export async function createAccountViaFirstPartyTab(): Promise<string> {
+export async function createAccountViaFirstPartyTab(): Promise<IFirstPartyCreateResult> {
   const handoff = newCreateHandoffNonce();
   const url = createAccountPageUrl(handoff);
 
@@ -37,7 +42,7 @@ export async function createAccountViaFirstPartyTab(): Promise<string> {
     origin: window.location.origin,
   });
 
-  return new Promise<string>((resolve, reject) => {
+  return new Promise<IFirstPartyCreateResult>((resolve, reject) => {
     let settled = false;
     let popup: Window | null = null;
     let pollId: ReturnType<typeof setInterval> | undefined;
@@ -51,15 +56,16 @@ export async function createAccountViaFirstPartyTab(): Promise<string> {
       if (closedGraceId !== undefined) clearTimeout(closedGraceId);
     };
 
-    const finishResolve = (credentialId: string) => {
+    const finishResolve = (result: IFirstPartyCreateResult) => {
       if (settled) return;
       settled = true;
       cleanup();
       console.info("[create-handoff] resolved with credentialId", {
         handoff,
-        credentialIdPrefix: credentialId.slice(0, 8),
+        credentialIdPrefix: result.credentialId.slice(0, 8),
+        hasCosePublicKey: Boolean(result.cosePublicKey),
       });
-      resolve(credentialId);
+      resolve(result);
     };
 
     const finishReject = (error: unknown) => {
@@ -85,6 +91,7 @@ export async function createAccountViaFirstPartyTab(): Promise<string> {
         handoffMatch: event.data.handoff === handoff,
         sourceIsPopup: popup ? event.source === popup : "(no popup ref)",
         hasCredentialId: Boolean(event.data.credentialId),
+        hasCosePublicKey: Boolean(event.data.cosePublicKey),
       });
 
       if (event.data.handoff !== handoff) return;
@@ -98,7 +105,18 @@ export async function createAccountViaFirstPartyTab(): Promise<string> {
           finishReject(new Error("Account created but credential id missing"));
           return;
         }
-        finishResolve(event.data.credentialId);
+        if (!event.data.cosePublicKey) {
+          finishReject(
+            new Error(
+              "Account created but authenticator public key missing — cannot register with relayer",
+            ),
+          );
+          return;
+        }
+        finishResolve({
+          credentialId: event.data.credentialId,
+          cosePublicKey: event.data.cosePublicKey,
+        });
         return;
       }
       if (event.data.type === OWS_ACCOUNT_CREATE_CANCELLED) {

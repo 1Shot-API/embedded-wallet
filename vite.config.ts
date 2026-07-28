@@ -7,11 +7,31 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const signerPkgSrc = path.resolve(
+/** Prefer sibling open-wallet checkout when developing packages locally. */
+const siblingSignerSrc = path.resolve(
   __dirname,
-  "node_modules/@1shotapi/ows-signer/src",
+  "../prf-wallet/packages/ows-signer/src",
 );
+const siblingTypesEntry = path.resolve(
+  __dirname,
+  "../prf-wallet/packages/ows-types/dist/index.js",
+);
+const siblingSignerUtilsEntry = path.resolve(
+  __dirname,
+  "../prf-wallet/packages/ows-signer-utils/dist/index.js",
+);
+const signerPkgSrc = fs.existsSync(siblingSignerSrc)
+  ? siblingSignerSrc
+  : path.resolve(__dirname, "node_modules/@1shotapi/ows-signer/src");
 const signerPublicDir = path.resolve(__dirname, "signer-static");
+
+const localOwsAliases: Record<string, string> = {};
+if (fs.existsSync(siblingTypesEntry)) {
+  localOwsAliases["@1shotapi/ows-types"] = siblingTypesEntry;
+}
+if (fs.existsSync(siblingSignerUtilsEntry)) {
+  localOwsAliases["@1shotapi/ows-signer-utils"] = siblingSignerUtilsEntry;
+}
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -126,6 +146,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      ...localOwsAliases,
     },
   },
   server: {
