@@ -117,7 +117,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       },
       create: {
         title: "Create passkey",
-        body: "Follow the device prompt to create a passkey for this wallet.",
+        body: "Follow the device prompts to create a passkey and unlock this wallet. You may be asked to confirm twice.",
       },
       sign: {
         title: "Sign with passkey",
