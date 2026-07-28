@@ -11,8 +11,12 @@ import {
   type AccountCreateHandoffMessage,
 } from "../src/wallet/createAccountHandoffMessages";
 
-const WALLET_SIZE_X = 360;
-const WALLET_SIZE_Y = 600;
+/** Match branding `displayModalSize` (ConfigProvider default). */
+const WALLET_SIZE_X = 420;
+const WALLET_SIZE_Y = 480;
+
+/** Let postMessage reach the opener before window.close() races the poll. */
+const CLOSE_AFTER_NOTIFY_MS = 400;
 
 const statusEl = document.getElementById("status")!;
 const container = document.getElementById("wallet-container")!;
@@ -28,19 +32,29 @@ function readHandoff(): string | null {
 }
 
 function notifyOpener(message: AccountCreateHandoffMessage): void {
-  if (!window.opener || window.opener.closed) {
+  const opener = window.opener;
+  if (!opener || opener.closed) {
+    console.warn("[create] cannot notify opener", {
+      hasOpener: Boolean(opener),
+      closed: opener?.closed,
+      type: message.type,
+    });
     return;
   }
-  postAccountCreateHandoff(window.opener, message);
+  console.info("[create] postMessage → opener", {
+    type: message.type,
+    handoff: message.handoff,
+    credentialId: message.credentialId ? "(present)" : undefined,
+    targetOrigin: window.location.origin,
+  });
+  postAccountCreateHandoff(opener, message);
 }
 
-function closeOrPrompt(): void {
+async function closeOrPrompt(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, CLOSE_AFTER_NOTIFY_MS));
   window.close();
   // Some browsers ignore window.close() for script-opened tabs after delay.
-  setStatus(
-    "You can close this tab and return to the app.",
-    false,
-  );
+  setStatus("You can close this tab and return to the app.", false);
 }
 
 async function main(): Promise<void> {
@@ -57,6 +71,12 @@ async function main(): Promise<void> {
     );
     return;
   }
+
+  console.info("[create] start", {
+    handoff,
+    origin: window.location.origin,
+    hasOpener: true,
+  });
 
   const walletUrl = new URL("/", window.location.origin).href;
   setStatus("Connecting to wallet…");
@@ -80,19 +100,25 @@ async function main(): Promise<void> {
       throw new Error("createAccount returned no credentialId");
     }
 
+    console.info("[create] createAccount ok", {
+      credentialIdPrefix: result.credentialId.slice(0, 8),
+    });
+
     notifyOpener({
       type: OWS_ACCOUNT_CREATED,
       handoff,
       credentialId: result.credentialId,
     });
     setStatus("Account created. Closing…");
-    closeOrPrompt();
+    await closeOrPrompt();
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Account creation failed";
     const cancelled =
       error instanceof OwsUserRejectedError ||
       (error instanceof Error && error.name === "OwsUserRejectedError");
+
+    console.warn("[create] createAccount failed", { cancelled, message, error });
 
     notifyOpener({
       type: cancelled
@@ -102,7 +128,7 @@ async function main(): Promise<void> {
       message,
     });
     setStatus(message, true);
-    closeOrPrompt();
+    await closeOrPrompt();
   } finally {
     proxy.destroy();
   }

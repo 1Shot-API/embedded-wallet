@@ -106,6 +106,9 @@ export function useWalletAuth({
 
   const adoptCreatedCredential = useCallback(
     async (credentialId: string) => {
+      console.info("[create-handoff] adoptCreatedCredential start", {
+        credentialIdPrefix: credentialId.slice(0, 8),
+      });
       saveWalletCreated(credentialId);
       useWalletSessionStore.getState().setWalletCreated(true);
       const signer = signerRef.current;
@@ -125,6 +128,7 @@ export function useWalletAuth({
         );
       }
       setUnlocked(true);
+      console.info("[create-handoff] adoptCreatedCredential unlocked");
     },
     [
       credentialRepository,
@@ -138,6 +142,7 @@ export function useWalletAuth({
   const createNewWallet = useCallback(
     async (accountName: string) => {
       if (needsFirstPartyPasskeyCreate()) {
+        console.info("[create-handoff] diverting createNewWallet → /create");
         const credentialId = await createAccountViaFirstPartyTab();
         await adoptCreatedCredential(credentialId);
         return;
@@ -176,6 +181,7 @@ export function useWalletAuth({
 
   const createNewWalletFromUi = useCallback(async () => {
     if (needsFirstPartyPasskeyCreate()) {
+      console.info("[create-handoff] diverting createNewWalletFromUi → /create");
       const credentialId = await createAccountViaFirstPartyTab();
       await adoptCreatedCredential(credentialId);
       return;
@@ -232,9 +238,11 @@ export function useWalletAuth({
     const wallet = walletRef.current;
     if (!wallet) throw new Error("Wallet not ready");
     const config = await configProvider.getConfig();
+
+    let choice: WalletSetupChoice = "cancel";
     const display = await wallet.requestDisplay(config.displayModalSize);
     try {
-      const choice = await requestWalletSetupChoice();
+      choice = await requestWalletSetupChoice();
       if (choice === "cancel") {
         throw new OwsUserRejectedError("User cancelled wallet setup");
       }
@@ -242,35 +250,34 @@ export function useWalletAuth({
         await loginWithPasskey();
         return;
       }
-      if (choice === "import") {
-        // Signer paste UI needs backup-sized flyout (same as openImportPrivateKey).
-        await display.hide();
-        const backupDisplay = await wallet.requestDisplay(
-          config.displayBackupSize,
-        );
-        try {
-          const imported = await pushModal<boolean>(
-            ({ id, resolve, reject }) => ({
-              id,
-              kind: "importPrivateKey",
-              resolve,
-              reject,
-            }),
-          );
-          if (!imported) {
-            throw new OwsUserRejectedError("User cancelled private key import");
-          }
-          setUnlocked(true);
-          useWalletSessionStore.getState().setWalletCreated(true);
-          await refreshAddresses();
-        } finally {
-          await backupDisplay.hide();
-        }
-        return;
+      // Import continues after this flyout is released (needs displayBackupSize).
+      if (choice !== "import") {
+        await createNewWalletFromUi();
       }
-      await createNewWalletFromUi();
     } finally {
       await display.hide();
+    }
+
+    if (choice !== "import") {
+      return;
+    }
+
+    const backupDisplay = await wallet.requestDisplay(config.displayBackupSize);
+    try {
+      const imported = await pushModal<boolean>(({ id, resolve, reject }) => ({
+        id,
+        kind: "importPrivateKey",
+        resolve,
+        reject,
+      }));
+      if (!imported) {
+        throw new OwsUserRejectedError("User cancelled private key import");
+      }
+      setUnlocked(true);
+      useWalletSessionStore.getState().setWalletCreated(true);
+      await refreshAddresses();
+    } finally {
+      await backupDisplay.hide();
     }
   }, [
     configProvider,

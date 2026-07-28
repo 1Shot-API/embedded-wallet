@@ -4,6 +4,18 @@
  */
 
 export function isSafariOrWebKit(): boolean {
+  // Dev override: `localStorage.setItem("safariMode", "true")` forces Safari
+  // path on non-Safari browsers (e.g. Windows Chrome testing the /create divert).
+  try {
+    if (
+      typeof localStorage !== "undefined" &&
+      localStorage.getItem("safariMode") === "true"
+    ) {
+      return true;
+    }
+  } catch {
+    // Ignore storage access errors (private mode / partitioned iframe).
+  }
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
   // iOS Chrome/Firefox still use WebKit.
