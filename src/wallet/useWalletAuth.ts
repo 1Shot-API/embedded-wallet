@@ -10,7 +10,6 @@ import {
   saveCachedSecp256k1PublicKey,
   saveWalletCreated,
 } from "../storage";
-import type { IConfigProvider } from "../lib/interfaces/utils";
 import { pushModal } from "./pushModal";
 import type { WalletSetupChoice } from "./modalTypes";
 import { useWalletSessionStore } from "./sessionStore";
@@ -22,7 +21,6 @@ export interface IUseWalletAuthParams {
   signerRef: RefObject<OWSSigner | null>;
   walletRef: RefObject<OWSWallet | null>;
   awaitSignerRef: RefObject<(() => Promise<OWSSigner>) | null>;
-  configProvider: IConfigProvider;
   credentialRepository: CachedRelayerCredentialRepository;
 }
 
@@ -30,7 +28,6 @@ export function useWalletAuth({
   signerRef,
   walletRef,
   awaitSignerRef,
-  configProvider,
   credentialRepository,
 }: IUseWalletAuthParams) {
   const unlockInFlightRef = useRef<Promise<void> | undefined>(undefined);
@@ -282,10 +279,9 @@ export function useWalletAuth({
   const runSetupFlow = useCallback(async () => {
     const wallet = walletRef.current;
     if (!wallet) throw new Error("Wallet not ready");
-    const config = await configProvider.getConfig();
 
     let choice: WalletSetupChoice = "cancel";
-    const display = await wallet.requestDisplay(config.displayModalSize);
+    const display = await wallet.requestDisplay();
     try {
       choice = await requestWalletSetupChoice();
       if (choice === "cancel") {
@@ -295,7 +291,7 @@ export function useWalletAuth({
         await loginWithPasskey();
         return;
       }
-      // Import continues after this flyout is released (needs displayBackupSize).
+      // Import continues after this flyout is released.
       if (choice !== "import") {
         await createNewWalletFromUi();
       }
@@ -307,7 +303,7 @@ export function useWalletAuth({
       return;
     }
 
-    const backupDisplay = await wallet.requestDisplay(config.displayBackupSize);
+    const backupDisplay = await wallet.requestDisplay();
     try {
       const imported = await pushModal<boolean>(({ id, resolve, reject }) => ({
         id,
@@ -325,7 +321,6 @@ export function useWalletAuth({
       await backupDisplay.hide();
     }
   }, [
-    configProvider,
     createNewWalletFromUi,
     loginWithPasskey,
     refreshAddresses,

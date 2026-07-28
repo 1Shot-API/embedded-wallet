@@ -11,11 +11,6 @@ const DEFAULT_CREDENTIALS_STORAGE_KEY = "ows.credentials.v2";
 const DEFAULT_ASSET_ACTIVITY_LIMIT = 10;
 const DEFAULT_ASSET_ACTIVITY_MAX_OPTIMISTIC = 100;
 
-const DEFAULT_DISPLAY_CEREMONY_SIZE = { width: 448, height: 520 } as const;
-const DEFAULT_DISPLAY_MODAL_SIZE = { width: 420, height: 480 } as const;
-const DEFAULT_DISPLAY_BACKUP_SIZE = { width: 480, height: 420 } as const;
-const DEFAULT_DISPLAY_COMPACT_SIZE = { width: 420, height: 360 } as const;
-
 /**
  * Resolves {@link WalletConfig} from the Branding Layer iframe host.
  * Production wallet host → production relayer; all other hosts → dev relayer.
@@ -35,10 +30,6 @@ export class ConfigProvider implements IConfigProvider {
       DEFAULT_CREDENTIALS_STORAGE_KEY,
       DEFAULT_ASSET_ACTIVITY_LIMIT,
       DEFAULT_ASSET_ACTIVITY_MAX_OPTIMISTIC,
-      { ...DEFAULT_DISPLAY_CEREMONY_SIZE },
-      { ...DEFAULT_DISPLAY_MODAL_SIZE },
-      { ...DEFAULT_DISPLAY_BACKUP_SIZE },
-      { ...DEFAULT_DISPLAY_COMPACT_SIZE },
     );
     return this.cached;
   }

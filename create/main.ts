@@ -11,7 +11,7 @@ import {
   type AccountCreateHandoffMessage,
 } from "@/wallet/createAccountHandoffMessages";
 
-/** Match branding `displayModalSize` (ConfigProvider default). */
+/** Host-owned iframe panel size (branding scales to fit; see OWSProxy.create). */
 const WALLET_SIZE_X = 420;
 const WALLET_SIZE_Y = 480;
 

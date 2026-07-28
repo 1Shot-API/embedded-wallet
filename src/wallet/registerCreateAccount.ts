@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import type { COSEPublicKey, CredentialId, EVMAccountAddress } from "@1shotapi/ows-types";
-import type { IWalletDisplaySize } from "../lib/types/domain";
 import { loadCredentialId } from "../storage";
 import { useWalletSessionStore } from "./sessionStore";
 
@@ -38,7 +37,6 @@ export type IPasskeyRegistrationResult = {
 };
 
 export type RegisterCreateAccountOptions = {
-  displaySize: IWalletDisplaySize;
   /** Named create (skips PasskeyNameModal). Full create + register. */
   createNewWallet: (accountName: string) => Promise<void>;
   /** Full UI create (name modal + create). */
@@ -61,7 +59,7 @@ export function registerCreateAccountRpc(
     CREATE_ACCOUNT_RPC_METHOD,
     async (params) => {
       const { accountName, registrationOnly } = params as ICreateAccountParams;
-      const display = await wallet.requestDisplay(options.displaySize);
+      const display = await wallet.requestDisplay();
       try {
         if (registrationOnly) {
           const registered =

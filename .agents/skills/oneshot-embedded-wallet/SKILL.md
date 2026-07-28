@@ -252,7 +252,7 @@ await proxy.rpc("createAccount", { accountName: "My Wallet" });
 |-----|-----|
 | `proxy.ethereum.request(...)` | EIP-1193 (accounts, sign, chain, …) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
-| `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
+| `proxy.showWallet()` / `hideWallet()` | Host-driven panel (flyout or full-screen drawer on small viewports) without an EIP-1193 call |
 | `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, …) |
 
 ## Hard rules

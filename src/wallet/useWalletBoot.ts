@@ -39,11 +39,7 @@ import type {
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
 import type { ITransactionService } from "../lib/interfaces/business";
-import type {
-  IConfigProvider,
-  IOWSProvider,
-  ITransactionUtils,
-} from "../lib/interfaces/utils";
+import type { IOWSProvider, ITransactionUtils } from "../lib/interfaces/utils";
 import type { SupportedChain } from "../lib/types/domain";
 import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerCreateAccountRpc } from "./registerCreateAccount";
@@ -127,7 +123,6 @@ export interface IUseWalletBootParams {
     accountName?: string,
   ) => Promise<IPasskeyRegistrationResult>;
   resolveChain: (chainId: EVMChainId) => SupportedChain | null;
-  configProvider: IConfigProvider;
   owsProvider: IOWSProvider;
   chainRepository: IChainRepository;
   knownAssetRepository: IKnownAssetRepository;
@@ -152,7 +147,6 @@ export function useWalletBoot({
   createNewWalletFromUi,
   createPasskeyRegistrationOnly,
   resolveChain,
-  configProvider,
   owsProvider,
   chainRepository,
   knownAssetRepository,
@@ -213,8 +207,6 @@ export function useWalletBoot({
         }) => ActiveModal,
       ) => pushModal(build);
 
-      const walletConfig = await configProvider.getConfig();
-
       registerSetStyleRpc(wallet, chainRepository);
 
       registerAccountConnect(wallet, signer, {
@@ -226,7 +218,6 @@ export function useWalletBoot({
             kind: "connect",
             resolve,
           })),
-        displaySize: walletConfig.displayCompactSize,
       });
 
       const catalog = chainRepository.getCatalog();
@@ -255,11 +246,9 @@ export function useWalletBoot({
             request,
             resolve,
           })),
-        displaySize: walletConfig.displayCompactSize,
       });
 
       registerCreateAccountRpc(wallet, {
-        displaySize: walletConfig.displayModalSize,
         createNewWallet,
         createNewWalletFromUi,
         createPasskeyRegistrationOnly,
