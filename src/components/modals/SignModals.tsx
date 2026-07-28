@@ -46,15 +46,16 @@ export function PersonalSignModal({
   const { style } = useStyle();
   const { personalSign } = style.copy;
   const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
-  const abortedRef = useRef(false);
+  /** Bumped on cancel and each startSign so stale in-flight ops cannot settle. */
+  const signGenerationRef = useRef(0);
 
   const cancel = () => {
-    abortedRef.current = true;
+    signGenerationRef.current += 1;
     onReject(new OwsUserRejectedError("User rejected the signing request"));
   };
 
   const startSign = () => {
-    abortedRef.current = false;
+    const generation = ++signGenerationRef.current;
     setPhase("signing");
     void (async () => {
       const signer = getSigner();
@@ -62,10 +63,10 @@ export function PersonalSignModal({
         throw new Error("Signer not ready");
       }
       const [signature] = await signer.evm.signMessage([request.message]);
-      if (abortedRef.current) return;
+      if (signGenerationRef.current !== generation) return;
       onResolve(signature!);
     })().catch((error: unknown) => {
-      if (abortedRef.current) return;
+      if (signGenerationRef.current !== generation) return;
       if (isSignDenied(error)) {
         setPhase("confirm");
         return;
@@ -123,15 +124,16 @@ export function TypedDataModal({
   const { typedData: copy } = style.copy;
   const { typedData } = request;
   const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
-  const abortedRef = useRef(false);
+  /** Bumped on cancel and each startSign so stale in-flight ops cannot settle. */
+  const signGenerationRef = useRef(0);
 
   const cancel = () => {
-    abortedRef.current = true;
+    signGenerationRef.current += 1;
     onReject(new OwsUserRejectedError("User rejected the signing request"));
   };
 
   const startSign = () => {
-    abortedRef.current = false;
+    const generation = ++signGenerationRef.current;
     setPhase("signing");
     void (async () => {
       const signer = getSigner();
@@ -141,10 +143,10 @@ export function TypedDataModal({
       const [signature] = await signer.evm.signTypedData([
         typedData as unknown as TypedDataDefinition,
       ]);
-      if (abortedRef.current) return;
+      if (signGenerationRef.current !== generation) return;
       onResolve(signature!);
     })().catch((error: unknown) => {
-      if (abortedRef.current) return;
+      if (signGenerationRef.current !== generation) return;
       if (isSignDenied(error)) {
         setPhase("confirm");
         return;

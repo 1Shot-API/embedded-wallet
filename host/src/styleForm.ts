@@ -142,6 +142,7 @@ export interface IStyleFormState {
   advancedOptionsTitle: string;
   advancedOptionsMenuLabel: string;
   advancedOptionsBody: string;
+  advancedOptionsChangeAccountLabel: string;
 }
 
 /** Catalog options for the Allowed chains configurator (matches HardcodedChainRepository). */
@@ -269,7 +270,9 @@ export const ACME_PRESET: IStyleFormState = {
   importPrivateKeyCancel: "Cancel",
   advancedOptionsTitle: "Advanced options",
   advancedOptionsMenuLabel: "Advanced options",
-  advancedOptionsBody: "Import or export your private key.",
+  advancedOptionsBody:
+    "Import or export your private key, or switch to a different passkey account.",
+  advancedOptionsChangeAccountLabel: "Change account",
 };
 
 export const OCEAN_PRESET: IStyleFormState = {
@@ -384,6 +387,7 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   advancedOptionsTitle: "Advanced options",
   advancedOptionsMenuLabel: "",
   advancedOptionsBody: "",
+  advancedOptionsChangeAccountLabel: "",
 };
 
 function put(
@@ -599,6 +603,11 @@ export function buildSetStylePayload(
   put(advancedOptions, "title", form.advancedOptionsTitle);
   put(advancedOptions, "menuLabel", form.advancedOptionsMenuLabel);
   put(advancedOptions, "body", form.advancedOptionsBody);
+  put(
+    advancedOptions,
+    "changeAccountLabel",
+    form.advancedOptionsChangeAccountLabel,
+  );
   if (Object.keys(advancedOptions).length > 0) {
     copy.advancedOptions = advancedOptions;
   }

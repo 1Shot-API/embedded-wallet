@@ -18,6 +18,7 @@ import { ExportPrivateKeyModal } from "./modals/ExportPrivateKeyModal";
 import { ImportPrivateKeyModal } from "./modals/ImportPrivateKeyModal";
 import { AdvancedOptionsModal } from "./modals/AdvancedOptionsModal";
 import { AddAssetModal } from "./modals/AddAssetModal";
+import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
 
 export function ModalHost() {
   const activeModal = useModalStore((state) => state.activeModal);
@@ -103,6 +104,13 @@ export function ModalHost() {
       return (
         <AdvancedOptionsModal
           allowExport={activeModal.allowExport}
+          onResolve={activeModal.resolve}
+        />
+      );
+    case "openCreateTab":
+      return (
+        <OpenCreateTabModal
+          createUrl={activeModal.createUrl}
           onResolve={activeModal.resolve}
         />
       );

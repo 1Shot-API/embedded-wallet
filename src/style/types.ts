@@ -295,7 +295,7 @@ export interface IStyleCopyImportPrivateKey {
 }
 
 /**
- * Advanced options chooser (export / import).
+ * Advanced options chooser (export / import / change account).
  */
 export interface IStyleCopyAdvancedOptions {
   title: string;
@@ -304,6 +304,7 @@ export interface IStyleCopyAdvancedOptions {
   body: string;
   exportLabel: string;
   importLabel: string;
+  changeAccountLabel: string;
   closeLabel: string;
 }
 

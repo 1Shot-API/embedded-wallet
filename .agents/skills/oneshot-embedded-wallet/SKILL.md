@@ -3,7 +3,8 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as setStyle / focusWallet / addAsset for theming, host-driven focus mode, and tracked assets on the 1Shot Branding Layer.
+  or custom RPC such as setStyle / focusWallet / addAsset / createAccount for
+  theming, host-driven focus mode, tracked assets, and first-party Safari create.
 license: MIT
 metadata:
   author: 1Shot-API
@@ -19,6 +20,10 @@ Teach an agent how to embed the **1Shot Wallet** Branding Layer from a Host Laye
 Host (your dapp)          @1shotapi/ows-provider → OWSProxy
   └── Branding iframe     https://wallet.1shotapi.com/
         └── Signing       https://wallet.1shotapi.com/signer/  (same origin)
+
+Safari create (first-party tab):
+  Branding iframe ──window.open──► https://wallet.1shotapi.com/create/
+                                     └── Branding iframe + createAccount RPC
 ```
 
 ## Install
@@ -54,6 +59,7 @@ const accounts = await proxy.ethereum.request({ method: "eth_requestAccounts" })
 - Passkeys require a **secure-context ancestor chain**. The Host page must be HTTPS (or `localhost`) when the wallet iframe is HTTPS.
 - Dev wallet URL: your ngrok or local Vite origin root (e.g. `https://….ngrok-free.app/`).
 - Production wallet URL: **`https://wallet.1shotapi.com/`** (Signing Layer at `/signer/` on the same origin — do not embed `/signer/` from the host).
+- Safari / iOS WebKit cannot create passkeys inside a **cross-origin** wallet iframe. The branding layer detects this and opens **`https://wallet.1shotapi.com/create/`** in a new tab (same origin as the wallet). Allow pop-ups from the embedding page so that handoff can complete; no host code changes are required.
 
 ## Custom RPC — `setStyle`
 
@@ -166,6 +172,7 @@ await proxy.rpc("setStyle", options);
 | `copy.advancedOptions.body` | string | advanced options description |
 | `copy.advancedOptions.exportLabel` | string | export action label |
 | `copy.advancedOptions.importLabel` | string | import action label |
+| `copy.advancedOptions.changeAccountLabel` | string | clear passkey cache / switch account |
 | `copy.advancedOptions.closeLabel` | string | Close button |
 | `copy.passkeyPrompt.exportPrivateKey.title` | string | Signing Layer Confirm header for export |
 | `copy.passkeyPrompt.exportPrivateKey.body` | string | Signing Layer Confirm body for export |
@@ -223,6 +230,22 @@ Returns `{ ok: true, chainId, assetAddress }` when the user accepts.
 
 Users can also add assets from the Balances tab without a host RPC. The Balances list shows tracked assets for the currently selected network only (USDC is always tracked per supported chain).
 
+## Custom RPC — `createAccount`
+
+Used by the first-party **`/create/`** host page (Safari passkey create). Hosts embedding the wallet normally do **not** call this — the branding layer opens `/create/` itself when needed.
+
+```typescript
+const result = await proxy.rpc("createAccount");
+// { ok: true, credentialId: string, accounts: EVMAccountAddress[] }
+
+// Optional pre-chosen passkey name (skips the name modal):
+await proxy.rpc("createAccount", { accountName: "My Wallet" });
+```
+
+| Method | Params | Effect |
+|--------|--------|--------|
+| `createAccount` | `{ accountName?: string }` optional | Runs setup create (passkey + relayer register); returns credential id |
+
 ## Other Host APIs
 
 | API | Use |
@@ -230,7 +253,7 @@ Users can also add assets from the Balances tab without a host RPC. The Balances
 | `proxy.ethereum.request(...)` | EIP-1193 (accounts, sign, chain, …) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, …) |
+| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, …) |
 
 ## Hard rules
 

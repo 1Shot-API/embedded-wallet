@@ -3,7 +3,7 @@ import { Modal } from "../Modal";
 import type { AdvancedOptionsChoice } from "../../wallet/modalTypes";
 
 /**
- * Chooser for export / import private key (menu + advanced entry points).
+ * Chooser for export / import private key / change account.
  */
 export function AdvancedOptionsModal({
   onResolve,
@@ -46,6 +46,15 @@ export function AdvancedOptionsModal({
         >
           {copy.importLabel}
         </button>
+        {allowExport ? (
+          <button
+            type="button"
+            className="border-border bg-background hover:bg-muted text-foreground rounded-md border px-3 py-2.5 text-left text-[0.9rem] font-medium"
+            onClick={() => onResolve("changeAccount")}
+          >
+            {copy.changeAccountLabel}
+          </button>
+        ) : null}
       </div>
     </Modal>
   );

@@ -117,7 +117,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       },
       create: {
         title: "Create passkey",
-        body: "Follow the device prompt to create a passkey for this wallet.",
+        body: "Follow the device prompts to create a passkey and unlock this wallet. You may be asked to confirm twice.",
       },
       sign: {
         title: "Sign with passkey",
@@ -274,9 +274,10 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       title: "Advanced options",
       menuLabel: "Advanced options",
       onboardingLabel: "Advanced options",
-      body: "Import or export your private key. These options are for recovery and advanced users.",
+      body: "Import or export your private key, or switch to a different passkey account.",
       exportLabel: "Export private key",
       importLabel: "Import private key",
+      changeAccountLabel: "Change account",
       closeLabel: "Close",
     },
   },

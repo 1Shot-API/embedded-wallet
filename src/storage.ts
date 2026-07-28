@@ -1,4 +1,5 @@
 import {
+  CredentialId,
   EVMAccountAddress,
   SolanaAccountAddress,
 } from "@1shotapi/ows-types";
@@ -15,18 +16,18 @@ export function isWalletCreated(): boolean {
   return localStorage.getItem(WALLET_CREATED_KEY) === "true";
 }
 
-export function loadCredentialId(): string | undefined {
+export function loadCredentialId(): CredentialId | undefined {
   const handle = localStorage.getItem(PASSKEY_HANDLE_KEY);
-  if (handle) return handle;
+  if (handle) return CredentialId(handle);
   // Migrate legacy key name (same public WebAuthn handle value).
   const legacy = localStorage.getItem("ows-credential-id");
   if (!legacy) return undefined;
   localStorage.setItem(PASSKEY_HANDLE_KEY, legacy);
   localStorage.removeItem("ows-credential-id");
-  return legacy;
+  return CredentialId(legacy);
 }
 
-export function saveWalletCreated(passkeyHandle: string): void {
+export function saveWalletCreated(passkeyHandle: CredentialId): void {
   localStorage.setItem(WALLET_CREATED_KEY, "true");
   localStorage.setItem(PASSKEY_HANDLE_KEY, passkeyHandle);
 }
@@ -80,4 +81,8 @@ export function clearWalletStorage(): void {
   localStorage.removeItem("ows-relayer-passkey-registered");
   localStorage.removeItem("ows-credential-id");
   localStorage.removeItem("ows-wallet-backup");
+  // Account-scoped caches — wipe so the next passkey starts clean.
+  localStorage.removeItem("ows.credentials.v2");
+  localStorage.removeItem("ows.tracked-assets.v2");
+  localStorage.removeItem("ows.asset-activity.v1");
 }
