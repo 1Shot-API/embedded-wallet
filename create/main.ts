@@ -9,7 +9,7 @@ import {
   OWS_ACCOUNT_CREATE_FAILED,
   postAccountCreateHandoff,
   type AccountCreateHandoffMessage,
-} from "../src/wallet/createAccountHandoffMessages";
+} from "@/wallet/createAccountHandoffMessages";
 
 /** Match branding `displayModalSize` (ConfigProvider default). */
 const WALLET_SIZE_X = 420;
