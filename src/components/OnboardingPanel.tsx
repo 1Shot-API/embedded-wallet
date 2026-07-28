@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "../wallet/WalletProvider";
 import { useStyle } from "../style/StyleProvider";
@@ -11,10 +12,13 @@ function taglineLines(tagline: string): string[] {
 }
 
 export function OnboardingPanel() {
-  const { loginWithPasskey, createNewWalletFromUi } = useWallet();
+  const { loginWithPasskey, createNewWalletFromUi, openImportPrivateKey } =
+    useWallet();
   const { style } = useStyle();
-  const { productName, tagline, logoUrl, walletSetup } = style.copy;
+  const { productName, tagline, logoUrl, walletSetup, advancedOptions } =
+    style.copy;
   const lines = taglineLines(tagline);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
@@ -62,6 +66,35 @@ export function OnboardingPanel() {
           >
             {walletSetup.createLabel}
           </Button>
+
+          {!showAdvanced ? (
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground mt-1 text-[0.8rem] underline-offset-2 hover:underline"
+              onClick={() => setShowAdvanced(true)}
+            >
+              {advancedOptions.onboardingLabel}
+            </button>
+          ) : (
+            <div className="border-border mt-2 flex flex-col gap-2 border-t pt-4 text-left">
+              <p className="text-muted-foreground m-0 text-[0.8rem] leading-snug">
+                {advancedOptions.body}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-9 w-full justify-start text-[0.85rem] font-medium"
+                onClick={() => {
+                  void openImportPrivateKey().catch((error: unknown) => {
+                    console.error("[import-private-key] failed", error);
+                  });
+                }}
+              >
+                {advancedOptions.importLabel}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

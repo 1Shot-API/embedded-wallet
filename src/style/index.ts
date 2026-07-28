@@ -15,8 +15,9 @@ export type {
   IStyleCopyCredentialPresentation,
   IStyleCopyCredentials,
   IStyleCopyBalances,
-  IStyleCopyCreateBackup,
-  IStyleCopyRestoreBackup,
+  IStyleCopyExportPrivateKey,
+  IStyleCopyImportPrivateKey,
+  IStyleCopyAdvancedOptions,
   IResolvedCopy,
   IResolvedStyle,
 } from "./types";

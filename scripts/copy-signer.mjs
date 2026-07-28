@@ -4,16 +4,23 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
-const signerPkgSrc = path.join(
+const siblingSignerSrc = path.join(
+  repoRoot,
+  "../prf-wallet/packages/ows-signer/src",
+);
+const npmSignerSrc = path.join(
   repoRoot,
   "node_modules/@1shotapi/ows-signer/src",
 );
+const signerPkgSrc = fs.existsSync(siblingSignerSrc)
+  ? siblingSignerSrc
+  : npmSignerSrc;
 const signerPublic = path.join(repoRoot, "signer-static/index.html");
 const outSigner = path.join(repoRoot, "dist/signer");
 
 if (!fs.existsSync(signerPkgSrc)) {
   console.error(
-    "node_modules/@1shotapi/ows-signer/src missing. Run: npm install",
+    "ows-signer src missing. Run: npm install (or clone prf-wallet beside this repo)",
   );
   process.exit(1);
 }
@@ -23,4 +30,6 @@ fs.mkdirSync(path.join(outSigner, "src"), { recursive: true });
 fs.cpSync(signerPkgSrc, path.join(outSigner, "src"), { recursive: true });
 fs.copyFileSync(signerPublic, path.join(outSigner, "index.html"));
 
-console.log("Copied Signing Layer to dist/signer/");
+console.log(
+  `Copied Signing Layer to dist/signer/ (from ${path.relative(repoRoot, signerPkgSrc)})`,
+);

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>1Shot Wallet — Create account</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: system-ui, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #fafafa;
+        color: #0a0a0a;
+      }
+      #app {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1.25rem 1rem 2rem;
+      }
+      .header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.65rem;
+        margin-bottom: 0.35rem;
+      }
+      .header img {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        text-align: center;
+      }
+      .subtitle {
+        margin: 0 0 1rem;
+        color: #525252;
+        font-size: 0.9rem;
+        text-align: center;
+        max-width: 28rem;
+      }
+      /* Inline OWSProxy fills this mount (absolute inset 0) — keep modal size. */
+      .wallet-mount {
+        position: relative;
+        width: 420px;
+        height: 480px;
+        max-width: 100%;
+        flex: 0 0 auto;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow:
+          0 1px 2px rgb(0 0 0 / 6%),
+          0 8px 24px rgb(0 0 0 / 8%);
+        background: #fff;
+      }
+      #wallet-container {
+        width: 100%;
+        height: 100%;
+      }
+      #status {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        color: #404040;
+        text-align: center;
+        max-width: 28rem;
+      }
+      #status.error {
+        color: #b91c1c;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div class="header">
+        <img
+          src="/assets/1Shot-Icon-New.svg"
+          alt=""
+          width="40"
+          height="40"
+        />
+        <h1>Create your 1Shot Wallet</h1>
+      </div>
+      <p class="subtitle">
+        Complete passkey setup in this tab. It will close automatically when
+        you finish.
+      </p>
+      <div class="wallet-mount">
+        <div id="wallet-container"></div>
+      </div>
+      <p id="status" aria-live="polite">Starting…</p>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

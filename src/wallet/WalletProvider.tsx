@@ -17,10 +17,11 @@ import {
   type IBlockchainProvider,
 } from "@1shotapi/ows-wallet-utils";
 import {
+  EVMAccountAddress,
   HexString,
+  SolanaAccountAddress,
   type CredentialId,
   type CredentialSummary,
-  type EVMAccountAddress,
   type EVMChainId,
   type EVMTransactionHash,
   type StoredCredential,
@@ -64,17 +65,15 @@ import type {
 } from "../lib/types/domain";
 import type { TrackedAssetId } from "../lib/types/primitives";
 import {
-  loadBackup,
   loadCachedEvmAddress,
-  saveBackup,
   saveCachedAddresses,
+  clearWalletStorage,
 } from "../storage";
 import { pushModal } from "./pushModal";
 import { useWalletAuth } from "./useWalletAuth";
 import { useWalletAssets } from "./useWalletAssets";
 import { useWalletBoot } from "./useWalletBoot";
 import { useWalletSessionStore } from "./sessionStore";
-
 /** Filled once the Signing Layer iframe finishes loading / wallet handshake. */
 const configProvider: IConfigProvider = new ConfigProvider();
 const owsProvider: IOWSProvider = new OWSProvider(configProvider);
@@ -201,11 +200,11 @@ export type WalletContextValue = {
       feeAtoms: bigint;
     },
   ) => Promise<EVMTransactionHash>;
-  openCreateBackup: () => Promise<void>;
-  openRestoreBackup: () => Promise<void>;
+  openExportPrivateKey: () => Promise<void>;
+  openImportPrivateKey: () => Promise<boolean>;
+  openAdvancedOptions: (options?: { allowExport?: boolean }) => Promise<void>;
   loginWithPasskey: () => Promise<void>;
   createNewWalletFromUi: () => Promise<void>;
-  persistBackup: (encryptedPrivateKey: string) => void;
 };
 
 const WalletContext = createContext<WalletContextValue | null>(null);
@@ -272,7 +271,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     refreshAddresses,
     refreshCredentialCount,
     loginWithPasskey,
+    createNewWallet,
     createNewWalletFromUi,
+    createPasskeyRegistrationOnly,
     ensureReady,
     ensureReadyRef,
     ensureOnboardedForSigning,
@@ -285,6 +286,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     configProvider,
     credentialRepository,
   });
+
+  // Keep create callbacks current for mount-only wallet boot closures.
+  const createNewWalletRef = useRef(createNewWallet);
+  const createNewWalletFromUiRef = useRef(createNewWalletFromUi);
+  const createPasskeyRegistrationOnlyRef = useRef(
+    createPasskeyRegistrationOnly,
+  );
+  useEffect(() => {
+    createNewWalletRef.current = createNewWallet;
+    createNewWalletFromUiRef.current = createNewWalletFromUi;
+    createPasskeyRegistrationOnlyRef.current = createPasskeyRegistrationOnly;
+  }, [
+    createNewWallet,
+    createNewWalletFromUi,
+    createPasskeyRegistrationOnly,
+  ]);
 
   const {
     listCredentials,
@@ -318,6 +335,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     ensureReady,
     ensureOnboardedForSigning,
     onSigningAuthenticated,
+    createNewWallet: (accountName) => createNewWalletRef.current(accountName),
+    createNewWalletFromUi: () => createNewWalletFromUiRef.current(),
+    createPasskeyRegistrationOnly: (accountName) =>
+      createPasskeyRegistrationOnlyRef.current(accountName),
     resolveChain,
     configProvider,
     owsProvider,
@@ -370,7 +391,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [ensureOnboardedForSigning, onSigningAuthenticated],
   );
 
-  const openCreateBackup = useCallback(async () => {
+  const openExportPrivateKey = useCallback(async () => {
     const wallet = walletRef.current;
     if (!wallet) return;
     const config = await configProvider.getConfig();
@@ -378,7 +399,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       await pushModal<void>(({ id, resolve, reject }) => ({
         id,
-        kind: "createBackup",
+        kind: "exportPrivateKey",
         resolve,
         reject,
       }));
@@ -387,37 +408,72 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const openRestoreBackup = useCallback(async () => {
-    const encrypted = loadBackup();
-    if (!encrypted) {
-      window.alert("No backup found. Create a backup first.");
-      return;
-    }
+  const openImportPrivateKey = useCallback(async () => {
     const wallet = walletRef.current;
-    if (!wallet) return;
+    if (!wallet) return false;
     const config = await configProvider.getConfig();
     const display = await wallet.requestDisplay(config.displayBackupSize);
     try {
-      const restored = await pushModal<boolean>(({ id, resolve, reject }) => ({
+      const imported = await pushModal<boolean>(({ id, resolve, reject }) => ({
         id,
-        kind: "restoreBackup",
-        encryptedPrivateKey: encrypted,
+        kind: "importPrivateKey",
         resolve,
         reject,
       }));
-      if (restored) {
+      if (imported) {
         setUnlocked(true);
         useWalletSessionStore.getState().setWalletCreated(true);
         await refreshAddresses();
       }
+      return imported;
     } finally {
       await display.hide();
     }
   }, [refreshAddresses, setUnlocked]);
 
-  const persistBackup = useCallback((encryptedPrivateKey: string) => {
-    saveBackup(encryptedPrivateKey);
-  }, []);
+  const openAdvancedOptions = useCallback(
+    async (options?: { allowExport?: boolean }) => {
+      const wallet = walletRef.current;
+      if (!wallet) return;
+      const allowExport = options?.allowExport !== false;
+      const config = await configProvider.getConfig();
+      const display = await wallet.requestDisplay(config.displayBackupSize);
+      let choice: import("./modalTypes").AdvancedOptionsChoice = "close";
+      try {
+        choice = await pushModal<
+          import("./modalTypes").AdvancedOptionsChoice
+        >(({ id, resolve }) => ({
+          id,
+          kind: "advancedOptions",
+          allowExport,
+          resolve,
+        }));
+      } finally {
+        await display.hide();
+      }
+      if (choice === "export") {
+        await openExportPrivateKey();
+      } else if (choice === "import") {
+        await openImportPrivateKey();
+      } else if (choice === "changeAccount") {
+        clearWalletStorage();
+        signerRef.current?.clearSession();
+        const session = useWalletSessionStore.getState();
+        session.setUnlocked(false);
+        session.setWalletCreated(false);
+        session.setAddresses(
+          EVMAccountAddress("0x0"),
+          SolanaAccountAddress("—"),
+        );
+        session.setCredentialCount(0);
+        session.setTrackedAssetCount(0);
+        session.unfocusWallet();
+        // Land on OnboardingPanel (login / create). Do not call ensureReady —
+        // that would immediately reopen the setup modal.
+      }
+    },
+    [openExportPrivateKey, openImportPrivateKey],
+  );
 
   const getSigner = useCallback(() => signerRef.current, []);
 
@@ -457,11 +513,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       listAssetActivity,
       recordSentActivity,
       sendTransaction,
-      openCreateBackup,
-      openRestoreBackup,
+      openExportPrivateKey,
+      openImportPrivateKey,
+      openAdvancedOptions,
       loginWithPasskey,
       createNewWalletFromUi,
-      persistBackup,
     }),
     [
       chains,
@@ -486,11 +542,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       listAssetActivity,
       recordSentActivity,
       sendTransaction,
-      openCreateBackup,
-      openRestoreBackup,
+      openExportPrivateKey,
+      openImportPrivateKey,
+      openAdvancedOptions,
       loginWithPasskey,
       createNewWalletFromUi,
-      persistBackup,
     ],
   );
 

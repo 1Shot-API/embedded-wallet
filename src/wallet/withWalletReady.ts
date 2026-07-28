@@ -1,11 +1,12 @@
 /**
  * App-owned readiness gate for host-driven actions.
  *
- * OWS helpers (`SignHelper`, `CredentialsHelper`) take an optional `ensureReady`
- * callback, but some flows (e.g. `present`) also need credentials in the local
- * cache before they can match / show consent. Custom RPCs (`eth_sendTransaction`,
- * future 7710/delegation sends) should use the same centralized gate pattern so
- * unlock/setup is never forgotten when new methods are added.
+ * Branding wrappers (`registerApprovalSigning`, `CredentialsHelper`) take an
+ * optional `ensureReady` callback. Some flows (e.g. `present`) also need
+ * credentials in the local cache before they can match / show consent. Custom
+ * RPCs (`eth_sendTransaction`, future 7710/delegation sends) should use the
+ * same centralized gate pattern so unlock/setup is never forgotten when new
+ * methods are added.
  *
  * Full `ensureReady` owns:
  * - unlocked → no-op
@@ -16,8 +17,8 @@
  * and in-wallet send: pass a setup-only gate — run setup/login only when no
  * credential id exists. With a known credential, skip a separate `getPublicKey`
  * unlock; the signing / approve-transaction ceremony itself authenticates. Pair
- * with `onAuthenticated` to mark unlocked and refresh addresses after a
- * successful sign.
+ * with `onAuthenticated` (inside branding `approveAndSign*`) to mark unlocked
+ * and refresh addresses after a successful sign.
  */
 
 export type WalletReadyGate = () => Promise<void>;
@@ -25,8 +26,8 @@ export type WalletReadyGate = () => Promise<void>;
 /**
  * Wrap a host RPC / credential handler so it always runs after {@link ensureReady}.
  * Use for actions that need an unlocked signer before any other work
- * (e.g. credential mutate paths). Prefer SignHelper's setup-only gate for
- * signing / transaction methods.
+ * (e.g. credential mutate paths). Prefer branding setup-only gates on
+ * `approveAndSign*` for signing / transaction methods.
  */
 export function withWalletReady<TArgs extends unknown[], TResult>(
   ensureReady: WalletReadyGate,

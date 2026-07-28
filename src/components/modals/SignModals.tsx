@@ -3,49 +3,109 @@ import type {
   SendTransactionApprovalRequest,
   SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
-import { ConversionUtils, HexString } from "@1shotapi/ows-types";
-import { useState } from "react";
+import {
+  ConversionUtils,
+  HexString,
+  OwsUserRejectedError,
+  type EVMSignatureHex,
+  type EVMTransactionHash,
+} from "@1shotapi/ows-types";
+import { useRef, useState } from "react";
+import type { TypedDataDefinition } from "viem";
 import type { IPaymentQuote } from "../../lib/interfaces/business";
 import type {
-  IConfirmSendResult,
+  IConfirmSendPayment,
   IConfirmTransferRequest,
 } from "../../wallet/modalTypes";
 import { useStyle } from "../../style/StyleProvider";
+import { useWallet } from "../../wallet/WalletProvider";
 import { Modal } from "../Modal";
 import { PaymentFeePicker } from "../PaymentFeePicker";
+
+function isSignDenied(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return (
+    error.name === "OwsSignDeniedError" ||
+    error.message.includes("signDenied") ||
+    error.message.includes("SignDenied") ||
+    error.message.includes("NotAllowed") ||
+    error.message.includes("not allowed")
+  );
+}
 
 export function PersonalSignModal({
   request,
   onResolve,
+  onReject,
 }: {
   request: PersonalSignApprovalRequest;
-  onResolve: (approved: boolean) => void;
+  onResolve: (signature: EVMSignatureHex) => void;
+  onReject: (error: unknown) => void;
 }) {
+  const { getSigner } = useWallet();
   const { style } = useStyle();
   const { personalSign } = style.copy;
+  const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
+  /** Bumped on cancel and each startSign so stale in-flight ops cannot settle. */
+  const signGenerationRef = useRef(0);
+
+  const cancel = () => {
+    signGenerationRef.current += 1;
+    onReject(new OwsUserRejectedError("User rejected the signing request"));
+  };
+
+  const startSign = () => {
+    const generation = ++signGenerationRef.current;
+    setPhase("signing");
+    void (async () => {
+      const signer = getSigner();
+      if (!signer) {
+        throw new Error("Signer not ready");
+      }
+      const [signature] = await signer.evm.signMessage([request.message]);
+      if (signGenerationRef.current !== generation) return;
+      onResolve(signature!);
+    })().catch((error: unknown) => {
+      if (signGenerationRef.current !== generation) return;
+      if (isSignDenied(error)) {
+        setPhase("confirm");
+        return;
+      }
+      onReject(error);
+    });
+  };
 
   return (
     <Modal
       title={personalSign.title}
-      onBackdropDismiss={() => onResolve(false)}
-      actions={[
-        {
-          label: personalSign.rejectLabel,
-          variant: "secondary",
-          onClick: () => onResolve(false),
-        },
-        {
-          label: personalSign.signLabel,
-          variant: "primary",
-          autoFocus: true,
-          onClick: () => onResolve(true),
-        },
-      ]}
+      onBackdropDismiss={phase === "confirm" ? cancel : undefined}
+      actions={
+        phase === "confirm"
+          ? [
+              {
+                label: personalSign.rejectLabel,
+                variant: "secondary",
+                onClick: cancel,
+              },
+              {
+                label: personalSign.signLabel,
+                variant: "primary",
+                autoFocus: true,
+                onClick: startSign,
+              },
+            ]
+          : undefined
+      }
     >
       <FieldLabel>{personalSign.accountLabel}</FieldLabel>
       <p className="mb-3 break-all font-mono text-[0.8rem]">{request.address}</p>
       <FieldLabel>{personalSign.messageLabel}</FieldLabel>
       <DetailBlock content={formatMessageForDisplay(request.message)} />
+      {phase === "signing" ? (
+        <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
+          Confirm in the signing panel…
+        </p>
+      ) : null}
     </Modal>
   );
 }
@@ -53,31 +113,69 @@ export function PersonalSignModal({
 export function TypedDataModal({
   request,
   onResolve,
+  onReject,
 }: {
   request: SignTypedDataApprovalRequest;
-  onResolve: (approved: boolean) => void;
+  onResolve: (signature: EVMSignatureHex) => void;
+  onReject: (error: unknown) => void;
 }) {
+  const { getSigner } = useWallet();
   const { style } = useStyle();
   const { typedData: copy } = style.copy;
   const { typedData } = request;
+  const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
+  /** Bumped on cancel and each startSign so stale in-flight ops cannot settle. */
+  const signGenerationRef = useRef(0);
+
+  const cancel = () => {
+    signGenerationRef.current += 1;
+    onReject(new OwsUserRejectedError("User rejected the signing request"));
+  };
+
+  const startSign = () => {
+    const generation = ++signGenerationRef.current;
+    setPhase("signing");
+    void (async () => {
+      const signer = getSigner();
+      if (!signer) {
+        throw new Error("Signer not ready");
+      }
+      const [signature] = await signer.evm.signTypedData([
+        typedData as unknown as TypedDataDefinition,
+      ]);
+      if (signGenerationRef.current !== generation) return;
+      onResolve(signature!);
+    })().catch((error: unknown) => {
+      if (signGenerationRef.current !== generation) return;
+      if (isSignDenied(error)) {
+        setPhase("confirm");
+        return;
+      }
+      onReject(error);
+    });
+  };
 
   return (
     <Modal
       title={copy.title}
-      onBackdropDismiss={() => onResolve(false)}
-      actions={[
-        {
-          label: copy.rejectLabel,
-          variant: "secondary",
-          onClick: () => onResolve(false),
-        },
-        {
-          label: copy.signLabel,
-          variant: "primary",
-          autoFocus: true,
-          onClick: () => onResolve(true),
-        },
-      ]}
+      onBackdropDismiss={phase === "confirm" ? cancel : undefined}
+      actions={
+        phase === "confirm"
+          ? [
+              {
+                label: copy.rejectLabel,
+                variant: "secondary",
+                onClick: cancel,
+              },
+              {
+                label: copy.signLabel,
+                variant: "primary",
+                autoFocus: true,
+                onClick: startSign,
+              },
+            ]
+          : undefined
+      }
     >
       <FieldLabel>{copy.accountLabel}</FieldLabel>
       <p className="mb-3 break-all font-mono text-[0.8rem]">{request.address}</p>
@@ -93,52 +191,87 @@ export function TypedDataModal({
         label={copy.messageLabel}
         content={formatJson(typedData.message)}
       />
+      {phase === "signing" ? (
+        <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
+          Confirm in the signing panel…
+        </p>
+      ) : null}
     </Modal>
   );
 }
 
 export function SendTransactionModal({
   request,
+  execute,
   onResolve,
+  onReject,
 }: {
   request: SendTransactionApprovalRequest & { useRelayer?: boolean };
-  onResolve: (result: IConfirmSendResult) => void;
+  execute: (payment: IConfirmSendPayment) => Promise<EVMTransactionHash>;
+  onResolve: (hash: EVMTransactionHash) => void;
+  onReject: (error: unknown) => void;
 }) {
   const { style } = useStyle();
   const { sendTransaction: copy } = style.copy;
   const [quote, setQuote] = useState<IPaymentQuote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
+  const [error, setError] = useState<string | null>(null);
+  const abortedRef = useRef(false);
 
   const canConfirm =
     !request.useRelayer || (quote !== null && quoteError === null);
 
+  const cancel = () => {
+    abortedRef.current = true;
+    onReject(new OwsUserRejectedError("User rejected the transaction request"));
+  };
+
+  const startSend = () => {
+    abortedRef.current = false;
+    setError(null);
+    setPhase("signing");
+    const payment: IConfirmSendPayment =
+      request.useRelayer && quote
+        ? { paymentToken: quote.selectedToken, feeAtoms: quote.feeAtoms }
+        : {};
+    void (async () => {
+      const hash = await execute(payment);
+      if (abortedRef.current) return;
+      onResolve(hash);
+    })().catch((err: unknown) => {
+      if (abortedRef.current) return;
+      if (isSignDenied(err)) {
+        setPhase("confirm");
+        return;
+      }
+      setError(err instanceof Error ? err.message : String(err));
+      setPhase("confirm");
+    });
+  };
+
   return (
     <Modal
       title={copy.title}
-      onBackdropDismiss={() => onResolve(false)}
-      actions={[
-        {
-          label: copy.rejectLabel,
-          variant: "secondary",
-          onClick: () => onResolve(false),
-        },
-        {
-          label: copy.signLabel,
-          variant: "primary",
-          autoFocus: true,
-          disabled: !canConfirm,
-          onClick: () => {
-            if (request.useRelayer && quote) {
-              onResolve({
-                paymentToken: quote.selectedToken,
-                feeAtoms: quote.feeAtoms,
-              });
-            } else {
-              onResolve({});
-            }
-          },
-        },
-      ]}
+      onBackdropDismiss={phase === "confirm" ? cancel : undefined}
+      actions={
+        phase === "confirm"
+          ? [
+              {
+                label: copy.rejectLabel,
+                variant: "secondary",
+                onClick: cancel,
+              },
+              {
+                label: copy.signLabel,
+                variant: "primary",
+                autoFocus: true,
+                disabled: !canConfirm,
+                onClick: startSend,
+              },
+            ]
+          : undefined
+      }
     >
       <FieldLabel>{copy.accountLabel}</FieldLabel>
       <p className="mb-3 break-all font-mono text-[0.8rem]">{request.address}</p>
@@ -162,21 +295,36 @@ export function SendTransactionModal({
           }}
         />
       ) : null}
+      {phase === "signing" ? (
+        <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
+          Confirm in the signing panel…
+        </p>
+      ) : null}
+      {error ? (
+        <p className="text-destructive mt-3 m-0 text-[0.9rem]">{error}</p>
+      ) : null}
     </Modal>
   );
 }
 
 export function ConfirmTransferModal({
   request,
+  execute,
   onResolve,
+  onReject,
 }: {
   request: IConfirmTransferRequest;
-  onResolve: (result: IConfirmSendResult) => void;
+  execute: (payment: IConfirmSendPayment) => Promise<EVMTransactionHash>;
+  onResolve: (hash: EVMTransactionHash) => void;
+  onReject: (error: unknown) => void;
 }) {
   const { style } = useStyle();
   const { confirmTransfer: copy } = style.copy;
   const [quote, setQuote] = useState<IPaymentQuote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
+  const [error, setError] = useState<string | null>(null);
+  const abortedRef = useRef(false);
   const body = copy.body
     .replace("{domain}", request.domain)
     .replace("{amount}", request.amount)
@@ -188,37 +336,63 @@ export function ConfirmTransferModal({
   const canConfirm =
     !request.useRelayer || (quote !== null && quoteError === null);
 
+  const cancel = () => {
+    abortedRef.current = true;
+    onReject(new OwsUserRejectedError("User rejected the transaction request"));
+  };
+
+  const startSend = () => {
+    abortedRef.current = false;
+    setError(null);
+    setPhase("signing");
+    const payment: IConfirmSendPayment =
+      request.useRelayer && quote
+        ? { paymentToken: quote.selectedToken, feeAtoms: quote.feeAtoms }
+        : {};
+    void (async () => {
+      const hash = await execute(payment);
+      if (abortedRef.current) return;
+      onResolve(hash);
+    })().catch((err: unknown) => {
+      if (abortedRef.current) return;
+      if (isSignDenied(err)) {
+        setPhase("confirm");
+        return;
+      }
+      setError(err instanceof Error ? err.message : String(err));
+      setPhase("confirm");
+    });
+  };
+
   return (
     <Modal
       title={copy.title}
-      onBackdropDismiss={() => onResolve(false)}
-      actions={[
-        {
-          label: copy.rejectLabel,
-          variant: "secondary",
-          onClick: () => onResolve(false),
-        },
-        {
-          label: copy.confirmLabel,
-          variant: "primary",
-          autoFocus: true,
-          disabled: !canConfirm,
-          onClick: () => {
-            if (request.useRelayer && quote) {
-              onResolve({
-                paymentToken: quote.selectedToken,
-                feeAtoms: quote.feeAtoms,
-              });
-            } else {
-              onResolve({});
-            }
-          },
-        },
-      ]}
+      onBackdropDismiss={phase === "confirm" ? cancel : undefined}
+      actions={
+        phase === "confirm"
+          ? [
+              {
+                label: copy.rejectLabel,
+                variant: "secondary",
+                onClick: cancel,
+              },
+              {
+                label: copy.confirmLabel,
+                variant: "primary",
+                autoFocus: true,
+                disabled: !canConfirm,
+                onClick: startSend,
+              },
+            ]
+          : undefined
+      }
     >
       <p className="text-muted-foreground m-0">{body}</p>
       <div className="mt-4 flex flex-col gap-3">
-        <LabeledBlock label={copy.amountLabel} content={`${request.amount} ${request.tokenSymbol}`} />
+        <LabeledBlock
+          label={copy.amountLabel}
+          content={`${request.amount} ${request.tokenSymbol}`}
+        />
         <LabeledBlock label={copy.tokenLabel} content={request.tokenName} />
         <LabeledBlock label={copy.receiverLabel} content={request.receiver} />
         <LabeledBlock label={copy.chainLabel} content={request.chainName} />
@@ -235,6 +409,14 @@ export function ConfirmTransferModal({
             setQuoteError(err);
           }}
         />
+      ) : null}
+      {phase === "signing" ? (
+        <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
+          Confirm in the signing panel…
+        </p>
+      ) : null}
+      {error ? (
+        <p className="text-destructive mt-3 m-0 text-[0.9rem]">{error}</p>
       ) : null}
     </Modal>
   );
