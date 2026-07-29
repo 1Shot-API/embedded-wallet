@@ -13,10 +13,10 @@ import { useWallet } from "../wallet/WalletProvider";
 import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
 import { useWalletSessionStore } from "../wallet/sessionStore";
+import { openOnramp } from "../circle/openOnramp";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { TransactionHistory } from "./TransactionHistory";
 import { ReceiveModal } from "./modals/ReceiveModal";
-import { PurchaseComingSoonModal } from "./modals/PurchaseComingSoonModal";
 import { TransferTokensModal } from "./modals/TransferTokensModal";
 
 export interface IAssetDetailsProps {
@@ -39,7 +39,7 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   );
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
-  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [buyBusy, setBuyBusy] = useState(false);
 
   const { balance, decimals } = useLiveTrackedBalance(
     assetProp.id,
@@ -72,11 +72,29 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
     solanaAddress,
   });
   const canSend = asset.type === EAssetType.Erc20;
+  const canBuy =
+    Boolean(evmAddress) && String(evmAddress).toLowerCase() !== "0x0";
 
   const openSend = useCallback(() => {
     void requestBalanceRefresh(asset.id);
     setSendOpen(true);
   }, [asset.id, requestBalanceRefresh]);
+
+  const openBuy = useCallback(() => {
+    if (!evmAddress || buyBusy) return;
+    setBuyBusy(true);
+    void openOnramp({
+      destinationAddress: evmAddress,
+      chainId: Number(BigInt(asset.chainId)),
+      tokenSymbol: asset.symbol,
+    })
+      .catch(() => {
+        /* user closed or mint failed — OnrampView surfaces errors */
+      })
+      .finally(() => {
+        setBuyBusy(false);
+      });
+  }, [asset.chainId, asset.symbol, buyBusy, evmAddress]);
 
   return (
     <div className="flex flex-col gap-5" aria-label={`${asset.symbol} details`}>
@@ -113,7 +131,8 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
         <ActionButton
           label="Buy"
           variant="outline"
-          onClick={() => setPurchaseOpen(true)}
+          disabled={!canBuy || buyBusy}
+          onClick={openBuy}
         >
           <PlusIcon className="size-5" />
         </ActionButton>
@@ -151,9 +170,6 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
             void requestBalanceRefresh(asset.id);
           }}
         />
-      ) : null}
-      {purchaseOpen ? (
-        <PurchaseComingSoonModal onClose={() => setPurchaseOpen(false)} />
       ) : null}
     </div>
   );

@@ -55,8 +55,11 @@ jobs:
           gcloud --quiet auth configure-docker $GAR_LOCATION-docker.pkg.dev
 
       - name: Build Wallet
+        env:
+          CLOUDSMITH_TOKEN: ${{ secrets.CLOUDSMITH_TOKEN }}
         run: |-
           docker build \
+            --secret id=cloudsmith_token,env=CLOUDSMITH_TOKEN \
             --tag "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$PRODUCT_NAME/oneshot-wallet:$GITHUB_SHA" \
             --tag "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$PRODUCT_NAME/oneshot-wallet:${GITHUB_REF##*/}" \
             --tag "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$PRODUCT_NAME/oneshot-wallet:latest" \
