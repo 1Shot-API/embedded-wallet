@@ -44,10 +44,6 @@ const MIME: Record<string, string> = {
   ".woff2": "font/woff2",
 };
 
-/** Canonical Signing Layer CSP (omit frame-ancestors for permissionless branding embeds). */
-const SIGNER_CSP =
-  "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; child-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests";
-
 function contentType(filePath: string): string {
   return MIME[path.extname(filePath)] ?? "application/octet-stream";
 }
@@ -57,7 +53,6 @@ function sendFile(res: ServerResponse, filePath: string): void {
   stream.once("open", () => {
     res.statusCode = 200;
     res.setHeader("Content-Type", contentType(filePath));
-    res.setHeader("Content-Security-Policy", SIGNER_CSP);
     stream.pipe(res);
   });
   stream.once("error", (error: NodeJS.ErrnoException) => {
