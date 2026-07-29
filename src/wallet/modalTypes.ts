@@ -12,6 +12,7 @@ import type {
   EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
+import type { IOnrampOpenRequest } from "../circle/onrampTypes";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
@@ -132,6 +133,13 @@ export type ModalRequest =
       createUrl: string;
       /** true when user confirms open; false when cancelled. */
       resolve: (opened: boolean) => void;
+    }
+  | {
+      id: string;
+      kind: "onramp";
+      request: IOnrampOpenRequest;
+      resolve: () => void;
+      reject: (error: unknown) => void;
     };
 
 export type ActiveModal = ModalRequest;

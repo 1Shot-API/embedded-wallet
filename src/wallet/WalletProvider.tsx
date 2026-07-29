@@ -37,6 +37,7 @@ import { OneshotRelayerRepository } from "../lib/implementations/data/OneshotRel
 import { TransactionService } from "../lib/implementations/business";
 import {
   ConfigProvider,
+  CircleProvider,
   OWSProvider,
   SupportedChainsBlockchainProvider,
   EventBus,
@@ -52,6 +53,7 @@ import type {
 } from "../lib/interfaces/data";
 import type { ITransactionService } from "../lib/interfaces/business";
 import type {
+  ICircleProvider,
   IConfigProvider,
   IEventBus,
   IOWSProvider,
@@ -74,8 +76,10 @@ import { useWalletAuth } from "./useWalletAuth";
 import { useWalletAssets } from "./useWalletAssets";
 import { useWalletBoot } from "./useWalletBoot";
 import { useWalletSessionStore } from "./sessionStore";
+import { CircleContextProvider } from "../circle/CircleContext";
 /** Filled once the Signing Layer iframe finishes loading / wallet handshake. */
 const configProvider: IConfigProvider = new ConfigProvider();
+const circleProvider: ICircleProvider = new CircleProvider(configProvider);
 const owsProvider: IOWSProvider = new OWSProvider();
 const chainRepository: IChainRepository = new HardcodedChainRepository();
 const blockchainProvider: IBlockchainProvider =
@@ -546,6 +550,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
+    <CircleContextProvider provider={circleProvider}>
+      <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
+    </CircleContextProvider>
   );
 }
