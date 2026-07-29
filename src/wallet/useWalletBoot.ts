@@ -45,7 +45,6 @@ import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerCreateAccountRpc } from "./registerCreateAccount";
 import type { IPasskeyRegistrationResult } from "./registerCreateAccount";
 import { registerFocusModeRpc } from "./registerFocusMode";
-import { registerOnrampRpc } from "./registerOnramp";
 import { loadCredentialId } from "../storage";
 import { pushModal } from "./pushModal";
 import type { ActiveModal, IRelayerConfirmSendResult } from "./modalTypes";
@@ -235,16 +234,6 @@ export function useWalletBoot({
       chainEvents = rpcHelper.events;
 
       registerFocusModeRpc(wallet, rpcHelper);
-
-      registerOnrampRpc(wallet, {
-        getOwnerAddress: () => {
-          const address = useWalletSessionStore.getState().evmAddress;
-          if (!address || String(address).toLowerCase() === "0x0") {
-            return null;
-          }
-          return address;
-        },
-      });
 
       registerAddAssetRpc(wallet, {
         knownAssetRepository,

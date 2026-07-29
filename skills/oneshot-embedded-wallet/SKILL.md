@@ -3,7 +3,7 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as setStyle / focusWallet / addAsset / createAccount / onramp for
+  or custom RPC such as setStyle / focusWallet / addAsset / createAccount for
   theming, host-driven focus mode, tracked assets, and first-party Safari create.
 license: MIT
 metadata:
@@ -232,7 +232,7 @@ Users can also add assets from the Balances tab without a host RPC. The Balances
 
 ## Custom RPC — `createAccount`
 
-Used by the first-party **`/create/`** host page (Safari passkey create). Hosts embedding the wallet normally do **not** call this — the branding layer opens `/create/` itself when needed. Not exposed as a playground button.
+Used by the first-party **`/create/`** host page (Safari passkey create). Hosts embedding the wallet normally do **not** call this — the branding layer opens `/create/` itself when needed.
 
 ```typescript
 const result = await proxy.rpc("createAccount");
@@ -246,24 +246,6 @@ await proxy.rpc("createAccount", { accountName: "My Wallet" });
 |--------|--------|--------|
 | `createAccount` | `{ accountName?: string }` optional | Runs setup create (passkey + relayer register); returns credential id |
 
-## Custom RPC — `onramp`
-
-Opens Circle fiat onramp fullscreen inside the Branding Layer for the unlocked EVM address.
-
-```typescript
-await proxy.rpc("onramp", {
-  chainId: 8453, // optional — decimal chain id for catalog scoping
-  amount: "50", // optional — amount hint when supported by the kit
-});
-// or: await proxy.rpc("onramp", {});
-```
-
-| Method | Params | Behavior |
-|--------|--------|----------|
-| `onramp` | `{ chainId?: number, amount?: string }` | Shows wallet, mounts Circle AppKit onramp; session minted via Relayer `POST /wallet/onramp` |
-
-Returns `{ ok: true }` when the user closes the onramp view. The Relayer holds the Circle kit key; the browser only receives a single-use session. Inline iframe requires Circle CSP allowlisting of the wallet origin; for local/ngrok testing the branding layer honors `localStorage.setItem("circlePopup", "true")` and uses AppKit `openWindow` instead.
-
 ## Other Host APIs
 
 | API | Use |
@@ -271,7 +253,7 @@ Returns `{ ok: true }` when the user closes the onramp view. The Relayer holds t
 | `proxy.ethereum.request(...)` | EIP-1193 (accounts, sign, chain, …) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, …) |
+| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, …) |
 
 ## Hard rules
 
@@ -280,4 +262,3 @@ Returns `{ ok: true }` when the user closes the onramp view. The Relayer holds t
 - Theme with `setStyle`; do not ask integrators to fork CSS for basic brand colors / product name.
 - Use `focusWallet` / `unfocusWallet` for host-driven single-asset flows; do not expose mode switching in the wallet UI.
 - Use `addAsset` when the host wants a lasting Balances entry; expect a confirm modal (contrast with `focusWallet`).
-- Use `onramp` (or the in-wallet Buy button) for fiat → crypto; do not put the Circle kit key in the Host or Branding Layer.
