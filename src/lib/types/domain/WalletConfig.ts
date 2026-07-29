@@ -16,5 +16,9 @@ export class WalletConfig {
     public readonly assetActivityDefaultLimit: number,
     /** Max optimistic send rows retained in localStorage. */
     public readonly assetActivityMaxOptimistic: number,
+    /**
+     * Circle onramp widget origin (must match Relayer `ONRAMP_WIDGET_BASE_URL`).
+     */
+    public readonly onrampWidgetBaseUrl: string,
   ) {}
 }

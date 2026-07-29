@@ -481,6 +481,28 @@ export function useHostTestActions({
     })();
   };
 
+  const handleOnramp = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Opening onramp…");
+    void (async () => {
+      try {
+        await proxy.rpc("onramp", {});
+        proxy.showWallet();
+        setWalletVisible(true);
+        reportStatus("Onramp closed.");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "onramp failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
   const walletActionProps = {
     ready,
     busy,
@@ -510,6 +532,7 @@ export function useHostTestActions({
     onUnfocusWallet: handleUnfocusWallet,
     onAddUsdcArc: handleAddUsdcArc,
     onAddUsdtBase: handleAddUsdtBase,
+    onOnramp: handleOnramp,
   };
 
   return {
