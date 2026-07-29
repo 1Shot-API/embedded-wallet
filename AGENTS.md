@@ -18,12 +18,10 @@ Prefer **clean code over backwards compatibility**. Do not add legacy redirects,
 | `src/lib/types/domain/` | Domain DTOs (e.g. `KnownAsset`, `TrackedAsset`, `WalletConfig`) |
 | `src/lib/types/events/` | Domain event classes (one file each) |
 | `src/lib/interfaces/{business,data,utils}/` | Layer interfaces |
-| `src/lib/implementations/{business,data,utils}/` | Layer implementations (`CircleProvider` for AppKit onramp) |
+| `src/lib/implementations/{business,data,utils}/` | Layer implementations |
 | `src/assets/` | Static media only (SVGs, images) |
 
 Test Host Layer: `host/` (`npm run dev:host`). Style via Host RPC `setStyle`, not in-wallet debug knobs.
-
-Fiat onramp: Asset Details **Buy** and host RPC `onramp({ chainId?, amount? })` open `OnrampView` (Circle AppKit). Sessions come from Relayer `POST /wallet/onramp` — never put the Circle kit key in this SPA. Default UI is `mountIframe`; for local/ngrok before Circle CSP allowlisting, set `localStorage.circlePopup = "true"` to use `openWindow` (prefetch session, then a sync click). Cloudsmith: set `CLOUDSMITH_TOKEN` before `npm install` (see README).
 
 ### Form validation UX
 

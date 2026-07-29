@@ -5,13 +5,7 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY host/package.json ./host/
-COPY .npmrc ./
-
-# Circle @crcl-main/* requires CLOUDSMITH_TOKEN BuildKit secret
-RUN --mount=type=secret,id=cloudsmith_token \
-  CLOUDSMITH_TOKEN="$(cat /run/secrets/cloudsmith_token)" \
-  npm ci \
-  && rm -f .npmrc
+RUN npm ci
 
 COPY index.html vite.config.ts tsconfig.json tsconfig.node.json components.json ./
 COPY src ./src

@@ -19,7 +19,6 @@ import { ImportPrivateKeyModal } from "./modals/ImportPrivateKeyModal";
 import { AdvancedOptionsModal } from "./modals/AdvancedOptionsModal";
 import { AddAssetModal } from "./modals/AddAssetModal";
 import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
-import { OnrampView } from "./OnrampView";
 
 export function ModalHost() {
   const activeModal = useModalStore((state) => state.activeModal);
@@ -113,16 +112,6 @@ export function ModalHost() {
         <OpenCreateTabModal
           createUrl={activeModal.createUrl}
           onResolve={activeModal.resolve}
-        />
-      );
-    case "onramp":
-      return (
-        <OnrampView
-          destinationAddress={activeModal.request.destinationAddress}
-          chainId={activeModal.request.chainId}
-          amount={activeModal.request.amount}
-          tokenSymbol={activeModal.request.tokenSymbol}
-          onClose={() => activeModal.resolve()}
         />
       );
     default:

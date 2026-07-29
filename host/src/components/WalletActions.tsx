@@ -47,7 +47,6 @@ export interface IWalletActionsProps {
   onUnfocusWallet: () => void;
   onAddUsdcArc: () => void;
   onAddUsdtBase: () => void;
-  onOnramp: () => void;
 }
 
 export function WalletActions({
@@ -79,7 +78,6 @@ export function WalletActions({
   onUnfocusWallet,
   onAddUsdcArc,
   onAddUsdtBase,
-  onOnramp,
 }: IWalletActionsProps) {
   const meta = hostChainMeta(chainId);
 
@@ -309,24 +307,6 @@ export function WalletActions({
             onClick={onAddUsdtBase}
           >
             Add Base USDT
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label>Onramp</Label>
-        <p className="text-muted-foreground text-xs">
-          Open Circle fiat onramp via <code>onramp</code> (Buy crypto into the
-          unlocked wallet address).
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!ready || busy}
-            onClick={onOnramp}
-          >
-            Onramp
           </Button>
         </div>
       </div>
