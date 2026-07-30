@@ -15,7 +15,8 @@ export function TestPanel(props: IWalletActionsProps) {
         <CardHeader>
           <CardTitle className="font-heading text-xl">Test</CardTitle>
           <CardDescription>
-            Exercise connect, personal_sign, chain switch, and ERC-20 reads.
+            Exercise connect, personal_sign, chain switch, ERC-20 reads, and EIP-7715
+            delegations.
             The wallet flyout stays hidden until an action needs it.
           </CardDescription>
         </CardHeader>

@@ -8,6 +8,7 @@ import {
   loadCredentialId,
   saveCachedAddresses,
   saveCachedSecp256k1PublicKey,
+  saveCosePublicKey,
   saveWalletCreated,
 } from "../storage";
 import { pushModal } from "./pushModal";
@@ -116,6 +117,7 @@ export function useWalletAuth({
       await signer.getPublicKey({ credentialId });
       await refreshAddresses();
       // Relayer register — also deferred from /create (one assertion here).
+      saveCosePublicKey(COSEPublicKey(cosePublicKey));
       await credentialRepository.registerPasskey(COSEPublicKey(cosePublicKey));
       try {
         await refreshCredentialCount();
@@ -169,7 +171,7 @@ export function useWalletAuth({
         );
       }
       saveWalletCreated(credentialId);
-      useWalletSessionStore.getState().setWalletCreated(true);
+      saveCosePublicKey(created.cosePublicKey);
       // Do not unlock or register — opener adopts via handoff.
       return {
         credentialId,
@@ -206,6 +208,7 @@ export function useWalletAuth({
         );
       }
       saveWalletCreated(credentialId);
+      saveCosePublicKey(created.cosePublicKey);
       await credentialRepository.registerPasskey(created.cosePublicKey);
       useWalletSessionStore.getState().setWalletCreated(true);
       await refreshAddresses();
@@ -251,27 +254,16 @@ export function useWalletAuth({
       saveWalletCreated(credentialId);
       useWalletSessionStore.getState().setWalletCreated(true);
       await refreshAddresses();
-      try {
-        const listed = await credentialRepository.list();
-        if (listed.length === 0) {
-          await credentialRepository.refreshFromRelayer();
-          await refreshCredentialCount();
-        }
-      } catch (error: unknown) {
-        console.warn(
-          "[credentials] recover after unlock failed (passkey may be unregistered)",
-          error,
-        );
-      }
+      // Unlock alone — callers that need the vault (ensureReady) recover
+      // after this when the local cache is empty. Refresh buttons must not
+      // nest recover inside unlock (that double-fires RelayerAuth).
       setUnlocked(true);
       return;
     }
     await loginWithPasskey();
   }, [
-    credentialRepository,
     loginWithPasskey,
     refreshAddresses,
-    refreshCredentialCount,
     setUnlocked,
     signerRef,
   ]);
@@ -341,6 +333,24 @@ export function useWalletAuth({
     unlockInFlightRef.current = (async () => {
       if (isWalletCreated()) {
         await unlockWithStoredCredential();
+        // Warm vault once after unlock when both local lists are empty.
+        // Refresh / Credentials / Delegations call refreshFromRelayer themselves
+        // and must not also hit this path via nested ensureReady.
+        try {
+          const [creds, dels] = await Promise.all([
+            credentialRepository.list(),
+            credentialRepository.listDelegations(),
+          ]);
+          if (creds.length === 0 && dels.length === 0) {
+            await credentialRepository.refreshFromRelayer();
+            await refreshCredentialCount();
+          }
+        } catch (error: unknown) {
+          console.warn(
+            "[credentials] recover after unlock failed (passkey may be unregistered)",
+            error,
+          );
+        }
         return;
       }
       await runSetupFlow();
@@ -351,7 +361,12 @@ export function useWalletAuth({
     } finally {
       unlockInFlightRef.current = undefined;
     }
-  }, [runSetupFlow, unlockWithStoredCredential]);
+  }, [
+    credentialRepository,
+    refreshCredentialCount,
+    runSetupFlow,
+    unlockWithStoredCredential,
+  ]);
 
   const ensureReadyRef = useRef(ensureReadyImpl);
   useEffect(() => {

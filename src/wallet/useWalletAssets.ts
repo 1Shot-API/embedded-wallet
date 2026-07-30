@@ -27,7 +27,8 @@ export interface IUseWalletAssetsParams {
   trackedAssetRepository: ITrackedAssetRepository;
   assetActivityRepository: IAssetActivityRepository;
   eventBus: IEventBus;
-  ensureReady: () => Promise<void>;
+  /** Vault recover needs the Signing Layer for decryptAES256 only — not unlock. */
+  awaitSignerReady: () => Promise<unknown>;
   refreshCredentialCount: () => Promise<void>;
 }
 
@@ -37,7 +38,7 @@ export function useWalletAssets({
   trackedAssetRepository,
   assetActivityRepository,
   eventBus,
-  ensureReady,
+  awaitSignerReady,
   refreshCredentialCount,
 }: IUseWalletAssetsParams) {
   const refreshTrackedAssetCount = useCallback(async () => {
@@ -58,10 +59,13 @@ export function useWalletAssets({
   );
 
   const refreshCredentialsFromRelayer = useCallback(async () => {
-    await ensureReady();
+    // Do not call ensureReady/unlock first — that stacked Unlock + RelayerAuth
+    // (and could double-recover). Empty vault: one RelayerAuth. Blobs present:
+    // RelayerAuth + Decrypt (PRF inside decryptAES256).
+    await awaitSignerReady();
     await credentialRepository.refreshFromRelayer();
     await refreshCredentialCount();
-  }, [credentialRepository, ensureReady, refreshCredentialCount]);
+  }, [awaitSignerReady, credentialRepository, refreshCredentialCount]);
 
   const listDelegations = useCallback(async () => {
     return credentialRepository.listDelegations();

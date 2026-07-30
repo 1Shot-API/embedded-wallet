@@ -31,9 +31,9 @@ import {
   DelegationId,
   type DelegationId as DelegationIdType,
 } from "../../types/primitives/DelegationId";
-import type { RelayerCredentialsClient } from "../../../relayer/RelayerCredentialsClient";
+import { RelayerCredentialsClient, RelayerCredentialsError } from "../../../relayer/RelayerCredentialsClient";
 import { createRelayerAssertion } from "../../../relayer/webauthnAuth";
-import { loadCredentialId } from "../../../storage";
+import { loadCosePublicKey, loadCredentialId } from "../../../storage";
 
 export type { CredentialStorageBackend };
 
@@ -86,6 +86,7 @@ export class CachedRelayerVaultRepository
   private readonly configProvider: IConfigProvider;
   private readonly storage: CredentialStorageBackend;
   private storageKey: string | null = null;
+  private refreshInFlight: Promise<void> | null = null;
 
   constructor(deps: ICachedRelayerVaultRepositoryDeps) {
     this.client = deps.client;
@@ -269,12 +270,21 @@ export class CachedRelayerVaultRepository
 
   /**
    * Pull recover blobs from the relayer, decrypt, and replace the local cache.
+   * Concurrent callers share one in-flight recover (one RelayerAuth + Decrypt).
    */
   async refreshFromRelayer(): Promise<void> {
+    if (this.refreshInFlight) {
+      return this.refreshInFlight;
+    }
+    this.refreshInFlight = this.runRefreshFromRelayer().finally(() => {
+      this.refreshInFlight = null;
+    });
+    return this.refreshInFlight;
+  }
+
+  private async runRefreshFromRelayer(): Promise<void> {
     await this.ensureStorageKey();
-    const assertion = await this.assert();
-    const { credentials: remote } =
-      await this.client.recoverCredentials(assertion);
+    const { credentials: remote } = await this.recoverRemoteBlobs();
 
     if (remote.length === 0) {
       this.writeBlob({
@@ -318,6 +328,43 @@ export class CachedRelayerVaultRepository
     }
 
     this.writeBlob({ credentials, delegations, revoked: [], blobIds });
+  }
+
+  /**
+   * Recover vault blobs. If the passkey was never registered on this relayer
+   * but we still have create-time COSE locally, register then retry once.
+   */
+  private async recoverRemoteBlobs(): Promise<{
+    credentials: Awaited<
+      ReturnType<RelayerCredentialsClient["recoverCredentials"]>
+    >["credentials"];
+  }> {
+    try {
+      const assertion = await this.assert();
+      return await this.client.recoverCredentials(assertion);
+    } catch (error: unknown) {
+      if (!this.isPasskeyUnregisteredError(error)) {
+        throw error;
+      }
+      const cosePublicKey = loadCosePublicKey();
+      if (!cosePublicKey) {
+        throw error;
+      }
+      console.info(
+        "[vault] passkey unregistered on relayer — registering stored COSE and retrying recover",
+      );
+      await this.registerPasskey(cosePublicKey);
+      const assertion = await this.assert();
+      return await this.client.recoverCredentials(assertion);
+    }
+  }
+
+  private isPasskeyUnregisteredError(error: unknown): boolean {
+    return (
+      error instanceof RelayerCredentialsError &&
+      error.status === 404 &&
+      /passkey not registered/i.test(error.message)
+    );
   }
 
   private async uploadWrapper(

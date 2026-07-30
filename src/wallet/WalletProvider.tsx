@@ -367,7 +367,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     trackedAssetRepository,
     assetActivityRepository,
     eventBus,
-    ensureReady,
+    awaitSignerReady,
     refreshCredentialCount,
   });
 
