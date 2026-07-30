@@ -116,6 +116,14 @@ export interface IStyleFormState {
   transferTokensViewExplorer: string;
   transferTokensDone: string;
 
+  // Text — EIP-7715 grant / cancel
+  grantPermissionTitle: string;
+  grantPermissionGrant: string;
+  grantPermissionReject: string;
+  cancelDelegationTitle: string;
+  cancelDelegationConfirm: string;
+  cancelDelegationReject: string;
+
   // Text — Passkey ceremony overlays
   passkeyPromptUnlockTitle: string;
   passkeyPromptCreateTitle: string;
@@ -251,6 +259,12 @@ export const ACME_PRESET: IStyleFormState = {
   transferTokensSentTitle: "Transaction sent",
   transferTokensViewExplorer: "View on explorer",
   transferTokensDone: "Done",
+  grantPermissionTitle: "Grant spending permission",
+  grantPermissionGrant: "Grant",
+  grantPermissionReject: "Reject",
+  cancelDelegationTitle: "Cancel permission",
+  cancelDelegationConfirm: "Cancel permission",
+  cancelDelegationReject: "Keep",
   passkeyPromptUnlockTitle: "Unlock with passkey",
   passkeyPromptCreateTitle: "Create passkey",
   passkeyPromptSignTitle: "Confirm with passkey",
@@ -372,6 +386,12 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   transferTokensSentTitle: "Transaction sent",
   transferTokensViewExplorer: "View on explorer",
   transferTokensDone: "Done",
+  grantPermissionTitle: "Grant spending permission",
+  grantPermissionGrant: "Grant",
+  grantPermissionReject: "Reject",
+  cancelDelegationTitle: "Cancel permission",
+  cancelDelegationConfirm: "Cancel permission",
+  cancelDelegationReject: "Keep",
   passkeyPromptUnlockTitle: "Unlock with passkey",
   passkeyPromptCreateTitle: "Create passkey",
   passkeyPromptSignTitle: "Confirm with passkey",
@@ -489,6 +509,22 @@ export function buildSetStylePayload(
   put(transferTokens, "doneLabel", form.transferTokensDone);
   if (Object.keys(transferTokens).length > 0) {
     copy.transferTokens = transferTokens;
+  }
+
+  const grantExecutionPermission: Record<string, string> = {};
+  put(grantExecutionPermission, "title", form.grantPermissionTitle);
+  put(grantExecutionPermission, "grantLabel", form.grantPermissionGrant);
+  put(grantExecutionPermission, "rejectLabel", form.grantPermissionReject);
+  if (Object.keys(grantExecutionPermission).length > 0) {
+    copy.grantExecutionPermission = grantExecutionPermission;
+  }
+
+  const cancelDelegation: Record<string, string> = {};
+  put(cancelDelegation, "title", form.cancelDelegationTitle);
+  put(cancelDelegation, "confirmLabel", form.cancelDelegationConfirm);
+  put(cancelDelegation, "rejectLabel", form.cancelDelegationReject);
+  if (Object.keys(cancelDelegation).length > 0) {
+    copy.cancelDelegation = cancelDelegation;
   }
 
   const passkeyPrompt: Record<string, Record<string, string>> = {};

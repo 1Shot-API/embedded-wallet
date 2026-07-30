@@ -9,6 +9,8 @@ export type {
   IStyleCopyTypedData,
   IStyleCopySendTransaction,
   IStyleCopyTransferTokens,
+  IStyleCopyGrantExecutionPermission,
+  IStyleCopyCancelDelegation,
   IStyleCopyPasskeyPrompt,
   IStyleCopyPasskeyPromptEntry,
   IStyleCopyCredentialOffer,

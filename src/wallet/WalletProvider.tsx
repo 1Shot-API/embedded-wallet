@@ -367,6 +367,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     knownAssetRepository,
     trackedAssetRepository,
     transactionService,
+    delegationService,
     transactionUtils,
     credentialRepository,
     walletStorage,

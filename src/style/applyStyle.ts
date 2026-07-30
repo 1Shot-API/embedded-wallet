@@ -50,6 +50,14 @@ export function mergeStyle(
         ...current.copy.transferTokens,
         ...patch.copy?.transferTokens,
       },
+      grantExecutionPermission: {
+        ...current.copy.grantExecutionPermission,
+        ...patch.copy?.grantExecutionPermission,
+      },
+      cancelDelegation: {
+        ...current.copy.cancelDelegation,
+        ...patch.copy?.cancelDelegation,
+      },
       passkeyPrompt: {
         unlock: {
           ...current.copy.passkeyPrompt.unlock,
@@ -150,6 +158,10 @@ function cloneDefaultStyle(): IResolvedStyle {
       sendTransaction: { ...DEFAULT_STYLE.copy.sendTransaction },
       confirmTransfer: { ...DEFAULT_STYLE.copy.confirmTransfer },
       transferTokens: { ...DEFAULT_STYLE.copy.transferTokens },
+      grantExecutionPermission: {
+        ...DEFAULT_STYLE.copy.grantExecutionPermission,
+      },
+      cancelDelegation: { ...DEFAULT_STYLE.copy.cancelDelegation },
       passkeyPrompt: {
         unlock: { ...DEFAULT_STYLE.copy.passkeyPrompt.unlock },
         create: { ...DEFAULT_STYLE.copy.passkeyPrompt.create },

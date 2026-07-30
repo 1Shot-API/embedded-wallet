@@ -132,6 +132,45 @@ export interface IStyleCopyTransferTokens {
   doneLabel: string;
 }
 
+/**
+ * EIP-7715 grant consent form (`wallet_requestExecutionPermissions`).
+ * `body` supports `{domain}`, `{to}`, `{chainName}`, `{permissionType}`.
+ */
+export interface IStyleCopyGrantExecutionPermission {
+  title: string;
+  body: string;
+  hostLabel: string;
+  toLabel: string;
+  chainLabel: string;
+  permissionTypeLabel: string;
+  tokenLabel: string;
+  periodAmountLabel: string;
+  periodAmountPlaceholder: string;
+  periodDurationLabel: string;
+  periodDurationPlaceholder: string;
+  periodDurationHint: string;
+  startLabel: string;
+  memoLabel: string;
+  memoPlaceholder: string;
+  invalidAmountError: string;
+  invalidDurationError: string;
+  rejectLabel: string;
+  grantLabel: string;
+}
+
+/**
+ * On-chain cancel / revoke confirm (Delegations tab + `wallet_revokeExecutionPermission`).
+ * `body` supports `{domain}`, `{chainName}`.
+ */
+export interface IStyleCopyCancelDelegation {
+  title: string;
+  body: string;
+  hostLabel: string;
+  chainLabel: string;
+  rejectLabel: string;
+  confirmLabel: string;
+}
+
 /** Title + body mapped to Signing Layer ceremony Confirm UI (`explanationHeader` / `explanationText`). Relayer Branding-native WebAuthn still uses the same keys via `PasskeyPromptModal`. */
 export interface IStyleCopyPasskeyPromptEntry {
   title: string;
@@ -344,6 +383,10 @@ export interface IStyleCopyOptions {
   confirmTransfer?: Partial<IStyleCopyConfirmTransfer>;
   /** Partial patch for the in-wallet transfer tokens modal */
   transferTokens?: Partial<IStyleCopyTransferTokens>;
+  /** Partial patch for EIP-7715 grant consent */
+  grantExecutionPermission?: Partial<IStyleCopyGrantExecutionPermission>;
+  /** Partial patch for delegation cancel / revoke confirm */
+  cancelDelegation?: Partial<IStyleCopyCancelDelegation>;
   /** Partial patch for passkey ceremony Confirm copy (Signing) / Relayer overlay */
   passkeyPrompt?: {
     unlock?: Partial<IStyleCopyPasskeyPromptEntry>;
@@ -388,6 +431,8 @@ export interface IResolvedCopy {
   sendTransaction: IStyleCopySendTransaction;
   confirmTransfer: IStyleCopyConfirmTransfer;
   transferTokens: IStyleCopyTransferTokens;
+  grantExecutionPermission: IStyleCopyGrantExecutionPermission;
+  cancelDelegation: IStyleCopyCancelDelegation;
   passkeyPrompt: IStyleCopyPasskeyPrompt;
   credentialOffer: IStyleCopyCredentialOffer;
   credentialPresentation: IStyleCopyCredentialPresentation;

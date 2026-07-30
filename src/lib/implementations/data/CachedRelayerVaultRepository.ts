@@ -1,13 +1,17 @@
 import {
   AES256CipherText,
   DomainString,
+  EVMAccountAddress,
+  EVMChainId,
+  EVMContractAddress,
+  HexString,
   UnixTimestamp,
   type COSEPublicKey,
   type CredentialFilter,
   type CredentialId,
   type CredentialSummary,
-  type HexString,
   type ICredentialRepository,
+  type IExecutionPermissionResponse,
   type StoredCredential,
 } from "@1shotapi/ows-types";
 import {
@@ -18,7 +22,9 @@ import type { IDelegationRepository } from "../../interfaces/data/IDelegationRep
 import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
 import type {
+  IDelegationCaveat,
   IDelegationSummary,
+  ISignedDelegation,
   IStoredDelegation,
 } from "../../types/domain/StoredDelegation";
 import {
@@ -111,6 +117,51 @@ function isStoredCredential(value: unknown): value is StoredCredential {
   );
 }
 
+function isSignedDelegationShape(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  if (
+    typeof record.delegate !== "string" ||
+    typeof record.delegator !== "string" ||
+    typeof record.authority !== "string" ||
+    typeof record.salt !== "string" ||
+    typeof record.signature !== "string" ||
+    !Array.isArray(record.caveats)
+  ) {
+    return false;
+  }
+  return record.caveats.every((caveat) => {
+    if (!caveat || typeof caveat !== "object") return false;
+    const c = caveat as Record<string, unknown>;
+    return (
+      typeof c.enforcer === "string" &&
+      typeof c.terms === "string" &&
+      typeof c.args === "string"
+    );
+  });
+}
+
+function isPermissionResponseShape(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  if (
+    typeof record.chainId !== "string" ||
+    typeof record.to !== "string" ||
+    typeof record.context !== "string" ||
+    typeof record.delegationManager !== "string" ||
+    !Array.isArray(record.dependencies) ||
+    record.permission === null ||
+    typeof record.permission !== "object"
+  ) {
+    return false;
+  }
+  return record.dependencies.every((dep) => {
+    if (!dep || typeof dep !== "object") return false;
+    const d = dep as Record<string, unknown>;
+    return typeof d.factory === "string" && typeof d.factoryData === "string";
+  });
+}
+
 function isStoredDelegation(value: unknown): value is IStoredDelegation {
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
@@ -121,11 +172,74 @@ function isStoredDelegation(value: unknown): value is IStoredDelegation {
     typeof record.hostDomain === "string" &&
     typeof record.memo === "string" &&
     typeof record.createdAt === "number" &&
-    record.delegation !== null &&
-    typeof record.delegation === "object" &&
-    record.permissionResponse !== null &&
-    typeof record.permissionResponse === "object"
+    isSignedDelegationShape(record.delegation) &&
+    isPermissionResponseShape(record.permissionResponse)
   );
+}
+
+function asHex(value: unknown): `0x${string}` {
+  return value as `0x${string}`;
+}
+
+function hydrateSignedDelegation(raw: unknown): ISignedDelegation {
+  const record = raw as Record<string, unknown>;
+  const caveats = (record.caveats as ReadonlyArray<Record<string, unknown>>).map(
+    (c): IDelegationCaveat => ({
+      enforcer: EVMContractAddress(asHex(c.enforcer)),
+      terms: HexString(asHex(c.terms)),
+      args: HexString(asHex(c.args)),
+    }),
+  );
+  return {
+    delegate: EVMAccountAddress(asHex(record.delegate)),
+    delegator: EVMAccountAddress(asHex(record.delegator)),
+    authority: HexString(asHex(record.authority)),
+    caveats,
+    salt: HexString(asHex(record.salt)),
+    signature: HexString(asHex(record.signature)),
+  };
+}
+
+function hydratePermissionResponse(
+  raw: unknown,
+): IExecutionPermissionResponse {
+  const record = raw as Record<string, unknown>;
+  const dependenciesRaw = record.dependencies as ReadonlyArray<
+    Record<string, unknown>
+  >;
+  const response: IExecutionPermissionResponse = {
+    chainId: EVMChainId(asHex(record.chainId)),
+    to: EVMAccountAddress(asHex(record.to)),
+    permission: record.permission as IExecutionPermissionResponse["permission"],
+    context: HexString(asHex(record.context)),
+    dependencies: dependenciesRaw.map((dep) => ({
+      factory: EVMContractAddress(asHex(dep.factory)),
+      factoryData: HexString(asHex(dep.factoryData)),
+    })),
+    delegationManager: EVMContractAddress(asHex(record.delegationManager)),
+  };
+  if (typeof record.from === "string") {
+    response.from = EVMAccountAddress(asHex(record.from));
+  }
+  if (Array.isArray(record.rules)) {
+    response.rules =
+      record.rules as IExecutionPermissionResponse["rules"];
+  }
+  return response;
+}
+
+/** Re-brand nested fields after JSON round-trip (relayer or localStorage). */
+function hydrateStoredDelegation(raw: IStoredDelegation): IStoredDelegation {
+  return {
+    delegationId: DelegationId(raw.delegationId),
+    delegationHash: HexString(raw.delegationHash),
+    chainId: EVMChainId(raw.chainId),
+    hostDomain: DomainString(raw.hostDomain),
+    memo: raw.memo,
+    createdAt: UnixTimestamp(raw.createdAt),
+    delegation: hydrateSignedDelegation(raw.delegation),
+    permissionResponse: hydratePermissionResponse(raw.permissionResponse),
+  };
 }
 
 function parseVaultRemoteBlob(raw: string): VaultRemoteBlob | null {
@@ -156,12 +270,7 @@ function parseVaultRemoteBlob(raw: string): VaultRemoteBlob | null {
           typeof record.hostDomain === "string" ? record.hostDomain : "",
         ),
         memo: typeof record.memo === "string" ? record.memo : "",
-        data: {
-          ...record.data,
-          delegationId: DelegationId(record.data.delegationId),
-          hostDomain: DomainString(record.data.hostDomain),
-          createdAt: UnixTimestamp(record.data.createdAt),
-        },
+        data: hydrateStoredDelegation(record.data),
       };
     }
     return null;
@@ -488,10 +597,7 @@ export class CachedRelayerVaultRepository
       const delegations: Record<string, IStoredDelegation> = {};
       for (const [key, value] of Object.entries(delegationsRaw)) {
         if (isStoredDelegation(value)) {
-          delegations[key] = {
-            ...value,
-            delegationId: DelegationId(value.delegationId),
-          };
+          delegations[key] = hydrateStoredDelegation(value);
         }
       }
       return {

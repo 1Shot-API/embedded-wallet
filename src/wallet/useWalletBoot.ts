@@ -38,16 +38,24 @@ import type {
   IKnownAssetRepository,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
-import type { ITransactionService } from "../lib/interfaces/business";
+import type {
+  IDelegationService,
+  ITransactionService,
+} from "../lib/interfaces/business";
+import { ERC20_TOKEN_PERIODIC } from "../lib/interfaces/business/IDelegationService";
 import type { IOWSProvider, ITransactionUtils } from "../lib/interfaces/utils";
 import type { SupportedChain } from "../lib/types/domain";
 import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerCreateAccountRpc } from "./registerCreateAccount";
 import type { IPasskeyRegistrationResult } from "./registerCreateAccount";
 import { registerFocusModeRpc } from "./registerFocusMode";
-import { loadCredentialId } from "../storage";
+import { loadCachedEvmAddress, loadCredentialId } from "../storage";
 import { pushModal } from "./pushModal";
-import type { ActiveModal, IRelayerConfirmSendResult } from "./modalTypes";
+import type {
+  ActiveModal,
+  IGrantExecutionPermissionResult,
+  IRelayerConfirmSendResult,
+} from "./modalTypes";
 import { useWalletSessionStore } from "./sessionStore";
 import { DEMO_HOLDER_PRIVATE_JWK } from "../demo/demo-keys";
 
@@ -128,6 +136,7 @@ export interface IUseWalletBootParams {
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   transactionService: ITransactionService;
+  delegationService: IDelegationService;
   transactionUtils: ITransactionUtils;
   credentialRepository: CachedRelayerVaultRepository;
   walletStorage: AccountConnectStorage;
@@ -152,6 +161,7 @@ export function useWalletBoot({
   knownAssetRepository,
   trackedAssetRepository,
   transactionService,
+  delegationService,
   transactionUtils,
   credentialRepository,
   walletStorage,
@@ -226,7 +236,106 @@ export function useWalletBoot({
         new Map(catalog.map((chain) => [chain.chainId, chain.rpcUrl])),
         wallet,
         signer,
-        { defaultChainId, onChainChanged },
+        {
+          defaultChainId,
+          onChainChanged,
+          executionPermissions: {
+            requestExecutionPermissions: async (requests) => {
+              await ensureOnboardedForSigning();
+              const responses = [];
+              for (const request of requests) {
+                if (request.permission.type !== ERC20_TOKEN_PERIODIC) {
+                  throw new OwsInvalidParamsError(
+                    `Unsupported execution permission type: ${request.permission.type}`,
+                  );
+                }
+                const chain = resolveChain(request.chainId);
+                if (!chain?.useRelayer) {
+                  throw new OwsInvalidParamsError(
+                    `Chain ${request.chainId} does not support execution permissions`,
+                  );
+                }
+                const domain = transactionUtils.resolveHostDomain();
+                const approved =
+                  await ask<IGrantExecutionPermissionResult>(
+                    ({ id, resolve, reject }) => ({
+                      id,
+                      kind: "grantExecutionPermission",
+                      request: {
+                        request,
+                        domain,
+                        chainName: chain.label,
+                      },
+                      resolve,
+                      reject,
+                    }),
+                  );
+                const stored =
+                  await delegationService.createExecutionPermission({
+                    request,
+                    permission: approved.permission,
+                    memo: approved.memo,
+                  });
+                responses.push(stored.permissionResponse);
+              }
+              return responses;
+            },
+            revokeExecutionPermission: async (params) => {
+              await ensureOnboardedForSigning();
+              const stored = await delegationService.findByPermissionContext(
+                params.permissionContext,
+              );
+              const chainId =
+                stored?.chainId ?? rpcHelper.getChainId();
+              const chain = resolveChain(chainId);
+              if (!chain?.useRelayer) {
+                throw new OwsInvalidParamsError(
+                  `Chain ${chainId} does not support canceling permissions`,
+                );
+              }
+              const owner =
+                useWalletSessionStore.getState().evmAddress ||
+                loadCachedEvmAddress();
+              if (!owner) {
+                throw new OwsInvalidParamsError(
+                  "Wallet address is required to cancel a permission",
+                );
+              }
+              const domain =
+                stored?.hostDomain ??
+                transactionUtils.resolveHostDomain();
+              await ask(({ id, resolve, reject }) => ({
+                id,
+                kind: "cancelDelegation",
+                request: {
+                  domain: String(domain),
+                  chainName: chain.label,
+                  chainId,
+                  ownerAddress: owner,
+                },
+                execute: async (payment: IRelayerConfirmSendResult) => {
+                  const result = await delegationService.cancelDelegation({
+                    chainId,
+                    paymentToken: payment.paymentToken,
+                    feeAtoms: payment.feeAtoms,
+                    ...(stored ? { stored } : {}),
+                    permissionContext: params.permissionContext,
+                  });
+                  return result.transactionHash;
+                },
+                resolve,
+                reject,
+              }));
+              return null;
+            },
+            getSupportedExecutionPermissions: () =>
+              delegationService.getSupportedExecutionPermissions(),
+            getGrantedExecutionPermissions: async () => {
+              await ensureReady();
+              return delegationService.getGrantedExecutionPermissions();
+            },
+          },
+        },
       );
       rpcHelperRef.current = rpcHelper;
       owsProvider.setRpcHelper(rpcHelper);
