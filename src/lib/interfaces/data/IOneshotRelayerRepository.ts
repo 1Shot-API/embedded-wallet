@@ -88,7 +88,8 @@ export interface IRelayerStatusResult {
 
 /**
  * Data client for the public 1Shot relayer JSON-RPC + interim raw broadcast.
- * Orchestration lives in {@link ITransactionService}.
+ * Orchestration lives in business {@link import("../business/utils/ITransactionUtils").ITransactionUtils}
+ * / {@link import("../business/ITransactionService").ITransactionService}.
  */
 export interface IOneshotRelayerRepository {
   getCapabilities(

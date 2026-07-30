@@ -34,7 +34,11 @@ import { HardcodedKnownAssetRepository } from "../lib/implementations/data/Hardc
 import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
 import { BlockscoutAssetActivityRepository } from "../lib/implementations/data/BlockscoutAssetActivityRepository";
 import { OneshotRelayerRepository } from "../lib/implementations/data/OneshotRelayerRepository";
-import { TransactionService } from "../lib/implementations/business";
+import {
+  BusinessTransactionUtils,
+  DelegationService,
+  TransactionService,
+} from "../lib/implementations/business";
 import {
   ConfigProvider,
   OWSProvider,
@@ -50,7 +54,10 @@ import type {
   IRecordSentActivityParams,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
-import type { ITransactionService } from "../lib/interfaces/business";
+import type {
+  IDelegationService,
+  ITransactionService,
+} from "../lib/interfaces/business";
 import type {
   IConfigProvider,
   IEventBus,
@@ -99,17 +106,32 @@ const oneshotRelayerRepository: IOneshotRelayerRepository =
     owsProvider,
   });
 
-const transactionService: ITransactionService = new TransactionService({
+const businessTransactionUtils = new BusinessTransactionUtils({
   chainRepository,
   relayerRepository: oneshotRelayerRepository,
   blockchain: blockchainProvider,
-  transactionUtils,
+  presentationTransactionUtils: transactionUtils,
   owsProvider,
+});
+
+const transactionService: ITransactionService = new TransactionService({
+  chainRepository,
+  relayerRepository: oneshotRelayerRepository,
+  transactionUtils: businessTransactionUtils,
 });
 
 const credentialRepository = new CachedRelayerVaultRepository({
   client: new RelayerCredentialsClient(configProvider),
   configProvider,
+  owsProvider,
+});
+
+const delegationService: IDelegationService = new DelegationService({
+  chainRepository,
+  delegationRepository: credentialRepository,
+  blockchain: blockchainProvider,
+  transactionUtils: businessTransactionUtils,
+  presentationTransactionUtils: transactionUtils,
   owsProvider,
 });
 
@@ -139,6 +161,7 @@ export type WalletContextValue = {
   assetActivityRepository: IAssetActivityRepository;
   oneshotRelayerRepository: IOneshotRelayerRepository;
   transactionService: ITransactionService;
+  delegationService: IDelegationService;
   eventBus: IEventBus;
 
   chains: SupportedChain[];
@@ -484,6 +507,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       assetActivityRepository,
       oneshotRelayerRepository,
       transactionService,
+      delegationService,
       eventBus,
       chains,
       resolveChain,
