@@ -23,6 +23,9 @@ export class RelayerCredentialsError extends Error {
  * Thin REST client for 1Shot Relayer wallet credential endpoints
  * (`/wallet/credentials/*`, `/wallet/passkeys/register`).
  * Base URL comes from {@link IConfigProvider} (iframe host → prod/dev relayer).
+ *
+ * Ciphertext is opaque to the server. Branding encrypts typed vault wrappers
+ * (`credential` | `delegation` | …) before `storeCredential`.
  */
 export class RelayerCredentialsClient {
   constructor(private readonly configProvider: IConfigProvider) {}

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, type RefObject } from "react";
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import { COSEPublicKey, CredentialId, OwsUserRejectedError } from "@1shotapi/ows-types";
-import type { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerCredentialRepository";
+import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import {
   isWalletCreated,
   loadCredentialId,
@@ -21,7 +21,7 @@ export interface IUseWalletAuthParams {
   signerRef: RefObject<OWSSigner | null>;
   walletRef: RefObject<OWSWallet | null>;
   awaitSignerRef: RefObject<(() => Promise<OWSSigner>) | null>;
-  credentialRepository: CachedRelayerCredentialRepository;
+  credentialRepository: CachedRelayerVaultRepository;
 }
 
 export function useWalletAuth({

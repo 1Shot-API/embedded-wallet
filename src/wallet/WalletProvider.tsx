@@ -26,7 +26,7 @@ import {
   type EVMTransactionHash,
   type StoredCredential,
 } from "@1shotapi/ows-types";
-import { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerCredentialRepository";
+import { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
 import { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
 import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
@@ -107,7 +107,7 @@ const transactionService: ITransactionService = new TransactionService({
   owsProvider,
 });
 
-const credentialRepository = new CachedRelayerCredentialRepository({
+const credentialRepository = new CachedRelayerVaultRepository({
   client: new RelayerCredentialsClient(configProvider),
   configProvider,
   owsProvider,

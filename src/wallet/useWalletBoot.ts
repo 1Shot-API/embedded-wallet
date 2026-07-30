@@ -16,7 +16,7 @@ import type {
   SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
 import { InMemoryIssuerTrustRegistry } from "../demo/in-memory-trust-registry";
-import type { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerCredentialRepository";
+import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import {
   DemoWalletAttestationProvider,
   FetchUtils,
@@ -129,7 +129,7 @@ export interface IUseWalletBootParams {
   trackedAssetRepository: ITrackedAssetRepository;
   transactionService: ITransactionService;
   transactionUtils: ITransactionUtils;
-  credentialRepository: CachedRelayerCredentialRepository;
+  credentialRepository: CachedRelayerVaultRepository;
   walletStorage: AccountConnectStorage;
 }
 

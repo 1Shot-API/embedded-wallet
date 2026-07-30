@@ -4,6 +4,7 @@ import {
   EVMTransactionHash,
   type EVMAccountAddress as EVMAccountAddressType,
   type EVMChainId as EVMChainIdType,
+  type UriString,
 } from "@1shotapi/ows-types";
 import {
   createMemoryStorageBackend,
@@ -172,7 +173,7 @@ export class BlockscoutAssetActivityRepository
     decimals: number;
     trackedAssetId: TrackedAssetId;
     limit: number;
-    relayerBaseUrl: string;
+    relayerBaseUrl: UriString;
   }): Promise<AssetActivity[]> {
     // Over-fetch so client-side token filtering still yields `limit` rows.
     const pageSize = Math.min(Math.max(args.limit * 5, args.limit), 100);

@@ -4,7 +4,7 @@ import type {
   EVMAccountAddress,
   EVMChainId,
 } from "@1shotapi/ows-types";
-import type { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerCredentialRepository";
+import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import type {
   IAssetActivityRepository,
   IKnownAssetRepository,
@@ -21,7 +21,7 @@ import type { TrackedAssetId } from "../lib/types/primitives";
 import { useWalletSessionStore } from "./sessionStore";
 
 export interface IUseWalletAssetsParams {
-  credentialRepository: CachedRelayerCredentialRepository;
+  credentialRepository: CachedRelayerVaultRepository;
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   assetActivityRepository: IAssetActivityRepository;
