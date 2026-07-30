@@ -8,6 +8,7 @@ import {
   type CredentialPresentationApprovalRequest,
   type EVMAccountAddress,
   type EVMChainId,
+  type EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import type {
   PersonalSignApprovalRequest,
@@ -38,13 +39,11 @@ import type {
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
 import type { ITransactionService } from "../lib/interfaces/business";
-import type {
-  IConfigProvider,
-  IOWSProvider,
-  ITransactionUtils,
-} from "../lib/interfaces/utils";
+import type { IOWSProvider, ITransactionUtils } from "../lib/interfaces/utils";
 import type { SupportedChain } from "../lib/types/domain";
 import { registerAddAssetRpc } from "./registerAddAsset";
+import { registerCreateAccountRpc } from "./registerCreateAccount";
+import type { IPasskeyRegistrationResult } from "./registerCreateAccount";
 import { registerFocusModeRpc } from "./registerFocusMode";
 import { loadCredentialId } from "../storage";
 import { pushModal } from "./pushModal";
@@ -118,8 +117,12 @@ export interface IUseWalletBootParams {
   ensureReady: () => Promise<void>;
   ensureOnboardedForSigning: () => Promise<void>;
   onSigningAuthenticated: () => Promise<void>;
+  createNewWallet: (accountName: string) => Promise<void>;
+  createNewWalletFromUi: () => Promise<void>;
+  createPasskeyRegistrationOnly: (
+    accountName?: string,
+  ) => Promise<IPasskeyRegistrationResult>;
   resolveChain: (chainId: EVMChainId) => SupportedChain | null;
-  configProvider: IConfigProvider;
   owsProvider: IOWSProvider;
   chainRepository: IChainRepository;
   knownAssetRepository: IKnownAssetRepository;
@@ -140,8 +143,10 @@ export function useWalletBoot({
   ensureReady,
   ensureOnboardedForSigning,
   onSigningAuthenticated,
+  createNewWallet,
+  createNewWalletFromUi,
+  createPasskeyRegistrationOnly,
   resolveChain,
-  configProvider,
   owsProvider,
   chainRepository,
   knownAssetRepository,
@@ -202,8 +207,6 @@ export function useWalletBoot({
         }) => ActiveModal,
       ) => pushModal(build);
 
-      const walletConfig = await configProvider.getConfig();
-
       registerSetStyleRpc(wallet, chainRepository);
 
       registerAccountConnect(wallet, signer, {
@@ -215,7 +218,6 @@ export function useWalletBoot({
             kind: "connect",
             resolve,
           })),
-        displaySize: walletConfig.displayCompactSize,
       });
 
       const catalog = chainRepository.getCatalog();
@@ -244,28 +246,33 @@ export function useWalletBoot({
             request,
             resolve,
           })),
-        displaySize: walletConfig.displayCompactSize,
+      });
+
+      registerCreateAccountRpc(wallet, {
+        createNewWallet,
+        createNewWalletFromUi,
+        createPasskeyRegistrationOnly,
       });
 
       registerApprovalSigning(wallet, signer, {
         ensureReady: ensureOnboardedForSigning,
         onAuthenticated: onSigningAuthenticated,
         chainRpc: rpcHelper,
-        requestPersonalSignApproval: (request: PersonalSignApprovalRequest) =>
-          ask<boolean>(({ id, resolve }) => ({
+        approveAndSignPersonalMessage: (request: PersonalSignApprovalRequest) =>
+          ask(({ id, resolve, reject }) => ({
             id,
             kind: "personalSign",
             request,
             resolve,
+            reject,
           })),
-        requestSignTypedDataApproval: (
-          request: SignTypedDataApprovalRequest,
-        ) =>
-          ask<boolean>(({ id, resolve }) => ({
+        approveAndSignTypedData: (request: SignTypedDataApprovalRequest) =>
+          ask(({ id, resolve, reject }) => ({
             id,
             kind: "typedData",
             request,
             resolve,
+            reject,
           })),
         approveAndSignTransaction: async (
           request: SendTransactionApprovalRequest,
@@ -286,14 +293,43 @@ export function useWalletBoot({
             request.data,
           );
 
-          type ConfirmResult =
-            | false
-            | {
-                paymentToken?: EVMAccountAddress;
-                feeAtoms?: bigint;
+          const executeSend = async (payment: {
+            paymentToken?: EVMAccountAddress;
+            feeAtoms?: bigint;
+          }) => {
+            let relayerOptions:
+              | {
+                  paymentToken: EVMAccountAddress;
+                  feeAtoms: bigint;
+                }
+              | undefined;
+            if (useRelayer) {
+              const confirmed = requireRelayerConfirmPayment(payment);
+              relayerOptions = {
+                paymentToken: confirmed.paymentToken,
+                feeAtoms: confirmed.feeAtoms,
               };
+            }
 
-          let confirmed: ConfirmResult;
+            const valueRaw = String(request.value);
+            const value =
+              valueRaw && valueRaw !== "0x0" && valueRaw !== "0x"
+                ? BigInt(valueRaw)
+                : undefined;
+
+            const result = await transactionService.sendTransaction(
+              request.chainId,
+              {
+                to: request.to!,
+                data: request.data,
+                value,
+              },
+              relayerOptions,
+            );
+            return result.transactionHash;
+          };
+
+          let hash;
           if (transfer) {
             const known = await knownAssetRepository.getKnownAsset(
               request.chainId,
@@ -309,7 +345,7 @@ export function useWalletBoot({
               tracked?.name ?? known?.name ?? transfer.tokenAddress;
             const tokenSymbol = tracked?.symbol ?? known?.symbol ?? "TOKEN";
             const decimals = tracked?.decimals ?? known?.decimals ?? null;
-            confirmed = await ask<ConfirmResult>(({ id, resolve }) => ({
+            hash = await ask<EVMTransactionHash>(({ id, resolve, reject }) => ({
               id,
               kind: "confirmTransfer",
               request: {
@@ -329,57 +365,26 @@ export function useWalletBoot({
                 ownerAddress: request.address,
                 useRelayer,
               },
+              execute: executeSend,
               resolve,
+              reject,
             }));
           } else {
-            confirmed = await ask<ConfirmResult>(({ id, resolve }) => ({
+            hash = await ask<EVMTransactionHash>(({ id, resolve, reject }) => ({
               id,
               kind: "sendTransaction",
               request: {
                 ...request,
                 useRelayer,
               },
+              execute: executeSend,
               resolve,
+              reject,
             }));
           }
 
-          if (!confirmed) {
-            throw new OwsUserRejectedError(
-              "User rejected the transaction request",
-            );
-          }
-
-          let relayerOptions:
-            | {
-                paymentToken: EVMAccountAddress;
-                feeAtoms: bigint;
-              }
-            | undefined;
-          if (useRelayer) {
-            const payment = requireRelayerConfirmPayment(confirmed);
-            relayerOptions = {
-              paymentToken: payment.paymentToken,
-              feeAtoms: payment.feeAtoms,
-            };
-          }
-
-          const valueRaw = String(request.value);
-          const value =
-            valueRaw && valueRaw !== "0x0" && valueRaw !== "0x"
-              ? BigInt(valueRaw)
-              : undefined;
-
-          const result = await transactionService.sendTransaction(
-            request.chainId,
-            {
-              to: request.to,
-              data: request.data,
-              value,
-            },
-            relayerOptions,
-          );
           await onSigningAuthenticated();
-          return result.transactionHash;
+          return hash;
         },
       });
 

@@ -14,8 +14,11 @@ import {
   CredentialOfferModal,
   CredentialPresentationModal,
 } from "./modals/CredentialModals";
-import { CreateBackupModal, RestoreBackupModal } from "./modals/BackupModals";
+import { ExportPrivateKeyModal } from "./modals/ExportPrivateKeyModal";
+import { ImportPrivateKeyModal } from "./modals/ImportPrivateKeyModal";
+import { AdvancedOptionsModal } from "./modals/AdvancedOptionsModal";
 import { AddAssetModal } from "./modals/AddAssetModal";
+import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
 
 export function ModalHost() {
   const activeModal = useModalStore((state) => state.activeModal);
@@ -33,6 +36,7 @@ export function ModalHost() {
         <PersonalSignModal
           request={activeModal.request}
           onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
         />
       );
     case "typedData":
@@ -40,20 +44,25 @@ export function ModalHost() {
         <TypedDataModal
           request={activeModal.request}
           onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
         />
       );
     case "sendTransaction":
       return (
         <SendTransactionModal
           request={activeModal.request}
+          execute={activeModal.execute}
           onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
         />
       );
     case "confirmTransfer":
       return (
         <ConfirmTransferModal
           request={activeModal.request}
+          execute={activeModal.execute}
           onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
         />
       );
     case "credentialOffer":
@@ -77,19 +86,32 @@ export function ModalHost() {
           onResolve={activeModal.resolve}
         />
       );
-    case "createBackup":
+    case "exportPrivateKey":
       return (
-        <CreateBackupModal
+        <ExportPrivateKeyModal
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
         />
       );
-    case "restoreBackup":
+    case "importPrivateKey":
       return (
-        <RestoreBackupModal
-          encryptedPrivateKey={activeModal.encryptedPrivateKey}
+        <ImportPrivateKeyModal
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
+        />
+      );
+    case "advancedOptions":
+      return (
+        <AdvancedOptionsModal
+          allowExport={activeModal.allowExport}
+          onResolve={activeModal.resolve}
+        />
+      );
+    case "openCreateTab":
+      return (
+        <OpenCreateTabModal
+          createUrl={activeModal.createUrl}
+          onResolve={activeModal.resolve}
         />
       );
     default:

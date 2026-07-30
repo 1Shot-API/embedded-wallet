@@ -8,11 +8,12 @@ import type {
   CredentialPresentationApprovalRequest,
   EVMAccountAddress,
   EVMChainId,
-  RecoveryDataCreatedData,
+  EVMSignatureHex,
+  EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
 
-export type WalletSetupChoice = "login" | "create" | "cancel";
+export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
 /** Friendly host ERC-20 transfer consent (decoded transfer calldata). */
 export interface IConfirmTransferRequest {
@@ -27,20 +28,21 @@ export interface IConfirmTransferRequest {
   useRelayer: boolean;
 }
 
-/** Result from TX confirm modals (relayer path includes payment selection). */
-export type IConfirmSendResult =
-  | false
-  | {
-      /** Required when the confirm modal was opened with `useRelayer: true`. */
-      paymentToken?: EVMAccountAddress;
-      feeAtoms?: bigint;
-    };
+/** Relayer payment selection from TX confirm UI (before execute). */
+export type IConfirmSendPayment = {
+  /** Required when the confirm modal was opened with `useRelayer: true`. */
+  paymentToken?: EVMAccountAddress;
+  feeAtoms?: bigint;
+};
 
 /** Relayer confirm payload after UI validation. */
 export type IRelayerConfirmSendResult = {
   paymentToken: EVMAccountAddress;
   feeAtoms: bigint;
 };
+
+/** Result from TX confirm when canceling or selecting payment (legacy shape). */
+export type IConfirmSendResult = false | IConfirmSendPayment;
 
 export type ModalRequest =
   | {
@@ -62,25 +64,31 @@ export type ModalRequest =
       id: string;
       kind: "personalSign";
       request: PersonalSignApprovalRequest;
-      resolve: (approved: boolean) => void;
+      resolve: (signature: EVMSignatureHex) => void;
+      reject: (error: unknown) => void;
     }
   | {
       id: string;
       kind: "typedData";
       request: SignTypedDataApprovalRequest;
-      resolve: (approved: boolean) => void;
+      resolve: (signature: EVMSignatureHex) => void;
+      reject: (error: unknown) => void;
     }
   | {
       id: string;
       kind: "sendTransaction";
       request: SendTransactionApprovalRequest & { useRelayer?: boolean };
-      resolve: (result: IConfirmSendResult) => void;
+      execute: (payment: IConfirmSendPayment) => Promise<EVMTransactionHash>;
+      resolve: (hash: EVMTransactionHash) => void;
+      reject: (error: unknown) => void;
     }
   | {
       id: string;
       kind: "confirmTransfer";
       request: IConfirmTransferRequest;
-      resolve: (result: IConfirmSendResult) => void;
+      execute: (payment: IConfirmSendPayment) => Promise<EVMTransactionHash>;
+      resolve: (hash: EVMTransactionHash) => void;
+      reject: (error: unknown) => void;
     }
   | {
       id: string;
@@ -102,19 +110,37 @@ export type ModalRequest =
     }
   | {
       id: string;
-      kind: "createBackup";
+      kind: "exportPrivateKey";
       resolve: () => void;
       reject: (error: unknown) => void;
     }
   | {
       id: string;
-      kind: "restoreBackup";
-      encryptedPrivateKey: string;
-      resolve: (restored: boolean) => void;
+      kind: "importPrivateKey";
+      resolve: (imported: boolean) => void;
       reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "advancedOptions";
+      allowExport: boolean;
+      resolve: (choice: AdvancedOptionsChoice) => void;
+    }
+  | {
+      id: string;
+      kind: "openCreateTab";
+      createUrl: string;
+      /** true when user confirms open; false when cancelled. */
+      resolve: (opened: boolean) => void;
     };
 
 export type ActiveModal = ModalRequest;
+
+export type AdvancedOptionsChoice =
+  | "export"
+  | "import"
+  | "changeAccount"
+  | "close";
 
 let modalId = 0;
 
@@ -122,5 +148,3 @@ export function nextModalId(): string {
   modalId += 1;
   return `modal-${modalId}`;
 }
-
-export type CreateBackupResult = RecoveryDataCreatedData;

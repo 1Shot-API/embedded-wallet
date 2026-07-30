@@ -29,6 +29,8 @@ function promptCopy(reason: EPasskeyPromptReason): CeremonyUiParams {
       return ceremonyFromEntry(prompts.decrypt);
     case EPasskeyPromptReason.Backup:
       return ceremonyFromEntry(prompts.backup);
+    case EPasskeyPromptReason.ExportPrivateKey:
+      return ceremonyFromEntry(prompts.exportPrivateKey);
     case EPasskeyPromptReason.WalletUpgrade:
       return ceremonyFromEntry(prompts.walletUpgrade);
     case EPasskeyPromptReason.ApproveTransaction:
@@ -42,10 +44,10 @@ function promptCopy(reason: EPasskeyPromptReason): CeremonyUiParams {
   }
 }
 
-function mergeCeremony(
+function mergeCeremony<T extends CeremonyUiParams>(
   reason: EPasskeyPromptReason,
-  options?: CeremonyUiParams & { credentialId?: string },
-): CeremonyUiParams & { credentialId?: string } {
+  options?: T,
+): T {
   const override = useCeremonyUiOverrideStore.getState().reason;
   const base = promptCopy(override ?? reason);
   return {
@@ -55,7 +57,7 @@ function mergeCeremony(
     explanationText: options?.explanationText ?? base.explanationText,
     confirmButtonText: options?.confirmButtonText ?? base.confirmButtonText,
     denyButtonText: options?.denyButtonText ?? base.denyButtonText,
-  };
+  } as T;
 }
 
 /**
@@ -119,7 +121,7 @@ export function wrapSignerWithCeremonyCopy(signer: OWSSigner): OWSSigner {
 
   signer.revealPrivateKey = ((options) =>
     revealPrivateKey(
-      mergeCeremony(EPasskeyPromptReason.Unlock, options),
+      mergeCeremony(EPasskeyPromptReason.ExportPrivateKey, options),
     )) as OWSSigner["revealPrivateKey"];
 
   signer.recoverKey = ((envelope, passwordText, buttonText, options) =>

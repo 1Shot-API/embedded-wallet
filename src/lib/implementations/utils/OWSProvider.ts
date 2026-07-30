@@ -1,6 +1,5 @@
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import type { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
-import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
 
 type Deferred<T> = {
@@ -28,8 +27,6 @@ export class OWSProvider implements IOWSProvider {
   private signerDeferred = createDeferred<OWSSigner>();
   private walletDeferred = createDeferred<OWSWallet>();
   private rpcHelperDeferred = createDeferred<RpcHelper>();
-
-  constructor(private readonly configProvider: IConfigProvider) {}
 
   async getSigner(): Promise<OWSSigner> {
     if (this.signer) return this.signer;
@@ -71,15 +68,12 @@ export class OWSProvider implements IOWSProvider {
   }
 
   async ensureDisplay(): Promise<void> {
-    const [wallet, config] = await Promise.all([
-      this.getWallet(),
-      this.configProvider.getConfig(),
-    ]);
+    const wallet = await this.getWallet();
     // requestDisplay increments nested display depth when a session is already
     // open (SignHelper withDisplay). Release immediately so depth does not leak
     // and block host hide after the outer eth_sendTransaction completes.
     // Visibility is still held by SignHelper / host rpcAccessCount.
-    const session = await wallet.requestDisplay(config.displayCeremonySize);
+    const session = await wallet.requestDisplay();
     session.release();
   }
 

@@ -7,11 +7,31 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const signerPkgSrc = path.resolve(
+/** Prefer sibling open-wallet checkout when developing packages locally. */
+const siblingSignerSrc = path.resolve(
   __dirname,
-  "node_modules/@1shotapi/ows-signer/src",
+  "../prf-wallet/packages/ows-signer/src",
 );
+const siblingTypesEntry = path.resolve(
+  __dirname,
+  "../prf-wallet/packages/ows-types/dist/index.js",
+);
+const siblingSignerUtilsEntry = path.resolve(
+  __dirname,
+  "../prf-wallet/packages/ows-signer-utils/dist/index.js",
+);
+const signerPkgSrc = fs.existsSync(siblingSignerSrc)
+  ? siblingSignerSrc
+  : path.resolve(__dirname, "node_modules/@1shotapi/ows-signer/src");
 const signerPublicDir = path.resolve(__dirname, "signer-static");
+
+const localOwsAliases: Record<string, string> = {};
+if (fs.existsSync(siblingTypesEntry)) {
+  localOwsAliases["@1shotapi/ows-types"] = siblingTypesEntry;
+}
+if (fs.existsSync(siblingSignerUtilsEntry)) {
+  localOwsAliases["@1shotapi/ows-signer-utils"] = siblingSignerUtilsEntry;
+}
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -24,6 +44,10 @@ const MIME: Record<string, string> = {
   ".woff2": "font/woff2",
 };
 
+/** Canonical Signing Layer CSP (omit frame-ancestors for permissionless branding embeds). */
+const SIGNER_CSP =
+  "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; child-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests";
+
 function contentType(filePath: string): string {
   return MIME[path.extname(filePath)] ?? "application/octet-stream";
 }
@@ -33,6 +57,7 @@ function sendFile(res: ServerResponse, filePath: string): void {
   stream.once("open", () => {
     res.statusCode = 200;
     res.setHeader("Content-Type", contentType(filePath));
+    res.setHeader("Content-Security-Policy", SIGNER_CSP);
     stream.pipe(res);
   });
   stream.once("error", (error: NodeJS.ErrnoException) => {
@@ -121,11 +146,12 @@ function serveSignerPlugin(): Plugin {
 
 export default defineConfig({
   base: "/",
-  publicDir: false,
+  publicDir: "public",
   plugins: [react(), tailwindcss(), serveSignerPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      ...localOwsAliases,
     },
   },
   server: {
@@ -145,5 +171,11 @@ export default defineConfig({
     // Do not ship source maps to the browser — maps embed original sources
     // (including crypto PEM-header validation strings) and can leak secrets.
     sourcemap: false,
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        create: path.resolve(__dirname, "create/index.html"),
+      },
+    },
   },
 });

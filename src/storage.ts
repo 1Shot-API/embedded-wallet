@@ -1,4 +1,5 @@
 import {
+  CredentialId,
   EVMAccountAddress,
   SolanaAccountAddress,
 } from "@1shotapi/ows-types";
@@ -6,7 +7,6 @@ import {
 const WALLET_CREATED_KEY = "ows-wallet-created";
 /** Public WebAuthn credential handle (not a bearer token / JWT). */
 const PASSKEY_HANDLE_KEY = "ows-passkey-handle";
-const BACKUP_KEY = "ows-wallet-backup";
 const EVM_ADDRESS_KEY = "ows-evm-address";
 const SOLANA_ADDRESS_KEY = "ows-solana-address";
 /** Cached secp256k1 public key (0x-hex) so LocalAccount builds without Unlock. */
@@ -16,18 +16,18 @@ export function isWalletCreated(): boolean {
   return localStorage.getItem(WALLET_CREATED_KEY) === "true";
 }
 
-export function loadCredentialId(): string | undefined {
+export function loadCredentialId(): CredentialId | undefined {
   const handle = localStorage.getItem(PASSKEY_HANDLE_KEY);
-  if (handle) return handle;
+  if (handle) return CredentialId(handle);
   // Migrate legacy key name (same public WebAuthn handle value).
   const legacy = localStorage.getItem("ows-credential-id");
   if (!legacy) return undefined;
   localStorage.setItem(PASSKEY_HANDLE_KEY, legacy);
   localStorage.removeItem("ows-credential-id");
-  return legacy;
+  return CredentialId(legacy);
 }
 
-export function saveWalletCreated(passkeyHandle: string): void {
+export function saveWalletCreated(passkeyHandle: CredentialId): void {
   localStorage.setItem(WALLET_CREATED_KEY, "true");
   localStorage.setItem(PASSKEY_HANDLE_KEY, passkeyHandle);
 }
@@ -80,17 +80,9 @@ export function clearWalletStorage(): void {
   localStorage.removeItem("ows-passkey-public-key");
   localStorage.removeItem("ows-relayer-passkey-registered");
   localStorage.removeItem("ows-credential-id");
-}
-
-/** App-owned backup blob (`ows1:…`). */
-export function saveBackup(encryptedPrivateKey: string): void {
-  localStorage.setItem(BACKUP_KEY, encryptedPrivateKey);
-}
-
-export function loadBackup(): string | undefined {
-  return localStorage.getItem(BACKUP_KEY) ?? undefined;
-}
-
-export function hasBackup(): boolean {
-  return Boolean(loadBackup());
+  localStorage.removeItem("ows-wallet-backup");
+  // Account-scoped caches — wipe so the next passkey starts clean.
+  localStorage.removeItem("ows.credentials.v2");
+  localStorage.removeItem("ows.tracked-assets.v2");
+  localStorage.removeItem("ows.asset-activity.v1");
 }

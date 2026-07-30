@@ -1,12 +1,4 @@
 /**
- * Branding iframe size passed to {@link OWSWallet.requestDisplay}.
- */
-export type IWalletDisplaySize = {
-  width: number;
-  height: number;
-};
-
-/**
  * Runtime configuration for the 1Shot Branding Layer wallet.
  * Built by {@link ConfigProvider} (relayer URL from the iframe host, etc.).
  */
@@ -24,13 +16,5 @@ export class WalletConfig {
     public readonly assetActivityDefaultLimit: number,
     /** Max optimistic send rows retained in localStorage. */
     public readonly assetActivityMaxOptimistic: number,
-    /** Passkey / TX ceremony flyout size (`ensureDisplay`). */
-    public readonly displayCeremonySize: IWalletDisplaySize,
-    /** Generic consent / setup modal flyout size. */
-    public readonly displayModalSize: IWalletDisplaySize,
-    /** Create / restore backup flyout size. */
-    public readonly displayBackupSize: IWalletDisplaySize,
-    /** Compact consent flyout (connect / add asset). */
-    public readonly displayCompactSize: IWalletDisplaySize,
   ) {}
 }

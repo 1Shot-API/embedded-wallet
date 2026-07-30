@@ -13,7 +13,7 @@ export function AddAssetModal({
 }) {
   const { style } = useStyle();
   const { resolveChain } = useWallet();
-  const { balances: copy, account, createBackup } = style.copy;
+  const { balances: copy, account } = style.copy;
   const displayName = request.assetSymbol || request.assetName;
   const network =
     resolveChain(request.chainId)?.label ??
@@ -64,8 +64,8 @@ export function AddAssetModal({
               text={request.assetAddress}
               truncate
               copyLabel={account.copyAddressLabel}
-              copiedLabel={createBackup.copiedLabel}
-              copyFailedLabel={createBackup.copyFailedLabel}
+              copiedLabel={account.addressCopiedLabel}
+              copyFailedLabel={account.addressCopyFailedLabel}
             />
           </dd>
         </div>

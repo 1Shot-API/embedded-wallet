@@ -3,7 +3,8 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as setStyle / focusWallet / addAsset for theming, host-driven focus mode, and tracked assets on the 1Shot Branding Layer.
+  or custom RPC such as setStyle / focusWallet / addAsset / createAccount for
+  theming, host-driven focus mode, tracked assets, and first-party Safari create.
 license: MIT
 metadata:
   author: 1Shot-API
@@ -19,6 +20,10 @@ Teach an agent how to embed the **1Shot Wallet** Branding Layer from a Host Laye
 Host (your dapp)          @1shotapi/ows-provider → OWSProxy
   └── Branding iframe     https://wallet.1shotapi.com/
         └── Signing       https://wallet.1shotapi.com/signer/  (same origin)
+
+Safari create (first-party tab):
+  Branding iframe ──window.open──► https://wallet.1shotapi.com/create/
+                                     └── Branding iframe + createAccount RPC
 ```
 
 ## Install
@@ -54,6 +59,7 @@ const accounts = await proxy.ethereum.request({ method: "eth_requestAccounts" })
 - Passkeys require a **secure-context ancestor chain**. The Host page must be HTTPS (or `localhost`) when the wallet iframe is HTTPS.
 - Dev wallet URL: your ngrok or local Vite origin root (e.g. `https://….ngrok-free.app/`).
 - Production wallet URL: **`https://wallet.1shotapi.com/`** (Signing Layer at `/signer/` on the same origin — do not embed `/signer/` from the host).
+- Safari / iOS WebKit cannot create passkeys inside a **cross-origin** wallet iframe. The branding layer detects this and opens **`https://wallet.1shotapi.com/create/`** in a new tab (same origin as the wallet). Allow pop-ups from the embedding page so that handoff can complete; no host code changes are required.
 
 ## Custom RPC — `setStyle`
 
@@ -143,31 +149,33 @@ await proxy.rpc("setStyle", options);
 | `copy.credentials.claimsLoading` | string | claims loading text |
 | `copy.credentials.claimsEmpty` | string | no claims text |
 | `copy.credentials.closeLabel` | string | Close button |
-| `copy.createBackup.title` | string | create backup modal title |
-| `copy.createBackup.body` | string | supports `{minLength}` |
-| `copy.createBackup.passphrasePrompt` | string | Signing Layer passphrase label (`{minLength}`) |
-| `copy.createBackup.continueLabel` | string | Signing Layer continue |
-| `copy.createBackup.cancelLabel` | string | Cancel button |
-| `copy.createBackup.closeLabel` | string | Close button |
-| `copy.createBackup.copyLabel` | string | Copy button |
-| `copy.createBackup.copiedLabel` | string | after successful copy |
-| `copy.createBackup.copyFailedLabel` | string | copy failure |
-| `copy.createBackup.doneLabel` | string | Done button |
-| `copy.createBackup.encryptedLabel` | string | result ciphertext label |
-| `copy.createBackup.passwordTooShortError` | string | short passphrase error |
-| `copy.createBackup.cancelledError` | string | passkey cancelled |
-| `copy.createBackup.failedError` | string | generic failure |
-| `copy.restoreBackup.title` | string | restore backup modal title |
-| `copy.restoreBackup.body` | string | restore prompt body |
-| `copy.restoreBackup.passphraseLabel` | string | Signing Layer passphrase label |
-| `copy.restoreBackup.restoreLabel` | string | Signing Layer restore button |
-| `copy.restoreBackup.cancelLabel` | string | Cancel button |
-| `copy.restoreBackup.closeLabel` | string | Close button |
-| `copy.restoreBackup.doneLabel` | string | Done button |
-| `copy.restoreBackup.successBody` | string | success message |
-| `copy.restoreBackup.decryptFailedError` | string | bad passphrase error |
-| `copy.restoreBackup.cancelledError` | string | passkey cancelled |
-| `copy.restoreBackup.failedError` | string | generic failure |
+| `copy.exportPrivateKey.title` | string | export private key modal title |
+| `copy.exportPrivateKey.body` | string | risk warning body |
+| `copy.exportPrivateKey.continueLabel` | string | confirm export button |
+| `copy.exportPrivateKey.cancelLabel` | string | Cancel button |
+| `copy.exportPrivateKey.closeLabel` | string | Close button |
+| `copy.exportPrivateKey.revealingBody` | string | shown while passkey / key UI is open |
+| `copy.exportPrivateKey.cancelledError` | string | passkey cancelled |
+| `copy.exportPrivateKey.failedError` | string | generic failure |
+| `copy.importPrivateKey.title` | string | import private key modal title |
+| `copy.importPrivateKey.body` | string | risk / session warning body |
+| `copy.importPrivateKey.continueLabel` | string | confirm import button |
+| `copy.importPrivateKey.cancelLabel` | string | Cancel button |
+| `copy.importPrivateKey.closeLabel` | string | Close button |
+| `copy.importPrivateKey.importingBody` | string | shown while signer paste UI is open |
+| `copy.importPrivateKey.cancelledError` | string | import cancelled |
+| `copy.importPrivateKey.invalidKeyError` | string | invalid hex key |
+| `copy.importPrivateKey.failedError` | string | generic failure |
+| `copy.advancedOptions.title` | string | advanced options modal title |
+| `copy.advancedOptions.menuLabel` | string | wallet menu item label |
+| `copy.advancedOptions.onboardingLabel` | string | onboarding advanced link |
+| `copy.advancedOptions.body` | string | advanced options description |
+| `copy.advancedOptions.exportLabel` | string | export action label |
+| `copy.advancedOptions.importLabel` | string | import action label |
+| `copy.advancedOptions.changeAccountLabel` | string | clear passkey cache / switch account |
+| `copy.advancedOptions.closeLabel` | string | Close button |
+| `copy.passkeyPrompt.exportPrivateKey.title` | string | Signing Layer Confirm header for export |
+| `copy.passkeyPrompt.exportPrivateKey.body` | string | Signing Layer Confirm body for export |
 | `dark` | boolean | toggles `html.dark` |
 
 Returns `{ ok: true, productName: string }` with the resolved product name after merge.
@@ -222,14 +230,30 @@ Returns `{ ok: true, chainId, assetAddress }` when the user accepts.
 
 Users can also add assets from the Balances tab without a host RPC. The Balances list shows tracked assets for the currently selected network only (USDC is always tracked per supported chain).
 
+## Custom RPC — `createAccount`
+
+Used by the first-party **`/create/`** host page (Safari passkey create). Hosts embedding the wallet normally do **not** call this — the branding layer opens `/create/` itself when needed.
+
+```typescript
+const result = await proxy.rpc("createAccount");
+// { ok: true, credentialId: string, accounts: EVMAccountAddress[] }
+
+// Optional pre-chosen passkey name (skips the name modal):
+await proxy.rpc("createAccount", { accountName: "My Wallet" });
+```
+
+| Method | Params | Effect |
+|--------|--------|--------|
+| `createAccount` | `{ accountName?: string }` optional | Runs setup create (passkey + relayer register); returns credential id |
+
 ## Other Host APIs
 
 | API | Use |
 |-----|-----|
 | `proxy.ethereum.request(...)` | EIP-1193 (accounts, sign, chain, …) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
-| `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, …) |
+| `proxy.showWallet()` / `hideWallet()` | Host-driven panel (flyout or full-screen drawer on small viewports) without an EIP-1193 call |
+| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, …) |
 
 ## Hard rules
 

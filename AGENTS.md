@@ -12,6 +12,7 @@ Prefer **clean code over backwards compatibility**. Do not add legacy redirects,
 |------|---------|
 | `/` | Branding Layer (React SPA) |
 | `/signer/` | Signing Layer (`@1shotapi/ows-signer`) |
+| `/create/` | First-party Host for Safari passkey create (`createAccount` RPC) |
 | `src/lib/types/primitives/` | Wallet-local branded types (one file each) |
 | `src/lib/types/enum/` | Domain enums (`EAssetType`, `EWalletEventKind`, …) |
 | `src/lib/types/domain/` | Domain DTOs (e.g. `KnownAsset`, `TrackedAsset`, `WalletConfig`) |

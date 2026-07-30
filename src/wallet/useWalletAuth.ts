@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
-import { OwsUserRejectedError } from "@1shotapi/ows-types";
+import { COSEPublicKey, CredentialId, OwsUserRejectedError } from "@1shotapi/ows-types";
 import type { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerCredentialRepository";
 import {
   isWalletCreated,
@@ -10,16 +10,17 @@ import {
   saveCachedSecp256k1PublicKey,
   saveWalletCreated,
 } from "../storage";
-import type { IConfigProvider } from "../lib/interfaces/utils";
 import { pushModal } from "./pushModal";
 import type { WalletSetupChoice } from "./modalTypes";
 import { useWalletSessionStore } from "./sessionStore";
+import { needsFirstPartyPasskeyCreate } from "./passkeyCreateSupport";
+import { createAccountViaFirstPartyTab } from "./createAccountHandoff";
+import type { IPasskeyRegistrationResult } from "./registerCreateAccount";
 
 export interface IUseWalletAuthParams {
   signerRef: RefObject<OWSSigner | null>;
   walletRef: RefObject<OWSWallet | null>;
   awaitSignerRef: RefObject<(() => Promise<OWSSigner>) | null>;
-  configProvider: IConfigProvider;
   credentialRepository: CachedRelayerCredentialRepository;
 }
 
@@ -27,7 +28,6 @@ export function useWalletAuth({
   signerRef,
   walletRef,
   awaitSignerRef,
-  configProvider,
   credentialRepository,
 }: IUseWalletAuthParams) {
   const unlockInFlightRef = useRef<Promise<void> | undefined>(undefined);
@@ -102,8 +102,93 @@ export function useWalletAuth({
     signerRef,
   ]);
 
+  const adoptCreatedCredential = useCallback(
+    async (credentialId: CredentialId, cosePublicKey: COSEPublicKey) => {
+      console.info("[create-handoff] adoptCreatedCredential start", {
+        credentialIdPrefix: credentialId.slice(0, 8),
+        hasCosePublicKey: Boolean(cosePublicKey),
+      });
+      saveWalletCreated(credentialId);
+      useWalletSessionStore.getState().setWalletCreated(true);
+      const signer = signerRef.current;
+      if (!signer) throw new Error("Signer not ready");
+      // Unlock on this signer session (PRF get) — deferred from /create.
+      await signer.getPublicKey({ credentialId });
+      await refreshAddresses();
+      // Relayer register — also deferred from /create (one assertion here).
+      await credentialRepository.registerPasskey(COSEPublicKey(cosePublicKey));
+      try {
+        await refreshCredentialCount();
+      } catch (error: unknown) {
+        console.warn(
+          "[credentials] refresh after first-party create failed",
+          error,
+        );
+      }
+      setUnlocked(true);
+      console.info("[create-handoff] adoptCreatedCredential unlocked + registered");
+    },
+    [
+      credentialRepository,
+      refreshAddresses,
+      refreshCredentialCount,
+      setUnlocked,
+      signerRef,
+    ],
+  );
+
+  /**
+   * WebAuthn create only (no PRF unlock, no relayer). Used by first-party
+   * `/create` so ceremonies finish on the original host after handoff.
+   */
+  const createPasskeyRegistrationOnly = useCallback(
+    async (accountName?: string): Promise<IPasskeyRegistrationResult> => {
+      const name =
+        accountName ??
+        (await promptPasskeyName());
+      if (!name) {
+        throw new OwsUserRejectedError("User cancelled passkey creation");
+      }
+      const signer = signerRef.current;
+      if (!signer) throw new Error("Signer not ready");
+      const created = await signer.createCredential(name, {
+        rpName: "Open Wallet",
+        userDisplayName: name,
+        // Supported once @1shotapi/ows-signer(+utils/types) with deferKeyDerivation
+        // is published; local Vite aliases sibling prf-wallet packages in the meantime.
+        deferKeyDerivation: true,
+      } as Parameters<OWSSigner["createCredential"]>[1]);
+      const credentialId =
+        created.credentialId ?? signer.getCredentialId();
+      if (!credentialId) {
+        throw new Error("Passkey created but credential id missing");
+      }
+      if (!created.cosePublicKey) {
+        throw new Error(
+          "Passkey created but authenticator public key missing — cannot register with relayer",
+        );
+      }
+      saveWalletCreated(credentialId);
+      useWalletSessionStore.getState().setWalletCreated(true);
+      // Do not unlock or register — opener adopts via handoff.
+      return {
+        credentialId,
+        cosePublicKey: created.cosePublicKey,
+      };
+    },
+    [promptPasskeyName, signerRef],
+  );
+
   const createNewWallet = useCallback(
     async (accountName: string) => {
+      if (needsFirstPartyPasskeyCreate()) {
+        console.info("[create-handoff] diverting createNewWallet → /create");
+        const { credentialId, cosePublicKey } =
+          await createAccountViaFirstPartyTab();
+        await adoptCreatedCredential(credentialId, cosePublicKey);
+        return;
+      }
+
       const signer = signerRef.current;
       if (!signer) throw new Error("Signer not ready");
       const created = await signer.createCredential(accountName, {
@@ -126,16 +211,30 @@ export function useWalletAuth({
       await refreshAddresses();
       setUnlocked(true);
     },
-    [credentialRepository, refreshAddresses, setUnlocked, signerRef],
+    [
+      adoptCreatedCredential,
+      credentialRepository,
+      refreshAddresses,
+      setUnlocked,
+      signerRef,
+    ],
   );
 
   const createNewWalletFromUi = useCallback(async () => {
+    if (needsFirstPartyPasskeyCreate()) {
+      console.info("[create-handoff] diverting createNewWalletFromUi → /create");
+      const { credentialId, cosePublicKey } =
+        await createAccountViaFirstPartyTab();
+      await adoptCreatedCredential(credentialId, cosePublicKey);
+      return;
+    }
+
     const name = await promptPasskeyName();
     if (!name) {
       throw new OwsUserRejectedError("User cancelled passkey creation");
     }
     await createNewWallet(name);
-  }, [createNewWallet, promptPasskeyName]);
+  }, [adoptCreatedCredential, createNewWallet, promptPasskeyName]);
 
   const unlockWithStoredCredential = useCallback(async () => {
     const signer = signerRef.current;
@@ -180,10 +279,11 @@ export function useWalletAuth({
   const runSetupFlow = useCallback(async () => {
     const wallet = walletRef.current;
     if (!wallet) throw new Error("Wallet not ready");
-    const config = await configProvider.getConfig();
-    const display = await wallet.requestDisplay(config.displayModalSize);
+
+    let choice: WalletSetupChoice = "cancel";
+    const display = await wallet.requestDisplay();
     try {
-      const choice = await requestWalletSetupChoice();
+      choice = await requestWalletSetupChoice();
       if (choice === "cancel") {
         throw new OwsUserRejectedError("User cancelled wallet setup");
       }
@@ -191,15 +291,41 @@ export function useWalletAuth({
         await loginWithPasskey();
         return;
       }
-      await createNewWalletFromUi();
+      // Import continues after this flyout is released.
+      if (choice !== "import") {
+        await createNewWalletFromUi();
+      }
     } finally {
       await display.hide();
     }
+
+    if (choice !== "import") {
+      return;
+    }
+
+    const backupDisplay = await wallet.requestDisplay();
+    try {
+      const imported = await pushModal<boolean>(({ id, resolve, reject }) => ({
+        id,
+        kind: "importPrivateKey",
+        resolve,
+        reject,
+      }));
+      if (!imported) {
+        throw new OwsUserRejectedError("User cancelled private key import");
+      }
+      setUnlocked(true);
+      useWalletSessionStore.getState().setWalletCreated(true);
+      await refreshAddresses();
+    } finally {
+      await backupDisplay.hide();
+    }
   }, [
-    configProvider,
     createNewWalletFromUi,
     loginWithPasskey,
+    refreshAddresses,
     requestWalletSetupChoice,
+    setUnlocked,
     walletRef,
   ]);
 
@@ -278,7 +404,9 @@ export function useWalletAuth({
     refreshAddresses,
     refreshCredentialCount,
     loginWithPasskey,
+    createNewWallet,
     createNewWalletFromUi,
+    createPasskeyRegistrationOnly,
     ensureReady,
     ensureReadyRef,
     ensureOnboardedForSigning,

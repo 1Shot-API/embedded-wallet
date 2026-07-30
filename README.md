@@ -8,6 +8,8 @@ This repo is the **OWS Branding Layer** for the 1Shot Wallet — a frontend-only
 Host Layer (integrator dapp)
   └── This app /            Branding Layer (@1shotapi/ows-wallet-utils)
         └── /signer/        Signing Layer (@1shotapi/ows-signer)
+
+Safari create (first-party): /create/  → embeds Branding + createAccount RPC
 ```
 
 ## Stack
@@ -16,6 +18,7 @@ Host Layer (integrator dapp)
 |------|---------|
 | `/` | React Branding Layer (Vite bundle) |
 | `/signer/` | Static `@1shotapi/ows-signer` ES modules |
+| `/create/` | First-party Host page for Safari passkey create |
 
 Production deliverable: a static **nginx** Docker image (no server-side runtime).
 
@@ -38,6 +41,7 @@ npm run dev:host      # Test Host Layer (setStyle knobs + EIP-1193)
 |---------|-----------|
 | Branding (`/`) | http://localhost:5174/ |
 | Signing (`/signer/`) | http://localhost:5174/signer/ |
+| Create (`/create/`) | http://localhost:5174/create/ |
 | Test host | http://localhost:5173 |
 
 Passkeys need HTTPS — use the printed ngrok wallet URL as the host iframe source (`NGROK_DOMAIN` in `.env` is picked up by `dev:host`).
@@ -84,7 +88,7 @@ Source: [skills/oneshot-embedded-wallet](skills/oneshot-embedded-wallet/).
 ## Build
 
 ```bash
-npm run build         # dist/ (branding) + dist/signer
+npm run build         # dist/ (branding + create/) + dist/signer
 npm run preview       # preview production wallet build
 ```
 

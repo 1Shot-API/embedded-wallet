@@ -146,6 +146,7 @@ const passkeyPromptCopySchema = z.strictObject({
     approveTransaction: passkeyPromptEntrySchema,
     adjustFee: passkeyPromptEntrySchema,
     backup: passkeyPromptEntrySchema,
+    exportPrivateKey: passkeyPromptEntrySchema,
   })
   .optional();
 
@@ -241,36 +242,40 @@ const balancesCopySchema = z.strictObject({
   })
   .optional();
 
-const createBackupCopySchema = z.strictObject({
+const exportPrivateKeyCopySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
-    passphrasePrompt: z.string().optional(),
     continueLabel: z.string().optional(),
     cancelLabel: z.string().optional(),
     closeLabel: z.string().optional(),
-    copyLabel: z.string().optional(),
-    copiedLabel: z.string().optional(),
-    copyFailedLabel: z.string().optional(),
-    doneLabel: z.string().optional(),
-    encryptedLabel: z.string().optional(),
-    passwordTooShortError: z.string().optional(),
+    revealingBody: z.string().optional(),
     cancelledError: z.string().optional(),
     failedError: z.string().optional(),
   })
   .optional();
 
-const restoreBackupCopySchema = z.strictObject({
+const importPrivateKeyCopySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
-    passphraseLabel: z.string().optional(),
-    restoreLabel: z.string().optional(),
+    continueLabel: z.string().optional(),
     cancelLabel: z.string().optional(),
     closeLabel: z.string().optional(),
-    doneLabel: z.string().optional(),
-    successBody: z.string().optional(),
-    decryptFailedError: z.string().optional(),
+    importingBody: z.string().optional(),
     cancelledError: z.string().optional(),
+    invalidKeyError: z.string().optional(),
     failedError: z.string().optional(),
+  })
+  .optional();
+
+const advancedOptionsCopySchema = z.strictObject({
+    title: z.string().optional(),
+    menuLabel: z.string().optional(),
+    onboardingLabel: z.string().optional(),
+    body: z.string().optional(),
+    exportLabel: z.string().optional(),
+    importLabel: z.string().optional(),
+    changeAccountLabel: z.string().optional(),
+    closeLabel: z.string().optional(),
   })
   .optional();
 
@@ -292,8 +297,9 @@ const copySchema = z.strictObject({
     credentialPresentation: credentialPresentationCopySchema,
     credentials: credentialsCopySchema,
     balances: balancesCopySchema,
-    createBackup: createBackupCopySchema,
-    restoreBackup: restoreBackupCopySchema,
+    exportPrivateKey: exportPrivateKeyCopySchema,
+    importPrivateKey: importPrivateKeyCopySchema,
+    advancedOptions: advancedOptionsCopySchema,
   })
   .optional();
 
