@@ -67,239 +67,6 @@ export interface ICachedRelayerVaultRepositoryDeps {
   storage?: CredentialStorageBackend;
 }
 
-function summarizeCredentials(
-  credentials: Iterable<StoredCredential>,
-  filter?: CredentialFilter,
-): CredentialSummary[] {
-  const filtered = [...credentials].filter((c) => {
-    if (filter?.type && !c.type.includes(filter.type)) {
-      return false;
-    }
-    if (filter?.issuer && c.issuer !== filter.issuer) {
-      return false;
-    }
-    return true;
-  });
-
-  return filtered.map((c) => ({
-    credentialId: c.credentialId,
-    type: c.type,
-    issuer: c.issuer,
-    format: c.format,
-    issuedAt: c.issuedAt,
-    validUntil: c.validUntil,
-  }));
-}
-
-function summarizeDelegations(
-  delegations: Iterable<IStoredDelegation>,
-): IDelegationSummary[] {
-  return [...delegations].map((d) => {
-    const data = d.permissionResponse.permission.data;
-    const tokenRaw = data.tokenAddress ?? data.token;
-    const amountRaw = data.periodAmount ?? data.amount;
-    const durationRaw = data.periodDuration ?? data.period ?? data.duration;
-    const duration =
-      typeof durationRaw === "number"
-        ? durationRaw
-        : typeof durationRaw === "string" && durationRaw.trim() !== ""
-          ? Number(durationRaw)
-          : undefined;
-    return {
-      delegationId: d.delegationId,
-      delegationHash: d.delegationHash,
-      chainId: d.chainId,
-      hostDomain: d.hostDomain,
-      memo: d.memo,
-      createdAt: d.createdAt,
-      permissionType: d.permissionResponse.permission.type,
-      to: d.permissionResponse.to,
-      ...(typeof tokenRaw === "string"
-        ? { tokenAddress: EVMAccountAddress(asHex(tokenRaw)) }
-        : {}),
-      ...(typeof amountRaw === "string"
-        ? { periodAmount: HexString(asHex(amountRaw)) }
-        : {}),
-      ...(typeof duration === "number" && Number.isFinite(duration) && duration > 0
-        ? { periodDuration: duration }
-        : {}),
-    };
-  });
-}
-
-function isStoredCredential(value: unknown): value is StoredCredential {
-  if (!value || typeof value !== "object") return false;
-  const record = value as Record<string, unknown>;
-  return (
-    typeof record.credentialId === "string" &&
-    typeof record.payload === "string" &&
-    typeof record.issuer === "string" &&
-    Array.isArray(record.type)
-  );
-}
-
-function isSignedDelegationShape(value: unknown): boolean {
-  if (!value || typeof value !== "object") return false;
-  const record = value as Record<string, unknown>;
-  if (
-    typeof record.delegate !== "string" ||
-    typeof record.delegator !== "string" ||
-    typeof record.authority !== "string" ||
-    typeof record.salt !== "string" ||
-    typeof record.signature !== "string" ||
-    !Array.isArray(record.caveats)
-  ) {
-    return false;
-  }
-  return record.caveats.every((caveat) => {
-    if (!caveat || typeof caveat !== "object") return false;
-    const c = caveat as Record<string, unknown>;
-    return (
-      typeof c.enforcer === "string" &&
-      typeof c.terms === "string" &&
-      typeof c.args === "string"
-    );
-  });
-}
-
-function isPermissionResponseShape(value: unknown): boolean {
-  if (!value || typeof value !== "object") return false;
-  const record = value as Record<string, unknown>;
-  if (
-    typeof record.chainId !== "string" ||
-    typeof record.to !== "string" ||
-    typeof record.context !== "string" ||
-    typeof record.delegationManager !== "string" ||
-    !Array.isArray(record.dependencies) ||
-    record.permission === null ||
-    typeof record.permission !== "object"
-  ) {
-    return false;
-  }
-  return record.dependencies.every((dep) => {
-    if (!dep || typeof dep !== "object") return false;
-    const d = dep as Record<string, unknown>;
-    return typeof d.factory === "string" && typeof d.factoryData === "string";
-  });
-}
-
-function isStoredDelegation(value: unknown): value is IStoredDelegation {
-  if (!value || typeof value !== "object") return false;
-  const record = value as Record<string, unknown>;
-  return (
-    typeof record.delegationId === "string" &&
-    typeof record.delegationHash === "string" &&
-    typeof record.chainId === "string" &&
-    typeof record.hostDomain === "string" &&
-    typeof record.memo === "string" &&
-    typeof record.createdAt === "number" &&
-    isSignedDelegationShape(record.delegation) &&
-    isPermissionResponseShape(record.permissionResponse)
-  );
-}
-
-function asHex(value: unknown): `0x${string}` {
-  return value as `0x${string}`;
-}
-
-function hydrateSignedDelegation(raw: unknown): ISignedDelegation {
-  const record = raw as Record<string, unknown>;
-  const caveats = (record.caveats as ReadonlyArray<Record<string, unknown>>).map(
-    (c): IDelegationCaveat => ({
-      enforcer: EVMContractAddress(asHex(c.enforcer)),
-      terms: HexString(asHex(c.terms)),
-      args: HexString(asHex(c.args)),
-    }),
-  );
-  return {
-    delegate: EVMAccountAddress(asHex(record.delegate)),
-    delegator: EVMAccountAddress(asHex(record.delegator)),
-    authority: HexString(asHex(record.authority)),
-    caveats,
-    salt: HexString(asHex(record.salt)),
-    signature: HexString(asHex(record.signature)),
-  };
-}
-
-function hydratePermissionResponse(
-  raw: unknown,
-): IExecutionPermissionResponse {
-  const record = raw as Record<string, unknown>;
-  const dependenciesRaw = record.dependencies as ReadonlyArray<
-    Record<string, unknown>
-  >;
-  const response: IExecutionPermissionResponse = {
-    chainId: EVMChainId(asHex(record.chainId)),
-    to: EVMAccountAddress(asHex(record.to)),
-    permission: record.permission as IExecutionPermissionResponse["permission"],
-    context: HexString(asHex(record.context)),
-    dependencies: dependenciesRaw.map((dep) => ({
-      factory: EVMContractAddress(asHex(dep.factory)),
-      factoryData: HexString(asHex(dep.factoryData)),
-    })),
-    delegationManager: EVMContractAddress(asHex(record.delegationManager)),
-  };
-  if (typeof record.from === "string") {
-    response.from = EVMAccountAddress(asHex(record.from));
-  }
-  if (Array.isArray(record.rules)) {
-    response.rules =
-      record.rules as IExecutionPermissionResponse["rules"];
-  }
-  return response;
-}
-
-/** Re-brand nested fields after JSON round-trip (relayer or localStorage). */
-function hydrateStoredDelegation(raw: IStoredDelegation): IStoredDelegation {
-  return {
-    delegationId: DelegationId(raw.delegationId),
-    delegationHash: HexString(raw.delegationHash),
-    chainId: EVMChainId(raw.chainId),
-    hostDomain: DomainString(raw.hostDomain),
-    memo: raw.memo,
-    createdAt: UnixTimestamp(raw.createdAt),
-    delegation: hydrateSignedDelegation(raw.delegation),
-    permissionResponse: hydratePermissionResponse(raw.permissionResponse),
-  };
-}
-
-function parseVaultRemoteBlob(raw: string): VaultRemoteBlob | null {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return null;
-    const record = parsed as Record<string, unknown>;
-    if (record.type === "credential" && isStoredCredential(record.data)) {
-      return {
-        type: "credential",
-        timestamp: UnixTimestamp(
-          typeof record.timestamp === "number"
-            ? record.timestamp
-            : Math.floor(Date.now() / 1000),
-        ),
-        data: record.data,
-      };
-    }
-    if (record.type === "delegation" && isStoredDelegation(record.data)) {
-      return {
-        type: "delegation",
-        timestamp: UnixTimestamp(
-          typeof record.timestamp === "number"
-            ? record.timestamp
-            : Math.floor(Date.now() / 1000),
-        ),
-        hostDomain: DomainString(
-          typeof record.hostDomain === "string" ? record.hostDomain : "",
-        ),
-        memo: typeof record.memo === "string" ? record.memo : "",
-        data: hydrateStoredDelegation(record.data),
-      };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Local plaintext vault + encrypted official copies on the 1Shot Relayer.
  * Holds credentials and ERC-7715 delegations (and future typed blobs).
@@ -383,7 +150,7 @@ export class CachedRelayerVaultRepository
     const active = Object.values(blob.credentials).filter(
       (c) => !revoked.has(c.credentialId),
     );
-    return summarizeCredentials(active, filter);
+    return this.summarizeCredentials(active, filter);
   }
 
   async delete(credentialId: CredentialId): Promise<void> {
@@ -469,7 +236,7 @@ export class CachedRelayerVaultRepository
 
   async listDelegations(): Promise<IDelegationSummary[]> {
     await this.ensureStorageKey();
-    return summarizeDelegations(Object.values(this.readBlob().delegations));
+    return this.summarizeDelegations(Object.values(this.readBlob().delegations));
   }
 
   async deleteDelegation(delegationId: DelegationIdType): Promise<void> {
@@ -533,7 +300,7 @@ export class CachedRelayerVaultRepository
       const item = remote[i]!;
       const raw = plaintexts[i];
       if (typeof raw !== "string") continue;
-      const wrapper = parseVaultRemoteBlob(raw);
+      const wrapper = this.parseVaultRemoteBlob(raw);
       if (!wrapper) {
         console.warn(
           "[vault] skipping undecryptable/invalid recovered blob",
@@ -595,6 +362,247 @@ export class CachedRelayerVaultRepository
     });
   }
 
+  private summarizeCredentials(
+    credentials: Iterable<StoredCredential>,
+    filter?: CredentialFilter,
+  ): CredentialSummary[] {
+    const filtered = [...credentials].filter((c) => {
+      if (filter?.type && !c.type.includes(filter.type)) {
+        return false;
+      }
+      if (filter?.issuer && c.issuer !== filter.issuer) {
+        return false;
+      }
+      return true;
+    });
+
+    return filtered.map((c) => ({
+      credentialId: c.credentialId,
+      type: c.type,
+      issuer: c.issuer,
+      format: c.format,
+      issuedAt: c.issuedAt,
+      validUntil: c.validUntil,
+    }));
+  }
+
+  private summarizeDelegations(
+    delegations: Iterable<IStoredDelegation>,
+  ): IDelegationSummary[] {
+    return [...delegations].map((d) => {
+      const data = d.permissionResponse.permission.data;
+      const tokenRaw = data.tokenAddress ?? data.token;
+      const amountRaw = data.periodAmount ?? data.amount;
+      const durationRaw = data.periodDuration ?? data.period ?? data.duration;
+      const duration =
+        typeof durationRaw === "number"
+          ? durationRaw
+          : typeof durationRaw === "string" && durationRaw.trim() !== ""
+            ? Number(durationRaw)
+            : undefined;
+      return {
+        delegationId: d.delegationId,
+        delegationHash: d.delegationHash,
+        chainId: d.chainId,
+        hostDomain: d.hostDomain,
+        memo: d.memo,
+        createdAt: d.createdAt,
+        permissionType: d.permissionResponse.permission.type,
+        to: d.permissionResponse.to,
+        ...(typeof tokenRaw === "string"
+          ? { tokenAddress: EVMAccountAddress(this.asHex(tokenRaw)) }
+          : {}),
+        ...(typeof amountRaw === "string"
+          ? { periodAmount: HexString(this.asHex(amountRaw)) }
+          : {}),
+        ...(typeof duration === "number" &&
+        Number.isFinite(duration) &&
+        duration > 0
+          ? { periodDuration: duration }
+          : {}),
+      };
+    });
+  }
+
+  private isStoredCredential(value: unknown): value is StoredCredential {
+    if (!value || typeof value !== "object") return false;
+    const record = value as Record<string, unknown>;
+    return (
+      typeof record.credentialId === "string" &&
+      typeof record.payload === "string" &&
+      typeof record.issuer === "string" &&
+      Array.isArray(record.type)
+    );
+  }
+
+  private isSignedDelegationShape(value: unknown): boolean {
+    if (!value || typeof value !== "object") return false;
+    const record = value as Record<string, unknown>;
+    if (
+      typeof record.delegate !== "string" ||
+      typeof record.delegator !== "string" ||
+      typeof record.authority !== "string" ||
+      typeof record.salt !== "string" ||
+      typeof record.signature !== "string" ||
+      !Array.isArray(record.caveats)
+    ) {
+      return false;
+    }
+    return record.caveats.every((caveat) => {
+      if (!caveat || typeof caveat !== "object") return false;
+      const c = caveat as Record<string, unknown>;
+      return (
+        typeof c.enforcer === "string" &&
+        typeof c.terms === "string" &&
+        typeof c.args === "string"
+      );
+    });
+  }
+
+  private isPermissionResponseShape(value: unknown): boolean {
+    if (!value || typeof value !== "object") return false;
+    const record = value as Record<string, unknown>;
+    if (
+      typeof record.chainId !== "string" ||
+      typeof record.to !== "string" ||
+      typeof record.context !== "string" ||
+      typeof record.delegationManager !== "string" ||
+      !Array.isArray(record.dependencies) ||
+      record.permission === null ||
+      typeof record.permission !== "object"
+    ) {
+      return false;
+    }
+    return record.dependencies.every((dep) => {
+      if (!dep || typeof dep !== "object") return false;
+      const d = dep as Record<string, unknown>;
+      return typeof d.factory === "string" && typeof d.factoryData === "string";
+    });
+  }
+
+  private isStoredDelegation(value: unknown): value is IStoredDelegation {
+    if (!value || typeof value !== "object") return false;
+    const record = value as Record<string, unknown>;
+    return (
+      typeof record.delegationId === "string" &&
+      typeof record.delegationHash === "string" &&
+      typeof record.chainId === "string" &&
+      typeof record.hostDomain === "string" &&
+      typeof record.memo === "string" &&
+      typeof record.createdAt === "number" &&
+      this.isSignedDelegationShape(record.delegation) &&
+      this.isPermissionResponseShape(record.permissionResponse)
+    );
+  }
+
+  private asHex(value: unknown): `0x${string}` {
+    return value as `0x${string}`;
+  }
+
+  private hydrateSignedDelegation(raw: unknown): ISignedDelegation {
+    const record = raw as Record<string, unknown>;
+    const caveats = (
+      record.caveats as ReadonlyArray<Record<string, unknown>>
+    ).map(
+      (c): IDelegationCaveat => ({
+        enforcer: EVMContractAddress(this.asHex(c.enforcer)),
+        terms: HexString(this.asHex(c.terms)),
+        args: HexString(this.asHex(c.args)),
+      }),
+    );
+    return {
+      delegate: EVMAccountAddress(this.asHex(record.delegate)),
+      delegator: EVMAccountAddress(this.asHex(record.delegator)),
+      authority: HexString(this.asHex(record.authority)),
+      caveats,
+      salt: HexString(this.asHex(record.salt)),
+      signature: HexString(this.asHex(record.signature)),
+    };
+  }
+
+  private hydratePermissionResponse(
+    raw: unknown,
+  ): IExecutionPermissionResponse {
+    const record = raw as Record<string, unknown>;
+    const dependenciesRaw = record.dependencies as ReadonlyArray<
+      Record<string, unknown>
+    >;
+    const response: IExecutionPermissionResponse = {
+      chainId: EVMChainId(this.asHex(record.chainId)),
+      to: EVMAccountAddress(this.asHex(record.to)),
+      permission:
+        record.permission as IExecutionPermissionResponse["permission"],
+      context: HexString(this.asHex(record.context)),
+      dependencies: dependenciesRaw.map((dep) => ({
+        factory: EVMContractAddress(this.asHex(dep.factory)),
+        factoryData: HexString(this.asHex(dep.factoryData)),
+      })),
+      delegationManager: EVMContractAddress(
+        this.asHex(record.delegationManager),
+      ),
+    };
+    if (typeof record.from === "string") {
+      response.from = EVMAccountAddress(this.asHex(record.from));
+    }
+    if (Array.isArray(record.rules)) {
+      response.rules = record.rules as IExecutionPermissionResponse["rules"];
+    }
+    return response;
+  }
+
+  /** Re-brand nested fields after JSON round-trip (relayer or localStorage). */
+  private hydrateStoredDelegation(raw: IStoredDelegation): IStoredDelegation {
+    return {
+      delegationId: DelegationId(raw.delegationId),
+      delegationHash: HexString(raw.delegationHash),
+      chainId: EVMChainId(raw.chainId),
+      hostDomain: DomainString(raw.hostDomain),
+      memo: raw.memo,
+      createdAt: UnixTimestamp(raw.createdAt),
+      delegation: this.hydrateSignedDelegation(raw.delegation),
+      permissionResponse: this.hydratePermissionResponse(
+        raw.permissionResponse,
+      ),
+    };
+  }
+
+  private parseVaultRemoteBlob(raw: string): VaultRemoteBlob | null {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return null;
+      const record = parsed as Record<string, unknown>;
+      if (record.type === "credential" && this.isStoredCredential(record.data)) {
+        return {
+          type: "credential",
+          timestamp: UnixTimestamp(
+            typeof record.timestamp === "number"
+              ? record.timestamp
+              : Math.floor(Date.now() / 1000),
+          ),
+          data: record.data,
+        };
+      }
+      if (record.type === "delegation" && this.isStoredDelegation(record.data)) {
+        return {
+          type: "delegation",
+          timestamp: UnixTimestamp(
+            typeof record.timestamp === "number"
+              ? record.timestamp
+              : Math.floor(Date.now() / 1000),
+          ),
+          hostDomain: DomainString(
+            typeof record.hostDomain === "string" ? record.hostDomain : "",
+          ),
+          memo: typeof record.memo === "string" ? record.memo : "",
+          data: this.hydrateStoredDelegation(record.data),
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   private readBlob(): LocalVaultBlob {
     const storageKey = this.storageKey;
     if (!storageKey) {
@@ -617,8 +625,8 @@ export class CachedRelayerVaultRepository
           : {};
       const delegations: Record<string, IStoredDelegation> = {};
       for (const [key, value] of Object.entries(delegationsRaw)) {
-        if (isStoredDelegation(value)) {
-          delegations[key] = hydrateStoredDelegation(value);
+        if (this.isStoredDelegation(value)) {
+          delegations[key] = this.hydrateStoredDelegation(value);
         }
       }
       return {
