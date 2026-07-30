@@ -16,6 +16,7 @@ import { AccountMetaChip } from "./AccountMetaChip";
 import { AssetDetails } from "./AssetDetails";
 import { BalancesTab } from "./balances/BalancesTab";
 import { CredentialsTab } from "./credentials/CredentialsTab";
+import { DelegationsTab } from "./delegations/DelegationsTab";
 import { SelectNetworkModal } from "./modals/SelectNetworkModal";
 
 const TRUNCATE_CHARS = 5;
@@ -218,12 +219,18 @@ export function MainPanel() {
           <TabsTrigger value="credentials">
             {style.copy.credentials.tabLabel}
           </TabsTrigger>
+          <TabsTrigger value="delegations">
+            {style.copy.delegations.tabLabel}
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="balances">
           <BalancesTab onView={setSelectedAsset} />
         </TabsContent>
         <TabsContent value="credentials">
           <CredentialsTab />
+        </TabsContent>
+        <TabsContent value="delegations">
+          <DelegationsTab />
         </TabsContent>
       </Tabs>
 

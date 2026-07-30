@@ -116,6 +116,10 @@ export function mergeStyle(
         ...current.copy.credentials,
         ...patch.copy?.credentials,
       },
+      delegations: {
+        ...current.copy.delegations,
+        ...patch.copy?.delegations,
+      },
       balances: {
         ...current.copy.balances,
         ...patch.copy?.balances,
@@ -182,6 +186,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       credentialOffer: { ...DEFAULT_STYLE.copy.credentialOffer },
       credentialPresentation: { ...DEFAULT_STYLE.copy.credentialPresentation },
       credentials: { ...DEFAULT_STYLE.copy.credentials },
+      delegations: { ...DEFAULT_STYLE.copy.delegations },
       balances: { ...DEFAULT_STYLE.copy.balances },
       exportPrivateKey: { ...DEFAULT_STYLE.copy.exportPrivateKey },
       importPrivateKey: { ...DEFAULT_STYLE.copy.importPrivateKey },

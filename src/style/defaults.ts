@@ -233,6 +233,23 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       claimsEmpty: "No claims.",
       closeLabel: "Close",
     },
+    delegations: {
+      tabLabel: "Delegations",
+      emptyCountLabel: "No spending permissions yet.",
+      countLabel: "{count} permission(s)",
+      refreshLabel: "Refresh",
+      loadingBody: "Loading…",
+      emptyBody:
+        "Permissions granted to apps appear here. Refresh to sync from the vault.",
+      loadFailedError: "Failed to load permissions",
+      refreshFailedError: "Failed to refresh from relayer",
+      cancelFailedError: "Failed to cancel permission",
+      notFoundError: "Permission not found in local cache.",
+      cancelLabel: "Cancel",
+      noMemoLabel: "No memo",
+      periodSummary: "{amount} {symbol} every {duration}",
+      permissionSummary: "{permissionType} → {to}",
+    },
     balances: {
       tabLabel: "Balances",
       emptyCountLabel: "No assets tracked yet.",

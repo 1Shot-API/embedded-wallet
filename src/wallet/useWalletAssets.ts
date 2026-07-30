@@ -16,6 +16,7 @@ import type {
   AssetActivity,
   TrackedAsset,
 } from "../lib/types/domain";
+import type { DelegationId } from "../lib/types/primitives/DelegationId";
 import { RefreshBalanceRequestedEvent } from "../lib/types/events/RefreshBalanceRequestedEvent";
 import type { TrackedAssetId } from "../lib/types/primitives";
 import { useWalletSessionStore } from "./sessionStore";
@@ -61,6 +62,21 @@ export function useWalletAssets({
     await credentialRepository.refreshFromRelayer();
     await refreshCredentialCount();
   }, [credentialRepository, ensureReady, refreshCredentialCount]);
+
+  const listDelegations = useCallback(async () => {
+    return credentialRepository.listDelegations();
+  }, [credentialRepository]);
+
+  const getDelegation = useCallback(
+    async (delegationId: DelegationId) => {
+      return credentialRepository.getDelegation(delegationId);
+    },
+    [credentialRepository],
+  );
+
+  const refreshDelegationsFromRelayer = useCallback(async () => {
+    await refreshCredentialsFromRelayer();
+  }, [refreshCredentialsFromRelayer]);
 
   const listTrackedAssets = useCallback(async () => {
     const owner = useWalletSessionStore.getState().evmAddress;
@@ -165,6 +181,9 @@ export function useWalletAssets({
     listCredentials,
     getCredential,
     refreshCredentialsFromRelayer,
+    listDelegations,
+    getDelegation,
+    refreshDelegationsFromRelayer,
     listTrackedAssets,
     addTrackedAsset,
     removeTrackedAsset,

@@ -257,6 +257,29 @@ export interface IStyleCopyCredentials {
 }
 
 /**
+ * Delegations tab (ERC-7715 grants grouped by host).
+ * `countLabel` supports `{count}`.
+ * `periodSummary` supports `{amount}`, `{symbol}`, `{duration}`.
+ * `permissionSummary` supports `{permissionType}`, `{to}`.
+ */
+export interface IStyleCopyDelegations {
+  tabLabel: string;
+  emptyCountLabel: string;
+  countLabel: string;
+  refreshLabel: string;
+  loadingBody: string;
+  emptyBody: string;
+  loadFailedError: string;
+  refreshFailedError: string;
+  cancelFailedError: string;
+  notFoundError: string;
+  cancelLabel: string;
+  noMemoLabel: string;
+  periodSummary: string;
+  permissionSummary: string;
+}
+
+/**
  * Balances tab + add-asset flows.
  * `countLabel` supports `{count}`.
  * `addConfirmBody` supports `{assetName}` and `{chainLabel}`.
@@ -407,6 +430,8 @@ export interface IStyleCopyOptions {
   credentialPresentation?: Partial<IStyleCopyCredentialPresentation>;
   /** Partial patch for the credentials tab + detail dialog */
   credentials?: Partial<IStyleCopyCredentials>;
+  /** Partial patch for the delegations tab */
+  delegations?: Partial<IStyleCopyDelegations>;
   /** Partial patch for the balances tab + add-asset flows */
   balances?: Partial<IStyleCopyBalances>;
   /** Partial patch for the export-private-key modal */
@@ -437,6 +462,7 @@ export interface IResolvedCopy {
   credentialOffer: IStyleCopyCredentialOffer;
   credentialPresentation: IStyleCopyCredentialPresentation;
   credentials: IStyleCopyCredentials;
+  delegations: IStyleCopyDelegations;
   balances: IStyleCopyBalances;
   exportPrivateKey: IStyleCopyExportPrivateKey;
   importPrivateKey: IStyleCopyImportPrivateKey;

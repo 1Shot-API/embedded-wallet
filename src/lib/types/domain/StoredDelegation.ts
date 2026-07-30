@@ -58,4 +58,10 @@ export interface IDelegationSummary {
   /** Permission type string (e.g. `erc20-token-periodic`). */
   permissionType: string;
   to: EVMAccountAddress;
+  /** ERC-20 period fields when present on the stored permission. */
+  tokenAddress?: EVMAccountAddress;
+  /** Hex atom amount per period (`0x…`). */
+  periodAmount?: HexString;
+  /** Period length in seconds. */
+  periodDuration?: number;
 }

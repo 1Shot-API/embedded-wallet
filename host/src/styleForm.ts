@@ -88,6 +88,15 @@ export interface IStyleFormState {
   credClaimsHeading: string;
   credClose: string;
 
+  // Text — Delegations tab
+  delTabLabel: string;
+  delEmptyCount: string;
+  delCountLabel: string;
+  delEmptyBody: string;
+  delRefresh: string;
+  delCancel: string;
+  delNoMemo: string;
+
   // Text — Balances / Receive
   balTabLabel: string;
   balRefresh: string;
@@ -236,6 +245,14 @@ export const ACME_PRESET: IStyleFormState = {
   credDetailDescription: "Full credential details and claims.",
   credClaimsHeading: "Claims",
   credClose: "Close",
+  delTabLabel: "Delegations",
+  delEmptyCount: "No spending permissions yet.",
+  delCountLabel: "{count} permission(s)",
+  delEmptyBody:
+    "Permissions granted to apps appear here. Refresh to sync from the vault.",
+  delRefresh: "Refresh",
+  delCancel: "Cancel",
+  delNoMemo: "No memo",
   balTabLabel: "Balances",
   balRefresh: "Refresh",
   receiveLabel: "Receive",
@@ -363,6 +380,14 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   credDetailDescription: "Full credential details and claims.",
   credClaimsHeading: "Claims",
   credClose: "Close",
+  delTabLabel: "Delegations",
+  delEmptyCount: "No spending permissions yet.",
+  delCountLabel: "{count} permission(s)",
+  delEmptyBody:
+    "Permissions granted to apps appear here. Refresh to sync from the vault.",
+  delRefresh: "Refresh",
+  delCancel: "Cancel",
+  delNoMemo: "No memo",
   balTabLabel: "Balances",
   balRefresh: "Refresh",
   receiveLabel: "Receive",
@@ -601,6 +626,16 @@ export function buildSetStylePayload(
   put(credentials, "claimsHeading", form.credClaimsHeading);
   put(credentials, "closeLabel", form.credClose);
   if (Object.keys(credentials).length > 0) copy.credentials = credentials;
+
+  const delegations: Record<string, string> = {};
+  put(delegations, "tabLabel", form.delTabLabel);
+  put(delegations, "emptyCountLabel", form.delEmptyCount);
+  put(delegations, "countLabel", form.delCountLabel);
+  put(delegations, "emptyBody", form.delEmptyBody);
+  put(delegations, "refreshLabel", form.delRefresh);
+  put(delegations, "cancelLabel", form.delCancel);
+  put(delegations, "noMemoLabel", form.delNoMemo);
+  if (Object.keys(delegations).length > 0) copy.delegations = delegations;
 
   const balances: Record<string, string> = {};
   put(balances, "tabLabel", form.balTabLabel);

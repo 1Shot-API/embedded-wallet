@@ -233,6 +233,24 @@ const credentialsCopySchema = z.strictObject({
   })
   .optional();
 
+const delegationsCopySchema = z.strictObject({
+    tabLabel: z.string().optional(),
+    emptyCountLabel: z.string().optional(),
+    countLabel: z.string().optional(),
+    refreshLabel: z.string().optional(),
+    loadingBody: z.string().optional(),
+    emptyBody: z.string().optional(),
+    loadFailedError: z.string().optional(),
+    refreshFailedError: z.string().optional(),
+    cancelFailedError: z.string().optional(),
+    notFoundError: z.string().optional(),
+    cancelLabel: z.string().optional(),
+    noMemoLabel: z.string().optional(),
+    periodSummary: z.string().optional(),
+    permissionSummary: z.string().optional(),
+  })
+  .optional();
+
 const balancesCopySchema = z.strictObject({
     tabLabel: z.string().optional(),
     emptyCountLabel: z.string().optional(),
@@ -331,6 +349,7 @@ const copySchema = z.strictObject({
     credentialOffer: credentialOfferCopySchema,
     credentialPresentation: credentialPresentationCopySchema,
     credentials: credentialsCopySchema,
+    delegations: delegationsCopySchema,
     balances: balancesCopySchema,
     exportPrivateKey: exportPrivateKeyCopySchema,
     importPrivateKey: importPrivateKeyCopySchema,

@@ -94,16 +94,37 @@ function summarizeCredentials(
 function summarizeDelegations(
   delegations: Iterable<IStoredDelegation>,
 ): IDelegationSummary[] {
-  return [...delegations].map((d) => ({
-    delegationId: d.delegationId,
-    delegationHash: d.delegationHash,
-    chainId: d.chainId,
-    hostDomain: d.hostDomain,
-    memo: d.memo,
-    createdAt: d.createdAt,
-    permissionType: d.permissionResponse.permission.type,
-    to: d.permissionResponse.to,
-  }));
+  return [...delegations].map((d) => {
+    const data = d.permissionResponse.permission.data;
+    const tokenRaw = data.tokenAddress ?? data.token;
+    const amountRaw = data.periodAmount ?? data.amount;
+    const durationRaw = data.periodDuration ?? data.period ?? data.duration;
+    const duration =
+      typeof durationRaw === "number"
+        ? durationRaw
+        : typeof durationRaw === "string" && durationRaw.trim() !== ""
+          ? Number(durationRaw)
+          : undefined;
+    return {
+      delegationId: d.delegationId,
+      delegationHash: d.delegationHash,
+      chainId: d.chainId,
+      hostDomain: d.hostDomain,
+      memo: d.memo,
+      createdAt: d.createdAt,
+      permissionType: d.permissionResponse.permission.type,
+      to: d.permissionResponse.to,
+      ...(typeof tokenRaw === "string"
+        ? { tokenAddress: EVMAccountAddress(asHex(tokenRaw)) }
+        : {}),
+      ...(typeof amountRaw === "string"
+        ? { periodAmount: HexString(asHex(amountRaw)) }
+        : {}),
+      ...(typeof duration === "number" && Number.isFinite(duration) && duration > 0
+        ? { periodDuration: duration }
+        : {}),
+    };
+  });
 }
 
 function isStoredCredential(value: unknown): value is StoredCredential {
