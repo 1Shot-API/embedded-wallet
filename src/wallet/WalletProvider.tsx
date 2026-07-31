@@ -26,7 +26,7 @@ import {
   type EVMTransactionHash,
   type StoredCredential,
 } from "@1shotapi/ows-types";
-import { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerCredentialRepository";
+import { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
 import { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
 import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
@@ -34,14 +34,25 @@ import { HardcodedKnownAssetRepository } from "../lib/implementations/data/Hardc
 import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
 import { BlockscoutAssetActivityRepository } from "../lib/implementations/data/BlockscoutAssetActivityRepository";
 import { OneshotRelayerRepository } from "../lib/implementations/data/OneshotRelayerRepository";
-import { TransactionService } from "../lib/implementations/business";
+import {
+  BusinessTransactionUtils,
+  DelegationService,
+  TransactionService,
+} from "../lib/implementations/business";
 import {
   ConfigProvider,
   OWSProvider,
   SupportedChainsBlockchainProvider,
   EventBus,
   TransactionUtils,
+  AnalyticsBridge,
+  runWithAnalytics,
 } from "../lib/implementations/utils";
+import {
+  TransactionSubmitCancelledEvent,
+  TransactionSubmittedEvent,
+  TransactionSubmitFailedEvent,
+} from "../lib/types/events/productEvents";
 import type {
   IAssetActivityRepository,
   IChainRepository,
@@ -50,7 +61,10 @@ import type {
   IRecordSentActivityParams,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
-import type { ITransactionService } from "../lib/interfaces/business";
+import type {
+  IDelegationService,
+  ITransactionService,
+} from "../lib/interfaces/business";
 import type {
   IConfigProvider,
   IEventBus,
@@ -63,12 +77,18 @@ import type {
   SupportedChain,
   TrackedAsset,
 } from "../lib/types/domain";
+import type {
+  IDelegationSummary,
+  IStoredDelegation,
+} from "../lib/types/domain/StoredDelegation";
+import type { DelegationId } from "../lib/types/primitives/DelegationId";
 import type { TrackedAssetId } from "../lib/types/primitives";
 import {
   loadCachedEvmAddress,
   saveCachedAddresses,
   clearWalletStorage,
 } from "../storage";
+import type { IRelayerConfirmSendResult } from "./modalTypes";
 import { pushModal } from "./pushModal";
 import { useWalletAuth } from "./useWalletAuth";
 import { useWalletAssets } from "./useWalletAssets";
@@ -82,6 +102,12 @@ const blockchainProvider: IBlockchainProvider =
   new SupportedChainsBlockchainProvider(chainRepository);
 const addressUtils = new AddressUtils(blockchainProvider);
 const eventBus: IEventBus = new EventBus();
+const analyticsBridge = new AnalyticsBridge({
+  eventBus,
+  owsProvider,
+  configProvider,
+});
+analyticsBridge.start();
 const transactionUtils: ITransactionUtils = new TransactionUtils();
 const knownAssetRepository: IKnownAssetRepository =
   new HardcodedKnownAssetRepository(blockchainProvider);
@@ -99,17 +125,32 @@ const oneshotRelayerRepository: IOneshotRelayerRepository =
     owsProvider,
   });
 
-const transactionService: ITransactionService = new TransactionService({
+const businessTransactionUtils = new BusinessTransactionUtils({
   chainRepository,
   relayerRepository: oneshotRelayerRepository,
   blockchain: blockchainProvider,
-  transactionUtils,
+  presentationTransactionUtils: transactionUtils,
   owsProvider,
 });
 
-const credentialRepository = new CachedRelayerCredentialRepository({
+const transactionService: ITransactionService = new TransactionService({
+  chainRepository,
+  relayerRepository: oneshotRelayerRepository,
+  transactionUtils: businessTransactionUtils,
+});
+
+const credentialRepository = new CachedRelayerVaultRepository({
   client: new RelayerCredentialsClient(configProvider),
   configProvider,
+  owsProvider,
+});
+
+const delegationService: IDelegationService = new DelegationService({
+  chainRepository,
+  delegationRepository: credentialRepository,
+  blockchain: blockchainProvider,
+  transactionUtils: businessTransactionUtils,
+  presentationTransactionUtils: transactionUtils,
   owsProvider,
 });
 
@@ -139,6 +180,7 @@ export type WalletContextValue = {
   assetActivityRepository: IAssetActivityRepository;
   oneshotRelayerRepository: IOneshotRelayerRepository;
   transactionService: ITransactionService;
+  delegationService: IDelegationService;
   eventBus: IEventBus;
 
   chains: SupportedChain[];
@@ -159,6 +201,21 @@ export type WalletContextValue = {
     credentialId: CredentialId,
   ) => Promise<StoredCredential | undefined>;
   refreshCredentialsFromRelayer: () => Promise<void>;
+  listDelegations: () => Promise<IDelegationSummary[]>;
+  getDelegation: (
+    delegationId: DelegationId,
+  ) => Promise<IStoredDelegation | undefined>;
+  refreshDelegationsFromRelayer: () => Promise<void>;
+  /**
+   * In-wallet cancel from the Delegations tab. Opens the same confirm modal as
+   * `wallet_revokeExecutionPermission`, then deletes the vault row on success.
+   */
+  cancelStoredDelegation: (
+    delegationId: DelegationId,
+  ) => Promise<{
+    chainId: EVMChainId;
+    transactionHash: EVMTransactionHash;
+  }>;
   listTrackedAssets: () => Promise<TrackedAsset[]>;
   addTrackedAsset: (
     chainId: EVMChainId,
@@ -284,6 +341,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     walletRef,
     awaitSignerRef,
     credentialRepository,
+    eventBus,
+    configProvider,
   });
 
   // Keep create callbacks current for mount-only wallet boot closures.
@@ -306,6 +365,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     listCredentials,
     getCredential,
     refreshCredentialsFromRelayer,
+    listDelegations,
+    getDelegation,
+    refreshDelegationsFromRelayer,
     listTrackedAssets,
     addTrackedAsset,
     removeTrackedAsset,
@@ -320,7 +382,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     trackedAssetRepository,
     assetActivityRepository,
     eventBus,
-    ensureReady,
+    awaitSignerReady,
     refreshCredentialCount,
   });
 
@@ -344,9 +406,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     knownAssetRepository,
     trackedAssetRepository,
     transactionService,
+    delegationService,
     transactionUtils,
     credentialRepository,
     walletStorage,
+    eventBus,
+    configProvider,
   });
 
   const switchChain = useCallback(async (next: string) => {
@@ -377,16 +442,110 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         feeAtoms: bigint;
       },
     ) => {
-      await ensureOnboardedForSigning();
-      const result = await transactionService.sendTransaction(
-        chainId,
-        { to, data, value },
-        payment,
+      const { hostDomain } = await configProvider.getConfig();
+      const started = performance.now();
+      const methodId = data.length >= 10 ? data.slice(0, 10) : null;
+      const accountAddress = (): EVMAccountAddress =>
+        useWalletSessionStore.getState().evmAddress ||
+        loadCachedEvmAddress() ||
+        EVMAccountAddress("0x0");
+
+      return runWithAnalytics(
+        (event) => eventBus.emitAnalytics(event),
+        async () => {
+          await ensureOnboardedForSigning();
+          const result = await transactionService.sendTransaction(
+            chainId,
+            { to, data, value },
+            payment,
+          );
+          await onSigningAuthenticated();
+          return result.transactionHash;
+        },
+        {
+          success: (txHash) =>
+            new TransactionSubmittedEvent(
+              hostDomain,
+              accountAddress(),
+              chainId,
+              to,
+              txHash,
+              Math.round(performance.now() - started),
+              methodId,
+            ),
+          cancelled: () =>
+            new TransactionSubmitCancelledEvent(
+              hostDomain,
+              accountAddress(),
+              chainId,
+              Math.round(performance.now() - started),
+              to,
+            ),
+          failed: (errorCode) =>
+            new TransactionSubmitFailedEvent(
+              hostDomain,
+              accountAddress(),
+              chainId,
+              errorCode,
+              Math.round(performance.now() - started),
+              to,
+            ),
+        },
       );
-      await onSigningAuthenticated();
-      return result.transactionHash;
     },
     [ensureOnboardedForSigning, onSigningAuthenticated],
+  );
+
+  const cancelStoredDelegation = useCallback(
+    async (delegationId: DelegationId) => {
+      await ensureOnboardedForSigning();
+      const stored = await credentialRepository.getDelegation(delegationId);
+      if (!stored) {
+        throw new Error("Permission not found in local cache.");
+      }
+      const chain = resolveChain(stored.chainId);
+      if (!chain?.useRelayer) {
+        throw new Error(
+          `Chain ${stored.chainId} does not support canceling permissions`,
+        );
+      }
+      const owner =
+        useWalletSessionStore.getState().evmAddress ||
+        loadCachedEvmAddress();
+      if (!owner) {
+        throw new Error("Wallet address is required to cancel a permission");
+      }
+      const transactionHash = await pushModal<EVMTransactionHash>(
+        ({ id, resolve, reject }) => ({
+          id,
+          kind: "cancelDelegation",
+          request: {
+            domain: String(stored.hostDomain),
+            chainName: chain.label,
+            chainId: stored.chainId,
+            ownerAddress: owner,
+          },
+          execute: async (payment: IRelayerConfirmSendResult) => {
+            const result = await delegationService.cancelDelegation({
+              chainId: stored.chainId,
+              paymentToken: payment.paymentToken,
+              feeAtoms: payment.feeAtoms,
+              stored,
+            });
+            return result.transactionHash;
+          },
+          resolve,
+          reject,
+        }),
+      );
+      await onSigningAuthenticated();
+      return { chainId: stored.chainId, transactionHash };
+    },
+    [
+      ensureOnboardedForSigning,
+      onSigningAuthenticated,
+      resolveChain,
+    ],
   );
 
   const openExportPrivateKey = useCallback(async () => {
@@ -484,6 +643,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       assetActivityRepository,
       oneshotRelayerRepository,
       transactionService,
+      delegationService,
       eventBus,
       chains,
       resolveChain,
@@ -499,6 +659,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       listCredentials,
       getCredential,
       refreshCredentialsFromRelayer,
+      listDelegations,
+      getDelegation,
+      refreshDelegationsFromRelayer,
+      cancelStoredDelegation,
       listTrackedAssets,
       addTrackedAsset,
       removeTrackedAsset,
@@ -528,6 +692,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       listCredentials,
       getCredential,
       refreshCredentialsFromRelayer,
+      listDelegations,
+      getDelegation,
+      refreshDelegationsFromRelayer,
+      cancelStoredDelegation,
       listTrackedAssets,
       addTrackedAsset,
       removeTrackedAsset,

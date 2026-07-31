@@ -129,6 +129,39 @@ const transferTokensCopySchema = z.strictObject({
   })
   .optional();
 
+const grantExecutionPermissionCopySchema = z.strictObject({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    hostLabel: z.string().optional(),
+    toLabel: z.string().optional(),
+    chainLabel: z.string().optional(),
+    permissionTypeLabel: z.string().optional(),
+    tokenLabel: z.string().optional(),
+    periodAmountLabel: z.string().optional(),
+    periodAmountPlaceholder: z.string().optional(),
+    periodDurationLabel: z.string().optional(),
+    periodDurationPlaceholder: z.string().optional(),
+    periodDurationHint: z.string().optional(),
+    startLabel: z.string().optional(),
+    memoLabel: z.string().optional(),
+    memoPlaceholder: z.string().optional(),
+    invalidAmountError: z.string().optional(),
+    invalidDurationError: z.string().optional(),
+    rejectLabel: z.string().optional(),
+    grantLabel: z.string().optional(),
+  })
+  .optional();
+
+const cancelDelegationCopySchema = z.strictObject({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    hostLabel: z.string().optional(),
+    chainLabel: z.string().optional(),
+    rejectLabel: z.string().optional(),
+    confirmLabel: z.string().optional(),
+  })
+  .optional();
+
 const passkeyPromptEntrySchema = z.strictObject({
     title: z.string().optional(),
     body: z.string().optional(),
@@ -197,6 +230,24 @@ const credentialsCopySchema = z.strictObject({
     claimsLoading: z.string().optional(),
     claimsEmpty: z.string().optional(),
     closeLabel: z.string().optional(),
+  })
+  .optional();
+
+const delegationsCopySchema = z.strictObject({
+    tabLabel: z.string().optional(),
+    emptyCountLabel: z.string().optional(),
+    countLabel: z.string().optional(),
+    refreshLabel: z.string().optional(),
+    loadingBody: z.string().optional(),
+    emptyBody: z.string().optional(),
+    loadFailedError: z.string().optional(),
+    refreshFailedError: z.string().optional(),
+    cancelFailedError: z.string().optional(),
+    notFoundError: z.string().optional(),
+    cancelLabel: z.string().optional(),
+    noMemoLabel: z.string().optional(),
+    periodSummary: z.string().optional(),
+    permissionSummary: z.string().optional(),
   })
   .optional();
 
@@ -292,10 +343,13 @@ const copySchema = z.strictObject({
     sendTransaction: sendTransactionCopySchema,
     confirmTransfer: confirmTransferCopySchema,
     transferTokens: transferTokensCopySchema,
+    grantExecutionPermission: grantExecutionPermissionCopySchema,
+    cancelDelegation: cancelDelegationCopySchema,
     passkeyPrompt: passkeyPromptCopySchema,
     credentialOffer: credentialOfferCopySchema,
     credentialPresentation: credentialPresentationCopySchema,
     credentials: credentialsCopySchema,
+    delegations: delegationsCopySchema,
     balances: balancesCopySchema,
     exportPrivateKey: exportPrivateKeyCopySchema,
     importPrivateKey: importPrivateKeyCopySchema,

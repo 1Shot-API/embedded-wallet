@@ -25,3 +25,5 @@ export type {
 export { IOneshotRelayerRepositoryType } from "./IOneshotRelayerRepository";
 export type { IChainRepository } from "./IChainRepository";
 export { IChainRepositoryType } from "./IChainRepository";
+export type { IDelegationRepository } from "./IDelegationRepository";
+export { IDelegationRepositoryType } from "./IDelegationRepository";
