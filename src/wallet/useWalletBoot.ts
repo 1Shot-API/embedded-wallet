@@ -69,7 +69,7 @@ import {
   TypedSignCancelledEvent,
   TypedSignEvent,
   TypedSignFailedEvent,
-} from "../lib/types/events/analytics";
+} from "../lib/types/events/productEvents";
 import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerCreateAccountRpc } from "./registerCreateAccount";
 import type { IPasskeyRegistrationResult } from "./registerCreateAccount";

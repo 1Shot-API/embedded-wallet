@@ -28,7 +28,7 @@ import {
   CredentialPresentCancelledEvent,
   CredentialPresentedEvent,
   CredentialPresentFailedEvent,
-} from "../lib/types/events/analytics";
+} from "../lib/types/events/productEvents";
 import { isWalletCreated } from "../storage";
 import {
   ensureCredentialsReadable,

@@ -281,7 +281,7 @@ proxy.analytics.on("PersonalSign", (event) => {
 | `DelegationCreated` / `DelegationCreateFailed` / `DelegationCreateCancelled` | EIP-7715 grant | `accountAddress`, `chainId`, `durationMs` |
 | `DelegationCancelled` / `DelegationCancelFailed` / `DelegationCancelAborted` | EIP-7715 revoke | `accountAddress`, `chainId`, `txHash`, `durationMs` |
 
-The same rich payload is POSTed fire-and-forget to `POST /wallet/analytics` on the
+The same rich payload is POSTed fire-and-forget to `POST /wallet/product-events` on the
 1Shot relayer. The local Host (`host/`) and marketing [wallet playground](https://www.1shotapi.com/playground)
 include a live Analytics panel fed by `proxy.analytics.on` (filter by `name`).
 

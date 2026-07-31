@@ -52,7 +52,7 @@ import {
   TransactionSubmitCancelledEvent,
   TransactionSubmittedEvent,
   TransactionSubmitFailedEvent,
-} from "../lib/types/events/analytics";
+} from "../lib/types/events/productEvents";
 import type {
   IAssetActivityRepository,
   IChainRepository,

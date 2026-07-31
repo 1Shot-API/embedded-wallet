@@ -16,7 +16,7 @@ import {
   AccountCreateCancelledEvent,
   AccountCreatedEvent,
   AccountCreateFailedEvent,
-} from "../lib/types/events/analytics";
+} from "../lib/types/events/productEvents";
 import {
   isWalletCreated,
   loadCredentialId,

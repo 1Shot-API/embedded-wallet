@@ -46,6 +46,8 @@ npm run dev:host      # Test Host Layer (setStyle knobs + EIP-1193)
 
 Passkeys need HTTPS — use the printed ngrok wallet URL as the host iframe source (`NGROK_DOMAIN` in `.env` is picked up by `dev:host`).
 
+By default Vite uses published `@1shotapi/ows-*` from `node_modules`. To point at a sibling `../prf-wallet` checkout, set `OWS_LOCAL_PACKAGES=1` (Firefox often breaks on the resulting `/@fs/C:` module URLs — prefer Chrome, or leave the flag unset for ngrok).
+
 Style testing: use the **Style (setStyle RPC)** panel on the test host (`host/`), not in-wallet debug UI. See [host/README.md](host/README.md).
 
 ## Host integration
@@ -92,7 +94,7 @@ proxy.analytics.on((event) => {
 | `DelegationCancelled` / `…Failed` / `DelegationCancelAborted` | EIP-7715 revoke | `accountAddress`, `chainId`, `txHash`, `durationMs` |
 
 The same rich payload is also POSTed fire-and-forget to the 1Shot relayer
-`POST /wallet/analytics`. The local Host playground (`host/`) shows a live
+`POST /wallet/product-events`. The local Host playground (`host/`) shows a live
 Analytics panel fed by `proxy.analytics.on` — filter by `name` to inspect
 outcomes while testing.
 

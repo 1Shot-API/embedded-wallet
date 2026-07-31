@@ -12,7 +12,7 @@ export type AnalyticsBridgeOptions = {
 /**
  * Dual-sink analytics publisher:
  * 1. Branding→Host via `wallet.analytics.emit` (full rich event)
- * 2. First-party POST `/wallet/analytics` on the relayer (fire-and-forget)
+ * 2. First-party POST `/wallet/product-events` on the relayer (fire-and-forget)
  *
  * Subscribe once after construction; sinks never throw into wallet UX.
  */
@@ -57,7 +57,7 @@ export class AnalyticsBridge {
   private async postToRelayer(event: OWSAnalyticsEvent): Promise<void> {
     try {
       const config = await this.options.configProvider.getConfig();
-      const url = `${String(config.relayerBaseUrl).replace(/\/$/, "")}/wallet/analytics`;
+      const url = `${String(config.relayerBaseUrl).replace(/\/$/, "")}/wallet/product-events`;
       const response = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
