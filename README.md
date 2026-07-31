@@ -91,7 +91,10 @@ proxy.analytics.on((event) => {
 | `DelegationCreated` / `…Failed` / `…Cancelled` | EIP-7715 grant | `accountAddress`, `chainId`, `durationMs` |
 | `DelegationCancelled` / `…Failed` / `DelegationCancelAborted` | EIP-7715 revoke | `accountAddress`, `chainId`, `txHash`, `durationMs` |
 
-The same rich payload is also POSTed fire-and-forget to the 1Shot relayer `POST /wallet/analytics` (ingest lands in Phase 3).
+The same rich payload is also POSTed fire-and-forget to the 1Shot relayer
+`POST /wallet/analytics`. The local Host playground (`host/`) shows a live
+Analytics panel fed by `proxy.analytics.on` — filter by `name` to inspect
+outcomes while testing.
 
 ### `setStyle` (custom RPC)
 
