@@ -20,17 +20,49 @@ const siblingSignerUtilsEntry = path.resolve(
   __dirname,
   "../prf-wallet/packages/ows-signer-utils/dist/index.js",
 );
+const siblingWalletUtilsEntry = path.resolve(
+  __dirname,
+  "../prf-wallet/packages/ows-wallet-utils/dist/index.js",
+);
+const siblingOid4Entry = path.resolve(
+  __dirname,
+  "../prf-wallet/packages/ows-oid4/dist/index.js",
+);
 const signerPkgSrc = fs.existsSync(siblingSignerSrc)
   ? siblingSignerSrc
   : path.resolve(__dirname, "node_modules/@1shotapi/ows-signer/src");
 const signerPublicDir = path.resolve(__dirname, "signer-static");
 
+/**
+ * Sibling package aliases rewrite imports to Vite `/@fs/C:/…` URLs on Windows.
+ * Firefox frequently fails those module loads (especially via ngrok), which
+ * breaks branding boot (e.g. productEvents barrel). Opt in only when you
+ * intentionally need unreleased OWS sources: `OWS_LOCAL_PACKAGES=1`.
+ */
+const useLocalOwsPackages = ["1", "true", "yes"].includes(
+  (process.env.OWS_LOCAL_PACKAGES ?? "").trim().toLowerCase(),
+);
+
 const localOwsAliases: Record<string, string> = {};
-if (fs.existsSync(siblingTypesEntry)) {
-  localOwsAliases["@1shotapi/ows-types"] = siblingTypesEntry;
-}
-if (fs.existsSync(siblingSignerUtilsEntry)) {
-  localOwsAliases["@1shotapi/ows-signer-utils"] = siblingSignerUtilsEntry;
+if (useLocalOwsPackages) {
+  if (fs.existsSync(siblingTypesEntry)) {
+    localOwsAliases["@1shotapi/ows-types"] = siblingTypesEntry;
+  }
+  if (fs.existsSync(siblingSignerUtilsEntry)) {
+    localOwsAliases["@1shotapi/ows-signer-utils"] = siblingSignerUtilsEntry;
+  }
+  if (fs.existsSync(siblingWalletUtilsEntry)) {
+    localOwsAliases["@1shotapi/ows-wallet-utils"] = siblingWalletUtilsEntry;
+  }
+  if (fs.existsSync(siblingOid4Entry)) {
+    localOwsAliases["@1shotapi/ows-oid4"] = siblingOid4Entry;
+  }
+  if (Object.keys(localOwsAliases).length > 0) {
+    console.warn(
+      "[vite] OWS_LOCAL_PACKAGES enabled — aliasing to sibling prf-wallet. " +
+        "Firefox may fail /@fs/C: module loads; use Chrome or unset the flag for ngrok.",
+    );
+  }
 }
 
 const MIME: Record<string, string> = {
@@ -159,6 +191,16 @@ export default defineConfig({
     strictPort: true,
     host: "0.0.0.0",
     allowedHosts: true,
+    ...(useLocalOwsPackages
+      ? {
+          fs: {
+            allow: [
+              path.resolve(__dirname),
+              path.resolve(__dirname, "../prf-wallet/packages"),
+            ],
+          },
+        }
+      : {}),
   },
   preview: {
     port: Number(process.env.PORT ?? 5174),

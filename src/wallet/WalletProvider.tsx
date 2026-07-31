@@ -45,7 +45,14 @@ import {
   SupportedChainsBlockchainProvider,
   EventBus,
   TransactionUtils,
+  AnalyticsBridge,
+  runWithAnalytics,
 } from "../lib/implementations/utils";
+import {
+  TransactionSubmitCancelledEvent,
+  TransactionSubmittedEvent,
+  TransactionSubmitFailedEvent,
+} from "../lib/types/events/productEvents";
 import type {
   IAssetActivityRepository,
   IChainRepository,
@@ -95,6 +102,12 @@ const blockchainProvider: IBlockchainProvider =
   new SupportedChainsBlockchainProvider(chainRepository);
 const addressUtils = new AddressUtils(blockchainProvider);
 const eventBus: IEventBus = new EventBus();
+const analyticsBridge = new AnalyticsBridge({
+  eventBus,
+  owsProvider,
+  configProvider,
+});
+analyticsBridge.start();
 const transactionUtils: ITransactionUtils = new TransactionUtils();
 const knownAssetRepository: IKnownAssetRepository =
   new HardcodedKnownAssetRepository(blockchainProvider);
@@ -328,6 +341,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     walletRef,
     awaitSignerRef,
     credentialRepository,
+    eventBus,
+    configProvider,
   });
 
   // Keep create callbacks current for mount-only wallet boot closures.
@@ -395,6 +410,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     transactionUtils,
     credentialRepository,
     walletStorage,
+    eventBus,
+    configProvider,
   });
 
   const switchChain = useCallback(async (next: string) => {
@@ -425,14 +442,56 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         feeAtoms: bigint;
       },
     ) => {
-      await ensureOnboardedForSigning();
-      const result = await transactionService.sendTransaction(
-        chainId,
-        { to, data, value },
-        payment,
+      const { hostDomain } = await configProvider.getConfig();
+      const started = performance.now();
+      const methodId = data.length >= 10 ? data.slice(0, 10) : null;
+      const accountAddress = (): EVMAccountAddress =>
+        useWalletSessionStore.getState().evmAddress ||
+        loadCachedEvmAddress() ||
+        EVMAccountAddress("0x0");
+
+      return runWithAnalytics(
+        (event) => eventBus.emitAnalytics(event),
+        async () => {
+          await ensureOnboardedForSigning();
+          const result = await transactionService.sendTransaction(
+            chainId,
+            { to, data, value },
+            payment,
+          );
+          await onSigningAuthenticated();
+          return result.transactionHash;
+        },
+        {
+          success: (txHash) =>
+            new TransactionSubmittedEvent(
+              hostDomain,
+              accountAddress(),
+              chainId,
+              to,
+              txHash,
+              Math.round(performance.now() - started),
+              methodId,
+            ),
+          cancelled: () =>
+            new TransactionSubmitCancelledEvent(
+              hostDomain,
+              accountAddress(),
+              chainId,
+              Math.round(performance.now() - started),
+              to,
+            ),
+          failed: (errorCode) =>
+            new TransactionSubmitFailedEvent(
+              hostDomain,
+              accountAddress(),
+              chainId,
+              errorCode,
+              Math.round(performance.now() - started),
+              to,
+            ),
+        },
       );
-      await onSigningAuthenticated();
-      return result.transactionHash;
     },
     [ensureOnboardedForSigning, onSigningAuthenticated],
   );

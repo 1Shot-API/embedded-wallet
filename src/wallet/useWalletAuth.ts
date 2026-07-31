@@ -1,8 +1,22 @@
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
-import { COSEPublicKey, CredentialId, OwsUserRejectedError } from "@1shotapi/ows-types";
+import {
+  COSEPublicKey,
+  CredentialId,
+  OwsUserRejectedError,
+} from "@1shotapi/ows-types";
 import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
+import {
+  analyticsErrorCode,
+  isAnalyticsCancelled,
+} from "../lib/implementations/utils";
+import type { IConfigProvider, IEventBus } from "../lib/interfaces/utils";
+import {
+  AccountCreateCancelledEvent,
+  AccountCreatedEvent,
+  AccountCreateFailedEvent,
+} from "../lib/types/events/productEvents";
 import {
   isWalletCreated,
   loadCredentialId,
@@ -23,6 +37,8 @@ export interface IUseWalletAuthParams {
   walletRef: RefObject<OWSWallet | null>;
   awaitSignerRef: RefObject<(() => Promise<OWSSigner>) | null>;
   credentialRepository: CachedRelayerVaultRepository;
+  eventBus: IEventBus;
+  configProvider: IConfigProvider;
 }
 
 export function useWalletAuth({
@@ -30,6 +46,8 @@ export function useWalletAuth({
   walletRef,
   awaitSignerRef,
   credentialRepository,
+  eventBus,
+  configProvider,
 }: IUseWalletAuthParams) {
   const unlockInFlightRef = useRef<Promise<void> | undefined>(undefined);
 
@@ -128,10 +146,15 @@ export function useWalletAuth({
         );
       }
       setUnlocked(true);
+      const address = await signer.evm.getAccountAddress();
+      const { hostDomain } = await configProvider.getConfig();
+      eventBus.emitAnalytics(new AccountCreatedEvent(hostDomain, address));
       console.info("[create-handoff] adoptCreatedCredential unlocked + registered");
     },
     [
+      configProvider,
       credentialRepository,
+      eventBus,
       refreshAddresses,
       refreshCredentialCount,
       setUnlocked,
@@ -183,40 +206,56 @@ export function useWalletAuth({
 
   const createNewWallet = useCallback(
     async (accountName: string) => {
-      if (needsFirstPartyPasskeyCreate()) {
-        console.info("[create-handoff] diverting createNewWallet → /create");
-        const { credentialId, cosePublicKey } =
-          await createAccountViaFirstPartyTab();
-        await adoptCreatedCredential(credentialId, cosePublicKey);
-        return;
-      }
+      const { hostDomain } = await configProvider.getConfig();
+      try {
+        if (needsFirstPartyPasskeyCreate()) {
+          console.info("[create-handoff] diverting createNewWallet → /create");
+          const { credentialId, cosePublicKey } =
+            await createAccountViaFirstPartyTab();
+          await adoptCreatedCredential(credentialId, cosePublicKey);
+          return;
+        }
 
-      const signer = signerRef.current;
-      if (!signer) throw new Error("Signer not ready");
-      const created = await signer.createCredential(accountName, {
-        rpName: "Open Wallet",
-        userDisplayName: accountName,
-      });
-      const credentialId =
-        created.credentialId ?? signer.getCredentialId();
-      if (!credentialId) {
-        throw new Error("Passkey created but credential id missing");
+        const signer = signerRef.current;
+        if (!signer) throw new Error("Signer not ready");
+        const created = await signer.createCredential(accountName, {
+          rpName: "Open Wallet",
+          userDisplayName: accountName,
+        });
+        const credentialId =
+          created.credentialId ?? signer.getCredentialId();
+        if (!credentialId) {
+          throw new Error("Passkey created but credential id missing");
+        }
+        if (!created.cosePublicKey) {
+          throw new Error(
+            "Passkey created but authenticator public key missing — cannot register with relayer",
+          );
+        }
+        saveWalletCreated(credentialId);
+        saveCosePublicKey(created.cosePublicKey);
+        await credentialRepository.registerPasskey(created.cosePublicKey);
+        useWalletSessionStore.getState().setWalletCreated(true);
+        await refreshAddresses();
+        setUnlocked(true);
+        const address = await signer.evm.getAccountAddress();
+        eventBus.emitAnalytics(new AccountCreatedEvent(hostDomain, address));
+      } catch (error: unknown) {
+        if (isAnalyticsCancelled(error)) {
+          eventBus.emitAnalytics(new AccountCreateCancelledEvent(hostDomain));
+        } else {
+          eventBus.emitAnalytics(
+            new AccountCreateFailedEvent(hostDomain, analyticsErrorCode(error)),
+          );
+        }
+        throw error;
       }
-      if (!created.cosePublicKey) {
-        throw new Error(
-          "Passkey created but authenticator public key missing — cannot register with relayer",
-        );
-      }
-      saveWalletCreated(credentialId);
-      saveCosePublicKey(created.cosePublicKey);
-      await credentialRepository.registerPasskey(created.cosePublicKey);
-      useWalletSessionStore.getState().setWalletCreated(true);
-      await refreshAddresses();
-      setUnlocked(true);
     },
     [
       adoptCreatedCredential,
+      configProvider,
       credentialRepository,
+      eventBus,
       refreshAddresses,
       setUnlocked,
       signerRef,
@@ -225,19 +264,42 @@ export function useWalletAuth({
 
   const createNewWalletFromUi = useCallback(async () => {
     if (needsFirstPartyPasskeyCreate()) {
-      console.info("[create-handoff] diverting createNewWalletFromUi → /create");
-      const { credentialId, cosePublicKey } =
-        await createAccountViaFirstPartyTab();
-      await adoptCreatedCredential(credentialId, cosePublicKey);
+      const { hostDomain } = await configProvider.getConfig();
+      try {
+        console.info("[create-handoff] diverting createNewWalletFromUi → /create");
+        const { credentialId, cosePublicKey } =
+          await createAccountViaFirstPartyTab();
+        await adoptCreatedCredential(credentialId, cosePublicKey);
+      } catch (error: unknown) {
+        if (isAnalyticsCancelled(error)) {
+          eventBus.emitAnalytics(new AccountCreateCancelledEvent(hostDomain));
+        } else {
+          eventBus.emitAnalytics(
+            new AccountCreateFailedEvent(
+              hostDomain,
+              analyticsErrorCode(error),
+            ),
+          );
+        }
+        throw error;
+      }
       return;
     }
 
     const name = await promptPasskeyName();
     if (!name) {
+      const { hostDomain } = await configProvider.getConfig();
+      eventBus.emitAnalytics(new AccountCreateCancelledEvent(hostDomain));
       throw new OwsUserRejectedError("User cancelled passkey creation");
     }
     await createNewWallet(name);
-  }, [adoptCreatedCredential, createNewWallet, promptPasskeyName]);
+  }, [
+    adoptCreatedCredential,
+    configProvider,
+    createNewWallet,
+    eventBus,
+    promptPasskeyName,
+  ]);
 
   const unlockWithStoredCredential = useCallback(async () => {
     const signer = signerRef.current;
