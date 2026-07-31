@@ -1,4 +1,4 @@
-import type { UriString } from "@1shotapi/ows-types";
+import type { DomainString, UriString } from "@1shotapi/ows-types";
 
 /**
  * Runtime configuration for the 1Shot Branding Layer wallet.
@@ -8,6 +8,11 @@ export class WalletConfig {
   public constructor(
     /** Origin for credential + activity REST (no trailing slash). */
     public readonly relayerBaseUrl: UriString,
+    /**
+     * Embedding host hostname for analytics (`hostDomain` on OWS events).
+     * Resolved once when config is first requested.
+     */
+    public readonly hostDomain: DomainString,
     /** localStorage key for optimistic send history. */
     public readonly assetActivityStorageKey: string,
     /** localStorage key for user-tracked assets. */

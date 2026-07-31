@@ -69,6 +69,30 @@ await proxy.rpc("setStyle", {
 proxy.showWallet();
 ```
 
+### Analytics (`proxy.analytics`)
+
+The Branding Layer publishes product events over Postmate (`ows:analytics`). OWS types only the base fields (`eventId`, `timestamp`, `hostDomain`, `name`); this wallet adds rich fields. Hosts receive the **full** object:
+
+```typescript
+proxy.analytics.on((event) => {
+  // switch (event.name) { case "PersonalSign": ... }
+  console.info("wallet analytics", event);
+});
+```
+
+| `name` | When | Notable fields |
+|--------|------|----------------|
+| `AccountCreated` / `AccountCreateFailed` / `AccountCreateCancelled` | Passkey create | `accountAddress`, `errorCode` |
+| `PersonalSign` / `…Failed` / `…Cancelled` | EIP-191 sign | `accountAddress`, `messageLength`, `durationMs` |
+| `TypedSign` / `…Failed` / `…Cancelled` | EIP-712 sign | `accountAddress`, `primaryType`, `durationMs` |
+| `TransactionSubmitted` / `…Failed` / `…Cancelled` | Send / host tx | `accountAddress`, `chainId`, `to`, `txHash`, `methodId`, `durationMs` |
+| `CredentialIssued` / `…Failed` / `…Cancelled` | OID4VCI accept | `issuerOrigin`, `durationMs` |
+| `CredentialPresented` / `…Failed` / `…Cancelled` | OID4VP present | `verifierOrigin`, `durationMs` |
+| `DelegationCreated` / `…Failed` / `…Cancelled` | EIP-7715 grant | `accountAddress`, `chainId`, `durationMs` |
+| `DelegationCancelled` / `…Failed` / `DelegationCancelAborted` | EIP-7715 revoke | `accountAddress`, `chainId`, `txHash`, `durationMs` |
+
+The same rich payload is also POSTed fire-and-forget to the 1Shot relayer `POST /wallet/analytics` (ingest lands in Phase 3).
+
 ### `setStyle` (custom RPC)
 
 Additive merge of theme CSS variables + copy. Safe to call repeatedly. Schema is Zod-strict (unknown keys rejected). Full field list: [skills/oneshot-embedded-wallet/SKILL.md](skills/oneshot-embedded-wallet/SKILL.md).

@@ -8,7 +8,7 @@ description: >-
 license: MIT
 metadata:
   author: 1Shot-API
-  version: "0.1.0"
+  version: "0.2.0"
   repository: https://github.com/1Shot-API/embedded-wallet
 ---
 
@@ -252,8 +252,34 @@ await proxy.rpc("createAccount", { accountName: "My Wallet" });
 |-----|-----|
 | `proxy.ethereum.request(...)` | EIP-1193 (accounts, sign, chain, …) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
+| `proxy.analytics.on(listener)` / `.on(name, listener)` / `.off(listener)` | Branding→Host product analytics (`ows:analytics`) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
 | `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, …) |
+
+## Analytics (`proxy.analytics`)
+
+Branding publishes product events over Postmate. OWS types only `eventId`, `timestamp`, `hostDomain`, and `name`; this wallet attaches rich fields. Narrow on `name`:
+
+```typescript
+proxy.analytics.on((event) => {
+  console.info(event.name, event);
+});
+
+proxy.analytics.on("PersonalSign", (event) => {
+  // event.durationMs, event.accountAddress, …
+});
+```
+
+| `name` | When | Notable fields |
+|--------|------|----------------|
+| `AccountCreated` / `AccountCreateFailed` / `AccountCreateCancelled` | Passkey create | `accountAddress`, `errorCode` |
+| `PersonalSign` / `PersonalSignFailed` / `PersonalSignCancelled` | EIP-191 | `accountAddress`, `messageLength`, `durationMs` |
+| `TypedSign` / `TypedSignFailed` / `TypedSignCancelled` | EIP-712 | `accountAddress`, `primaryType`, `durationMs` |
+| `TransactionSubmitted` / `TransactionSubmitFailed` / `TransactionSubmitCancelled` | Send | `accountAddress`, `chainId`, `to`, `txHash`, `methodId`, `durationMs` |
+| `CredentialIssued` / `CredentialIssueFailed` / `CredentialIssueCancelled` | OID4VCI | `issuerOrigin`, `durationMs` |
+| `CredentialPresented` / `CredentialPresentFailed` / `CredentialPresentCancelled` | OID4VP | `verifierOrigin`, `durationMs` |
+| `DelegationCreated` / `DelegationCreateFailed` / `DelegationCreateCancelled` | EIP-7715 grant | `accountAddress`, `chainId`, `durationMs` |
+| `DelegationCancelled` / `DelegationCancelFailed` / `DelegationCancelAborted` | EIP-7715 revoke | `accountAddress`, `chainId`, `txHash`, `durationMs` |
 
 ## Hard rules
 

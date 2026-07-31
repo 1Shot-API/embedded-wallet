@@ -77,6 +77,10 @@ export function App() {
         }
         proxyRef.current = proxy;
 
+        proxy.analytics.on((event) => {
+          console.info("[oneshot-wallet-host] analytics", event.name, event);
+        });
+
         if (lastStyleRef.current) {
           await proxy.rpc("setStyle", lastStyleRef.current);
         }

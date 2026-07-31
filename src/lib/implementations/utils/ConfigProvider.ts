@@ -1,4 +1,4 @@
-import { UriString } from "@1shotapi/ows-types";
+import { DomainString, UriString } from "@1shotapi/ows-types";
 import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import { WalletConfig } from "../../types/domain/WalletConfig";
 
@@ -26,6 +26,7 @@ export class ConfigProvider implements IConfigProvider {
 
     this.cached = new WalletConfig(
       this.resolveRelayerBaseUrl(),
+      this.resolveHostDomain(),
       DEFAULT_ASSET_ACTIVITY_STORAGE_KEY,
       DEFAULT_TRACKED_ASSETS_STORAGE_KEY,
       DEFAULT_VAULT_STORAGE_KEY,
@@ -42,5 +43,36 @@ export class ConfigProvider implements IConfigProvider {
       return PRODUCTION_RELAYER_BASE_URL;
     }
     return DEVELOPMENT_RELAYER_BASE_URL;
+  }
+
+  /**
+   * Best-effort embedding host hostname for analytics `hostDomain`.
+   * Prefers ancestor / referrer when in an iframe; never empty.
+   */
+  private resolveHostDomain(): DomainString {
+    if (typeof window === "undefined") {
+      return DomainString("localhost");
+    }
+
+    try {
+      const ancestors = (
+        location as Location & { ancestorOrigins?: DOMStringList }
+      ).ancestorOrigins;
+      if (ancestors && ancestors.length > 0) {
+        return DomainString(new URL(ancestors[ancestors.length - 1]!).hostname);
+      }
+    } catch {
+      // fall through
+    }
+
+    try {
+      if (document.referrer) {
+        return DomainString(new URL(document.referrer).hostname);
+      }
+    } catch {
+      // fall through
+    }
+
+    return DomainString(window.location.hostname || "localhost");
   }
 }
