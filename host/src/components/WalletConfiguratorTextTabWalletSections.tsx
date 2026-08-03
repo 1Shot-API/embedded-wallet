@@ -130,6 +130,42 @@ export function WalletConfiguratorTextTabWalletSections({
             onChange={(value) => patch("transferTokensCancel", value)}
           />
           <TextField
+            id="grant-permission-title"
+            label="Grant permission title"
+            value={form.grantPermissionTitle}
+            onChange={(value) => patch("grantPermissionTitle", value)}
+          />
+          <TextField
+            id="grant-permission-grant"
+            label="Grant permission confirm"
+            value={form.grantPermissionGrant}
+            onChange={(value) => patch("grantPermissionGrant", value)}
+          />
+          <TextField
+            id="grant-permission-reject"
+            label="Grant permission reject"
+            value={form.grantPermissionReject}
+            onChange={(value) => patch("grantPermissionReject", value)}
+          />
+          <TextField
+            id="cancel-delegation-title"
+            label="Cancel permission title"
+            value={form.cancelDelegationTitle}
+            onChange={(value) => patch("cancelDelegationTitle", value)}
+          />
+          <TextField
+            id="cancel-delegation-confirm"
+            label="Cancel permission confirm"
+            value={form.cancelDelegationConfirm}
+            onChange={(value) => patch("cancelDelegationConfirm", value)}
+          />
+          <TextField
+            id="cancel-delegation-reject"
+            label="Cancel permission keep"
+            value={form.cancelDelegationReject}
+            onChange={(value) => patch("cancelDelegationReject", value)}
+          />
+          <TextField
             id="transfer-tokens-sent-title"
             label="Transfer sent title"
             value={form.transferTokensSentTitle}

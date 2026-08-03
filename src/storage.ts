@@ -1,4 +1,5 @@
 import {
+  COSEPublicKey,
   CredentialId,
   EVMAccountAddress,
   SolanaAccountAddress,
@@ -7,6 +8,11 @@ import {
 const WALLET_CREATED_KEY = "ows-wallet-created";
 /** Public WebAuthn credential handle (not a bearer token / JWT). */
 const PASSKEY_HANDLE_KEY = "ows-passkey-handle";
+/**
+ * Authenticator COSE public key (base64url) from create-time attestation.
+ * Needed to call `/wallet/passkeys/register` — not available on later assertions.
+ */
+const COSE_PUBLIC_KEY_KEY = "ows-passkey-cose-public-key";
 const EVM_ADDRESS_KEY = "ows-evm-address";
 const SOLANA_ADDRESS_KEY = "ows-solana-address";
 /** Cached secp256k1 public key (0x-hex) so LocalAccount builds without Unlock. */
@@ -30,6 +36,16 @@ export function loadCredentialId(): CredentialId | undefined {
 export function saveWalletCreated(passkeyHandle: CredentialId): void {
   localStorage.setItem(WALLET_CREATED_KEY, "true");
   localStorage.setItem(PASSKEY_HANDLE_KEY, passkeyHandle);
+}
+
+export function loadCosePublicKey(): COSEPublicKey | undefined {
+  const value = localStorage.getItem(COSE_PUBLIC_KEY_KEY);
+  if (!value) return undefined;
+  return COSEPublicKey(value);
+}
+
+export function saveCosePublicKey(publicKey: COSEPublicKey): void {
+  localStorage.setItem(COSE_PUBLIC_KEY_KEY, publicKey);
 }
 
 export function loadCachedEvmAddress(): EVMAccountAddress | undefined {
@@ -73,6 +89,7 @@ export function saveCachedSecp256k1PublicKey(publicKey: `0x${string}`): void {
 export function clearWalletStorage(): void {
   localStorage.removeItem(WALLET_CREATED_KEY);
   localStorage.removeItem(PASSKEY_HANDLE_KEY);
+  localStorage.removeItem(COSE_PUBLIC_KEY_KEY);
   localStorage.removeItem(EVM_ADDRESS_KEY);
   localStorage.removeItem(SOLANA_ADDRESS_KEY);
   localStorage.removeItem(SECP256K1_PUBLIC_KEY_KEY);

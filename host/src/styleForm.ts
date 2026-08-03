@@ -88,6 +88,15 @@ export interface IStyleFormState {
   credClaimsHeading: string;
   credClose: string;
 
+  // Text — Delegations tab
+  delTabLabel: string;
+  delEmptyCount: string;
+  delCountLabel: string;
+  delEmptyBody: string;
+  delRefresh: string;
+  delCancel: string;
+  delNoMemo: string;
+
   // Text — Balances / Receive
   balTabLabel: string;
   balRefresh: string;
@@ -115,6 +124,14 @@ export interface IStyleFormState {
   transferTokensSentTitle: string;
   transferTokensViewExplorer: string;
   transferTokensDone: string;
+
+  // Text — EIP-7715 grant / cancel
+  grantPermissionTitle: string;
+  grantPermissionGrant: string;
+  grantPermissionReject: string;
+  cancelDelegationTitle: string;
+  cancelDelegationConfirm: string;
+  cancelDelegationReject: string;
 
   // Text — Passkey ceremony overlays
   passkeyPromptUnlockTitle: string;
@@ -228,6 +245,14 @@ export const ACME_PRESET: IStyleFormState = {
   credDetailDescription: "Full credential details and claims.",
   credClaimsHeading: "Claims",
   credClose: "Close",
+  delTabLabel: "Delegations",
+  delEmptyCount: "No spending permissions yet.",
+  delCountLabel: "{count} permission(s)",
+  delEmptyBody:
+    "Permissions granted to apps appear here. Refresh to sync from the vault.",
+  delRefresh: "Refresh",
+  delCancel: "Cancel",
+  delNoMemo: "No memo",
   balTabLabel: "Balances",
   balRefresh: "Refresh",
   receiveLabel: "Receive",
@@ -251,6 +276,12 @@ export const ACME_PRESET: IStyleFormState = {
   transferTokensSentTitle: "Transaction sent",
   transferTokensViewExplorer: "View on explorer",
   transferTokensDone: "Done",
+  grantPermissionTitle: "Grant spending permission",
+  grantPermissionGrant: "Grant",
+  grantPermissionReject: "Reject",
+  cancelDelegationTitle: "Cancel permission",
+  cancelDelegationConfirm: "Cancel permission",
+  cancelDelegationReject: "Keep",
   passkeyPromptUnlockTitle: "Unlock with passkey",
   passkeyPromptCreateTitle: "Create passkey",
   passkeyPromptSignTitle: "Confirm with passkey",
@@ -349,6 +380,14 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   credDetailDescription: "Full credential details and claims.",
   credClaimsHeading: "Claims",
   credClose: "Close",
+  delTabLabel: "Delegations",
+  delEmptyCount: "No spending permissions yet.",
+  delCountLabel: "{count} permission(s)",
+  delEmptyBody:
+    "Permissions granted to apps appear here. Refresh to sync from the vault.",
+  delRefresh: "Refresh",
+  delCancel: "Cancel",
+  delNoMemo: "No memo",
   balTabLabel: "Balances",
   balRefresh: "Refresh",
   receiveLabel: "Receive",
@@ -372,6 +411,12 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   transferTokensSentTitle: "Transaction sent",
   transferTokensViewExplorer: "View on explorer",
   transferTokensDone: "Done",
+  grantPermissionTitle: "Grant spending permission",
+  grantPermissionGrant: "Grant",
+  grantPermissionReject: "Reject",
+  cancelDelegationTitle: "Cancel permission",
+  cancelDelegationConfirm: "Cancel permission",
+  cancelDelegationReject: "Keep",
   passkeyPromptUnlockTitle: "Unlock with passkey",
   passkeyPromptCreateTitle: "Create passkey",
   passkeyPromptSignTitle: "Confirm with passkey",
@@ -491,6 +536,22 @@ export function buildSetStylePayload(
     copy.transferTokens = transferTokens;
   }
 
+  const grantExecutionPermission: Record<string, string> = {};
+  put(grantExecutionPermission, "title", form.grantPermissionTitle);
+  put(grantExecutionPermission, "grantLabel", form.grantPermissionGrant);
+  put(grantExecutionPermission, "rejectLabel", form.grantPermissionReject);
+  if (Object.keys(grantExecutionPermission).length > 0) {
+    copy.grantExecutionPermission = grantExecutionPermission;
+  }
+
+  const cancelDelegation: Record<string, string> = {};
+  put(cancelDelegation, "title", form.cancelDelegationTitle);
+  put(cancelDelegation, "confirmLabel", form.cancelDelegationConfirm);
+  put(cancelDelegation, "rejectLabel", form.cancelDelegationReject);
+  if (Object.keys(cancelDelegation).length > 0) {
+    copy.cancelDelegation = cancelDelegation;
+  }
+
   const passkeyPrompt: Record<string, Record<string, string>> = {};
   const unlock: Record<string, string> = {};
   put(unlock, "title", form.passkeyPromptUnlockTitle);
@@ -565,6 +626,16 @@ export function buildSetStylePayload(
   put(credentials, "claimsHeading", form.credClaimsHeading);
   put(credentials, "closeLabel", form.credClose);
   if (Object.keys(credentials).length > 0) copy.credentials = credentials;
+
+  const delegations: Record<string, string> = {};
+  put(delegations, "tabLabel", form.delTabLabel);
+  put(delegations, "emptyCountLabel", form.delEmptyCount);
+  put(delegations, "countLabel", form.delCountLabel);
+  put(delegations, "emptyBody", form.delEmptyBody);
+  put(delegations, "refreshLabel", form.delRefresh);
+  put(delegations, "cancelLabel", form.delCancel);
+  put(delegations, "noMemoLabel", form.delNoMemo);
+  if (Object.keys(delegations).length > 0) copy.delegations = delegations;
 
   const balances: Record<string, string> = {};
   put(balances, "tabLabel", form.balTabLabel);

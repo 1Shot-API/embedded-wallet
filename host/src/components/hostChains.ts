@@ -39,6 +39,13 @@ export const FOCUS_USDT_BASE = {
   label: "Tether (Base)",
 } as const;
 
+/**
+ * Playground session / delegatee for `wallet_requestExecutionPermissions`.
+ * Not a controlled key — only used to exercise the EIP-7715 grant UX.
+ */
+export const DEMO_EXECUTION_DELEGATEE =
+  "0x1111111111111111111111111111111111111111" as const;
+
 export type UsdcMode = "balance" | "send";
 
 export function hostChainMeta(chainId: string) {

@@ -10,6 +10,8 @@ import type {
   EVMChainId,
   EVMSignatureHex,
   EVMTransactionHash,
+  IExecutionPermission,
+  IExecutionPermissionRequest,
 } from "@1shotapi/ows-types";
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
 
@@ -43,6 +45,26 @@ export type IRelayerConfirmSendResult = {
 
 /** Result from TX confirm when canceling or selecting payment (legacy shape). */
 export type IConfirmSendResult = false | IConfirmSendPayment;
+
+/** Host EIP-7715 grant consent — attenuated permission + memo for vault. */
+export interface IGrantExecutionPermissionRequest {
+  request: IExecutionPermissionRequest;
+  domain: string;
+  chainName: string;
+}
+
+export type IGrantExecutionPermissionResult = {
+  permission: IExecutionPermission;
+  memo: string;
+};
+
+/** Cancel / revoke confirm (on-chain disableDelegation). */
+export interface ICancelDelegationConfirmRequest {
+  domain: string;
+  chainName: string;
+  chainId: EVMChainId;
+  ownerAddress: EVMAccountAddress;
+}
 
 export type ModalRequest =
   | {
@@ -107,6 +129,23 @@ export type ModalRequest =
       kind: "addAsset";
       request: IAddAssetApprovalRequest;
       resolve: (approved: boolean) => void;
+    }
+  | {
+      id: string;
+      kind: "grantExecutionPermission";
+      request: IGrantExecutionPermissionRequest;
+      resolve: (result: IGrantExecutionPermissionResult) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "cancelDelegation";
+      request: ICancelDelegationConfirmRequest;
+      execute: (
+        payment: IRelayerConfirmSendResult,
+      ) => Promise<EVMTransactionHash>;
+      resolve: (hash: EVMTransactionHash) => void;
+      reject: (error: unknown) => void;
     }
   | {
       id: string;
