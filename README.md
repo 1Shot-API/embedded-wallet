@@ -22,6 +22,8 @@ Safari create (first-party): /create/  → embeds Branding + createAccount RPC
 
 Production deliverable: a static **nginx** Docker image (no server-side runtime).
 
+`/assets/` never SPA-fallbacks (missing files return **404**). That prevents CDNs from caching `index.html` under a hashed `.js`/`.css` URL, which Firefox surfaces as `NS_ERROR_CORRUPTED_CONTENT`. After a bad cache, purge Cloudflare for `wallet.1shotapi.com/assets/*` (or the whole zone) — redeploying alone will not clear poisoned entries until `max-age` expires.
+
 ## Setup
 
 ```bash
