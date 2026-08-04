@@ -106,7 +106,9 @@ export function App() {
           reportStatus(
             mode === "design"
               ? `Design preview connected on ${connectedChain}. Apply setStyle to refresh.`
-              : `Wallet connected on ${connectedChain}. Enter a message and click Sign.`,
+              : mode === "analytics"
+                ? "Live analytics — switch to Test to generate events."
+                : `Wallet connected on ${connectedChain}. Enter a message and click Sign.`,
           );
         } catch (error) {
           reportStatus(
@@ -171,19 +173,20 @@ export function App() {
           <AppHeader />
           {mode === "test" ? (
             <TestPanel {...walletActionProps} />
-          ) : (
+          ) : mode === "design" ? (
             <DesignPanel
               ready={ready}
               onApplyStyle={handleApplyStyle}
               previewMountRef={setPreviewMount}
             />
+          ) : (
+            <div className="mx-auto w-full max-w-2xl px-6 pb-6">
+              <AnalyticsPanel
+                events={analyticsEvents}
+                onClear={() => setAnalyticsEvents([])}
+              />
+            </div>
           )}
-          <div className="mx-auto w-full max-w-2xl px-6 pb-6">
-            <AnalyticsPanel
-              events={analyticsEvents}
-              onClear={() => setAnalyticsEvents([])}
-            />
-          </div>
         </SidebarInset>
         {/* Flyout create() target — never reparented; Test mode only. */}
         <div ref={flyoutContainerRef} aria-hidden="true" />

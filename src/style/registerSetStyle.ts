@@ -276,6 +276,7 @@ const balancesCopySchema = z.strictObject({
     addDialogSubmitLabel: z.string().optional(),
     addConfirmTitle: z.string().optional(),
     addConfirmBody: z.string().optional(),
+    addConfirmWarning: z.string().optional(),
     addConfirmRejectLabel: z.string().optional(),
     addConfirmAcceptLabel: z.string().optional(),
     balanceUnavailable: z.string().optional(),

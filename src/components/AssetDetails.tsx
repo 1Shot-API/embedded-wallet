@@ -13,6 +13,7 @@ import { useWallet } from "../wallet/WalletProvider";
 import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
 import { useWalletSessionStore } from "../wallet/sessionStore";
+import { AssetIcon } from "./AssetIcon";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { TransactionHistory } from "./TransactionHistory";
 import { ReceiveModal } from "./modals/ReceiveModal";
@@ -81,12 +82,12 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   return (
     <div className="flex flex-col gap-5" aria-label={`${asset.symbol} details`}>
       <header className="flex flex-col items-center gap-2 pt-2 text-center">
-        <div
-          className="bg-primary text-primary-foreground flex size-14 items-center justify-center rounded-full"
-          aria-hidden
-        >
-          <span className="text-lg font-semibold tracking-tight">$</span>
-        </div>
+        <AssetIcon
+          chainId={asset.chainId}
+          address={asset.address}
+          symbol={asset.symbol}
+          size="lg"
+        />
         <div className="flex flex-col gap-0.5">
           <h2 className="text-foreground text-lg font-semibold tracking-tight">
             {asset.symbol}

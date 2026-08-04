@@ -275,9 +275,11 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       addressPlaceholder: "0x…",
       addDialogCancelLabel: "Cancel",
       addDialogSubmitLabel: "Add",
-      addConfirmTitle: "Add asset?",
+      addConfirmTitle: "Add asset",
       addConfirmBody:
-        "The connected app wants you to track {assetName} on {chainLabel}.",
+        "The connected app is requesting to add a custom token to your wallet for tracking. Please verify the contract details before proceeding.",
+      addConfirmWarning:
+        "Anyone can create a token. Make sure you trust this source before adding it to your portfolio.",
       addConfirmRejectLabel: "Reject",
       addConfirmAcceptLabel: "Add",
       balanceUnavailable: "—",
