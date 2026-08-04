@@ -79,7 +79,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
     },
     confirmTransfer: {
       title: "Confirm transfer",
-      body: "{domain} wants to send {amount} {tokenSymbol} ({tokenName}) to {receiver} on {chainName}.",
+      body: "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
       amountLabel: "Amount",
       tokenLabel: "Token",
       receiverLabel: "To",
@@ -275,9 +275,11 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       addressPlaceholder: "0x…",
       addDialogCancelLabel: "Cancel",
       addDialogSubmitLabel: "Add",
-      addConfirmTitle: "Add asset?",
+      addConfirmTitle: "Add asset",
       addConfirmBody:
-        "The connected app wants you to track {assetName} on {chainLabel}.",
+        "The connected app is requesting to add a custom token to your wallet for tracking. Please verify the contract details before proceeding.",
+      addConfirmWarning:
+        "Anyone can create a token. Make sure you trust this source before adding it to your portfolio.",
       addConfirmRejectLabel: "Reject",
       addConfirmAcceptLabel: "Add",
       balanceUnavailable: "—",

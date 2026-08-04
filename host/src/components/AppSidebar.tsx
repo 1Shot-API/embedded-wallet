@@ -1,4 +1,4 @@
-import { FlaskConicalIcon, PaletteIcon } from "lucide-react";
+import { BarChart3Icon, FlaskConicalIcon, PaletteIcon } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,7 +12,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-export type HostMode = "test" | "design";
+export type HostMode = "test" | "design" | "analytics";
 
 export interface IAppSidebarProps {
   mode: HostMode;
@@ -36,6 +36,12 @@ const NAV_ITEMS: {
     label: "Design",
     description: "Live setStyle playground",
     icon: PaletteIcon,
+  },
+  {
+    mode: "analytics",
+    label: "Analytics",
+    description: "Live proxy.analytics event stream",
+    icon: BarChart3Icon,
   },
 ];
 
@@ -73,7 +79,9 @@ export function AppSidebar({ mode, onModeChange }: IAppSidebarProps) {
             <p className="text-muted-foreground px-2 text-xs leading-relaxed">
               {mode === "test"
                 ? "Wallet stays hidden. Use actions below to exercise EIP-1193."
-                : "Configurator on the left; wallet flyout stays open on the right."}
+                : mode === "design"
+                  ? "Configurator on the left; wallet flyout stays open on the right."
+                  : "Events accumulate across tabs. Switch to Test to generate traffic."}
             </p>
           </SidebarGroupContent>
         </SidebarGroup>

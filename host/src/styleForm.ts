@@ -265,9 +265,9 @@ export const ACME_PRESET: IStyleFormState = {
   receiveCopyFailedLabel: "Copy failed",
   receiveCloseLabel: "Close",
   sendLabel: "Send",
-  confirmTransferTitle: "Confirm transfer",
+  confirmTransferTitle: "Confirm Transfer",
   confirmTransferBody:
-    "{domain} wants to send {amount} {tokenSymbol} ({tokenName}) to {receiver} on {chainName}.",
+    "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
   confirmTransferConfirm: "Confirm",
   confirmTransferReject: "Reject",
   transferTokensTitle: "Send",
@@ -402,7 +402,7 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   sendLabel: "Send",
   confirmTransferTitle: "Confirm transfer",
   confirmTransferBody:
-    "{domain} wants to send {amount} {tokenSymbol} ({tokenName}) to {receiver} on {chainName}.",
+    "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
   confirmTransferConfirm: "Confirm",
   confirmTransferReject: "Reject",
   transferTokensTitle: "Send",

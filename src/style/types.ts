@@ -90,8 +90,7 @@ export interface IStyleCopySendTransaction {
 
 /**
  * Friendly host ERC-20 transfer confirm.
- * `body` supports `{domain}`, `{amount}`, `{tokenName}`, `{tokenSymbol}`,
- * `{receiver}`, `{chainName}`.
+ * `body` supports `{domain}`.
  */
 export interface IStyleCopyConfirmTransfer {
   title: string;
@@ -282,7 +281,7 @@ export interface IStyleCopyDelegations {
 /**
  * Balances tab + add-asset flows.
  * `countLabel` supports `{count}`.
- * `addConfirmBody` supports `{assetName}` and `{chainLabel}`.
+ * `addConfirmBody` is shown above the asset identity block.
  */
 export interface IStyleCopyBalances {
   tabLabel: string;
@@ -309,6 +308,7 @@ export interface IStyleCopyBalances {
   addDialogSubmitLabel: string;
   addConfirmTitle: string;
   addConfirmBody: string;
+  addConfirmWarning: string;
   addConfirmRejectLabel: string;
   addConfirmAcceptLabel: string;
   balanceUnavailable: string;
