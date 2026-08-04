@@ -27,6 +27,7 @@ try {
 
   const https = resolveHttpsOptions({
     certsDir: path.join(__dirname, "../certs"),
+    pathBase: repoRoot,
   });
   const scheme = https ? "https" : "http";
   const address = viteServer.httpServer?.address();

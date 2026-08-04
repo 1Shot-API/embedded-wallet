@@ -11,6 +11,7 @@ dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const https = resolveHttpsOptions({
   certsDir: path.resolve(__dirname, "certs"),
+  pathBase: path.resolve(__dirname, ".."),
 });
 
 export default defineConfig({
