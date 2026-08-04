@@ -13,7 +13,7 @@ import { useWallet } from "../wallet/WalletProvider";
 import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
 import { useWalletSessionStore } from "../wallet/sessionStore";
-import { AssetIcon } from "./AssetIcon";
+import { AssetIdentityMark } from "./AssetIdentityMark";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { TransactionHistory } from "./TransactionHistory";
 import { ReceiveModal } from "./modals/ReceiveModal";
@@ -65,8 +65,8 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
     void requestBalanceRefresh(assetProp.id);
   }, [assetProp.id, requestBalanceRefresh]);
 
-  const network =
-    resolveChain(asset.chainId)?.label ?? String(asset.chainId);
+  const chain = resolveChain(asset.chainId);
+  const network = chain?.label ?? String(asset.chainId);
   const active = resolveActiveAddress({
     chainId: asset.chainId,
     evmAddress,
@@ -82,19 +82,17 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   return (
     <div className="flex flex-col gap-5" aria-label={`${asset.symbol} details`}>
       <header className="flex flex-col items-center gap-2 pt-2 text-center">
-        <AssetIcon
+        <AssetIdentityMark
           chainId={asset.chainId}
           address={asset.address}
           symbol={asset.symbol}
-          size="lg"
+          chainLogoUrl={chain?.logoUrl}
         />
         <div className="flex flex-col gap-0.5">
           <h2 className="text-foreground text-lg font-semibold tracking-tight">
             {asset.symbol}
           </h2>
-          <p className="text-muted-foreground text-xs">
-            {asset.name} · {network}
-          </p>
+          <p className="text-muted-foreground text-xs">{network}</p>
         </div>
         <BalanceDisplay
           trackedAssetId={asset.id}
