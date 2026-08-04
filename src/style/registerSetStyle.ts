@@ -54,6 +54,13 @@ const passkeyNameCopySchema = z.strictObject({
     fieldLabel: z.string().optional(),
     placeholder: z.string().optional(),
     emptyError: z.string().optional(),
+    termsAcceptancePrefix: z.string().optional(),
+    termsOfServiceLabel: z.string().optional(),
+    termsAcceptanceJoiner: z.string().optional(),
+    privacyPolicyLabel: z.string().optional(),
+    termsAcceptanceError: z.string().optional(),
+    termsOfServiceUrl: z.string().url().optional(),
+    privacyPolicyUrl: z.string().url().optional(),
     cancelLabel: z.string().optional(),
     continueLabel: z.string().optional(),
   })

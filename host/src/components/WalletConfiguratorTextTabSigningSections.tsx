@@ -141,6 +141,36 @@ export function WalletConfiguratorTextTabSigningSections({
             value={form.passkeyCancel}
             onChange={(value) => patch("passkeyCancel", value)}
           />
+          <TextField
+            id="passkey-terms-prefix"
+            label="Terms acceptance prefix"
+            value={form.passkeyTermsPrefix}
+            onChange={(value) => patch("passkeyTermsPrefix", value)}
+          />
+          <TextField
+            id="passkey-terms-of-service"
+            label="Terms of Service label"
+            value={form.passkeyTermsOfServiceLabel}
+            onChange={(value) => patch("passkeyTermsOfServiceLabel", value)}
+          />
+          <TextField
+            id="passkey-terms-joiner"
+            label="Terms acceptance joiner"
+            value={form.passkeyTermsJoiner}
+            onChange={(value) => patch("passkeyTermsJoiner", value)}
+          />
+          <TextField
+            id="passkey-privacy-label"
+            label="Privacy Policy label"
+            value={form.passkeyPrivacyLabel}
+            onChange={(value) => patch("passkeyPrivacyLabel", value)}
+          />
+          <TextField
+            id="passkey-terms-error"
+            label="Terms acceptance error"
+            value={form.passkeyTermsError}
+            onChange={(value) => patch("passkeyTermsError", value)}
+          />
         </AccordionContent>
       </AccordionItem>
 

@@ -51,6 +51,13 @@ export interface IStyleCopyPasskeyName {
   fieldLabel: string;
   placeholder: string;
   emptyError: string;
+  termsAcceptancePrefix: string;
+  termsOfServiceLabel: string;
+  termsAcceptanceJoiner: string;
+  privacyPolicyLabel: string;
+  termsAcceptanceError: string;
+  termsOfServiceUrl: string;
+  privacyPolicyUrl: string;
   cancelLabel: string;
   continueLabel: string;
 }
