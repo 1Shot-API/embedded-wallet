@@ -90,8 +90,7 @@ export interface IStyleCopySendTransaction {
 
 /**
  * Friendly host ERC-20 transfer confirm.
- * `body` supports `{domain}`, `{amount}`, `{tokenName}`, `{tokenSymbol}`,
- * `{receiver}`, `{chainName}`.
+ * `body` supports `{domain}`.
  */
 export interface IStyleCopyConfirmTransfer {
   title: string;

@@ -79,7 +79,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
     },
     confirmTransfer: {
       title: "Confirm transfer",
-      body: "{domain} wants to send {amount} {tokenSymbol} ({tokenName}) to {receiver} on {chainName}.",
+      body: "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
       amountLabel: "Amount",
       tokenLabel: "Token",
       receiverLabel: "To",

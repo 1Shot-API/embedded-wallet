@@ -20,6 +20,8 @@ import type {
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { Modal } from "../Modal";
+import { AssetIdentityMark } from "../AssetIdentityMark";
+import { CopyableText } from "../CopyableText";
 import { PaymentFeePicker } from "../PaymentFeePicker";
 
 function isSignDenied(error: unknown): boolean {
@@ -44,7 +46,7 @@ export function PersonalSignModal({
 }) {
   const { getSigner } = useWallet();
   const { style } = useStyle();
-  const { personalSign } = style.copy;
+  const { personalSign, account: accountCopy } = style.copy;
   const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
   /** Bumped on cancel and each startSign so stale in-flight ops cannot settle. */
   const signGenerationRef = useRef(0);
@@ -98,7 +100,15 @@ export function PersonalSignModal({
       }
     >
       <FieldLabel>{personalSign.accountLabel}</FieldLabel>
-      <p className="mb-3 break-all font-mono text-[0.8rem]">{request.address}</p>
+      <div className="mb-3">
+        <CopyableText
+          text={String(request.address)}
+          truncate
+          copyLabel={accountCopy.copyAddressLabel}
+          copiedLabel={accountCopy.addressCopiedLabel}
+          copyFailedLabel={accountCopy.addressCopyFailedLabel}
+        />
+      </div>
       <FieldLabel>{personalSign.messageLabel}</FieldLabel>
       <DetailBlock content={formatMessageForDisplay(request.message)} />
       {phase === "signing" ? (
@@ -319,19 +329,15 @@ export function ConfirmTransferModal({
   onReject: (error: unknown) => void;
 }) {
   const { style } = useStyle();
-  const { confirmTransfer: copy } = style.copy;
+  const { resolveChain } = useWallet();
+  const { confirmTransfer: copy, account: accountCopy } = style.copy;
   const [quote, setQuote] = useState<IPaymentQuote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
   const [error, setError] = useState<string | null>(null);
   const abortedRef = useRef(false);
-  const body = copy.body
-    .replace("{domain}", request.domain)
-    .replace("{amount}", request.amount)
-    .replace("{tokenName}", request.tokenName)
-    .replace("{tokenSymbol}", request.tokenSymbol)
-    .replace("{receiver}", request.receiver)
-    .replace("{chainName}", request.chainName);
+  const body = copy.body.replace("{domain}", request.domain);
+  const chain = resolveChain(request.chainId);
 
   const canConfirm =
     !request.useRelayer || (quote !== null && quoteError === null);
@@ -387,15 +393,40 @@ export function ConfirmTransferModal({
           : undefined
       }
     >
-      <p className="text-muted-foreground m-0">{body}</p>
-      <div className="mt-4 flex flex-col gap-3">
-        <LabeledBlock
-          label={copy.amountLabel}
-          content={`${request.amount} ${request.tokenSymbol}`}
-        />
-        <LabeledBlock label={copy.tokenLabel} content={request.tokenName} />
-        <LabeledBlock label={copy.receiverLabel} content={request.receiver} />
-        <LabeledBlock label={copy.chainLabel} content={request.chainName} />
+      <div className="text-foreground flex flex-col gap-5">
+        <p className="text-muted-foreground m-0 text-sm leading-relaxed">
+          {body}
+        </p>
+
+        <div className="flex items-center gap-4">
+          <AssetIdentityMark
+            chainId={request.chainId}
+            address={request.tokenAddress}
+            symbol={request.tokenSymbol}
+            chainLogoUrl={chain?.logoUrl}
+          />
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <span className="text-xl font-semibold tracking-tight">
+              {request.amount} {request.tokenSymbol}
+            </span>
+            <span className="bg-muted text-muted-foreground w-fit rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide">
+              {request.chainName}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            {copy.receiverLabel}
+          </span>
+          <CopyableText
+            text={request.receiver}
+            truncate
+            copyLabel={accountCopy.copyAddressLabel}
+            copiedLabel={accountCopy.addressCopiedLabel}
+            copyFailedLabel={accountCopy.addressCopyFailedLabel}
+          />
+        </div>
       </div>
       {request.useRelayer ? (
         <PaymentFeePicker
