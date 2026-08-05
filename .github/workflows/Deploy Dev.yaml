@@ -119,14 +119,14 @@ jobs:
 
             echo "---------------------------- Docker Deployment ---------------------------------------"
             # Pull the latest images
-            docker-compose pull
+            docker compose pull
 
             # Stop necessary services
             docker stop wallet || true
             docker rm -f wallet || true
 
             # Reup everything
-            docker-compose up -d
+            docker compose up -d
 
             # Prune dead resources
             docker system prune -f
