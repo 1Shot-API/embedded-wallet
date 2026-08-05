@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
 import { formatUnits } from "viem";
+import type { IPaymentQuote, IPaymentTokenOption } from "../lib/interfaces/business";
 import { useWallet } from "../wallet/WalletProvider";
-import type { IPaymentQuote } from "../lib/interfaces/business";
+import { AssetIcon } from "./AssetIcon";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 
 export interface IPaymentFeePickerProps {
   chainId: EVMChainId;
@@ -11,6 +19,39 @@ export interface IPaymentFeePickerProps {
   error: string | null;
   loading: boolean;
   onQuoteChange: (quote: IPaymentQuote | null, error: string | null) => void;
+}
+
+function findSelectedToken(
+  quote: IPaymentQuote,
+): IPaymentTokenOption | undefined {
+  return quote.tokens.find(
+    (token) =>
+      String(token.address).toLowerCase() ===
+      String(quote.selectedToken).toLowerCase(),
+  );
+}
+
+function PaymentTokenRow({
+  chainId,
+  token,
+}: {
+  chainId: EVMChainId;
+  token: IPaymentTokenOption;
+}) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <AssetIcon
+        chainId={chainId}
+        address={token.address}
+        symbol={token.symbol}
+        size="sm"
+      />
+      <span>{token.symbol}</span>
+      <span className="text-muted-foreground">
+        ({formatUnits(token.balance, token.decimals)})
+      </span>
+    </span>
+  );
 }
 
 /**
@@ -76,6 +117,7 @@ export function PaymentFeePicker({
   }
 
   const isLoading = loading || busy;
+  const selectedToken = quote ? findSelectedToken(quote) : undefined;
 
   return (
     <div className="mt-4 flex flex-col gap-2 border-t pt-3">
@@ -90,42 +132,55 @@ export function PaymentFeePicker({
       ) : null}
       {quote ? (
         <>
-          <p className="text-sm">
-            Est. fee:{" "}
-            <span className="font-medium">
-              {quote.feeFormatted}{" "}
-              {quote.tokens.find(
-                (t) =>
-                  String(t.address).toLowerCase() ===
-                  String(quote.selectedToken).toLowerCase(),
-              )?.symbol ?? "TOKEN"}
+          <p className="flex flex-wrap items-center gap-2 text-sm">
+            <span>Est. fee:</span>
+            <span className="inline-flex items-center gap-1.5 font-medium">
+              {quote.feeFormatted}
+              {selectedToken ? (
+                <>
+                  <AssetIcon
+                    chainId={chainId}
+                    address={selectedToken.address}
+                    symbol={selectedToken.symbol}
+                    size="sm"
+                  />
+                  {selectedToken.symbol}
+                </>
+              ) : (
+                "TOKEN"
+              )}
             </span>
-            <span className="text-muted-foreground"> (finalized on submit)</span>
+            <span className="text-muted-foreground">(finalized on submit)</span>
           </p>
-          <label className="text-muted-foreground flex flex-col gap-1 text-[0.8rem]">
-            Pay with
-            <select
-              className="border-input bg-background text-foreground rounded-md border px-2 py-1.5 text-sm"
+          <div className="text-muted-foreground flex flex-col gap-1 text-[0.8rem]">
+            <span>Pay with</span>
+            <Select
               value={String(quote.selectedToken)}
               disabled={isLoading}
-              onChange={(event) => {
-                void onSelectToken(
-                  event.target.value as EVMAccountAddress,
-                );
+              onValueChange={(value) => {
+                void onSelectToken(value as EVMAccountAddress);
               }}
             >
-              {quote.tokens.map((token) => (
-                <option
-                  key={String(token.address)}
-                  value={String(token.address)}
-                  disabled={token.balance <= 0n}
-                >
-                  {token.symbol} (
-                  {formatUnits(token.balance, token.decimals)})
-                </option>
-              ))}
-            </select>
-          </label>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select payment token">
+                  {selectedToken ? (
+                    <PaymentTokenRow chainId={chainId} token={selectedToken} />
+                  ) : null}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="z-[10001]">
+                {quote.tokens.map((token) => (
+                  <SelectItem
+                    key={String(token.address)}
+                    value={String(token.address)}
+                    disabled={token.balance <= 0n}
+                  >
+                    <PaymentTokenRow chainId={chainId} token={token} />
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </>
       ) : null}
     </div>

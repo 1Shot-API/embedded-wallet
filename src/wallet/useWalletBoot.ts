@@ -653,6 +653,7 @@ export function useWalletBoot({
                       ),
                       tokenName,
                       tokenSymbol,
+                      tokenAddress: transfer.tokenAddress,
                       receiver: transfer.recipient,
                       chainName: transactionUtils.chainLabelFor(
                         request.chainId,

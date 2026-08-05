@@ -23,6 +23,7 @@ export interface IConfirmTransferRequest {
   amount: string;
   tokenName: string;
   tokenSymbol: string;
+  tokenAddress: EVMAccountAddress;
   receiver: string;
   chainName: string;
   chainId: EVMChainId;

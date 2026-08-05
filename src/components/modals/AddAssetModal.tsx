@@ -1,4 +1,6 @@
+import { InfoIcon } from "lucide-react";
 import { Modal } from "../Modal";
+import { AssetIdentityMark } from "../AssetIdentityMark";
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import type { IAddAssetApprovalRequest } from "../../wallet/registerAddAsset";
@@ -15,9 +17,8 @@ export function AddAssetModal({
   const { resolveChain } = useWallet();
   const { balances: copy, account } = style.copy;
   const displayName = request.assetSymbol || request.assetName;
-  const network =
-    resolveChain(request.chainId)?.label ??
-    String(request.chainId);
+  const chain = resolveChain(request.chainId);
+  const network = chain?.label ?? String(request.chainId);
 
   return (
     <Modal
@@ -37,39 +38,49 @@ export function AddAssetModal({
         },
       ]}
     >
-      <p className="text-muted-foreground m-0">
-        {copy.addConfirmBody
-          .replace("{assetName}", displayName)
-          .replace("{chainLabel}", network)}
-      </p>
-      <dl className="mt-3 flex flex-col gap-2 text-sm">
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-muted-foreground text-xs font-medium uppercase">
-            {copy.assetColumn}
-          </dt>
-          <dd className="text-foreground m-0 font-medium">{displayName}</dd>
+      <div className="text-foreground flex flex-col gap-5">
+        <p className="text-muted-foreground m-0 text-sm leading-relaxed">
+          {copy.addConfirmBody}
+        </p>
+
+        <div className="flex items-center gap-4">
+          <AssetIdentityMark
+            chainId={request.chainId}
+            address={request.assetAddress}
+            symbol={request.assetSymbol}
+            chainLogoUrl={chain?.logoUrl}
+          />
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <span className="text-xl font-semibold tracking-tight">
+              {displayName}
+            </span>
+            <span className="bg-muted text-muted-foreground w-fit rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide">
+              {network}
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-muted-foreground text-xs font-medium uppercase">
-            {copy.chainColumn}
-          </dt>
-          <dd className="text-foreground m-0">{network}</dd>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-muted-foreground text-xs font-medium uppercase">
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             {copy.addressLabel}
-          </dt>
-          <dd className="m-0 min-w-0">
-            <CopyableText
-              text={request.assetAddress}
-              truncate
-              copyLabel={account.copyAddressLabel}
-              copiedLabel={account.addressCopiedLabel}
-              copyFailedLabel={account.addressCopyFailedLabel}
-            />
-          </dd>
+          </span>
+          <CopyableText
+            text={request.assetAddress}
+            truncate
+            copyLabel={account.copyAddressLabel}
+            copiedLabel={account.addressCopiedLabel}
+            copyFailedLabel={account.addressCopyFailedLabel}
+          />
         </div>
-      </dl>
+
+        <div className="bg-primary/5 flex gap-2.5 rounded-xl px-3 py-3 text-sm leading-relaxed">
+          <InfoIcon
+            className="text-primary mt-0.5 size-4 shrink-0"
+            aria-hidden
+          />
+          <p className="text-muted-foreground m-0">{copy.addConfirmWarning}</p>
+        </div>
+      </div>
     </Modal>
   );
 }

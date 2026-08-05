@@ -28,6 +28,7 @@ import { EAssetType } from "../../lib/types/enum/EAssetType";
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
+import { AssetIcon } from "../AssetIcon";
 import { BalanceDisplay } from "../BalanceDisplay";
 
 const PAGE_SIZE = 5;
@@ -92,12 +93,11 @@ export function AssetList({
         header: copy.assetColumn,
         cell: ({ row }) => (
           <div className="flex min-w-0 items-center gap-2">
-            <div
-              className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
-              aria-hidden
-            >
-              $
-            </div>
+            <AssetIcon
+              chainId={row.original.chainId}
+              address={row.original.address}
+              symbol={row.original.symbol}
+            />
             <span className="truncate font-medium">{row.original.symbol}</span>
           </div>
         ),

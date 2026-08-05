@@ -20,6 +20,11 @@ import {
   type Hex,
 } from "viem";
 import {
+  DEFAULT_TYPED_DATA_JSON,
+  parseTypedDataJson,
+  type SignMode,
+} from "../constants/signDemo";
+import {
   DEMO_EXECUTION_DELEGATEE,
   FOCUS_USDC_ARC,
   FOCUS_USDT_BASE,
@@ -83,6 +88,8 @@ export function useHostTestActions({
   const [busy, setBusy] = useState(false);
   const [chainId, setChainId] = useState<string>(HOST_CHAINS[0].value);
   const [message, setMessage] = useState("Hello from 1Shot Wallet");
+  const [signMode, setSignMode] = useState<SignMode>("message");
+  const [typedDataJson, setTypedDataJson] = useState(DEFAULT_TYPED_DATA_JSON);
   const [usdcMode, setUsdcMode] = useState<UsdcMode>("balance");
   const [usdcDestination, setUsdcDestination] = useState("");
   const [usdcAmount, setUsdcAmount] = useState("");
@@ -174,9 +181,48 @@ export function useHostTestActions({
   const handleSign = () => {
     const proxy = proxyRef.current;
     if (!proxy) return;
-    const trimmed = message.trim();
-    if (!trimmed) {
-      reportStatus("Enter a message to sign.", true);
+
+    if (signMode === "message") {
+      const trimmed = message.trim();
+      if (!trimmed) {
+        reportStatus("Enter a message to sign.", true);
+        return;
+      }
+
+      setBusy(true);
+      setSignature(null);
+      reportStatus("Requesting accounts…");
+
+      void (async () => {
+        try {
+          const account = await resolveAccount(proxy);
+          reportStatus("Approve the passkey prompt to sign…");
+          const nextSignature = await proxy.ethereum.request({
+            method: "personal_sign",
+            params: [trimmed, account],
+          });
+          setSignature(nextSignature);
+          reportStatus(`Signed as ${account}`);
+        } catch (error) {
+          reportStatus(
+            error instanceof Error ? error.message : "Signing failed",
+            true,
+          );
+        } finally {
+          setBusy(false);
+        }
+      })();
+      return;
+    }
+
+    let typedData: Record<string, unknown>;
+    try {
+      typedData = parseTypedDataJson(typedDataJson);
+    } catch (error) {
+      reportStatus(
+        error instanceof Error ? error.message : "Invalid typed data JSON.",
+        true,
+      );
       return;
     }
 
@@ -189,8 +235,8 @@ export function useHostTestActions({
         const account = await resolveAccount(proxy);
         reportStatus("Approve the passkey prompt to sign…");
         const nextSignature = await proxy.ethereum.request({
-          method: "personal_sign",
-          params: [trimmed, account],
+          method: "eth_signTypedData_v4",
+          params: [account, typedData],
         });
         setSignature(nextSignature);
         reportStatus(`Signed as ${account}`);
@@ -664,6 +710,8 @@ export function useHostTestActions({
     busy,
     chainId,
     message,
+    signMode,
+    typedDataJson,
     usdcMode,
     usdcDestination,
     usdcAmount,
@@ -676,6 +724,8 @@ export function useHostTestActions({
     onChainChange: handleChainChange,
     onRefreshChain: handleRefreshChain,
     onMessageChange: setMessage,
+    onSignModeChange: setSignMode,
+    onTypedDataJsonChange: setTypedDataJson,
     onUsdcModeChange: handleUsdcModeChange,
     onUsdcDestinationChange: setUsdcDestination,
     onUsdcAmountChange: setUsdcAmount,
