@@ -83,7 +83,13 @@ export function App() {
         }
         proxyRef.current = proxy;
 
-        proxy.analytics.on((event) => {
+        (
+          proxy as OWSProxy & {
+            analytics?: {
+              on: (handler: (event: IOWSAnalyticsEvent) => void) => void;
+            };
+          }
+        ).analytics?.on((event) => {
           console.info("[oneshot-wallet-host] analytics", event.name, event);
           setAnalyticsEvents((prev) =>
             [event, ...prev].slice(0, MAX_ANALYTICS_EVENTS),
