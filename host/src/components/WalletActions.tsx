@@ -9,7 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import type { SignMode } from "@/constants/signDemo";
 import {
   HOST_CHAINS,
   hostChainMeta,
@@ -17,12 +19,15 @@ import {
 } from "./hostChains";
 
 export type { UsdcMode } from "./hostChains";
+export type { SignMode } from "@/constants/signDemo";
 
 export interface IWalletActionsProps {
   ready: boolean;
   busy: boolean;
   chainId: string;
   message: string;
+  signMode: SignMode;
+  typedDataJson: string;
   usdcMode: UsdcMode;
   usdcDestination: string;
   usdcAmount: string;
@@ -35,6 +40,8 @@ export interface IWalletActionsProps {
   onChainChange: (chainId: string) => void;
   onRefreshChain: () => void;
   onMessageChange: (message: string) => void;
+  onSignModeChange: (mode: SignMode) => void;
+  onTypedDataJsonChange: (json: string) => void;
   onUsdcModeChange: (mode: UsdcMode) => void;
   onUsdcDestinationChange: (address: string) => void;
   onUsdcAmountChange: (amount: string) => void;
@@ -65,6 +72,8 @@ export function WalletActions({
   busy,
   chainId,
   message,
+  signMode,
+  typedDataJson,
   usdcMode,
   usdcDestination,
   usdcAmount,
@@ -77,6 +86,8 @@ export function WalletActions({
   onChainChange,
   onRefreshChain,
   onMessageChange,
+  onSignModeChange,
+  onTypedDataJsonChange,
   onUsdcModeChange,
   onUsdcDestinationChange,
   onUsdcAmountChange,
@@ -140,14 +151,48 @@ export function WalletActions({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="message-input">Message to sign (EIP-191)</Label>
-        <Textarea
-          id="message-input"
-          rows={3}
-          value={message}
-          disabled={!ready}
-          onChange={(event) => onMessageChange(event.target.value)}
-        />
+        <Tabs
+          value={signMode}
+          onValueChange={(value) => {
+            if (value === "message" || value === "typedData") {
+              onSignModeChange(value);
+            }
+          }}
+        >
+          <TabsList className="w-full">
+            <TabsTrigger value="message" className="flex-1">
+              Message
+            </TabsTrigger>
+            <TabsTrigger value="typedData" className="flex-1">
+              Typed Data (EIP-712)
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        {signMode === "message" ? (
+          <>
+            <Label htmlFor="message-input">Message to sign</Label>
+            <Textarea
+              id="message-input"
+              rows={3}
+              value={message}
+              disabled={!ready}
+              onChange={(event) => onMessageChange(event.target.value)}
+            />
+          </>
+        ) : (
+          <>
+            <Label htmlFor="typed-data-input">Typed Data JSON</Label>
+            <Textarea
+              id="typed-data-input"
+              rows={3}
+              className="field-sizing-fixed resize-y overflow-auto font-mono text-xs"
+              spellCheck={false}
+              value={typedDataJson}
+              disabled={!ready}
+              onChange={(event) => onTypedDataJsonChange(event.target.value)}
+            />
+          </>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
