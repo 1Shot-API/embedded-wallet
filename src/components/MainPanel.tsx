@@ -16,6 +16,7 @@ import { AccountMetaChip } from "./AccountMetaChip";
 import { AssetDetails } from "./AssetDetails";
 import { BalancesTab } from "./balances/BalancesTab";
 import { CredentialsTab } from "./credentials/CredentialsTab";
+import { DelegationsTab } from "./delegations/DelegationsTab";
 import { SelectNetworkModal } from "./modals/SelectNetworkModal";
 
 const TRUNCATE_CHARS = 5;
@@ -64,7 +65,11 @@ function FocusedAssetPanel() {
   if (!asset) {
     return <p className="text-muted-foreground m-0 text-sm">Loading…</p>;
   }
-  return <AssetDetails asset={asset} />;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <AssetDetails asset={asset} />
+    </div>
+  );
 }
 
 /**
@@ -112,8 +117,8 @@ export function MainPanel() {
 
   if (selectedAsset) {
     return (
-      <div className="flex flex-col gap-3">
-        <div className="flex justify-end">
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex shrink-0 justify-end">
           <Button
             type="button"
             variant="outline"
@@ -218,12 +223,18 @@ export function MainPanel() {
           <TabsTrigger value="credentials">
             {style.copy.credentials.tabLabel}
           </TabsTrigger>
+          <TabsTrigger value="delegations">
+            {style.copy.delegations.tabLabel}
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="balances">
           <BalancesTab onView={setSelectedAsset} />
         </TabsContent>
         <TabsContent value="credentials">
           <CredentialsTab />
+        </TabsContent>
+        <TabsContent value="delegations">
+          <DelegationsTab />
         </TabsContent>
       </Tabs>
 

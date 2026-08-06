@@ -32,21 +32,33 @@ export function walletIframeUrl() {
   return `http://localhost:${walletPort}/`;
 }
 
+function resolveCertPath(envValue, defaultPath, pathBase) {
+  const trimmed = envValue?.trim();
+  if (!trimmed) return defaultPath;
+  if (path.isAbsolute(trimmed)) return trimmed;
+  return path.resolve(pathBase ?? process.cwd(), trimmed);
+}
+
 /**
  * Optional HTTPS when HOST_HTTPS=1 or host/certs/dev-*.pem exist.
  * Needed when the wallet iframe is on HTTPS (ngrok) for passkey ancestor checks.
+ * HOST_SSL_* paths are repo-root-relative when not absolute.
  */
-export function resolveHttpsOptions({ certsDir }) {
+export function resolveHttpsOptions({ certsDir, pathBase }) {
   const flag = process.env.HOST_HTTPS?.trim().toLowerCase();
   const forceOn = flag === "1" || flag === "true" || flag === "yes";
   const forceOff = flag === "0" || flag === "false" || flag === "no";
 
-  const certPath = process.env.HOST_SSL_CERT?.trim()
-    ? path.resolve(process.env.HOST_SSL_CERT.trim())
-    : path.join(certsDir, "dev-cert.pem");
-  const keyPath = process.env.HOST_SSL_KEY?.trim()
-    ? path.resolve(process.env.HOST_SSL_KEY.trim())
-    : path.join(certsDir, "dev-key.pem");
+  const certPath = resolveCertPath(
+    process.env.HOST_SSL_CERT,
+    path.join(certsDir, "dev-cert.pem"),
+    pathBase,
+  );
+  const keyPath = resolveCertPath(
+    process.env.HOST_SSL_KEY,
+    path.join(certsDir, "dev-key.pem"),
+    pathBase,
+  );
 
   const certsPresent = fs.existsSync(certPath) && fs.existsSync(keyPath);
   if (forceOff) return undefined;

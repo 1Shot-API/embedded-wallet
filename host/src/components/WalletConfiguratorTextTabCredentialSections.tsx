@@ -131,6 +131,54 @@ export function WalletConfiguratorTextTabCredentialSections({
           />
         </AccordionContent>
       </AccordionItem>
+
+      <AccordionItem value="delegations">
+        <AccordionTrigger>Delegations tab</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <TextField
+            id="del-tab-label"
+            label="Tab label"
+            value={form.delTabLabel}
+            onChange={(value) => patch("delTabLabel", value)}
+          />
+          <TextField
+            id="del-empty-count"
+            label="Empty count"
+            value={form.delEmptyCount}
+            onChange={(value) => patch("delEmptyCount", value)}
+          />
+          <TextField
+            id="del-count-label"
+            label="Count ({count})"
+            value={form.delCountLabel}
+            onChange={(value) => patch("delCountLabel", value)}
+          />
+          <BodyField
+            id="del-empty-body"
+            label="Empty body"
+            value={form.delEmptyBody}
+            onChange={(value) => patch("delEmptyBody", value)}
+          />
+          <TextField
+            id="del-refresh"
+            label="Refresh"
+            value={form.delRefresh}
+            onChange={(value) => patch("delRefresh", value)}
+          />
+          <TextField
+            id="del-cancel"
+            label="Cancel"
+            value={form.delCancel}
+            onChange={(value) => patch("delCancel", value)}
+          />
+          <TextField
+            id="del-no-memo"
+            label="No memo"
+            value={form.delNoMemo}
+            onChange={(value) => patch("delNoMemo", value)}
+          />
+        </AccordionContent>
+      </AccordionItem>
     </>
   );
 }

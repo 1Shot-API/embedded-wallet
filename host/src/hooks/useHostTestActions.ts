@@ -1,10 +1,11 @@
-import { useCallback, useState, type RefObject } from "react";
+import { useCallback, useRef, useState, type RefObject } from "react";
 import { OWSProxy } from "@1shotapi/ows-provider";
 import {
   EVMAccountAddress,
   EVMChainId,
   HexString,
   type EVMTransactionHash,
+  type IExecutionPermissionResponse,
 } from "@1shotapi/ows-types";
 import {
   createPublicClient,
@@ -19,6 +20,12 @@ import {
   type Hex,
 } from "viem";
 import {
+  DEFAULT_TYPED_DATA_JSON,
+  parseTypedDataJson,
+  type SignMode,
+} from "../constants/signDemo";
+import {
+  DEMO_EXECUTION_DELEGATEE,
   FOCUS_USDC_ARC,
   FOCUS_USDT_BASE,
   HOST_CHAINS,
@@ -27,6 +34,26 @@ import {
 } from "../components/hostChains";
 
 const USDC_DECIMALS = 6;
+
+/** One USDC in atoms (6 decimals), as hex for EIP-7715 periodAmount. */
+const ONE_USDC_ATOMS_HEX = HexString(`0x${(1_000_000).toString(16)}`);
+
+type SessionGrant = {
+  id: string;
+  response: IExecutionPermissionResponse;
+};
+
+function truncateHex(value: string, head = 10, tail = 6): string {
+  if (value.length <= head + tail + 1) return value;
+  return `${value.slice(0, head)}…${value.slice(-tail)}`;
+}
+
+function grantSummary(response: IExecutionPermissionResponse): string {
+  const permissionType = response.permission.type;
+  const chain = String(response.chainId);
+  const to = truncateHex(String(response.to));
+  return `${permissionType} · ${chain} · to ${to}`;
+}
 
 function normalizeChainIdHex(value: string): EVMChainId {
   return EVMChainId(`0x${BigInt(value).toString(16)}`);
@@ -61,6 +88,8 @@ export function useHostTestActions({
   const [busy, setBusy] = useState(false);
   const [chainId, setChainId] = useState<string>(HOST_CHAINS[0].value);
   const [message, setMessage] = useState("Hello from 1Shot Wallet");
+  const [signMode, setSignMode] = useState<SignMode>("message");
+  const [typedDataJson, setTypedDataJson] = useState(DEFAULT_TYPED_DATA_JSON);
   const [usdcMode, setUsdcMode] = useState<UsdcMode>("balance");
   const [usdcDestination, setUsdcDestination] = useState("");
   const [usdcAmount, setUsdcAmount] = useState("");
@@ -71,6 +100,11 @@ export function useHostTestActions({
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txExplorerUrl, setTxExplorerUrl] = useState<string | null>(null);
   const [walletVisible, setWalletVisible] = useState(false);
+  const [sessionGrants, setSessionGrants] = useState<SessionGrant[]>([]);
+  const [delegationsOutput, setDelegationsOutput] = useState<string | null>(
+    null,
+  );
+  const grantSeqRef = useRef(0);
 
   const reportStatus = useCallback((next: string, isError = false) => {
     setStatus(next);
@@ -147,9 +181,48 @@ export function useHostTestActions({
   const handleSign = () => {
     const proxy = proxyRef.current;
     if (!proxy) return;
-    const trimmed = message.trim();
-    if (!trimmed) {
-      reportStatus("Enter a message to sign.", true);
+
+    if (signMode === "message") {
+      const trimmed = message.trim();
+      if (!trimmed) {
+        reportStatus("Enter a message to sign.", true);
+        return;
+      }
+
+      setBusy(true);
+      setSignature(null);
+      reportStatus("Requesting accounts…");
+
+      void (async () => {
+        try {
+          const account = await resolveAccount(proxy);
+          reportStatus("Approve the passkey prompt to sign…");
+          const nextSignature = await proxy.ethereum.request({
+            method: "personal_sign",
+            params: [trimmed, account],
+          });
+          setSignature(nextSignature);
+          reportStatus(`Signed as ${account}`);
+        } catch (error) {
+          reportStatus(
+            error instanceof Error ? error.message : "Signing failed",
+            true,
+          );
+        } finally {
+          setBusy(false);
+        }
+      })();
+      return;
+    }
+
+    let typedData: Record<string, unknown>;
+    try {
+      typedData = parseTypedDataJson(typedDataJson);
+    } catch (error) {
+      reportStatus(
+        error instanceof Error ? error.message : "Invalid typed data JSON.",
+        true,
+      );
       return;
     }
 
@@ -162,8 +235,8 @@ export function useHostTestActions({
         const account = await resolveAccount(proxy);
         reportStatus("Approve the passkey prompt to sign…");
         const nextSignature = await proxy.ethereum.request({
-          method: "personal_sign",
-          params: [trimmed, account],
+          method: "eth_signTypedData_v4",
+          params: [account, typedData],
         });
         setSignature(nextSignature);
         reportStatus(`Signed as ${account}`);
@@ -503,11 +576,164 @@ export function useHostTestActions({
     })();
   };
 
+  const handleRequestDelegation = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    setDelegationsOutput(null);
+    reportStatus("Requesting EIP-7715 execution permission…");
+    void (async () => {
+      try {
+        proxy.showWallet();
+        setWalletVisible(true);
+        const account = await resolveAccount(proxy);
+        const activeChain = await refreshChainFromWallet(proxy);
+        const meta = hostChainMeta(String(activeChain));
+        if (!meta) {
+          throw new Error(
+            `No USDC fixture for chain ${activeChain}. Switch to a listed chain.`,
+          );
+        }
+        const responses = await proxy.ethereum.request({
+          method: "wallet_requestExecutionPermissions",
+          params: [
+            {
+              chainId: activeChain,
+              from: account,
+              to: EVMAccountAddress(DEMO_EXECUTION_DELEGATEE),
+              permission: {
+                type: "erc20-token-periodic",
+                isAdjustmentAllowed: true,
+                data: {
+                  tokenAddress: meta.usdc,
+                  periodAmount: ONE_USDC_ATOMS_HEX,
+                  periodDuration: 86_400,
+                },
+              },
+            },
+          ],
+        });
+        const next: SessionGrant[] = responses.map((response) => {
+          grantSeqRef.current += 1;
+          return {
+            id: `grant-${grantSeqRef.current}`,
+            response,
+          };
+        });
+        setSessionGrants((prev) => [...next, ...prev]);
+        reportStatus(
+          next.length === 1
+            ? "Permission granted (kept in memory)."
+            : `${next.length} permissions granted (kept in memory).`,
+        );
+      } catch (error) {
+        reportStatus(
+          error instanceof Error
+            ? error.message
+            : "requestExecutionPermissions failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleCancelDelegation = (id: string) => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    const grant = sessionGrants.find((g) => g.id === id);
+    if (!grant) {
+      reportStatus("Grant not found in session memory.", true);
+      return;
+    }
+    setBusy(true);
+    setDelegationsOutput(null);
+    reportStatus("Canceling EIP-7715 permission…");
+    void (async () => {
+      try {
+        proxy.showWallet();
+        setWalletVisible(true);
+        await proxy.ethereum.request({
+          method: "wallet_revokeExecutionPermission",
+          params: [{ permissionContext: grant.response.context }],
+        });
+        setSessionGrants((prev) => prev.filter((g) => g.id !== id));
+        reportStatus("Permission canceled on-chain and removed from memory.");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error
+            ? error.message
+            : "revokeExecutionPermission failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleGetSupportedPermissions = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Fetching supported execution permissions…");
+    void (async () => {
+      try {
+        const result = await proxy.ethereum.request({
+          method: "wallet_getSupportedExecutionPermissions",
+        });
+        setDelegationsOutput(JSON.stringify(result, null, 2));
+        reportStatus("Supported permissions loaded.");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error
+            ? error.message
+            : "getSupportedExecutionPermissions failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleGetGrantedPermissions = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Fetching granted execution permissions…");
+    void (async () => {
+      try {
+        const result = await proxy.ethereum.request({
+          method: "wallet_getGrantedExecutionPermissions",
+        });
+        setDelegationsOutput(JSON.stringify(result, null, 2));
+        reportStatus(
+          Array.isArray(result)
+            ? `${result.length} granted permission(s) from vault.`
+            : "Granted permissions loaded.",
+        );
+      } catch (error) {
+        reportStatus(
+          error instanceof Error
+            ? error.message
+            : "getGrantedExecutionPermissions failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
   const walletActionProps = {
     ready,
     busy,
     chainId,
     message,
+    signMode,
+    typedDataJson,
     usdcMode,
     usdcDestination,
     usdcAmount,
@@ -520,6 +746,8 @@ export function useHostTestActions({
     onChainChange: handleChainChange,
     onRefreshChain: handleRefreshChain,
     onMessageChange: setMessage,
+    onSignModeChange: setSignMode,
+    onTypedDataJsonChange: setTypedDataJson,
     onUsdcModeChange: handleUsdcModeChange,
     onUsdcDestinationChange: setUsdcDestination,
     onUsdcAmountChange: setUsdcAmount,
@@ -533,6 +761,16 @@ export function useHostTestActions({
     onAddUsdcArc: handleAddUsdcArc,
     onAddUsdtBase: handleAddUsdtBase,
     onOnramp: handleOnramp,
+    sessionGrants: sessionGrants.map((g) => ({
+      id: g.id,
+      summary: grantSummary(g.response),
+      json: JSON.stringify(g.response, null, 2),
+    })),
+    delegationsOutput,
+    onRequestDelegation: handleRequestDelegation,
+    onCancelDelegation: handleCancelDelegation,
+    onGetSupportedPermissions: handleGetSupportedPermissions,
+    onGetGrantedPermissions: handleGetGrantedPermissions,
   };
 
   return {

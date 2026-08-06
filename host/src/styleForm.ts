@@ -49,6 +49,11 @@ export interface IStyleFormState {
   passkeyBody: string;
   passkeyContinue: string;
   passkeyCancel: string;
+  passkeyTermsPrefix: string;
+  passkeyTermsOfServiceLabel: string;
+  passkeyTermsJoiner: string;
+  passkeyPrivacyLabel: string;
+  passkeyTermsError: string;
 
   // Text — Personal sign
   signTitle: string;
@@ -88,6 +93,15 @@ export interface IStyleFormState {
   credClaimsHeading: string;
   credClose: string;
 
+  // Text — Delegations tab
+  delTabLabel: string;
+  delEmptyCount: string;
+  delCountLabel: string;
+  delEmptyBody: string;
+  delRefresh: string;
+  delCancel: string;
+  delNoMemo: string;
+
   // Text — Balances / Receive
   balTabLabel: string;
   balRefresh: string;
@@ -115,6 +129,14 @@ export interface IStyleFormState {
   transferTokensSentTitle: string;
   transferTokensViewExplorer: string;
   transferTokensDone: string;
+
+  // Text — EIP-7715 grant / cancel
+  grantPermissionTitle: string;
+  grantPermissionGrant: string;
+  grantPermissionReject: string;
+  cancelDelegationTitle: string;
+  cancelDelegationConfirm: string;
+  cancelDelegationReject: string;
 
   // Text — Passkey ceremony overlays
   passkeyPromptUnlockTitle: string;
@@ -201,6 +223,12 @@ export const ACME_PRESET: IStyleFormState = {
   passkeyBody: "Choose a name for this wallet passkey.",
   passkeyContinue: "Save name",
   passkeyCancel: "Cancel",
+  passkeyTermsPrefix: "I agree to the",
+  passkeyTermsOfServiceLabel: "Terms of Service",
+  passkeyTermsJoiner: "and",
+  passkeyPrivacyLabel: "Privacy Policy",
+  passkeyTermsError:
+    "Accept the Terms of Service and Privacy Policy to continue.",
   signTitle: "Approve signature",
   signLabel: "Sign",
   signReject: "Reject",
@@ -228,6 +256,14 @@ export const ACME_PRESET: IStyleFormState = {
   credDetailDescription: "Full credential details and claims.",
   credClaimsHeading: "Claims",
   credClose: "Close",
+  delTabLabel: "Delegations",
+  delEmptyCount: "No spending permissions yet.",
+  delCountLabel: "{count} permission(s)",
+  delEmptyBody:
+    "Permissions granted to apps appear here. Refresh to sync from the vault.",
+  delRefresh: "Refresh",
+  delCancel: "Cancel",
+  delNoMemo: "No memo",
   balTabLabel: "Balances",
   balRefresh: "Refresh",
   receiveLabel: "Receive",
@@ -240,9 +276,9 @@ export const ACME_PRESET: IStyleFormState = {
   receiveCopyFailedLabel: "Copy failed",
   receiveCloseLabel: "Close",
   sendLabel: "Send",
-  confirmTransferTitle: "Confirm transfer",
+  confirmTransferTitle: "Confirm Transfer",
   confirmTransferBody:
-    "{domain} wants to send {amount} {tokenSymbol} ({tokenName}) to {receiver} on {chainName}.",
+    "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
   confirmTransferConfirm: "Confirm",
   confirmTransferReject: "Reject",
   transferTokensTitle: "Send",
@@ -251,6 +287,12 @@ export const ACME_PRESET: IStyleFormState = {
   transferTokensSentTitle: "Transaction sent",
   transferTokensViewExplorer: "View on explorer",
   transferTokensDone: "Done",
+  grantPermissionTitle: "Grant spending permission",
+  grantPermissionGrant: "Grant",
+  grantPermissionReject: "Reject",
+  cancelDelegationTitle: "Cancel permission",
+  cancelDelegationConfirm: "Cancel permission",
+  cancelDelegationReject: "Keep",
   passkeyPromptUnlockTitle: "Unlock with passkey",
   passkeyPromptCreateTitle: "Create passkey",
   passkeyPromptSignTitle: "Confirm with passkey",
@@ -329,6 +371,12 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   passkeyTitle: "Name your passkey",
   passkeyBody: "",
   passkeyContinue: "Continue",
+  passkeyTermsPrefix: "I agree to the",
+  passkeyTermsOfServiceLabel: "Terms of Service",
+  passkeyTermsJoiner: "and",
+  passkeyPrivacyLabel: "Privacy Policy",
+  passkeyTermsError:
+    "Accept the Terms of Service and Privacy Policy to continue.",
   signTitle: "Sign message",
   signLabel: "Sign",
   typedTitle: "Sign typed data",
@@ -349,6 +397,14 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   credDetailDescription: "Full credential details and claims.",
   credClaimsHeading: "Claims",
   credClose: "Close",
+  delTabLabel: "Delegations",
+  delEmptyCount: "No spending permissions yet.",
+  delCountLabel: "{count} permission(s)",
+  delEmptyBody:
+    "Permissions granted to apps appear here. Refresh to sync from the vault.",
+  delRefresh: "Refresh",
+  delCancel: "Cancel",
+  delNoMemo: "No memo",
   balTabLabel: "Balances",
   balRefresh: "Refresh",
   receiveLabel: "Receive",
@@ -363,7 +419,7 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   sendLabel: "Send",
   confirmTransferTitle: "Confirm transfer",
   confirmTransferBody:
-    "{domain} wants to send {amount} {tokenSymbol} ({tokenName}) to {receiver} on {chainName}.",
+    "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
   confirmTransferConfirm: "Confirm",
   confirmTransferReject: "Reject",
   transferTokensTitle: "Send",
@@ -372,6 +428,12 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   transferTokensSentTitle: "Transaction sent",
   transferTokensViewExplorer: "View on explorer",
   transferTokensDone: "Done",
+  grantPermissionTitle: "Grant spending permission",
+  grantPermissionGrant: "Grant",
+  grantPermissionReject: "Reject",
+  cancelDelegationTitle: "Cancel permission",
+  cancelDelegationConfirm: "Cancel permission",
+  cancelDelegationReject: "Keep",
   passkeyPromptUnlockTitle: "Unlock with passkey",
   passkeyPromptCreateTitle: "Create passkey",
   passkeyPromptSignTitle: "Confirm with passkey",
@@ -449,6 +511,11 @@ export function buildSetStylePayload(
   put(passkeyName, "body", form.passkeyBody);
   put(passkeyName, "continueLabel", form.passkeyContinue);
   put(passkeyName, "cancelLabel", form.passkeyCancel);
+  put(passkeyName, "termsAcceptancePrefix", form.passkeyTermsPrefix);
+  put(passkeyName, "termsOfServiceLabel", form.passkeyTermsOfServiceLabel);
+  put(passkeyName, "termsAcceptanceJoiner", form.passkeyTermsJoiner);
+  put(passkeyName, "privacyPolicyLabel", form.passkeyPrivacyLabel);
+  put(passkeyName, "termsAcceptanceError", form.passkeyTermsError);
   if (Object.keys(passkeyName).length > 0) copy.passkeyName = passkeyName;
 
   const personalSign: Record<string, string> = {};
@@ -489,6 +556,22 @@ export function buildSetStylePayload(
   put(transferTokens, "doneLabel", form.transferTokensDone);
   if (Object.keys(transferTokens).length > 0) {
     copy.transferTokens = transferTokens;
+  }
+
+  const grantExecutionPermission: Record<string, string> = {};
+  put(grantExecutionPermission, "title", form.grantPermissionTitle);
+  put(grantExecutionPermission, "grantLabel", form.grantPermissionGrant);
+  put(grantExecutionPermission, "rejectLabel", form.grantPermissionReject);
+  if (Object.keys(grantExecutionPermission).length > 0) {
+    copy.grantExecutionPermission = grantExecutionPermission;
+  }
+
+  const cancelDelegation: Record<string, string> = {};
+  put(cancelDelegation, "title", form.cancelDelegationTitle);
+  put(cancelDelegation, "confirmLabel", form.cancelDelegationConfirm);
+  put(cancelDelegation, "rejectLabel", form.cancelDelegationReject);
+  if (Object.keys(cancelDelegation).length > 0) {
+    copy.cancelDelegation = cancelDelegation;
   }
 
   const passkeyPrompt: Record<string, Record<string, string>> = {};
@@ -565,6 +648,16 @@ export function buildSetStylePayload(
   put(credentials, "claimsHeading", form.credClaimsHeading);
   put(credentials, "closeLabel", form.credClose);
   if (Object.keys(credentials).length > 0) copy.credentials = credentials;
+
+  const delegations: Record<string, string> = {};
+  put(delegations, "tabLabel", form.delTabLabel);
+  put(delegations, "emptyCountLabel", form.delEmptyCount);
+  put(delegations, "countLabel", form.delCountLabel);
+  put(delegations, "emptyBody", form.delEmptyBody);
+  put(delegations, "refreshLabel", form.delRefresh);
+  put(delegations, "cancelLabel", form.delCancel);
+  put(delegations, "noMemoLabel", form.delNoMemo);
+  if (Object.keys(delegations).length > 0) copy.delegations = delegations;
 
   const balances: Record<string, string> = {};
   put(balances, "tabLabel", form.balTabLabel);

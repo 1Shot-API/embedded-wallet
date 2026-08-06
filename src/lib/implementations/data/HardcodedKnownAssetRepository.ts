@@ -1,9 +1,7 @@
 import { erc20Abi } from "viem";
-import {
-  EVMAccountAddress,
-  EVMChainId,
-  type EVMAccountAddress as EVMAccountAddressType,
-  type EVMChainId as EVMChainIdType,
+import type {
+  EVMAccountAddress as EVMAccountAddressType,
+  EVMChainId as EVMChainIdType,
 } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import type { IKnownAssetRepository } from "../../interfaces/data/IKnownAssetRepository";
@@ -11,65 +9,33 @@ import { KnownAsset } from "../../types/domain/KnownAsset";
 import { NewTrackedAsset } from "../../types/domain/TrackedAsset";
 import { EAssetType } from "../../types/enum/EAssetType";
 import { makeTrackedAssetId } from "@/lib/types/primitives";
-
-/** Seeded known ERC-20s for demos (USDC on Arc / Sepolia / Base Sepolia / Base + Base USDT). */
-const SEEDED_KNOWN: readonly KnownAsset[] = [
-  new KnownAsset(
-    EVMChainId("0x4cef52"),
-    EVMAccountAddress("0x3600000000000000000000000000000000000000"),
-    EAssetType.Erc20,
-    "USDC",
-    "USDC",
-    6,
-  ),
-  new KnownAsset(
-    EVMChainId("0xaa36a7"),
-    EVMAccountAddress("0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"),
-    EAssetType.Erc20,
-    "USDC",
-    "USDC",
-    6,
-  ),
-  new KnownAsset(
-    EVMChainId("0x14a34"),
-    EVMAccountAddress("0x036CbD53842c5426634e7929541eC2318f3dCF7e"),
-    EAssetType.Erc20,
-    "USDC",
-    "USDC",
-    6,
-  ),
-  new KnownAsset(
-    EVMChainId("0x2105"),
-    EVMAccountAddress("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"),
-    EAssetType.Erc20,
-    "USDC",
-    "USDC",
-    6,
-  ),
-  new KnownAsset(
-    EVMChainId("0x2105"),
-    EVMAccountAddress("0xfde4c96c8593536e31f229ea8f37b2ada2699bb2"),
-    EAssetType.Erc20,
-    "USDT",
-    "USDT",
-    6,
-  ),
-];
+import { RELAYER_KNOWN_ASSETS } from "./relayerKnownAssets";
 
 const BY_KEY = new Map(
-  SEEDED_KNOWN.map((asset) => [
+  RELAYER_KNOWN_ASSETS.map((asset) => [
     makeTrackedAssetId(asset.chainId, asset.address),
     asset,
   ]),
 );
 
+const DEFAULT_TRACKED_USDC_CHAIN_IDS = new Set([
+  "0x4cef52",
+  "0xaa36a7",
+  "0x14a34",
+  "0x2105",
+]);
+
 /**
  * USDC on every supported demo chain — always shown in Balances (not removable).
  */
 export const DEFAULT_TRACKED_USDC: readonly NewTrackedAsset[] =
-  SEEDED_KNOWN.filter((asset) => asset.symbol === "USDC").map((asset) =>
-    NewTrackedAsset.fromKnown(asset),
-  );
+  RELAYER_KNOWN_ASSETS.filter(
+    (asset) =>
+      asset.symbol === "USDC" &&
+      DEFAULT_TRACKED_USDC_CHAIN_IDS.has(
+        String(asset.chainId).toLowerCase(),
+      ),
+  ).map((asset) => NewTrackedAsset.fromKnown(asset));
 
 const DEFAULT_TRACKED_USDC_KEYS = new Set(
   DEFAULT_TRACKED_USDC.map((asset) =>

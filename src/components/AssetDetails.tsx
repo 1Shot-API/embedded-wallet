@@ -14,6 +14,7 @@ import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import { openOnramp } from "../circle/openOnramp";
+import { AssetIdentityMark } from "./AssetIdentityMark";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { TransactionHistory } from "./TransactionHistory";
 import { ReceiveModal } from "./modals/ReceiveModal";
@@ -64,8 +65,8 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
     void requestBalanceRefresh(assetProp.id);
   }, [assetProp.id, requestBalanceRefresh]);
 
-  const network =
-    resolveChain(asset.chainId)?.label ?? String(asset.chainId);
+  const chain = resolveChain(asset.chainId);
+  const network = chain?.label ?? String(asset.chainId);
   const active = resolveActiveAddress({
     chainId: asset.chainId,
     evmAddress,
@@ -97,61 +98,64 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   }, [asset.chainId, asset.symbol, buyBusy, evmAddress]);
 
   return (
-    <div className="flex flex-col gap-5" aria-label={`${asset.symbol} details`}>
-      <header className="flex flex-col items-center gap-2 pt-2 text-center">
-        <div
-          className="bg-primary text-primary-foreground flex size-14 items-center justify-center rounded-full"
-          aria-hidden
-        >
-          <span className="text-lg font-semibold tracking-tight">$</span>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-foreground text-lg font-semibold tracking-tight">
-            {asset.symbol}
-          </h2>
-          <p className="text-muted-foreground text-xs">
-            {asset.name} · {network}
-          </p>
-        </div>
-        <BalanceDisplay
-          trackedAssetId={asset.id}
-          balance={asset.balance}
-          decimals={asset.decimals}
-          fallback={
-            asset.type !== EAssetType.Erc20 ? copy.balanceNonErc20 : undefined
-          }
-          className="text-primary text-3xl font-semibold tracking-tight"
-        />
-      </header>
+    <div
+      className="flex min-h-0 flex-1 flex-col gap-5"
+      aria-label={`${asset.symbol} details`}
+    >
+      <div className="flex shrink-0 flex-col gap-5">
+        <header className="flex flex-col items-center gap-2 pt-2 text-center">
+          <AssetIdentityMark
+            chainId={asset.chainId}
+            address={asset.address}
+            symbol={asset.symbol}
+            chainLogoUrl={chain?.logoUrl}
+          />
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-foreground text-lg font-semibold tracking-tight">
+              {asset.symbol}
+            </h2>
+            <p className="text-muted-foreground text-xs">{network}</p>
+          </div>
+          <BalanceDisplay
+            trackedAssetId={asset.id}
+            balance={asset.balance}
+            decimals={asset.decimals}
+            fallback={
+              asset.type !== EAssetType.Erc20 ? copy.balanceNonErc20 : undefined
+            }
+            className="text-primary text-3xl font-semibold tracking-tight"
+          />
+        </header>
 
-      <nav
-        className="flex items-start justify-center gap-8"
-        aria-label="Asset actions"
-      >
-        <ActionButton
-          label="Buy"
-          variant="outline"
-          disabled={!canBuy || buyBusy}
-          onClick={openBuy}
+        <nav
+          className="flex items-start justify-center gap-8"
+          aria-label="Asset actions"
         >
-          <PlusIcon className="size-5" />
-        </ActionButton>
-        <ActionButton
-          label={copy.sendLabel}
-          variant="primary"
-          disabled={!canSend}
-          onClick={openSend}
-        >
-          <SendIcon className="size-5" />
-        </ActionButton>
-        <ActionButton
-          label={copy.receiveLabel}
-          variant="outline"
-          onClick={() => setReceiveOpen(true)}
-        >
-          <QrCodeIcon className="size-5" />
-        </ActionButton>
-      </nav>
+          <ActionButton
+            label="Buy"
+            variant="outline"
+            disabled={!canBuy || buyBusy}
+            onClick={openBuy}
+          >
+            <PlusIcon className="size-5" />
+          </ActionButton>
+          <ActionButton
+            label={copy.sendLabel}
+            variant="primary"
+            disabled={!canSend}
+            onClick={openSend}
+          >
+            <SendIcon className="size-5" />
+          </ActionButton>
+          <ActionButton
+            label={copy.receiveLabel}
+            variant="outline"
+            onClick={() => setReceiveOpen(true)}
+          >
+            <QrCodeIcon className="size-5" />
+          </ActionButton>
+        </nav>
+      </div>
 
       <TransactionHistory asset={asset} owner={evmAddress} />
 

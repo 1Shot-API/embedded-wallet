@@ -72,15 +72,22 @@ export function PasskeyNameModal({
   const { style } = useStyle();
   const { passkeyName } = style.copy;
   const [name, setName] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const trimmedName = name.trim();
+  const canContinue = trimmedName.length > 0 && termsAccepted;
+
   const submit = () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
+    if (!trimmedName) {
       setError(passkeyName.emptyError);
       return;
     }
-    onResolve(trimmed);
+    if (!termsAccepted) {
+      setError(passkeyName.termsAcceptanceError);
+      return;
+    }
+    onResolve(trimmedName);
   };
 
   return (
@@ -96,6 +103,7 @@ export function PasskeyNameModal({
         {
           label: passkeyName.continueLabel,
           variant: "primary",
+          disabled: !canContinue,
           onClick: submit,
         },
       ]}
@@ -118,11 +126,46 @@ export function PasskeyNameModal({
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
-              submit();
+              if (canContinue) {
+                submit();
+              }
             }
           }}
         />
       </div>
+      <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-left">
+        <input
+          type="checkbox"
+          className="border-input bg-background text-primary mt-0.5 size-4 shrink-0 rounded border accent-[var(--primary)]"
+          checked={termsAccepted}
+          onChange={(event) => {
+            setTermsAccepted(event.target.checked);
+            setError(null);
+          }}
+        />
+        <span className="text-muted-foreground text-[0.85rem] leading-snug">
+          {passkeyName.termsAcceptancePrefix}{" "}
+          <a
+            href={passkeyName.termsOfServiceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary font-medium hover:underline"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {passkeyName.termsOfServiceLabel}
+          </a>{" "}
+          {passkeyName.termsAcceptanceJoiner}{" "}
+          <a
+            href={passkeyName.privacyPolicyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary font-medium hover:underline"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {passkeyName.privacyPolicyLabel}
+          </a>
+        </span>
+      </label>
       {error ? (
         <p className="text-destructive m-0 mt-2 text-[0.85rem]">{error}</p>
       ) : null}

@@ -20,6 +20,8 @@ import { AdvancedOptionsModal } from "./modals/AdvancedOptionsModal";
 import { AddAssetModal } from "./modals/AddAssetModal";
 import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
 import { OnrampView } from "./OnrampView";
+import { GrantExecutionPermissionModal } from "./modals/GrantExecutionPermissionModal";
+import { CancelDelegationModal } from "./modals/CancelDelegationModal";
 
 export function ModalHost() {
   const activeModal = useModalStore((state) => state.activeModal);
@@ -85,6 +87,23 @@ export function ModalHost() {
         <AddAssetModal
           request={activeModal.request}
           onResolve={activeModal.resolve}
+        />
+      );
+    case "grantExecutionPermission":
+      return (
+        <GrantExecutionPermissionModal
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    case "cancelDelegation":
+      return (
+        <CancelDelegationModal
+          request={activeModal.request}
+          execute={activeModal.execute}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
         />
       );
     case "exportPrivateKey":

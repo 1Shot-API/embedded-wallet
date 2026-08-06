@@ -4,7 +4,7 @@ import type {
   EVMAccountAddress,
   EVMChainId,
 } from "@1shotapi/ows-types";
-import type { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerCredentialRepository";
+import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import type {
   IAssetActivityRepository,
   IKnownAssetRepository,
@@ -16,17 +16,19 @@ import type {
   AssetActivity,
   TrackedAsset,
 } from "../lib/types/domain";
+import type { DelegationId } from "../lib/types/primitives/DelegationId";
 import { RefreshBalanceRequestedEvent } from "../lib/types/events/RefreshBalanceRequestedEvent";
 import type { TrackedAssetId } from "../lib/types/primitives";
 import { useWalletSessionStore } from "./sessionStore";
 
 export interface IUseWalletAssetsParams {
-  credentialRepository: CachedRelayerCredentialRepository;
+  credentialRepository: CachedRelayerVaultRepository;
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   assetActivityRepository: IAssetActivityRepository;
   eventBus: IEventBus;
-  ensureReady: () => Promise<void>;
+  /** Vault recover needs the Signing Layer for decryptAES256 only — not unlock. */
+  awaitSignerReady: () => Promise<unknown>;
   refreshCredentialCount: () => Promise<void>;
 }
 
@@ -36,7 +38,7 @@ export function useWalletAssets({
   trackedAssetRepository,
   assetActivityRepository,
   eventBus,
-  ensureReady,
+  awaitSignerReady,
   refreshCredentialCount,
 }: IUseWalletAssetsParams) {
   const refreshTrackedAssetCount = useCallback(async () => {
@@ -57,10 +59,28 @@ export function useWalletAssets({
   );
 
   const refreshCredentialsFromRelayer = useCallback(async () => {
-    await ensureReady();
+    // Do not call ensureReady/unlock first — that stacked Unlock + RelayerAuth
+    // (and could double-recover). Empty vault: one RelayerAuth. Blobs present:
+    // RelayerAuth + Decrypt (PRF inside decryptAES256).
+    await awaitSignerReady();
     await credentialRepository.refreshFromRelayer();
     await refreshCredentialCount();
-  }, [credentialRepository, ensureReady, refreshCredentialCount]);
+  }, [awaitSignerReady, credentialRepository, refreshCredentialCount]);
+
+  const listDelegations = useCallback(async () => {
+    return credentialRepository.listDelegations();
+  }, [credentialRepository]);
+
+  const getDelegation = useCallback(
+    async (delegationId: DelegationId) => {
+      return credentialRepository.getDelegation(delegationId);
+    },
+    [credentialRepository],
+  );
+
+  const refreshDelegationsFromRelayer = useCallback(async () => {
+    await refreshCredentialsFromRelayer();
+  }, [refreshCredentialsFromRelayer]);
 
   const listTrackedAssets = useCallback(async () => {
     const owner = useWalletSessionStore.getState().evmAddress;
@@ -165,6 +185,9 @@ export function useWalletAssets({
     listCredentials,
     getCredential,
     refreshCredentialsFromRelayer,
+    listDelegations,
+    getDelegation,
+    refreshDelegationsFromRelayer,
     listTrackedAssets,
     addTrackedAsset,
     removeTrackedAsset,

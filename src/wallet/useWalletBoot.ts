@@ -2,11 +2,11 @@ import { useEffect, type RefObject } from "react";
 import { OWSSigner } from "@1shotapi/ows-signer-utils";
 import { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
 import {
+  EVMAccountAddress,
   OwsInvalidParamsError,
   OwsUserRejectedError,
   type CredentialOfferApprovalRequest,
   type CredentialPresentationApprovalRequest,
-  type EVMAccountAddress,
   type EVMChainId,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
@@ -16,7 +16,7 @@ import type {
   SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
 import { InMemoryIssuerTrustRegistry } from "../demo/in-memory-trust-registry";
-import type { CachedRelayerCredentialRepository } from "../credentials/CachedRelayerCredentialRepository";
+import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import {
   DemoWalletAttestationProvider,
   FetchUtils,
@@ -33,24 +33,75 @@ import { registerCredentialsProvider } from "../ows/registerCredentialsProvider"
 import { registerSetStyleRpc } from "../style/registerSetStyle";
 import { wrapSignerWithCeremonyCopy } from "./wrapSignerWithCeremonyCopy";
 import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
+import {
+  runWithAnalytics,
+} from "../lib/implementations/utils";
 import type {
   IChainRepository,
   IKnownAssetRepository,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
-import type { ITransactionService } from "../lib/interfaces/business";
-import type { IOWSProvider, ITransactionUtils } from "../lib/interfaces/utils";
+import type {
+  IDelegationService,
+  ITransactionService,
+} from "../lib/interfaces/business";
+import { ERC20_TOKEN_PERIODIC } from "../lib/interfaces/business/IDelegationService";
+import type {
+  IConfigProvider,
+  IEventBus,
+  IOWSProvider,
+  ITransactionUtils,
+} from "../lib/interfaces/utils";
 import type { SupportedChain } from "../lib/types/domain";
+import {
+  DelegationCancelAbortedEvent,
+  DelegationCancelledEvent,
+  DelegationCancelFailedEvent,
+  DelegationCreateCancelledEvent,
+  DelegationCreatedEvent,
+  DelegationCreateFailedEvent,
+  PersonalSignCancelledEvent,
+  PersonalSignEvent,
+  PersonalSignFailedEvent,
+  TransactionSubmitCancelledEvent,
+  TransactionSubmittedEvent,
+  TransactionSubmitFailedEvent,
+  TypedSignCancelledEvent,
+  TypedSignEvent,
+  TypedSignFailedEvent,
+} from "../lib/types/events/productEvents";
 import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerCreateAccountRpc } from "./registerCreateAccount";
 import type { IPasskeyRegistrationResult } from "./registerCreateAccount";
 import { registerFocusModeRpc } from "./registerFocusMode";
 import { registerOnrampRpc } from "./registerOnramp";
-import { loadCredentialId } from "../storage";
+import { loadCachedEvmAddress, loadCredentialId } from "../storage";
 import { pushModal } from "./pushModal";
-import type { ActiveModal, IRelayerConfirmSendResult } from "./modalTypes";
+import type {
+  ActiveModal,
+  IGrantExecutionPermissionResult,
+  IRelayerConfirmSendResult,
+} from "./modalTypes";
 import { useWalletSessionStore } from "./sessionStore";
 import { DEMO_HOLDER_PRIVATE_JWK } from "../demo/demo-keys";
+
+function analyticsAccountAddress(
+  fallback?: EVMAccountAddress,
+): EVMAccountAddress {
+  return (
+    fallback ??
+    (useWalletSessionStore.getState().evmAddress ||
+      loadCachedEvmAddress() ||
+      EVMAccountAddress("0x0"))
+  );
+}
+
+function analyticsMethodId(data: string | null | undefined): string | null {
+  if (!data || data.length < 10) {
+    return null;
+  }
+  return data.slice(0, 10);
+}
 
 function createDeferredSigner(
   awaitSigner: () => Promise<OWSSigner>,
@@ -129,9 +180,12 @@ export interface IUseWalletBootParams {
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   transactionService: ITransactionService;
+  delegationService: IDelegationService;
   transactionUtils: ITransactionUtils;
-  credentialRepository: CachedRelayerCredentialRepository;
+  credentialRepository: CachedRelayerVaultRepository;
   walletStorage: AccountConnectStorage;
+  eventBus: IEventBus;
+  configProvider: IConfigProvider;
 }
 
 export function useWalletBoot({
@@ -153,9 +207,12 @@ export function useWalletBoot({
   knownAssetRepository,
   trackedAssetRepository,
   transactionService,
+  delegationService,
   transactionUtils,
   credentialRepository,
   walletStorage,
+  eventBus,
+  configProvider,
 }: IUseWalletBootParams): void {
   useEffect(() => {
     let cancelled = false;
@@ -227,7 +284,173 @@ export function useWalletBoot({
         new Map(catalog.map((chain) => [chain.chainId, chain.rpcUrl])),
         wallet,
         signer,
-        { defaultChainId, onChainChanged },
+        {
+          defaultChainId,
+          onChainChanged,
+          executionPermissions: {
+            requestExecutionPermissions: async (requests) => {
+              await ensureOnboardedForSigning();
+              const responses = [];
+              for (const request of requests) {
+                if (request.permission.type !== ERC20_TOKEN_PERIODIC) {
+                  throw new OwsInvalidParamsError(
+                    `Unsupported execution permission type: ${request.permission.type}`,
+                  );
+                }
+                const chain = resolveChain(request.chainId);
+                if (!chain?.useRelayer) {
+                  throw new OwsInvalidParamsError(
+                    `Chain ${request.chainId} does not support execution permissions`,
+                  );
+                }
+                const domain = transactionUtils.resolveHostDomain();
+                const { hostDomain } = await configProvider.getConfig();
+                const started = performance.now();
+                const account = analyticsAccountAddress();
+                const stored = await runWithAnalytics(
+                  (event) => eventBus.emitAnalytics(event),
+                  async () => {
+                    const approved =
+                      await ask<IGrantExecutionPermissionResult>(
+                        ({ id, resolve, reject }) => ({
+                          id,
+                          kind: "grantExecutionPermission",
+                          request: {
+                            request,
+                            domain,
+                            chainName: chain.label,
+                          },
+                          resolve,
+                          reject,
+                        }),
+                      );
+                    return delegationService.createExecutionPermission({
+                      request,
+                      permission: approved.permission,
+                      memo: approved.memo,
+                    });
+                  },
+                  {
+                    success: () =>
+                      new DelegationCreatedEvent(
+                        hostDomain,
+                        account,
+                        request.chainId,
+                        Math.round(performance.now() - started),
+                      ),
+                    cancelled: () =>
+                      new DelegationCreateCancelledEvent(
+                        hostDomain,
+                        account,
+                        request.chainId,
+                        Math.round(performance.now() - started),
+                      ),
+                    failed: (errorCode) =>
+                      new DelegationCreateFailedEvent(
+                        hostDomain,
+                        account,
+                        request.chainId,
+                        errorCode,
+                        Math.round(performance.now() - started),
+                      ),
+                  },
+                );
+                responses.push(stored.permissionResponse);
+              }
+              return responses;
+            },
+            revokeExecutionPermission: async (params) => {
+              await ensureOnboardedForSigning();
+              const stored = await delegationService.findByPermissionContext(
+                params.permissionContext,
+              );
+              const chainId =
+                stored?.chainId ?? rpcHelper.getChainId();
+              const chain = resolveChain(chainId);
+              if (!chain?.useRelayer) {
+                throw new OwsInvalidParamsError(
+                  `Chain ${chainId} does not support canceling permissions`,
+                );
+              }
+              const owner =
+                useWalletSessionStore.getState().evmAddress ||
+                loadCachedEvmAddress();
+              if (!owner) {
+                throw new OwsInvalidParamsError(
+                  "Wallet address is required to cancel a permission",
+                );
+              }
+              const domain =
+                stored?.hostDomain ??
+                transactionUtils.resolveHostDomain();
+              const { hostDomain } = await configProvider.getConfig();
+              const started = performance.now();
+              const account = analyticsAccountAddress(owner);
+              await runWithAnalytics(
+                (event) => eventBus.emitAnalytics(event),
+                async () => {
+                  const txHash = await ask<EVMTransactionHash>(
+                    ({ id, resolve, reject }) => ({
+                      id,
+                      kind: "cancelDelegation",
+                      request: {
+                        domain: String(domain),
+                        chainName: chain.label,
+                        chainId,
+                        ownerAddress: owner,
+                      },
+                      execute: async (payment: IRelayerConfirmSendResult) => {
+                        const result = await delegationService.cancelDelegation({
+                          chainId,
+                          paymentToken: payment.paymentToken,
+                          feeAtoms: payment.feeAtoms,
+                          ...(stored ? { stored } : {}),
+                          permissionContext: params.permissionContext,
+                        });
+                        return result.transactionHash;
+                      },
+                      resolve,
+                      reject,
+                    }),
+                  );
+                  return txHash;
+                },
+                {
+                  success: (txHash) =>
+                    new DelegationCancelledEvent(
+                      hostDomain,
+                      account,
+                      chainId,
+                      txHash,
+                      Math.round(performance.now() - started),
+                    ),
+                  cancelled: () =>
+                    new DelegationCancelAbortedEvent(
+                      hostDomain,
+                      account,
+                      chainId,
+                      Math.round(performance.now() - started),
+                    ),
+                  failed: (errorCode) =>
+                    new DelegationCancelFailedEvent(
+                      hostDomain,
+                      account,
+                      chainId,
+                      errorCode,
+                      Math.round(performance.now() - started),
+                    ),
+                },
+              );
+              return null;
+            },
+            getSupportedExecutionPermissions: () =>
+              delegationService.getSupportedExecutionPermissions(),
+            getGrantedExecutionPermissions: async () => {
+              await ensureReady();
+              return delegationService.getGrantedExecutionPermissions();
+            },
+          },
+        },
       );
       rpcHelperRef.current = rpcHelper;
       owsProvider.setRpcHelper(rpcHelper);
@@ -269,133 +492,242 @@ export function useWalletBoot({
         ensureReady: ensureOnboardedForSigning,
         onAuthenticated: onSigningAuthenticated,
         chainRpc: rpcHelper,
-        approveAndSignPersonalMessage: (request: PersonalSignApprovalRequest) =>
-          ask(({ id, resolve, reject }) => ({
-            id,
-            kind: "personalSign",
-            request,
-            resolve,
-            reject,
-          })),
-        approveAndSignTypedData: (request: SignTypedDataApprovalRequest) =>
-          ask(({ id, resolve, reject }) => ({
-            id,
-            kind: "typedData",
-            request,
-            resolve,
-            reject,
-          })),
+        approveAndSignPersonalMessage: async (
+          request: PersonalSignApprovalRequest,
+        ) => {
+          const { hostDomain } = await configProvider.getConfig();
+          const started = performance.now();
+          const account = analyticsAccountAddress(request.address);
+          return runWithAnalytics(
+            (event) => eventBus.emitAnalytics(event),
+            () =>
+              ask(({ id, resolve, reject }) => ({
+                id,
+                kind: "personalSign",
+                request,
+                resolve,
+                reject,
+              })),
+            {
+              success: () =>
+                new PersonalSignEvent(
+                  hostDomain,
+                  account,
+                  request.message.length,
+                  Math.round(performance.now() - started),
+                ),
+              cancelled: () =>
+                new PersonalSignCancelledEvent(
+                  hostDomain,
+                  account,
+                  Math.round(performance.now() - started),
+                ),
+              failed: (errorCode) =>
+                new PersonalSignFailedEvent(
+                  hostDomain,
+                  account,
+                  errorCode,
+                  Math.round(performance.now() - started),
+                ),
+            },
+          );
+        },
+        approveAndSignTypedData: async (
+          request: SignTypedDataApprovalRequest,
+        ) => {
+          const { hostDomain } = await configProvider.getConfig();
+          const started = performance.now();
+          const account = analyticsAccountAddress(request.address);
+          return runWithAnalytics(
+            (event) => eventBus.emitAnalytics(event),
+            () =>
+              ask(({ id, resolve, reject }) => ({
+                id,
+                kind: "typedData",
+                request,
+                resolve,
+                reject,
+              })),
+            {
+              success: () =>
+                new TypedSignEvent(
+                  hostDomain,
+                  account,
+                  request.typedData.primaryType,
+                  Math.round(performance.now() - started),
+                ),
+              cancelled: () =>
+                new TypedSignCancelledEvent(
+                  hostDomain,
+                  account,
+                  Math.round(performance.now() - started),
+                ),
+              failed: (errorCode) =>
+                new TypedSignFailedEvent(
+                  hostDomain,
+                  account,
+                  errorCode,
+                  Math.round(performance.now() - started),
+                ),
+            },
+          );
+        },
         approveAndSignTransaction: async (
           request: SendTransactionApprovalRequest,
         ) => {
-          if (!request.to) {
-            throw new OwsUserRejectedError(
-              "Contract creation is not supported yet",
-            );
-          }
+          const { hostDomain } = await configProvider.getConfig();
+          const started = performance.now();
+          const account = analyticsAccountAddress(request.address);
+          const methodId = analyticsMethodId(request.data);
+          const to = request.to;
 
-          await ensureOnboardedForSigning();
+          return runWithAnalytics(
+            (event) => eventBus.emitAnalytics(event),
+            async () => {
+              if (!request.to) {
+                throw new OwsUserRejectedError(
+                  "Contract creation is not supported yet",
+                );
+              }
 
-          const chain = resolveChain(request.chainId);
-          const useRelayer = chain?.useRelayer === true;
+              await ensureOnboardedForSigning();
 
-          const transfer = transactionUtils.tryDecodeErc20Transfer(
-            request.to,
-            request.data,
-          );
+              const chain = resolveChain(request.chainId);
+              const useRelayer = chain?.useRelayer === true;
 
-          const executeSend = async (payment: {
-            paymentToken?: EVMAccountAddress;
-            feeAtoms?: bigint;
-          }) => {
-            let relayerOptions:
-              | {
-                  paymentToken: EVMAccountAddress;
-                  feeAtoms: bigint;
+              const transfer = transactionUtils.tryDecodeErc20Transfer(
+                request.to,
+                request.data,
+              );
+
+              const executeSend = async (payment: {
+                paymentToken?: EVMAccountAddress;
+                feeAtoms?: bigint;
+              }) => {
+                let relayerOptions:
+                  | {
+                      paymentToken: EVMAccountAddress;
+                      feeAtoms: bigint;
+                    }
+                  | undefined;
+                if (useRelayer) {
+                  const confirmed = requireRelayerConfirmPayment(payment);
+                  relayerOptions = {
+                    paymentToken: confirmed.paymentToken,
+                    feeAtoms: confirmed.feeAtoms,
+                  };
                 }
-              | undefined;
-            if (useRelayer) {
-              const confirmed = requireRelayerConfirmPayment(payment);
-              relayerOptions = {
-                paymentToken: confirmed.paymentToken,
-                feeAtoms: confirmed.feeAtoms,
-              };
-            }
 
-            const valueRaw = String(request.value);
-            const value =
-              valueRaw && valueRaw !== "0x0" && valueRaw !== "0x"
-                ? BigInt(valueRaw)
-                : undefined;
+                const valueRaw = String(request.value);
+                const value =
+                  valueRaw && valueRaw !== "0x0" && valueRaw !== "0x"
+                    ? BigInt(valueRaw)
+                    : undefined;
 
-            const result = await transactionService.sendTransaction(
-              request.chainId,
-              {
-                to: request.to!,
-                data: request.data,
-                value,
-              },
-              relayerOptions,
-            );
-            return result.transactionHash;
-          };
-
-          let hash;
-          if (transfer) {
-            const known = await knownAssetRepository.getKnownAsset(
-              request.chainId,
-              transfer.tokenAddress,
-            );
-            const owner = useWalletSessionStore.getState().evmAddress;
-            const tracked = (await trackedAssetRepository.list(owner)).find(
-              (asset) =>
-                asset.chainId === request.chainId &&
-                asset.address === transfer.tokenAddress,
-            );
-            const tokenName =
-              tracked?.name ?? known?.name ?? transfer.tokenAddress;
-            const tokenSymbol = tracked?.symbol ?? known?.symbol ?? "TOKEN";
-            const decimals = tracked?.decimals ?? known?.decimals ?? null;
-            hash = await ask<EVMTransactionHash>(({ id, resolve, reject }) => ({
-              id,
-              kind: "confirmTransfer",
-              request: {
-                domain: transactionUtils.resolveHostDomain(),
-                amount: transactionUtils.formatTokenAmount(
-                  transfer.amount,
-                  decimals,
-                ),
-                tokenName,
-                tokenSymbol,
-                receiver: transfer.recipient,
-                chainName: transactionUtils.chainLabelFor(
+                const result = await transactionService.sendTransaction(
                   request.chainId,
-                  chainRepository.getCatalog(),
-                ),
-                chainId: request.chainId,
-                ownerAddress: request.address,
-                useRelayer,
-              },
-              execute: executeSend,
-              resolve,
-              reject,
-            }));
-          } else {
-            hash = await ask<EVMTransactionHash>(({ id, resolve, reject }) => ({
-              id,
-              kind: "sendTransaction",
-              request: {
-                ...request,
-                useRelayer,
-              },
-              execute: executeSend,
-              resolve,
-              reject,
-            }));
-          }
+                  {
+                    to: request.to!,
+                    data: request.data,
+                    value,
+                  },
+                  relayerOptions,
+                );
+                return result.transactionHash;
+              };
 
-          await onSigningAuthenticated();
-          return hash;
+              let hash: EVMTransactionHash;
+              if (transfer) {
+                const known = await knownAssetRepository.getKnownAsset(
+                  request.chainId,
+                  transfer.tokenAddress,
+                );
+                const owner = useWalletSessionStore.getState().evmAddress;
+                const tracked = (await trackedAssetRepository.list(owner)).find(
+                  (asset) =>
+                    asset.chainId === request.chainId &&
+                    asset.address === transfer.tokenAddress,
+                );
+                const tokenName =
+                  tracked?.name ?? known?.name ?? transfer.tokenAddress;
+                const tokenSymbol = tracked?.symbol ?? known?.symbol ?? "TOKEN";
+                const decimals = tracked?.decimals ?? known?.decimals ?? null;
+                hash = await ask<EVMTransactionHash>(
+                  ({ id, resolve, reject }) => ({
+                    id,
+                    kind: "confirmTransfer",
+                    request: {
+                      domain: transactionUtils.resolveHostDomain(),
+                      amount: transactionUtils.formatTokenAmount(
+                        transfer.amount,
+                        decimals,
+                      ),
+                      tokenName,
+                      tokenSymbol,
+                      tokenAddress: transfer.tokenAddress,
+                      receiver: transfer.recipient,
+                      chainName: transactionUtils.chainLabelFor(
+                        request.chainId,
+                        chainRepository.getCatalog(),
+                      ),
+                      chainId: request.chainId,
+                      ownerAddress: request.address,
+                      useRelayer,
+                    },
+                    execute: executeSend,
+                    resolve,
+                    reject,
+                  }),
+                );
+              } else {
+                hash = await ask<EVMTransactionHash>(
+                  ({ id, resolve, reject }) => ({
+                    id,
+                    kind: "sendTransaction",
+                    request: {
+                      ...request,
+                      useRelayer,
+                    },
+                    execute: executeSend,
+                    resolve,
+                    reject,
+                  }),
+                );
+              }
+
+              await onSigningAuthenticated();
+              return hash;
+            },
+            {
+              success: (txHash) =>
+                new TransactionSubmittedEvent(
+                  hostDomain,
+                  account,
+                  request.chainId,
+                  to!,
+                  txHash,
+                  Math.round(performance.now() - started),
+                  methodId,
+                ),
+              cancelled: () =>
+                new TransactionSubmitCancelledEvent(
+                  hostDomain,
+                  account,
+                  request.chainId,
+                  Math.round(performance.now() - started),
+                  to,
+                ),
+              failed: (errorCode) =>
+                new TransactionSubmitFailedEvent(
+                  hostDomain,
+                  account,
+                  request.chainId,
+                  errorCode,
+                  Math.round(performance.now() - started),
+                  to,
+                ),
+            },
+          );
         },
       });
 
@@ -406,6 +738,8 @@ export function useWalletBoot({
         trust: issuerTrust,
         attestationProvider,
         ensureReady,
+        emitAnalytics: (event) => eventBus.emitAnalytics(event),
+        configProvider,
         requestCredentialOfferApproval: (
           request: CredentialOfferApprovalRequest,
         ) =>

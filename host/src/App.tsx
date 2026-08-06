@@ -3,6 +3,8 @@ import {
   EWalletPresentationMode,
   OWSProxy,
 } from "@1shotapi/ows-provider";
+import type { IOWSAnalyticsEvent } from "@1shotapi/ows-types";
+import { AnalyticsPanel } from "./components/AnalyticsPanel";
 import { AppHeader } from "./components/AppHeader";
 import { AppSidebar, type HostMode } from "./components/AppSidebar";
 import { DesignPanel } from "./components/DesignPanel";
@@ -14,6 +16,7 @@ import { useHostTestActions } from "./hooks/useHostTestActions";
 /** MetaMask-like branding panel size (also default in ows-provider). */
 const WALLET_SIZE_X = 360;
 const WALLET_SIZE_Y = 600;
+const MAX_ANALYTICS_EVENTS = 50;
 
 export function App() {
   const flyoutContainerRef = useRef<HTMLDivElement | null>(null);
@@ -22,6 +25,9 @@ export function App() {
   const lastStyleRef = useRef<Record<string, unknown> | null>(null);
   const [previewMount, setPreviewMount] = useState<HTMLDivElement | null>(null);
   const [mode, setMode] = useState<HostMode>("test");
+  const [analyticsEvents, setAnalyticsEvents] = useState<IOWSAnalyticsEvent[]>(
+    [],
+  );
 
   const {
     ready,
@@ -77,6 +83,19 @@ export function App() {
         }
         proxyRef.current = proxy;
 
+        (
+          proxy as OWSProxy & {
+            analytics?: {
+              on: (handler: (event: IOWSAnalyticsEvent) => void) => void;
+            };
+          }
+        ).analytics?.on((event) => {
+          console.info("[oneshot-wallet-host] analytics", event.name, event);
+          setAnalyticsEvents((prev) =>
+            [event, ...prev].slice(0, MAX_ANALYTICS_EVENTS),
+          );
+        });
+
         if (lastStyleRef.current) {
           await proxy.rpc("setStyle", lastStyleRef.current);
         }
@@ -93,7 +112,9 @@ export function App() {
           reportStatus(
             mode === "design"
               ? `Design preview connected on ${connectedChain}. Apply setStyle to refresh.`
-              : `Wallet connected on ${connectedChain}. Enter a message and click Sign.`,
+              : mode === "analytics"
+                ? "Live analytics — switch to Test to generate events."
+                : `Wallet connected on ${connectedChain}. Enter a message and click Sign.`,
           );
         } catch (error) {
           reportStatus(
@@ -118,7 +139,14 @@ export function App() {
       proxyRef.current?.destroy();
       proxyRef.current = null;
     };
-  }, [mode, previewMount, refreshChainFromWallet, reportStatus, setReady, setWalletVisible]);
+  }, [
+    mode,
+    previewMount,
+    refreshChainFromWallet,
+    reportStatus,
+    setReady,
+    setWalletVisible,
+  ]);
 
   // Keep the Show/Hide label in sync when the wallet closes itself (× / menu).
   useEffect(() => {
@@ -151,12 +179,19 @@ export function App() {
           <AppHeader />
           {mode === "test" ? (
             <TestPanel {...walletActionProps} />
-          ) : (
+          ) : mode === "design" ? (
             <DesignPanel
               ready={ready}
               onApplyStyle={handleApplyStyle}
               previewMountRef={setPreviewMount}
             />
+          ) : (
+            <div className="mx-auto w-full max-w-2xl px-6 pb-6">
+              <AnalyticsPanel
+                events={analyticsEvents}
+                onClear={() => setAnalyticsEvents([])}
+              />
+            </div>
           )}
         </SidebarInset>
         {/* Flyout create() target — never reparented; Test mode only. */}
