@@ -66,7 +66,8 @@ const passkeyNameCopySchema = z.strictObject({
   })
   .optional();
 
-const personalSignCopySchema = z.strictObject({
+const personalSignCopySchema = z
+  .strictObject({
     title: z.string().optional(),
     accountLabel: z.string().optional(),
     messageLabel: z.string().optional(),
@@ -75,7 +76,25 @@ const personalSignCopySchema = z.strictObject({
   })
   .optional();
 
-const typedDataCopySchema = z.strictObject({
+const siweCopySchema = z
+  .strictObject({
+    title: z.string().optional(),
+    body: z.string().optional(),
+    estimatedChangesLabel: z.string().optional(),
+    noChangesLabel: z.string().optional(),
+    networkLabel: z.string().optional(),
+    requestFromLabel: z.string().optional(),
+    signingInWithLabel: z.string().optional(),
+    messageLabel: z.string().optional(),
+    uriLabel: z.string().optional(),
+    rejectLabel: z.string().optional(),
+    signLabel: z.string().optional(),
+    signingHint: z.string().optional(),
+  })
+  .optional();
+
+const typedDataCopySchema = z
+  .strictObject({
     title: z.string().optional(),
     accountLabel: z.string().optional(),
     primaryTypeLabel: z.string().optional(),
@@ -347,6 +366,7 @@ const copySchema = z.strictObject({
     walletSetup: walletSetupCopySchema,
     passkeyName: passkeyNameCopySchema,
     personalSign: personalSignCopySchema,
+    siwe: siweCopySchema,
     typedData: typedDataCopySchema,
     sendTransaction: sendTransactionCopySchema,
     confirmTransfer: confirmTransferCopySchema,

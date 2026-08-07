@@ -50,8 +50,10 @@ import type {
   IConfigProvider,
   IEventBus,
   IOWSProvider,
+  ISIWEUtils,
   ITransactionUtils,
 } from "../lib/interfaces/utils";
+import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type { SupportedChain } from "../lib/types/domain";
 import {
   DelegationCancelAbortedEvent,
@@ -186,6 +188,8 @@ export interface IUseWalletBootParams {
   eventBus: IEventBus;
   configProvider: IConfigProvider;
 }
+
+const siweUtils: ISIWEUtils = new SIWEUtils();
 
 export function useWalletBoot({
   signerContainerRef,
@@ -487,16 +491,29 @@ export function useWalletBoot({
           const { hostDomain } = await configProvider.getConfig();
           const started = performance.now();
           const account = analyticsAccountAddress(request.address);
+          const siweFields = siweUtils.tryParsePersonalMessage(request.message);
           return runWithAnalytics(
             (event) => eventBus.emitAnalytics(event),
             () =>
-              ask(({ id, resolve, reject }) => ({
-                id,
-                kind: "personalSign",
-                request,
-                resolve,
-                reject,
-              })),
+              ask(({ id, resolve, reject }) =>
+                siweFields
+                  ? {
+                      id,
+                      kind: "siwe",
+                      source: "personalSign",
+                      request,
+                      fields: siweFields,
+                      resolve,
+                      reject,
+                    }
+                  : {
+                      id,
+                      kind: "personalSign",
+                      request,
+                      resolve,
+                      reject,
+                    },
+              ),
             {
               success: () =>
                 new PersonalSignEvent(
@@ -527,16 +544,29 @@ export function useWalletBoot({
           const { hostDomain } = await configProvider.getConfig();
           const started = performance.now();
           const account = analyticsAccountAddress(request.address);
+          const siweFields = siweUtils.tryParseTypedData(request.typedData);
           return runWithAnalytics(
             (event) => eventBus.emitAnalytics(event),
             () =>
-              ask(({ id, resolve, reject }) => ({
-                id,
-                kind: "typedData",
-                request,
-                resolve,
-                reject,
-              })),
+              ask(({ id, resolve, reject }) =>
+                siweFields
+                  ? {
+                      id,
+                      kind: "siwe",
+                      source: "typedData",
+                      request,
+                      fields: siweFields,
+                      resolve,
+                      reject,
+                    }
+                  : {
+                      id,
+                      kind: "typedData",
+                      request,
+                      resolve,
+                      reject,
+                    },
+              ),
             {
               success: () =>
                 new TypedSignEvent(

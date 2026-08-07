@@ -13,6 +13,7 @@ import type {
   IExecutionPermission,
   IExecutionPermissionRequest,
 } from "@1shotapi/ows-types";
+import type { ISiweFields } from "../lib/types/domain/SiweFields";
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
@@ -94,6 +95,15 @@ export type ModalRequest =
       id: string;
       kind: "typedData";
       request: SignTypedDataApprovalRequest;
+      resolve: (signature: EVMSignatureHex) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "siwe";
+      source: "typedData" | "personalSign";
+      request: SignTypedDataApprovalRequest | PersonalSignApprovalRequest;
+      fields: ISiweFields;
       resolve: (signature: EVMSignatureHex) => void;
       reject: (error: unknown) => void;
     }

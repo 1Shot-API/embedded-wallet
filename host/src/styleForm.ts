@@ -65,6 +65,20 @@ export interface IStyleFormState {
   typedSignLabel: string;
   typedReject: string;
 
+  // Text — SIWE (EIP-4361)
+  siweTitle: string;
+  siweBody: string;
+  siweEstimatedChangesLabel: string;
+  siweNoChangesLabel: string;
+  siweNetworkLabel: string;
+  siweRequestFromLabel: string;
+  siweSigningInWithLabel: string;
+  siweMessageLabel: string;
+  siweUriLabel: string;
+  siweRejectLabel: string;
+  siweSignLabel: string;
+  siweSigningHint: string;
+
   // Text — Send transaction
   txTitle: string;
   txSignLabel: string;
@@ -235,6 +249,19 @@ export const ACME_PRESET: IStyleFormState = {
   typedTitle: "Approve typed data",
   typedSignLabel: "Sign",
   typedReject: "Reject",
+  siweTitle: "Sign-in request",
+  siweBody:
+    "A site wants you to sign in by proving you own this account. This will not spend tokens or change on-chain balances.",
+  siweEstimatedChangesLabel: "Estimated changes",
+  siweNoChangesLabel: "No changes",
+  siweNetworkLabel: "Network",
+  siweRequestFromLabel: "Request from",
+  siweSigningInWithLabel: "Signing in with",
+  siweMessageLabel: "Message",
+  siweUriLabel: "URI",
+  siweRejectLabel: "Cancel",
+  siweSignLabel: "Confirm",
+  siweSigningHint: "Confirm in the signing panel…",
   txTitle: "Approve transaction",
   txSignLabel: "Sign",
   txReject: "Reject",
@@ -383,6 +410,19 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   typedSignLabel: "Sign",
   txTitle: "Send transaction",
   txSignLabel: "Sign",
+  siweTitle: "Sign-in request",
+  siweBody:
+    "A site wants you to sign in by proving you own this account. This will not spend tokens or change on-chain balances.",
+  siweEstimatedChangesLabel: "Estimated changes",
+  siweNoChangesLabel: "No changes",
+  siweNetworkLabel: "Network",
+  siweRequestFromLabel: "Request from",
+  siweSigningInWithLabel: "Signing in with",
+  siweMessageLabel: "Message",
+  siweUriLabel: "URI",
+  siweRejectLabel: "Cancel",
+  siweSignLabel: "Confirm",
+  siweSigningHint: "Confirm in the signing panel…",
   credOfferTitle: "Accept credential offer?",
   credOfferBody: "",
   credPresentTitle: "Share credential?",
@@ -529,6 +569,21 @@ export function buildSetStylePayload(
   put(typedData, "signLabel", form.typedSignLabel);
   put(typedData, "rejectLabel", form.typedReject);
   if (Object.keys(typedData).length > 0) copy.typedData = typedData;
+
+  const siwe: Record<string, string> = {};
+  put(siwe, "title", form.siweTitle);
+  put(siwe, "body", form.siweBody);
+  put(siwe, "estimatedChangesLabel", form.siweEstimatedChangesLabel);
+  put(siwe, "noChangesLabel", form.siweNoChangesLabel);
+  put(siwe, "networkLabel", form.siweNetworkLabel);
+  put(siwe, "requestFromLabel", form.siweRequestFromLabel);
+  put(siwe, "signingInWithLabel", form.siweSigningInWithLabel);
+  put(siwe, "messageLabel", form.siweMessageLabel);
+  put(siwe, "uriLabel", form.siweUriLabel);
+  put(siwe, "rejectLabel", form.siweRejectLabel);
+  put(siwe, "signLabel", form.siweSignLabel);
+  put(siwe, "signingHint", form.siweSigningHint);
+  if (Object.keys(siwe).length > 0) copy.siwe = siwe;
 
   const sendTransaction: Record<string, string> = {};
   put(sendTransaction, "title", form.txTitle);

@@ -222,6 +222,84 @@ export function WalletConfiguratorTextTabSigningSections({
         </AccordionContent>
       </AccordionItem>
 
+      <AccordionItem value="siwe">
+        <AccordionTrigger>Sign-in (SIWE)</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <TextField
+            id="siwe-title"
+            label="Title"
+            value={form.siweTitle}
+            onChange={(value) => patch("siweTitle", value)}
+          />
+          <TextField
+            id="siwe-body"
+            label="Body"
+            value={form.siweBody}
+            onChange={(value) => patch("siweBody", value)}
+          />
+          <TextField
+            id="siwe-estimated-changes"
+            label="Estimated changes label"
+            value={form.siweEstimatedChangesLabel}
+            onChange={(value) => patch("siweEstimatedChangesLabel", value)}
+          />
+          <TextField
+            id="siwe-no-changes"
+            label="No changes label"
+            value={form.siweNoChangesLabel}
+            onChange={(value) => patch("siweNoChangesLabel", value)}
+          />
+          <TextField
+            id="siwe-network"
+            label="Network label"
+            value={form.siweNetworkLabel}
+            onChange={(value) => patch("siweNetworkLabel", value)}
+          />
+          <TextField
+            id="siwe-request-from"
+            label="Request from label"
+            value={form.siweRequestFromLabel}
+            onChange={(value) => patch("siweRequestFromLabel", value)}
+          />
+          <TextField
+            id="siwe-signing-in-with"
+            label="Signing in with label"
+            value={form.siweSigningInWithLabel}
+            onChange={(value) => patch("siweSigningInWithLabel", value)}
+          />
+          <TextField
+            id="siwe-message"
+            label="Message label"
+            value={form.siweMessageLabel}
+            onChange={(value) => patch("siweMessageLabel", value)}
+          />
+          <TextField
+            id="siwe-uri"
+            label="URI label"
+            value={form.siweUriLabel}
+            onChange={(value) => patch("siweUriLabel", value)}
+          />
+          <TextField
+            id="siwe-reject"
+            label="Reject"
+            value={form.siweRejectLabel}
+            onChange={(value) => patch("siweRejectLabel", value)}
+          />
+          <TextField
+            id="siwe-sign"
+            label="Confirm"
+            value={form.siweSignLabel}
+            onChange={(value) => patch("siweSignLabel", value)}
+          />
+          <TextField
+            id="siwe-signing-hint"
+            label="Signing hint"
+            value={form.siweSigningHint}
+            onChange={(value) => patch("siweSigningHint", value)}
+          />
+        </AccordionContent>
+      </AccordionItem>
+
       <AccordionItem value="send-tx">
         <AccordionTrigger>Send transaction</AccordionTrigger>
         <AccordionContent className="flex flex-col gap-3">
