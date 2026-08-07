@@ -8,4 +8,10 @@ export type {
   ISignedDelegation,
   IStoredDelegation,
 } from "./StoredDelegation";
+export type {
+  IWebAuthnAssertionRequest,
+  IWalletCredentialChallengeResponse,
+  IRecoveredCredentialBlob,
+  IRelayerCredentialsErrorBody,
+} from "./RelayerCredentials";
 export { WalletConfig } from "./WalletConfig";
