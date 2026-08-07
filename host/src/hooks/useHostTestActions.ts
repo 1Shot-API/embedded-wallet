@@ -20,8 +20,11 @@ import {
   type Hex,
 } from "viem";
 import {
+  buildSiwePersonalMessage,
+  buildSiweTypedData,
   DEFAULT_TYPED_DATA_JSON,
   parseTypedDataJson,
+  randomSiweNonce,
   type SignMode,
 } from "../constants/signDemo";
 import {
@@ -75,6 +78,25 @@ async function resolveAccount(
   return account;
 }
 
+function buildSiweParams(
+  account: EVMAccountAddress,
+  chainIdHex: string,
+): {
+  domain: string;
+  address: string;
+  uri: string;
+  chainId: number;
+  nonce: string;
+} {
+  return {
+    domain: window.location.host,
+    address: String(account),
+    uri: window.location.origin,
+    chainId: Number(BigInt(chainIdHex)),
+    nonce: randomSiweNonce(),
+  };
+}
+
 export interface IUseHostTestActionsParams {
   proxyRef: RefObject<OWSProxy | null>;
   lastStyleRef: RefObject<Record<string, unknown> | null>;
@@ -86,6 +108,7 @@ export function useHostTestActions({
 }: IUseHostTestActionsParams) {
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [account, setAccount] = useState<string | null>(null);
   const [chainId, setChainId] = useState<string>(HOST_CHAINS[0].value);
   const [message, setMessage] = useState("Hello from 1Shot Wallet");
   const [signMode, setSignMode] = useState<SignMode>("message");
@@ -127,6 +150,42 @@ export function useHostTestActions({
     },
     [],
   );
+
+  const resolveAndStoreAccount = useCallback(
+    async (proxy: OWSProxy): Promise<EVMAccountAddress> => {
+      const next = await resolveAccount(proxy);
+      setAccount(String(next));
+      return next;
+    },
+    [],
+  );
+
+  const handleConnect = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Requesting accounts…");
+    void (async () => {
+      try {
+        const accounts = await proxy.ethereum.request({
+          method: "eth_requestAccounts",
+        });
+        const next = accounts[0];
+        if (!next) {
+          throw new Error("No account returned from wallet");
+        }
+        setAccount(String(next));
+        reportStatus(`Connected as ${next}`);
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "Connect failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
 
   const handleChainChange = (next: string) => {
     const proxy = proxyRef.current;
@@ -195,7 +254,7 @@ export function useHostTestActions({
 
       void (async () => {
         try {
-          const account = await resolveAccount(proxy);
+          const account = await resolveAndStoreAccount(proxy);
           reportStatus("Approve the passkey prompt to sign…");
           const nextSignature = await proxy.ethereum.request({
             method: "personal_sign",
@@ -232,7 +291,7 @@ export function useHostTestActions({
 
     void (async () => {
       try {
-        const account = await resolveAccount(proxy);
+        const account = await resolveAndStoreAccount(proxy);
         reportStatus("Approve the passkey prompt to sign…");
         const nextSignature = await proxy.ethereum.request({
           method: "eth_signTypedData_v4",
@@ -249,6 +308,22 @@ export function useHostTestActions({
         setBusy(false);
       }
     })();
+  };
+
+  const handleLoadSiwe = () => {
+    const address =
+      account ?? "0x0000000000000000000000000000000000000001";
+    const params = buildSiweParams(
+      EVMAccountAddress(address as `0x${string}`),
+      chainId,
+    );
+    if (signMode === "message") {
+      setMessage(buildSiwePersonalMessage(params));
+      reportStatus("Loaded SIWE personal_sign message — click Sign to approve.");
+      return;
+    }
+    setTypedDataJson(JSON.stringify(buildSiweTypedData(params), null, 2));
+    reportStatus("Loaded SIWE typed data — click Sign to approve.");
   };
 
   const handleCheckUsdcBalance = () => {
@@ -268,7 +343,7 @@ export function useHostTestActions({
     void (async () => {
       try {
         const token = getAddress(meta.usdc) as Address;
-        const account = await resolveAccount(proxy);
+        const account = await resolveAndStoreAccount(proxy);
         const owner = getAddress(account) as Address;
         const client = createPublicClient({
           transport: custom(proxy.ethereum),
@@ -361,7 +436,7 @@ export function useHostTestActions({
 
     void (async () => {
       try {
-        const account = await resolveAccount(proxy);
+        const account = await resolveAndStoreAccount(proxy);
         const to = getAddress(destinationRaw) as Address;
         const data = encodeFunctionData({
           abi: erc20Abi,
@@ -564,7 +639,7 @@ export function useHostTestActions({
       try {
         proxy.showWallet();
         setWalletVisible(true);
-        const account = await resolveAccount(proxy);
+        const account = await resolveAndStoreAccount(proxy);
         const activeChain = await refreshChainFromWallet(proxy);
         const meta = hostChainMeta(String(activeChain));
         if (!meta) {
@@ -708,6 +783,7 @@ export function useHostTestActions({
   const walletActionProps = {
     ready,
     busy,
+    account,
     chainId,
     message,
     signMode,
@@ -721,6 +797,7 @@ export function useHostTestActions({
     usdcOutput,
     txHash,
     txExplorerUrl,
+    onConnect: handleConnect,
     onChainChange: handleChainChange,
     onRefreshChain: handleRefreshChain,
     onMessageChange: setMessage,
@@ -730,6 +807,7 @@ export function useHostTestActions({
     onUsdcDestinationChange: setUsdcDestination,
     onUsdcAmountChange: setUsdcAmount,
     onSign: handleSign,
+    onLoadSiwe: handleLoadSiwe,
     walletVisible,
     onToggleWallet: handleToggleWallet,
     onUsdcAction: handleUsdcAction,

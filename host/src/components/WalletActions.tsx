@@ -24,6 +24,7 @@ export type { SignMode } from "@/constants/signDemo";
 export interface IWalletActionsProps {
   ready: boolean;
   busy: boolean;
+  account: string | null;
   chainId: string;
   message: string;
   signMode: SignMode;
@@ -37,6 +38,7 @@ export interface IWalletActionsProps {
   usdcOutput: string | null;
   txHash: string | null;
   txExplorerUrl: string | null;
+  onConnect: () => void;
   onChainChange: (chainId: string) => void;
   onRefreshChain: () => void;
   onMessageChange: (message: string) => void;
@@ -46,6 +48,7 @@ export interface IWalletActionsProps {
   onUsdcDestinationChange: (address: string) => void;
   onUsdcAmountChange: (amount: string) => void;
   onSign: () => void;
+  onLoadSiwe: () => void;
   walletVisible: boolean;
   onToggleWallet: () => void;
   onUsdcAction: () => void;
@@ -70,6 +73,7 @@ export interface IWalletActionsProps {
 export function WalletActions({
   ready,
   busy,
+  account,
   chainId,
   message,
   signMode,
@@ -83,6 +87,7 @@ export function WalletActions({
   usdcOutput,
   txHash,
   txExplorerUrl,
+  onConnect,
   onChainChange,
   onRefreshChain,
   onMessageChange,
@@ -92,6 +97,7 @@ export function WalletActions({
   onUsdcDestinationChange,
   onUsdcAmountChange,
   onSign,
+  onLoadSiwe,
   walletVisible,
   onToggleWallet,
   onUsdcAction,
@@ -108,9 +114,34 @@ export function WalletActions({
   onGetGrantedPermissions,
 }: IWalletActionsProps) {
   const meta = hostChainMeta(chainId);
+  const accountLabel = account
+    ? `${account.slice(0, 6)}…${account.slice(-4)}`
+    : ready
+      ? "Not connected"
+      : "Connecting…";
 
   return (
     <section className="flex flex-col gap-3" aria-label="Wallet actions">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-muted-foreground text-xs font-medium">Account</p>
+          <p className="text-foreground font-mono text-sm">{accountLabel}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" disabled={!ready || busy} onClick={onConnect}>
+            Connect
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready}
+            onClick={onToggleWallet}
+          >
+            {walletVisible ? "Hide Wallet" : "Show Wallet"}
+          </Button>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <Label htmlFor="chain-select" className="shrink-0">
           Chain
@@ -202,10 +233,10 @@ export function WalletActions({
         <Button
           type="button"
           variant="outline"
-          disabled={!ready}
-          onClick={onToggleWallet}
+          disabled={!ready || busy}
+          onClick={onLoadSiwe}
         >
-          {walletVisible ? "Hide Wallet" : "Show Wallet"}
+          SIWE
         </Button>
       </div>
 
