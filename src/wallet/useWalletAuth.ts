@@ -100,7 +100,28 @@ export function useWalletAuth({
   const loginWithPasskey = useCallback(async () => {
     const signer = signerRef.current;
     if (!signer) throw new Error("Signer not ready");
-    const result = await signer.getPublicKey({ discoverable: true });
+
+    let challengeId: ChallengeId | null = null;
+    let challenge: HexString | undefined;
+    try {
+      const minted = await relayerCredentialsClient.getChallenge();
+      challengeId = minted.challengeId;
+      challenge = minted.challenge;
+    } catch (error: unknown) {
+      console.warn(
+        "[login] relayer challenge mint failed; login without assertion cache",
+        error,
+      );
+    }
+
+    const result = await signer.getPublicKey({
+      discoverable: true,
+      ...(challenge ? { challenge } : {}),
+    });
+    if (challengeId && result.assertion) {
+      relayerCredentialsClient.setAssertion(challengeId, result.assertion);
+    }
+
     const credentialId = result.credentialId ?? signer.getCredentialId();
     if (!credentialId) {
       throw new Error("Passkey login succeeded but credential id missing");
@@ -122,6 +143,7 @@ export function useWalletAuth({
     credentialRepository,
     refreshAddresses,
     refreshCredentialCount,
+    relayerCredentialsClient,
     setUnlocked,
     signerRef,
   ]);
