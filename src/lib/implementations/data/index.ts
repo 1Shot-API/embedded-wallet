@@ -13,3 +13,8 @@ export {
   DEFAULT_CHAIN_ID,
   HardcodedChainRepository,
 } from "./HardcodedChainRepository";
+export {
+  RelayerCredentialsClient,
+  RelayerCredentialsError,
+} from "./utils/RelayerCredentialsClient";
+export type { IRelayerCredentialsClientDeps } from "./utils/RelayerCredentialsClient";
