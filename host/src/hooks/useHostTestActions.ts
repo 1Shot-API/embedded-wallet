@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { OWSProxy } from "@1shotapi/ows-provider";
 import {
   EVMAccountAddress,
@@ -150,6 +150,32 @@ export function useHostTestActions({
     },
     [],
   );
+
+  useEffect(() => {
+    if (!ready) return;
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+
+    const onChainChanged = (next: unknown) => {
+      try {
+        setChainId(String(normalizeChainIdHex(String(next))));
+      } catch (error) {
+        console.error("[oneshot-wallet-host] chainChanged failed", error);
+      }
+    };
+    const onAccountsChanged = (accounts: unknown) => {
+      if (!Array.isArray(accounts)) return;
+      const first = accounts[0];
+      setAccount(first == null ? null : String(first));
+    };
+
+    proxy.ethereum.on("chainChanged", onChainChanged);
+    proxy.ethereum.on("accountsChanged", onAccountsChanged);
+    return () => {
+      proxy.ethereum.removeListener("chainChanged", onChainChanged);
+      proxy.ethereum.removeListener("accountsChanged", onAccountsChanged);
+    };
+  }, [ready, proxyRef]);
 
   const resolveAndStoreAccount = useCallback(
     async (proxy: OWSProxy): Promise<EVMAccountAddress> => {

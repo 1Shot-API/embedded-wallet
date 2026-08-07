@@ -34,6 +34,14 @@ Branding:
 
 Host `OWSProxy` presents the panel using host-configured `walletSizeX` / `walletSizeY`: lower-right flyout when the viewport is wide enough for the panel width plus a 16px margin on each side; otherwise a full-screen drawer with a bottom wipe open / wipe-down close. No modal backdrop. Branding must scale to the iframe — it does not pass width/height. Protocol events include `ows:requestDisplay`, `ows:requestHide`, and `ows:releaseDisplay` (session `release()` / hide). Apps should not invent parallel display protocols.
 
+## Analytics protocol
+
+Branding may push product analytics to the host with `wallet.analytics.emit(event)` → Postmate `ows:analytics` → `proxy.analytics.on(...)`.
+
+Branding may push EIP-1193 provider notifications with `wallet.providerEvents.emit(event, ...params)` → Postmate `ows:eip1193` → `proxy.ethereum.on(event, listener)`. Use this for `chainChanged` and `accountsChanged` so hosts stay in sync when the user switches chain or connects in the Branding UI (not only when the host calls `wallet_switchEthereumChain` / `eth_requestAccounts`).
+
+OWS defines only the required base on `IOWSAnalyticsEvent` / `OWSAnalyticsEvent`: `eventId`, `timestamp`, `hostDomain`, `name` (string). Branding extends `OWSAnalyticsEvent` and adds fields; those extras are forwarded untyped at the OWS layer. Hosts receive the full payload and may narrow on `name`. There is no OWS event catalog enum and no Google Analytics in OWS packages.
+
 Display **queuing** (serializing concurrent modals) is app-owned — see `WalletProvider` modal queue in general-wallet.
 
 ## Host handshake vs nested signer

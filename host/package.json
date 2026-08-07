@@ -12,8 +12,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@1shotapi/ows-provider": "^0.4.0",
-    "@1shotapi/ows-types": "^0.4.0",
+    "@1shotapi/ows-provider": "^0.4.2",
+    "@1shotapi/ows-types": "^0.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.24.0",

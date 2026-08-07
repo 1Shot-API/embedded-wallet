@@ -222,6 +222,7 @@ export function useWalletBoot({
     let chainEvents: RpcHelper["events"] | undefined;
     const onChainChanged = (next: EVMChainId) => {
       useWalletSessionStore.getState().setChainId(next);
+      walletRef.current?.providerEvents.emit("chainChanged", next);
     };
     const session = useWalletSessionStore.getState();
 
