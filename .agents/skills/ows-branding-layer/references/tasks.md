@@ -71,8 +71,8 @@ Host `OWSProxy` shows a lower-right opaque flyout (no modal backdrop).
 
 **Reference wallet path (EIP-1193):**
 
-1. `src/ows/registerAccountConnect.ts` — `eth_accounts` / `eth_requestAccounts` (cached addresses; connect consent + `ensureReady`).
-2. `RpcHelper` for JSON-RPC reads / `wallet_switchEthereumChain` (`src/ows/demoChains.ts`, construct in `WalletProvider.tsx`).
+1. `src/ows/registerAccountConnect.ts` — `eth_accounts` / `eth_requestAccounts` (cached addresses; connect consent + `ensureReady`). Emit `wallet.providerEvents.emit("accountsChanged", [evm])` after a new connect.
+2. `RpcHelper` for JSON-RPC reads / `wallet_switchEthereumChain` (`src/ows/demoChains.ts`, construct in `WalletProvider.tsx`). Forward `rpc.events.on("chainChanged", …)` to `wallet.providerEvents.emit("chainChanged", next)` so hosts listening on `proxy.ethereum.on("chainChanged", …)` stay in sync.
 3. `SignHelper` for `personal_sign` / typed data (task 5).
 
 ```typescript
@@ -85,6 +85,38 @@ new RpcHelper(
 ```
 
 Call after `prepare()`, before `start()`. Zod EIP-1193 / credential wire schemas live in `ows-wallet-utils` (transitive).
+
+### EIP-7715 execution permissions (optional)
+
+`RpcHelper` can register the four EIP-7715 draft methods when you pass `executionPermissions` hooks. **OWS does not ship grant/revoke UI** — implement consent, MetaMask Delegation Framework signing, and storage in your branding app. Reference: the **1Shot embedded-wallet** repo (`DelegationService`, grant modal, Delegations tab).
+
+```typescript
+new RpcHelper(providers, wallet, signer, {
+  defaultChainId,
+  executionPermissions: {
+    requestExecutionPermissions: async (requests) => { /* grant UI + sign + store */ },
+    revokeExecutionPermission: async ({ permissionContext }) => { /* cancel UI + on-chain disable */ },
+    getSupportedExecutionPermissions: async () => ({
+      "erc20-token-periodic": {
+        chainIds: [...rpcHelper.getConfiguredChainIds()],
+        ruleTypes: [],
+      },
+    }),
+    getGrantedExecutionPermissions: async () => { /* map stored grants */ },
+  },
+});
+```
+
+Methods (strict EIP-7715 names only — no `wallet_grantPermissions` alias):
+
+| Method | Role |
+|--------|------|
+| `wallet_requestExecutionPermissions` | Host requests permissions; branding returns attenuated responses + `context` / `delegationManager` |
+| `wallet_revokeExecutionPermission` | Host asks user to revoke via `{ permissionContext }` |
+| `wallet_getSupportedExecutionPermissions` | Supported permission types + chain ids |
+| `wallet_getGrantedExecutionPermissions` | Previously granted (non-revoked) permissions |
+
+Omit `executionPermissions` to leave these methods unimplemented (`OwsUnimplementedError`).
 
 ## 5. Signing consent
 
@@ -128,22 +160,60 @@ Passkey Confirm lives in Signing (required for mobile WebAuthn focus). Branding-
 
 ## 7. Credentials (optional)
 
-Prefer `CredentialsHelper` from `@1shotapi/ows-oid4` (not exported from `ows-wallet-utils`):
+Prefer `CredentialsHelper` from `@1shotapi/ows-oid4` (not exported from `ows-wallet-utils`). Like `SignHelper`, it is a **thin adapter**: resolve offer/request, trust/match, `requestDisplay`, call branding `approveAnd*`, then **`release()`** (not `hide()`).
 
 ```typescript
-new CredentialsHelper(wallet, signer, {
+import {
+  CredentialsHelper,
+  createCredentialsHolderSigner,
+  issueCredentialAfterApproval,
+  presentCredentialAfterApproval,
+} from "@1shotapi/ows-oid4";
+
+const resolveHolderSigner = createCredentialsHolderSigner(signer);
+
+new CredentialsHelper(wallet, {
   repository,
   oid4vci,
   oid4vp,
   trust,
-  ensureReady,
-  requestCredentialOfferApproval,
-  requestCredentialPresentationApproval,
-  // holderSigner optional — defaults via CredentialCryptoUtils.createOwsEd25519HolderSigner
+  approveAndAcceptOffer: async (request) => {
+    await ensureOnboarded(); // setup-only; PoP authenticates
+    if (!(await requestCredentialOfferApproval(request))) {
+      throw new OwsUserRejectedError("User rejected credential offer");
+    }
+    const receipt = await issueCredentialAfterApproval({
+      offer: request.offer,
+      metadata: request.metadata,
+      oid4vci,
+      repository,
+      resolveHolderSigner,
+      getProofNonce,
+      attestationProvider,
+    });
+    await onAuthenticated();
+    return receipt;
+  },
+  approveAndPresent: async (request) => {
+    if (!(await requestCredentialPresentationApproval(request))) {
+      throw new OwsUserRejectedError("User rejected credential presentation");
+    }
+    const result = await presentCredentialAfterApproval({
+      definition: request.definition,
+      credential: request.credential,
+      oid4vp,
+      resolveHolderSigner,
+      attestationProvider,
+    });
+    await onAuthenticated();
+    return result;
+  },
 }).register();
 ```
 
-Constructor arg order: **`(wallet, signer, options)`** — opposite of `SignHelper(signer, wallet, …)`.
+Constructor: **`(wallet, options)`** — signer is only needed for `createCredentialsHolderSigner` / PoP inside branding hooks.
+
+Do **not** put full `ensureReady` / unlock on helper options. Warm vault + known credential → **one** passkey for PoP. Empty vault before `present` → unlock/recover in a registration gate (see `ensureCredentialsReadable` in embedded-wallet), then consent + PoP.
 
 Reference stack:
 
@@ -152,6 +222,6 @@ Reference stack:
 - Demo repositories / trust / HTTP clients fixtures: `examples/shared` (alias `@ows-shared` in the monorepo — not published)
 - Wire methods: `credentials.acceptOffer` / `present` / `list` / `delete`
 
-Do **not** call `PresentationUtils` / low-level SD-JWT helpers unless you bypass `CredentialsHelper`. Holder KB JWT lives in `CredentialCryptoUtils.createOwsEd25519HolderSigner` (`@1shotapi/ows-types`).
+Do **not** call `PresentationUtils` / low-level SD-JWT helpers unless you bypass `CredentialsHelper`. Holder KB JWT lives in `createCredentialsHolderSigner` / `CredentialCryptoUtils` (`@1shotapi/ows-types`).
 
-Host demos: `examples/credential-issuer`, `examples/credential-verifier` (use `ows-provider`; `allowLocalAccess` is host-only).
+Host demos: `examples/credential-issuer`, `examples/credential-verifier` (use `ows-provider`; `allowLocalAccess` is host-only). Do not call `proxy.showWallet()` before issue/present — `CredentialsHelper` `requestDisplay` opens the host panel.
