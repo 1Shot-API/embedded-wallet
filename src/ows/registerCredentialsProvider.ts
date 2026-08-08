@@ -2,9 +2,14 @@ import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
   CredentialsHelper,
-  type CredentialsHelperOptions,
+  createCredentialsHolderSigner,
+  issueCredentialAfterApproval,
+  presentCredentialAfterApproval,
+  type ApproveAndAcceptOfferRequest,
+  type ApproveAndPresentRequest,
 } from "@1shotapi/ows-oid4";
 import {
+  OwsUserRejectedError,
   type CredentialOfferApprovalRequest,
   type CredentialOfferInput,
   type CredentialPresentationApprovalRequest,
@@ -44,7 +49,17 @@ export type RegisterCredentialsProviderOptions = {
   holderSigner?: IHolderSigner | (() => Promise<IHolderSigner>);
   getProofNonce?: (metadata: IssuerMetadata) => string | Promise<string>;
   attestationProvider?: IWalletAttestationProvider;
+  /**
+   * Full unlock/setup — empty-vault present recover and credential delete.
+   */
   ensureReady?: () => Promise<void>;
+  /**
+   * Setup-only when no credential exists. With a known passkey, skip unlock —
+   * the PoP ceremony authenticates. Pair with {@link onAuthenticated}.
+   */
+  ensureOnboarded?: () => Promise<void>;
+  /** Mark unlocked after a successful PoP / issue ceremony. */
+  onAuthenticated?: () => void | Promise<void>;
   requestCredentialOfferApproval?: (
     request: CredentialOfferApprovalRequest,
   ) => Promise<boolean>;
@@ -83,12 +98,10 @@ function verifierOriginFromPresentInput(
 }
 
 /**
- * Register wallet.credentials handlers via {@link CredentialsHelper}
- * (call before `wallet.start()`).
+ * Register `wallet.credentials` via {@link CredentialsHelper} (pre-`start()`).
  *
- * Host actions are gated so a locked / first-visit wallet unlocks (or runs
- * setup) before OID4 work. See {@link withWalletReady} /
- * {@link ensureCredentialsReadable}.
+ * Helper resolves/match/trust + display. Branding `approveAnd*` owns consent,
+ * setup, and PoP. Empty-vault present still uses {@link ensureCredentialsReadable}.
  */
 export function registerCredentialsProvider(
   wallet: OWSWallet,
@@ -96,24 +109,67 @@ export function registerCredentialsProvider(
   options: RegisterCredentialsProviderOptions,
 ): CredentialsHelper {
   const ensureReady = options.ensureReady ?? (async () => {});
+  const ensureOnboarded =
+    options.ensureOnboarded ?? options.ensureReady ?? (async () => {});
   const emitAnalytics = options.emitAnalytics;
   const configProvider = options.configProvider;
+  const resolveHolderSigner = createCredentialsHolderSigner(
+    signer,
+    options.holderSigner,
+  );
 
-  const helperOptions: CredentialsHelperOptions = {
+  const approveAndAcceptOffer = async (
+    request: ApproveAndAcceptOfferRequest,
+  ) => {
+    await ensureOnboarded();
+    if (options.requestCredentialOfferApproval) {
+      const approved = await options.requestCredentialOfferApproval(request);
+      if (!approved) {
+        throw new OwsUserRejectedError("User rejected credential offer");
+      }
+    }
+    const receipt = await issueCredentialAfterApproval({
+      offer: request.offer,
+      metadata: request.metadata,
+      oid4vci: options.oid4vci,
+      repository: options.repository,
+      resolveHolderSigner,
+      getProofNonce: options.getProofNonce,
+      attestationProvider: options.attestationProvider,
+      status: options.status,
+    });
+    await options.onAuthenticated?.();
+    return receipt;
+  };
+
+  const approveAndPresent = async (request: ApproveAndPresentRequest) => {
+    if (options.requestCredentialPresentationApproval) {
+      const approved =
+        await options.requestCredentialPresentationApproval(request);
+      if (!approved) {
+        throw new OwsUserRejectedError("User rejected credential presentation");
+      }
+    }
+    const result = await presentCredentialAfterApproval({
+      definition: request.definition,
+      credential: request.credential,
+      oid4vp: options.oid4vp,
+      resolveHolderSigner,
+      attestationProvider: options.attestationProvider,
+    });
+    await options.onAuthenticated?.();
+    return result;
+  };
+
+  const helper = new CredentialsHelper(wallet, {
     repository: options.repository,
     oid4vci: options.oid4vci,
     oid4vp: options.oid4vp,
     trust: options.trust,
     status: options.status,
-    holderSigner: options.holderSigner,
-    getProofNonce: options.getProofNonce,
-    attestationProvider: options.attestationProvider,
-    ensureReady,
-    requestCredentialOfferApproval: options.requestCredentialOfferApproval,
-    requestCredentialPresentationApproval:
-      options.requestCredentialPresentationApproval,
-  };
-  const helper = new CredentialsHelper(wallet, signer, helperOptions);
+    approveAndAcceptOffer,
+    approveAndPresent,
+  });
 
   const acceptOffer = async (input: CredentialOfferInput) => {
     if (!emitAnalytics || !configProvider) {
@@ -183,10 +239,10 @@ export function registerCredentialsProvider(
     );
   };
 
-  // Gate at registration time so every credentials.* host call unlocks first
-  // when needed — including future helpers that forget an internal ensureReady.
   wallet.credentials.register({
-    acceptOffer: withWalletReady(ensureReady, (input) => acceptOffer(input)),
+    // Do not full-unlock before display — approveAndAcceptOffer opens under
+    // requestDisplay and uses setup-only / PoP.
+    acceptOffer: (input) => acceptOffer(input),
     present: async (input) => {
       await ensureCredentialsReadable({
         ensureReady,

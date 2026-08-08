@@ -758,6 +758,8 @@ export function useWalletBoot({
         trust: issuerTrust,
         attestationProvider,
         ensureReady,
+        ensureOnboarded: ensureOnboardedForSigning,
+        onAuthenticated: onSigningAuthenticated,
         emitAnalytics: (event) => eventBus.emitAnalytics(event),
         configProvider,
         requestCredentialOfferApproval: (

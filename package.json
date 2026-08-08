@@ -21,7 +21,7 @@
     "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
-    "@1shotapi/ows-oid4": "^0.3.0",
+    "@1shotapi/ows-oid4": "^0.4.0",
     "@1shotapi/ows-provider": "^0.4.2",
     "@1shotapi/ows-signer": "^0.4.0",
     "@1shotapi/ows-signer-utils": "^0.5.0",
