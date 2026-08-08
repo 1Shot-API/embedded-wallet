@@ -71,6 +71,22 @@ export interface IStyleCopyPersonalSign {
   signLabel: string;
 }
 
+/** EIP-4361 Sign-In with Ethereum consent modal. */
+export interface IStyleCopySiwe {
+  title: string;
+  body: string;
+  estimatedChangesLabel: string;
+  noChangesLabel: string;
+  networkLabel: string;
+  requestFromLabel: string;
+  signingInWithLabel: string;
+  messageLabel: string;
+  uriLabel: string;
+  rejectLabel: string;
+  signLabel: string;
+  signingHint: string;
+}
+
 /** EIP-712 typed-data approval modal. */
 export interface IStyleCopyTypedData {
   title: string;
@@ -405,6 +421,8 @@ export interface IStyleCopyOptions {
   passkeyName?: Partial<IStyleCopyPasskeyName>;
   /** Partial patch for the personal_sign modal */
   personalSign?: Partial<IStyleCopyPersonalSign>;
+  /** Partial patch for the SIWE (EIP-4361) consent modal */
+  siwe?: Partial<IStyleCopySiwe>;
   /** Partial patch for the EIP-712 typed-data modal */
   typedData?: Partial<IStyleCopyTypedData>;
   /** Partial patch for the eth_sendTransaction modal */
@@ -459,6 +477,7 @@ export interface IResolvedCopy {
   walletSetup: IStyleCopyWalletSetup;
   passkeyName: IStyleCopyPasskeyName;
   personalSign: IStyleCopyPersonalSign;
+  siwe: IStyleCopySiwe;
   typedData: IStyleCopyTypedData;
   sendTransaction: IStyleCopySendTransaction;
   confirmTransfer: IStyleCopyConfirmTransfer;

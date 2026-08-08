@@ -251,10 +251,22 @@ await proxy.rpc("createAccount", { accountName: "My Wallet" });
 | API | Use |
 |-----|-----|
 | `proxy.ethereum.request(...)` | EIP-1193 (accounts, sign, chain, …) |
+| `proxy.ethereum.on` / `removeListener` | Branding→Host EIP-1193 notifications (`chainChanged`, `accountsChanged` via `ows:eip1193`) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.analytics.on(listener)` / `.on(name, listener)` / `.off(listener)` | Branding→Host product analytics (`ows:analytics`) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
 | `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, …) |
+
+Subscribe so in-wallet chain/account changes update host UI without polling:
+
+```typescript
+proxy.ethereum.on("chainChanged", (chainId) => {
+  // hex chain id string
+});
+proxy.ethereum.on("accountsChanged", (accounts) => {
+  // EVM address array
+});
+```
 
 ## Analytics (`proxy.analytics`)
 

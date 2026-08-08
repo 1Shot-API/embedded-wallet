@@ -38,6 +38,88 @@ export const DEFAULT_TYPED_DATA_JSON = JSON.stringify(
   2,
 );
 
+export interface ISiweMessageParams {
+  domain: string;
+  address: string;
+  uri: string;
+  chainId: number;
+  nonce: string;
+  statement?: string;
+  version?: string;
+  issuedAt?: string;
+}
+
+/** Classic EIP-4361 SIWE text for `personal_sign`. */
+export function buildSiwePersonalMessage(params: ISiweMessageParams): string {
+  const version = params.version ?? "1";
+  const issuedAt = params.issuedAt ?? new Date().toISOString();
+  const statement =
+    params.statement ?? "Sign in with Ethereum to the host playground.";
+  return [
+    `${params.domain} wants you to sign in with your Ethereum account:`,
+    params.address,
+    "",
+    statement,
+    "",
+    `URI: ${params.uri}`,
+    `Version: ${version}`,
+    `Chain ID: ${params.chainId}`,
+    `Nonce: ${params.nonce}`,
+    `Issued At: ${issuedAt}`,
+  ].join("\n");
+}
+
+/** EIP-712 SignInWithEthereum typed data for `eth_signTypedData_v4`. */
+export function buildSiweTypedData(
+  params: ISiweMessageParams,
+): Record<string, unknown> {
+  const version = params.version ?? "1";
+  const issuedAt = params.issuedAt ?? new Date().toISOString();
+  const statement =
+    params.statement ?? "Sign in with Ethereum to the host playground.";
+  return {
+    types: {
+      EIP712Domain: [
+        { name: "name", type: "string" },
+        { name: "version", type: "string" },
+        { name: "chainId", type: "uint256" },
+      ],
+      SignInWithEthereum: [
+        { name: "domain", type: "string" },
+        { name: "address", type: "address" },
+        { name: "statement", type: "string" },
+        { name: "uri", type: "string" },
+        { name: "version", type: "string" },
+        { name: "chainId", type: "uint256" },
+        { name: "nonce", type: "string" },
+        { name: "issuedAt", type: "string" },
+      ],
+    },
+    primaryType: "SignInWithEthereum",
+    domain: {
+      name: params.domain,
+      version,
+      chainId: params.chainId,
+    },
+    message: {
+      domain: params.domain,
+      address: params.address,
+      statement,
+      uri: params.uri,
+      version,
+      chainId: params.chainId,
+      nonce: params.nonce,
+      issuedAt,
+    },
+  };
+}
+
+export function randomSiweNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export function parseTypedDataJson(json: string): Record<string, unknown> {
   let parsed: unknown;
   try {

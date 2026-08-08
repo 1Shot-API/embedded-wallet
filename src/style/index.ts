@@ -6,6 +6,7 @@ export type {
   IStyleCopyWalletSetup,
   IStyleCopyPasskeyName,
   IStyleCopyPersonalSign,
+  IStyleCopySiwe,
   IStyleCopyTypedData,
   IStyleCopySendTransaction,
   IStyleCopyTransferTokens,

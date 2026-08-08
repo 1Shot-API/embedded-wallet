@@ -8,6 +8,7 @@ import {
   PersonalSignModal,
   SendTransactionModal,
   ConfirmTransferModal,
+  SiweModal,
   TypedDataModal,
 } from "./modals/SignModals";
 import {
@@ -45,6 +46,16 @@ export function ModalHost() {
       return (
         <TypedDataModal
           request={activeModal.request}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    case "siwe":
+      return (
+        <SiweModal
+          source={activeModal.source}
+          request={activeModal.request}
+          fields={activeModal.fields}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
         />

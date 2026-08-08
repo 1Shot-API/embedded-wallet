@@ -9,3 +9,5 @@ export type {
   ITransactionUtils,
 } from "./ITransactionUtils";
 export { ITransactionUtilsType } from "./ITransactionUtils";
+export type { ISIWEUtils } from "./ISIWEUtils";
+export { ISIWEUtilsType } from "./ISIWEUtils";

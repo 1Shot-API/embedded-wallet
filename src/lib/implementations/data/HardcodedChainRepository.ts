@@ -38,7 +38,7 @@ const CATALOG: readonly SupportedChain[] = [
     false,
     arcLogo,
     true,
-    `https://rpc.testnet.arc.io`,
+    `https://arc-testnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
     "Arc Testnet",
     "https://testnet.arcscan.app",
   ),

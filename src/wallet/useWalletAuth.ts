@@ -5,18 +5,21 @@ import {
   COSEPublicKey,
   CredentialId,
   OwsUserRejectedError,
+  type HexString,
 } from "@1shotapi/ows-types";
 import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import {
   analyticsErrorCode,
   isAnalyticsCancelled,
 } from "../lib/implementations/utils";
+import type { IRelayerCredentialsClient } from "../lib/interfaces/data/IRelayerCredentialsClient";
 import type { IConfigProvider, IEventBus } from "../lib/interfaces/utils";
 import {
   AccountCreateCancelledEvent,
   AccountCreatedEvent,
   AccountCreateFailedEvent,
 } from "../lib/types/events/productEvents";
+import type { ChallengeId } from "../lib/types/primitives/ChallengeId";
 import {
   isWalletCreated,
   loadCredentialId,
@@ -37,6 +40,7 @@ export interface IUseWalletAuthParams {
   walletRef: RefObject<OWSWallet | null>;
   awaitSignerRef: RefObject<(() => Promise<OWSSigner>) | null>;
   credentialRepository: CachedRelayerVaultRepository;
+  relayerCredentialsClient: IRelayerCredentialsClient;
   eventBus: IEventBus;
   configProvider: IConfigProvider;
 }
@@ -46,6 +50,7 @@ export function useWalletAuth({
   walletRef,
   awaitSignerRef,
   credentialRepository,
+  relayerCredentialsClient,
   eventBus,
   configProvider,
 }: IUseWalletAuthParams) {
@@ -95,7 +100,28 @@ export function useWalletAuth({
   const loginWithPasskey = useCallback(async () => {
     const signer = signerRef.current;
     if (!signer) throw new Error("Signer not ready");
-    const result = await signer.getPublicKey({ discoverable: true });
+
+    let challengeId: ChallengeId | null = null;
+    let challenge: HexString | undefined;
+    try {
+      const minted = await relayerCredentialsClient.getChallenge();
+      challengeId = minted.challengeId;
+      challenge = minted.challenge;
+    } catch (error: unknown) {
+      console.warn(
+        "[login] relayer challenge mint failed; login without assertion cache",
+        error,
+      );
+    }
+
+    const result = await signer.getPublicKey({
+      discoverable: true,
+      ...(challenge ? { challenge } : {}),
+    });
+    if (challengeId && result.assertion) {
+      relayerCredentialsClient.setAssertion(challengeId, result.assertion);
+    }
+
     const credentialId = result.credentialId ?? signer.getCredentialId();
     if (!credentialId) {
       throw new Error("Passkey login succeeded but credential id missing");
@@ -117,6 +143,7 @@ export function useWalletAuth({
     credentialRepository,
     refreshAddresses,
     refreshCredentialCount,
+    relayerCredentialsClient,
     setUnlocked,
     signerRef,
   ]);
@@ -306,9 +333,28 @@ export function useWalletAuth({
     if (!signer) throw new Error("Signer not ready");
     const storedCredentialId = loadCredentialId();
     if (storedCredentialId) {
+      let challengeId: ChallengeId | null = null;
+      let challenge: HexString | undefined;
+      try {
+        const minted = await relayerCredentialsClient.getChallenge();
+        challengeId = minted.challengeId;
+        challenge = minted.challenge;
+      } catch (error: unknown) {
+        console.warn(
+          "[unlock] relayer challenge mint failed; unlocking without assertion cache",
+          error,
+        );
+      }
+
       const result = await signer.getPublicKey({
         credentialId: storedCredentialId,
+        ...(challenge ? { challenge } : {}),
       });
+
+      if (challengeId && result.assertion) {
+        relayerCredentialsClient.setAssertion(challengeId, result.assertion);
+      }
+
       const credentialId = result.credentialId ?? signer.getCredentialId();
       if (!credentialId) {
         throw new Error("Passkey unlock succeeded but credential id missing");
@@ -317,8 +363,8 @@ export function useWalletAuth({
       useWalletSessionStore.getState().setWalletCreated(true);
       await refreshAddresses();
       // Unlock alone — callers that need the vault (ensureReady) recover
-      // after this when the local cache is empty. Refresh buttons must not
-      // nest recover inside unlock (that double-fires RelayerAuth).
+      // after this when the local cache is empty. A challenge on this
+      // ceremony caches an assertion so recover avoids a second passkey.
       setUnlocked(true);
       return;
     }
@@ -326,6 +372,7 @@ export function useWalletAuth({
   }, [
     loginWithPasskey,
     refreshAddresses,
+    relayerCredentialsClient,
     setUnlocked,
     signerRef,
   ]);

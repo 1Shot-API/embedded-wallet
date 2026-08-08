@@ -28,7 +28,7 @@ import {
 } from "@1shotapi/ows-types";
 import { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
-import { RelayerCredentialsClient } from "../relayer/RelayerCredentialsClient";
+import { RelayerCredentialsClient } from "../lib/implementations/data/utils/RelayerCredentialsClient";
 import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
 import { HardcodedKnownAssetRepository } from "../lib/implementations/data/HardcodedKnownAssetRepository";
 import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
@@ -139,8 +139,13 @@ const transactionService: ITransactionService = new TransactionService({
   transactionUtils: businessTransactionUtils,
 });
 
+const relayerCredentialsClient = new RelayerCredentialsClient({
+  configProvider,
+  owsProvider,
+});
+
 const credentialRepository = new CachedRelayerVaultRepository({
-  client: new RelayerCredentialsClient(configProvider),
+  client: relayerCredentialsClient,
   configProvider,
   owsProvider,
 });
@@ -341,6 +346,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     walletRef,
     awaitSignerRef,
     credentialRepository,
+    relayerCredentialsClient,
     eventBus,
     configProvider,
   });
