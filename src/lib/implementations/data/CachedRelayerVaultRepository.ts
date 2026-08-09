@@ -31,8 +31,10 @@ import {
   DelegationId,
   type DelegationId as DelegationIdType,
 } from "../../types/primitives/DelegationId";
-import { RelayerCredentialsClient, RelayerCredentialsError } from "../../../relayer/RelayerCredentialsClient";
-import { createRelayerAssertion } from "../../../relayer/webauthnAuth";
+import {
+  RelayerCredentialsError,
+} from "./utils/RelayerCredentialsClient";
+import type { IRelayerCredentialsClient } from "../../interfaces/data/IRelayerCredentialsClient";
 import { loadCosePublicKey, loadCredentialId } from "../../../storage";
 
 export type { CredentialStorageBackend };
@@ -61,7 +63,7 @@ type LocalVaultBlob = {
 };
 
 export interface ICachedRelayerVaultRepositoryDeps {
-  client: RelayerCredentialsClient;
+  client: IRelayerCredentialsClient;
   owsProvider: IOWSProvider;
   configProvider: IConfigProvider;
   storage?: CredentialStorageBackend;
@@ -74,14 +76,14 @@ export interface ICachedRelayerVaultRepositoryDeps {
  * `list`/`get` read the cache; mutative methods sync to the relayer;
  * `refreshFromRelayer` replaces the cache from recover.
  *
- * Store remains two ceremonies (OWS encrypt, then Branding Relayer WebAuthn):
- * the relayer requires a full SimpleWebAuthn assertion, while OWS
- * `executeBatch` only returns `challengeSignature`.
+ * Relayer auth uses a Signing Layer ceremony via
+ * {@link IRelayerCredentialsClient.assert} (optionally consuming an assertion
+ * cached from unlock). Encrypt/decrypt remain separate signer ceremonies.
  */
 export class CachedRelayerVaultRepository
   implements ICredentialRepository, IDelegationRepository
 {
-  private readonly client: RelayerCredentialsClient;
+  private readonly client: IRelayerCredentialsClient;
   private readonly owsProvider: IOWSProvider;
   private readonly configProvider: IConfigProvider;
   private readonly storage: CredentialStorageBackend;
@@ -270,7 +272,7 @@ export class CachedRelayerVaultRepository
 
   /**
    * Pull recover blobs from the relayer, decrypt, and replace the local cache.
-   * Concurrent callers share one in-flight recover (one RelayerAuth + Decrypt).
+   * Concurrent callers share one in-flight recover (one signer assert + Decrypt).
    */
   async refreshFromRelayer(): Promise<void> {
     if (this.refreshInFlight) {
@@ -336,7 +338,7 @@ export class CachedRelayerVaultRepository
    */
   private async recoverRemoteBlobs(): Promise<{
     credentials: Awaited<
-      ReturnType<RelayerCredentialsClient["recoverCredentials"]>
+      ReturnType<IRelayerCredentialsClient["recoverCredentials"]>
     >["credentials"];
   }> {
     try {
@@ -398,7 +400,7 @@ export class CachedRelayerVaultRepository
     if (!credentialId) {
       throw new Error("WebAuthn credential id missing");
     }
-    return createRelayerAssertion(this.client, credentialId);
+    return this.client.assert(credentialId);
   }
 
   private async deleteRelayerBlob(blobId: string): Promise<void> {

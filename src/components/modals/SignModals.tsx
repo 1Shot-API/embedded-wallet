@@ -5,6 +5,7 @@ import type {
 } from "@1shotapi/ows-signer-utils";
 import {
   ConversionUtils,
+  EVMChainId,
   HexString,
   OwsUserRejectedError,
   type EVMSignatureHex,
@@ -13,6 +14,7 @@ import {
 import { useRef, useState } from "react";
 import type { TypedDataDefinition } from "viem";
 import type { IPaymentQuote } from "../../lib/interfaces/business";
+import type { ISiweFields } from "../../lib/types/domain/SiweFields";
 import type {
   IConfirmSendPayment,
   IConfirmTransferRequest,
@@ -118,6 +120,167 @@ export function PersonalSignModal({
       ) : null}
     </Modal>
   );
+}
+
+export function SiweModal({
+  source,
+  request,
+  fields,
+  onResolve,
+  onReject,
+}: {
+  source: "typedData" | "personalSign";
+  request: SignTypedDataApprovalRequest | PersonalSignApprovalRequest;
+  fields: ISiweFields;
+  onResolve: (signature: EVMSignatureHex) => void;
+  onReject: (error: unknown) => void;
+}) {
+  const { getSigner, resolveChain } = useWallet();
+  const { style } = useStyle();
+  const { siwe, account: accountCopy } = style.copy;
+  const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
+  const signGenerationRef = useRef(0);
+
+  const accountAddress =
+    fields.address?.trim() || String(request.address);
+  const networkLabel = resolveSiweNetworkLabel(fields.chainId, resolveChain);
+
+  const cancel = () => {
+    signGenerationRef.current += 1;
+    onReject(new OwsUserRejectedError("User rejected the signing request"));
+  };
+
+  const startSign = () => {
+    const generation = ++signGenerationRef.current;
+    setPhase("signing");
+    void (async () => {
+      const signer = getSigner();
+      if (!signer) {
+        throw new Error("Signer not ready");
+      }
+      let signature: EVMSignatureHex;
+      if (source === "typedData") {
+        const typed = (request as SignTypedDataApprovalRequest).typedData;
+        const [sig] = await signer.evm.signTypedData([
+          typed as unknown as TypedDataDefinition,
+        ]);
+        signature = sig!;
+      } else {
+        const message = (request as PersonalSignApprovalRequest).message;
+        const [sig] = await signer.evm.signMessage([message]);
+        signature = sig!;
+      }
+      if (signGenerationRef.current !== generation) return;
+      onResolve(signature);
+    })().catch((error: unknown) => {
+      if (signGenerationRef.current !== generation) return;
+      if (isSignDenied(error)) {
+        setPhase("confirm");
+        return;
+      }
+      onReject(error);
+    });
+  };
+
+  return (
+    <Modal
+      title={siwe.title}
+      onBackdropDismiss={phase === "confirm" ? cancel : undefined}
+      actions={
+        phase === "confirm"
+          ? [
+              {
+                label: siwe.rejectLabel,
+                variant: "secondary",
+                onClick: cancel,
+              },
+              {
+                label: siwe.signLabel,
+                variant: "primary",
+                autoFocus: true,
+                onClick: startSign,
+              },
+            ]
+          : undefined
+      }
+    >
+      <p className="text-muted-foreground mb-4 m-0 text-[0.9rem]">{siwe.body}</p>
+
+      <div className="border-border mb-4 rounded-md border px-3 py-2">
+        <p className="text-muted-foreground m-0 text-[0.8rem] font-medium">
+          {siwe.estimatedChangesLabel}
+        </p>
+        <p className="m-0 mt-1 text-[0.9rem]">{siwe.noChangesLabel}</p>
+      </div>
+
+      <SiweDetailRow label={siwe.networkLabel} value={networkLabel} />
+      <SiweDetailRow label={siwe.requestFromLabel} value={fields.domain} />
+      <div className="mb-4">
+        <FieldLabel>{siwe.signingInWithLabel}</FieldLabel>
+        <CopyableText
+          text={accountAddress}
+          truncate
+          copyLabel={accountCopy.copyAddressLabel}
+          copiedLabel={accountCopy.addressCopiedLabel}
+          copyFailedLabel={accountCopy.addressCopyFailedLabel}
+        />
+      </div>
+
+      <div className="border-border mb-1 rounded-md border px-3 py-3">
+        <FieldLabel>{siwe.messageLabel}</FieldLabel>
+        <p className="m-0 mb-3 whitespace-pre-wrap text-[0.9rem]">
+          {fields.statement?.trim() || siwe.body}
+        </p>
+        {fields.uri ? (
+          <>
+            <FieldLabel>{siwe.uriLabel}</FieldLabel>
+            <p className="m-0 break-all font-mono text-[0.8rem]">{fields.uri}</p>
+          </>
+        ) : null}
+      </div>
+
+      {phase === "signing" ? (
+        <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
+          {siwe.signingHint}
+        </p>
+      ) : null}
+    </Modal>
+  );
+}
+
+function SiweDetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="mb-3">
+      <FieldLabel>{label}</FieldLabel>
+      <p className="m-0 break-all text-[0.9rem]">{value}</p>
+    </div>
+  );
+}
+
+function resolveSiweNetworkLabel(
+  chainIdRaw: string,
+  resolveChain: (
+    chainId: EVMChainId,
+  ) => { label: string } | null,
+): string {
+  const normalized = normalizeChainIdHex(chainIdRaw);
+  if (normalized) {
+    const match = resolveChain(EVMChainId(normalized as `0x${string}`));
+    if (match) return match.label;
+  }
+  return chainIdRaw.trim() || "Unknown network";
+}
+
+function normalizeChainIdHex(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (/^0x[0-9a-fA-F]+$/.test(trimmed)) {
+    return `0x${BigInt(trimmed).toString(16)}`;
+  }
+  if (/^\d+$/.test(trimmed)) {
+    return `0x${BigInt(trimmed).toString(16)}`;
+  }
+  return null;
 }
 
 export function TypedDataModal({

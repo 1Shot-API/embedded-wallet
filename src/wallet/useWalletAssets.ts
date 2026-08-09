@@ -59,9 +59,9 @@ export function useWalletAssets({
   );
 
   const refreshCredentialsFromRelayer = useCallback(async () => {
-    // Do not call ensureReady/unlock first — that stacked Unlock + RelayerAuth
-    // (and could double-recover). Empty vault: one RelayerAuth. Blobs present:
-    // RelayerAuth + Decrypt (PRF inside decryptAES256).
+    // Do not call ensureReady/unlock first — that can nest unlock + recover.
+    // Empty vault: one signer assert (or cached unlock assertion). Blobs:
+    // assert + Decrypt (PRF inside decryptAES256).
     await awaitSignerReady();
     await credentialRepository.refreshFromRelayer();
     await refreshCredentialCount();
