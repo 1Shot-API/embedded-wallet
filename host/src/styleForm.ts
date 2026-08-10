@@ -186,6 +186,7 @@ export const CATALOG_CHAIN_OPTIONS: ReadonlyArray<{
   chainId: string;
   label: string;
 }> = [
+  { chainId: "0x13b2", label: "Arc" },
   { chainId: "0x4cef52", label: "Arc Testnet" },
   { chainId: "0xaa36a7", label: "Sepolia" },
   { chainId: "0x14a34", label: "Base Sepolia" },

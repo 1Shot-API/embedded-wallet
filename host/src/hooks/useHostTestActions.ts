@@ -547,7 +547,7 @@ export function useHostTestActions({
         setChainId(FOCUS_USDC_ARC.chainId);
         proxy.showWallet();
         setWalletVisible(true);
-        reportStatus("Wallet focused on USDC (Arc Testnet).");
+        reportStatus("Wallet focused on USDC (Arc).");
       } catch (error) {
         reportStatus(
           error instanceof Error ? error.message : "focusWallet failed",

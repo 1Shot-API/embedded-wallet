@@ -191,7 +191,7 @@ Host-controlled shell modes. Callers (not end users) switch between **General** 
 ```typescript
 // Lock to one chain + ERC-20 (or other) asset
 await proxy.rpc("focusWallet", {
-  chainId: "0x4cef52", // Arc Testnet
+  chainId: "0x13b2", // Arc
   assetAddress: "0x3600000000000000000000000000000000000000", // USDC
 });
 proxy.showWallet();
@@ -216,7 +216,7 @@ Propose a tracked **ERC-20** for the Balances tab. The wallet resolves the token
 
 ```typescript
 await proxy.rpc("addAsset", {
-  chainId: "0x4cef52", // Arc Testnet
+  chainId: "0x13b2", // Arc
   assetAddress: "0x3600000000000000000000000000000000000000", // USDC
 });
 proxy.showWallet();

@@ -1,5 +1,11 @@
 export const HOST_CHAINS = [
   {
+    value: "0x13b2",
+    label: "Arc",
+    usdc: "0x3600000000000000000000000000000000000000",
+    blockExplorerUrl: "https://explorer.arc.io",
+  },
+  {
     value: "0x4cef52",
     label: "Arc Testnet",
     usdc: "0x3600000000000000000000000000000000000000",
@@ -25,9 +31,9 @@ export const HOST_CHAINS = [
   },
 ] as const;
 
-/** Focus demo: Arc Testnet USDC. */
+/** Focus demo: Arc mainnet USDC. */
 export const FOCUS_USDC_ARC = {
-  chainId: "0x4cef52",
+  chainId: "0x13b2",
   assetAddress: "0x3600000000000000000000000000000000000000",
   label: "USDC (Arc)",
 } as const;

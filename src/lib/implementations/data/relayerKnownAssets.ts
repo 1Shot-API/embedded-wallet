@@ -33,10 +33,20 @@ function seed(row: ISeedRow): KnownAsset {
 }
 
 /**
- * Static snapshot from `relayer_getCapabilities` (prod + dev) plus Arc Testnet USDC.
+ * Static snapshot from `relayer_getCapabilities` (prod + dev) plus Arc USDC.
  * @see https://www.1shotapi.com/docs/relayer/get-started/overview
  */
 const SEED_ROWS: readonly ISeedRow[] = [
+  // Arc mainnet — no MetaMask contracts / relayer yet.
+  {
+    chainId: EVMChainId("0x13b2"),
+    address: EVMAccountAddress(
+      "0x3600000000000000000000000000000000000000",
+    ),
+    symbol: "USDC",
+    name: "USDC",
+    decimals: 6,
+  },
   // Arc Testnet — demo network, not returned by relayer.
   {
     chainId: EVMChainId("0x4cef52"),

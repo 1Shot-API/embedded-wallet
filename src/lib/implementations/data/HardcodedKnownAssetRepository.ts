@@ -19,6 +19,7 @@ const BY_KEY = new Map(
 );
 
 const DEFAULT_TRACKED_USDC_CHAIN_IDS = new Set([
+  "0x13b2",
   "0x4cef52",
   "0xaa36a7",
   "0x14a34",
