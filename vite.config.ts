@@ -217,6 +217,7 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, "index.html"),
         create: path.resolve(__dirname, "create/index.html"),
+        mobile: path.resolve(__dirname, "mobile/index.html"),
       },
     },
   },

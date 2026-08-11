@@ -10,6 +10,8 @@ RUN npm ci
 COPY index.html vite.config.ts tsconfig.json tsconfig.node.json components.json ./
 COPY src ./src
 COPY create ./create
+COPY mobile ./mobile
+COPY public ./public
 COPY scripts ./scripts
 COPY signer-static ./signer-static
 

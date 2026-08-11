@@ -23,5 +23,5 @@
       "viem/*": ["./node_modules/viem/*"]
     }
   },
-  "include": ["src/**/*", "create/**/*", "vite.config.ts"]
+  "include": ["src/**/*", "create/**/*", "mobile/**/*", "vite.config.ts"]
 }
