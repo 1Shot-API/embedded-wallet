@@ -19,6 +19,7 @@ Safari create (first-party): /create/  → embeds Branding + createAccount RPC
 | `/` | React Branding Layer (Vite bundle) |
 | `/signer/` | Static `@1shotapi/ows-signer` ES modules |
 | `/create/` | First-party Host page for Safari passkey create |
+| `extension/` | MV3 Chrome/Firefox extension (MetaMask-style host) |
 
 Production deliverable: a static **nginx** Docker image (no server-side runtime).
 
@@ -37,6 +38,7 @@ cp .env.example .env  # set NGROK_AUTHTOKEN (and optional NGROK_DOMAIN)
 npm run dev           # Branding Layer + ngrok HTTPS tunnel
 npm run dev:local     # Branding Layer, local HTTP only
 npm run dev:host      # Test Host Layer (setStyle knobs + EIP-1193)
+npm run dev:extension # Browser extension (side panel + EIP-1193 shim)
 ```
 
 | Service | Local URL |

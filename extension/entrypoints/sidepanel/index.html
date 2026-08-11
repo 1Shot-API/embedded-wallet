@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>1Shot Wallet</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="chrome">
+      <div class="chrome-meta">
+        <strong>1Shot</strong>
+        <span id="origin-line" class="muted">No active tab</span>
+      </div>
+      <div class="chrome-actions">
+        <button type="button" id="inject-btn">Inject</button>
+        <button type="button" id="allowlist-btn" class="secondary">
+          Always
+        </button>
+      </div>
+      <p id="inject-status" class="inject-status" aria-live="polite"></p>
+    </header>
+    <div id="wallet-wrap">
+      <div id="status" class="status" aria-live="polite">Loading wallet…</div>
+      <div id="wallet-container" class="wallet-container"></div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

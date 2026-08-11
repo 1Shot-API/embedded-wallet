@@ -1,0 +1,144 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: #0b0f14;
+  color: #e8eef5;
+  font-family: system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * Keep Inject/Always above the Inline OWSProxy iframe. ows-provider applies
+ * absolute fill styles to #wallet-container; without a sticky chrome +
+ * isolated wrap those styles can paint over the toolbar after handshake.
+ */
+.chrome {
+  position: sticky;
+  top: 0;
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 6px 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #243041;
+  background: #121820;
+  z-index: 100;
+}
+
+.chrome-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chrome-meta strong {
+  font-size: 12px;
+}
+
+.muted {
+  color: #9aabbd;
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chrome-actions {
+  display: flex;
+  gap: 6px;
+  align-items: start;
+}
+
+.chrome button {
+  appearance: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: #3d8bfd;
+  color: white;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chrome button.secondary {
+  background: transparent;
+  color: #e8eef5;
+  border: 1px solid #243041;
+}
+
+.chrome button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inject-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  min-height: 1em;
+  color: #9aabbd;
+  font-size: 10px;
+}
+
+.inject-status.error {
+  color: #ff8e8e;
+}
+
+.inject-status.ok {
+  color: #7ddea2;
+}
+
+#wallet-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  z-index: 0;
+}
+
+.status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  z-index: 2;
+  pointer-events: none;
+  background: #0b0f14;
+}
+
+.status.error {
+  color: #ff8e8e;
+  pointer-events: auto;
+}
+
+.status.hidden {
+  display: none;
+}
+
+.wallet-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1;
+}

@@ -5,15 +5,18 @@
   "description": "1Shot Wallet — OWS Branding Layer (React + Vite + Tailwind)",
   "type": "module",
   "workspaces": [
-    "host"
+    "host",
+    "extension"
   ],
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:local": "node scripts/dev.mjs --no-tunnel",
     "dev:host": "npm run dev -w @1shotapi/oneshot-wallet-host",
+    "dev:extension": "npm run dev -w @1shotapi/oneshot-wallet-extension",
     "build": "tsc -p tsconfig.json --noEmit && vite build && node scripts/copy-signer.mjs",
     "build:host": "npm run build -w @1shotapi/oneshot-wallet-host",
-    "clean": "node scripts/clean.mjs && npm run clean -w @1shotapi/oneshot-wallet-host",
+    "build:extension": "npm run build -w @1shotapi/oneshot-wallet-extension",
+    "clean": "node scripts/clean.mjs && npm run clean -w @1shotapi/oneshot-wallet-host && npm run clean -w @1shotapi/oneshot-wallet-extension",
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --tsconfig tsconfig.test.json --test \"test/**/*.test.ts\"",
     "preview": "vite preview",

@@ -17,6 +17,8 @@ const EVM_ADDRESS_KEY = "ows-evm-address";
 const SOLANA_ADDRESS_KEY = "ows-solana-address";
 /** Cached secp256k1 public key (0x-hex) so LocalAccount builds without Unlock. */
 const SECP256K1_PUBLIC_KEY_KEY = "ows-secp256k1-public-key";
+/** EIP-1193 eth_accounts was approved at least once (MetaMask-style reconnect). */
+const ETH_ACCOUNTS_GRANTED_KEY = "ows-eth-accounts-granted";
 
 export function isWalletCreated(): boolean {
   return localStorage.getItem(WALLET_CREATED_KEY) === "true";
@@ -74,6 +76,14 @@ export function saveCachedAddresses(
   }
 }
 
+export function loadAccountsPermissionGranted(): boolean {
+  return localStorage.getItem(ETH_ACCOUNTS_GRANTED_KEY) === "1";
+}
+
+export function saveAccountsPermissionGranted(): void {
+  localStorage.setItem(ETH_ACCOUNTS_GRANTED_KEY, "1");
+}
+
 export function loadCachedSecp256k1PublicKey(): `0x${string}` | undefined {
   const value = localStorage.getItem(SECP256K1_PUBLIC_KEY_KEY);
   if (!value || !value.startsWith("0x")) {
@@ -93,6 +103,7 @@ export function clearWalletStorage(): void {
   localStorage.removeItem(EVM_ADDRESS_KEY);
   localStorage.removeItem(SOLANA_ADDRESS_KEY);
   localStorage.removeItem(SECP256K1_PUBLIC_KEY_KEY);
+  localStorage.removeItem(ETH_ACCOUNTS_GRANTED_KEY);
   // Legacy keys from earlier passkey-public-key caching (no longer used).
   localStorage.removeItem("ows-passkey-public-key");
   localStorage.removeItem("ows-relayer-passkey-registered");

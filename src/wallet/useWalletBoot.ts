@@ -280,6 +280,7 @@ export function useWalletBoot({
             kind: "connect",
             resolve,
           })),
+        getChainId: () => useWalletSessionStore.getState().chainId,
       });
 
       const catalog = chainRepository.getCatalog();
