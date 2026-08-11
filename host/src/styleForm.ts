@@ -25,6 +25,10 @@ export interface IStyleFormState {
   allowedChainIds: string[];
   /** Pass as `features.hideCloseBox` (Inline hosts). */
   hideCloseBox: boolean;
+  /** Pass as `features.disableCredentials`. */
+  disableCredentials: boolean;
+  /** Pass as `features.disableDelegations`. */
+  disableDelegations: boolean;
 
   // Text — Connect
   connectTitle: string;
@@ -222,6 +226,8 @@ export const ACME_PRESET: IStyleFormState = {
   dark: false,
   allowedChainIds: [],
   hideCloseBox: false,
+  disableCredentials: false,
+  disableDelegations: false,
   connectTitle: "Connect to Acme",
   connectBody: "Acme is requesting your wallet address.",
   connectContinue: "Allow",
@@ -768,6 +774,8 @@ export function buildSetStylePayload(
   if (Object.keys(copy).length > 0) payload.copy = copy;
   payload.features = {
     hideCloseBox: form.hideCloseBox,
+    disableCredentials: form.disableCredentials,
+    disableDelegations: form.disableDelegations,
     allowedChains: [...form.allowedChainIds],
   };
   return payload;

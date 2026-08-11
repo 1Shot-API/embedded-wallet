@@ -105,6 +105,46 @@ export function WalletConfigurator({
                 onCheckedChange={(checked) => patch("hideCloseBox", checked)}
               />
             </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="grid gap-0.5">
+                <Label
+                  htmlFor="style-disable-credentials"
+                  className="cursor-pointer"
+                >
+                  Disable Credentials
+                </Label>
+                <p className="text-muted-foreground text-xs">
+                  Hides the Credentials tab. Host credential flows still work.
+                </p>
+              </div>
+              <Switch
+                id="style-disable-credentials"
+                checked={form.disableCredentials}
+                onCheckedChange={(checked) =>
+                  patch("disableCredentials", checked)
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="grid gap-0.5">
+                <Label
+                  htmlFor="style-disable-delegations"
+                  className="cursor-pointer"
+                >
+                  Disable Delegations
+                </Label>
+                <p className="text-muted-foreground text-xs">
+                  Hides the Delegations tab. Host delegation flows still work.
+                </p>
+              </div>
+              <Switch
+                id="style-disable-delegations"
+                checked={form.disableDelegations}
+                onCheckedChange={(checked) =>
+                  patch("disableDelegations", checked)
+                }
+              />
+            </div>
             <div className="grid gap-2">
               <p className="text-sm font-medium">Allowed chains</p>
               <p className="text-muted-foreground text-xs">

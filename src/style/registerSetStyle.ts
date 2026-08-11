@@ -392,6 +392,8 @@ export const setStyleParamsSchema = z.strictObject({
   features: z
     .strictObject({
       hideCloseBox: z.boolean().optional(),
+      disableCredentials: z.boolean().optional(),
+      disableDelegations: z.boolean().optional(),
       allowedChains: z
         .array(z.string().regex(/^0x[0-9a-fA-F]+$/))
         .optional(),

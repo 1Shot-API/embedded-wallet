@@ -81,6 +81,8 @@ await proxy.rpc("setStyle", options);
 | `theme.radius` | string | `--radius` (e.g. `"0.625rem"`) |
 | `theme.fontSans` | string | `--font-sans` |
 | `features.hideCloseBox` | boolean | Hide chrome Close (X); default `false`. Use in Inline hosts (e.g. extension) |
+| `features.disableCredentials` | boolean | Hide Credentials tab; default `false`. Host credential flows still work |
+| `features.disableDelegations` | boolean | Hide Delegations tab; default `false`. Host delegation flows still work |
 | `features.allowedChains` | `string[]` (hex `0x…` chain ids) | Restrict Network dropdown to these catalog chains; omit or `[]` ⇒ all enabled |
 | `copy.productName` | string | titles / chrome |
 | `copy.tagline` | string | supporting line |

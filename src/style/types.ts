@@ -501,6 +501,10 @@ export interface IStyleFeaturesOptions {
    * Useful for Inline hosts (extension side panel) where hide is a no-op.
    */
   hideCloseBox?: boolean;
+  /** When true, hide the Credentials tab (host-driven credential flows still work). */
+  disableCredentials?: boolean;
+  /** When true, hide the Delegations tab (host-driven delegation flows still work). */
+  disableDelegations?: boolean;
   /**
    * Hex EVM chain ids the Network dropdown may show.
    * Omit or empty ⇒ all catalog-enabled chains.
@@ -510,6 +514,8 @@ export interface IStyleFeaturesOptions {
 
 export interface IResolvedStyleFeatures {
   hideCloseBox: boolean;
+  disableCredentials: boolean;
+  disableDelegations: boolean;
   /** `null` means no host allowlist (all enabled catalog chains). */
   allowedChains: string[] | null;
 }

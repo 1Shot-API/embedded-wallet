@@ -17,6 +17,8 @@ export const DEFAULT_STYLE: IResolvedStyle = {
   },
   features: {
     hideCloseBox: false,
+    disableCredentials: false,
+    disableDelegations: false,
     allowedChains: null,
   },
   copy: {

@@ -147,6 +147,14 @@ export function mergeStyle(
         patch.features?.hideCloseBox === undefined
           ? current.features.hideCloseBox
           : patch.features.hideCloseBox,
+      disableCredentials:
+        patch.features?.disableCredentials === undefined
+          ? current.features.disableCredentials
+          : patch.features.disableCredentials,
+      disableDelegations:
+        patch.features?.disableDelegations === undefined
+          ? current.features.disableDelegations
+          : patch.features.disableDelegations,
       allowedChains:
         patch.features?.allowedChains === undefined
           ? current.features.allowedChains
@@ -205,6 +213,8 @@ function cloneDefaultStyle(): IResolvedStyle {
     },
     features: {
       hideCloseBox: DEFAULT_STYLE.features.hideCloseBox,
+      disableCredentials: DEFAULT_STYLE.features.disableCredentials,
+      disableDelegations: DEFAULT_STYLE.features.disableDelegations,
       allowedChains: null,
     },
   };

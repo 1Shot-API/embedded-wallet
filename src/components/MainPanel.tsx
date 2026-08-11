@@ -98,8 +98,17 @@ export function MainPanel() {
   const [selectedAsset, setSelectedAsset] = useState<TrackedAsset | null>(
     null,
   );
+  const [mainTab, setMainTab] = useState("balances");
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showCredentials = !style.features.disableCredentials;
+  const showDelegations = !style.features.disableDelegations;
+  const activeMainTab =
+    (mainTab === "credentials" && !showCredentials) ||
+    (mainTab === "delegations" && !showDelegations)
+      ? "balances"
+      : mainTab;
 
   useEffect(() => {
     return () => {
@@ -215,27 +224,39 @@ export function MainPanel() {
         />
       </section>
 
-      <Tabs defaultValue="balances" className="gap-3">
+      <Tabs
+        value={activeMainTab}
+        onValueChange={setMainTab}
+        className="gap-3"
+      >
         <TabsList variant="line" className="w-full justify-start">
           <TabsTrigger value="balances">
             {style.copy.balances.tabLabel}
           </TabsTrigger>
-          <TabsTrigger value="credentials">
-            {style.copy.credentials.tabLabel}
-          </TabsTrigger>
-          <TabsTrigger value="delegations">
-            {style.copy.delegations.tabLabel}
-          </TabsTrigger>
+          {showCredentials ? (
+            <TabsTrigger value="credentials">
+              {style.copy.credentials.tabLabel}
+            </TabsTrigger>
+          ) : null}
+          {showDelegations ? (
+            <TabsTrigger value="delegations">
+              {style.copy.delegations.tabLabel}
+            </TabsTrigger>
+          ) : null}
         </TabsList>
         <TabsContent value="balances">
           <BalancesTab onView={setSelectedAsset} />
         </TabsContent>
-        <TabsContent value="credentials">
-          <CredentialsTab />
-        </TabsContent>
-        <TabsContent value="delegations">
-          <DelegationsTab />
-        </TabsContent>
+        {showCredentials ? (
+          <TabsContent value="credentials">
+            <CredentialsTab />
+          </TabsContent>
+        ) : null}
+        {showDelegations ? (
+          <TabsContent value="delegations">
+            <DelegationsTab />
+          </TabsContent>
+        ) : null}
       </Tabs>
 
       {networkModalOpen ? (
