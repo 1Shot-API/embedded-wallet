@@ -109,11 +109,19 @@ function installWindowEthereum(provider: EthereumProvider): void {
     window.ethereum = provider;
     return;
   }
-  // Coexist via providers[] when present
+  // Coexist via providers[] (EIP-1193 multi-injected wallet discovery).
   if (Array.isArray(existing.providers)) {
     if (!existing.providers.includes(provider)) {
       existing.providers.push(provider);
     }
+    return;
+  }
+  // Wallet present but no providers[] — create one so 1Shot is still reachable
+  // when MetaMask (or similar) is installed without exposing the array.
+  try {
+    existing.providers = [existing, provider];
+  } catch {
+    // Some providers freeze/seal window.ethereum; EIP-6963 still announces us.
   }
 }
 

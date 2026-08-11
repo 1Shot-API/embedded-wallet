@@ -63,7 +63,6 @@ function installBridge(): void {
       try {
         const response = (await browser.runtime.sendMessage({
           type: "eip1193-request",
-          tabId: 0,
           id,
           method,
           params,

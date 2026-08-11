@@ -66,6 +66,7 @@ async function main(): Promise<void> {
   try {
     await proxy.rpc("setStyle", {
       copy: { productName: "1Shot Wallet" },
+      features: { hideCloseBox: true },
     });
   } catch (error) {
     console.warn("[mobile] setStyle failed", error);
