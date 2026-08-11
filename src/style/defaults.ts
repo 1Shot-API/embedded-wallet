@@ -15,7 +15,10 @@ export const DEFAULT_STYLE: IResolvedStyle = {
     radius: "0.625rem",
     fontSans: "'Geist Variable', ui-sans-serif, system-ui, sans-serif",
   },
-  allowedChains: null,
+  features: {
+    hideCloseBox: false,
+    allowedChains: null,
+  },
   copy: {
     productName: "1Shot Wallet",
     tagline:

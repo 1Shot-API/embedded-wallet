@@ -87,44 +87,64 @@ export function WalletConfigurator({
             value={form.tagline}
             onChange={(value) => patch("tagline", value)}
           />
-          <fieldset className="grid gap-2">
-            <legend className="text-sm font-medium">
-              Allowed chains
-            </legend>
-            <p className="text-muted-foreground text-xs">
-              Leave all unchecked to allow every catalog network. Checking any
-              restricts the wallet Network dropdown via{" "}
-              <code className="text-[0.7rem]">setStyle.allowedChains</code>.
-            </p>
-            <div className="grid max-h-48 gap-1.5 overflow-y-auto rounded-md border p-2">
-              {CATALOG_CHAIN_OPTIONS.map((chain) => {
-                const checked = form.allowedChainIds.includes(chain.chainId);
-                return (
-                  <label
-                    key={chain.chainId}
-                    className="flex cursor-pointer items-center gap-2 text-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => {
-                        patch(
-                          "allowedChainIds",
-                          checked
-                            ? form.allowedChainIds.filter(
-                                (id) => id !== chain.chainId,
-                              )
-                            : [...form.allowedChainIds, chain.chainId],
-                        );
-                      }}
-                    />
-                    <span>{chain.label}</span>
-                    <span className="text-muted-foreground font-mono text-[0.7rem]">
-                      {chain.chainId}
-                    </span>
-                  </label>
-                );
-              })}
+          <fieldset className="grid gap-3 rounded-lg border p-3">
+            <legend className="px-1 text-sm font-medium">Features</legend>
+            <div className="flex items-center justify-between gap-3">
+              <div className="grid gap-0.5">
+                <Label htmlFor="style-hide-close" className="cursor-pointer">
+                  Hide Close Box
+                </Label>
+                <p className="text-muted-foreground text-xs">
+                  Hides the chrome Close (X). Use for Inline hosts where hide
+                  is a no-op.
+                </p>
+              </div>
+              <Switch
+                id="style-hide-close"
+                checked={form.hideCloseBox}
+                onCheckedChange={(checked) => patch("hideCloseBox", checked)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <p className="text-sm font-medium">Allowed chains</p>
+              <p className="text-muted-foreground text-xs">
+                Leave all unchecked to allow every catalog network. Checking any
+                restricts the wallet Network dropdown via{" "}
+                <code className="text-[0.7rem]">
+                  setStyle.features.allowedChains
+                </code>
+                .
+              </p>
+              <div className="grid max-h-48 gap-1.5 overflow-y-auto rounded-md border p-2">
+                {CATALOG_CHAIN_OPTIONS.map((chain) => {
+                  const checked = form.allowedChainIds.includes(chain.chainId);
+                  return (
+                    <label
+                      key={chain.chainId}
+                      className="flex cursor-pointer items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          patch(
+                            "allowedChainIds",
+                            checked
+                              ? form.allowedChainIds.filter(
+                                  (id) => id !== chain.chainId,
+                                )
+                              : [...form.allowedChainIds, chain.chainId],
+                          );
+                        }}
+                      />
+                      <span>{chain.label}</span>
+                      <span className="text-muted-foreground font-mono text-[0.7rem]">
+                        {chain.chainId}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </fieldset>
         </TabsContent>

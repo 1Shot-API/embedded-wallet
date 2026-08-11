@@ -80,7 +80,8 @@ await proxy.rpc("setStyle", options);
 | `theme.border` / `accent` / `accentForeground` | string | chrome |
 | `theme.radius` | string | `--radius` (e.g. `"0.625rem"`) |
 | `theme.fontSans` | string | `--font-sans` |
-| `allowedChains` | `string[]` (hex `0x…` chain ids) | Restrict Network dropdown to these catalog chains; omit or `[]` ⇒ all enabled |
+| `features.hideCloseBox` | boolean | Hide chrome Close (X); default `false`. Use in Inline hosts (e.g. extension) |
+| `features.allowedChains` | `string[]` (hex `0x…` chain ids) | Restrict Network dropdown to these catalog chains; omit or `[]` ⇒ all enabled |
 | `copy.productName` | string | titles / chrome |
 | `copy.tagline` | string | supporting line |
 | `copy.connect.title` | string | connect modal title |

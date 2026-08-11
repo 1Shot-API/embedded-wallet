@@ -19,10 +19,12 @@ export interface IStyleFormState {
   fontSans: string;
   dark: boolean;
   /**
-   * Hex chain ids to pass as `allowedChains`.
+   * Hex chain ids to pass as `features.allowedChains`.
    * Empty ⇒ omit (all catalog-enabled chains).
    */
   allowedChainIds: string[];
+  /** Pass as `features.hideCloseBox` (Inline hosts). */
+  hideCloseBox: boolean;
 
   // Text — Connect
   connectTitle: string;
@@ -219,6 +221,7 @@ export const ACME_PRESET: IStyleFormState = {
   fontSans: "",
   dark: false,
   allowedChainIds: [],
+  hideCloseBox: false,
   connectTitle: "Connect to Acme",
   connectBody: "Acme is requesting your wallet address.",
   connectContinue: "Allow",
@@ -763,8 +766,9 @@ export function buildSetStylePayload(
   const payload: Record<string, unknown> = { dark: form.dark };
   if (Object.keys(theme).length > 0) payload.theme = theme;
   if (Object.keys(copy).length > 0) payload.copy = copy;
-  if (form.allowedChainIds.length > 0) {
-    payload.allowedChains = [...form.allowedChainIds];
-  }
+  payload.features = {
+    hideCloseBox: form.hideCloseBox,
+    allowedChains: [...form.allowedChainIds],
+  };
   return payload;
 }

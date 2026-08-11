@@ -95,6 +95,7 @@ async function ensureProxy(): Promise<OWSProxy> {
   try {
     await proxy.rpc("setStyle", {
       copy: { productName: "1Shot Wallet" },
+      features: { hideCloseBox: true },
     });
   } catch (error) {
     console.warn("[1Shot sidepanel] setStyle failed", error);
