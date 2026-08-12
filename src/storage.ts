@@ -24,6 +24,49 @@ export function isWalletCreated(): boolean {
   return localStorage.getItem(WALLET_CREATED_KEY) === "true";
 }
 
+export function clearWalletCreated(): void {
+  localStorage.removeItem(WALLET_CREATED_KEY);
+}
+
+const PLACEHOLDER_EVM = EVMAccountAddress("0x0");
+const PLACEHOLDER_SOLANA = SolanaAccountAddress("—");
+
+function isUsableEvmAddress(
+  address: EVMAccountAddress | undefined,
+): address is EVMAccountAddress {
+  return (
+    address !== undefined &&
+    address !== PLACEHOLDER_EVM &&
+    /^0x[0-9a-fA-F]{40}$/.test(address)
+  );
+}
+
+function isUsableSolanaAddress(
+  address: SolanaAccountAddress | undefined,
+): address is SolanaAccountAddress {
+  return address !== undefined && address !== PLACEHOLDER_SOLANA;
+}
+
+/**
+ * Returning-session cache: `ows-wallet-created` plus usable EVM + Solana
+ * addresses. Incomplete cache (created flag without addresses) is cleared so
+ * onboarding runs instead of MainPanel with placeholder `0x0`.
+ */
+export function reconcileCachedWalletSession(): {
+  walletCreated: boolean;
+  evmAddress: EVMAccountAddress | undefined;
+  solanaAddress: SolanaAccountAddress | undefined;
+} {
+  const evmAddress = loadCachedEvmAddress();
+  const solanaAddress = loadCachedSolanaAddress();
+  const created = isWalletCreated();
+  if (created && (!isUsableEvmAddress(evmAddress) || !isUsableSolanaAddress(solanaAddress))) {
+    clearWalletCreated();
+    return { walletCreated: false, evmAddress, solanaAddress };
+  }
+  return { walletCreated: created, evmAddress, solanaAddress };
+}
+
 export function loadCredentialId(): CredentialId | undefined {
   const handle = localStorage.getItem(PASSKEY_HANDLE_KEY);
   if (handle) return CredentialId(handle);

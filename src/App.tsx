@@ -8,18 +8,20 @@ import { ModalHost } from "./components/ModalHost";
 import { PasskeyPromptModal } from "./components/modals/PasskeyPromptModal";
 
 export function App() {
-  const { bootError, ready, unlocked, embedded } = useWalletSessionStore(
-    useShallow((state) => ({
-      bootError: state.bootError,
-      ready: state.ready,
-      unlocked: state.unlocked,
-      embedded: state.embedded,
-    })),
-  );
+  const { bootError, ready, unlocked, walletCreated, embedded } =
+    useWalletSessionStore(
+      useShallow((state) => ({
+        bootError: state.bootError,
+        ready: state.ready,
+        unlocked: state.unlocked,
+        walletCreated: state.walletCreated,
+        embedded: state.embedded,
+      })),
+    );
 
-  // MainPanel requires unlock — walletCreated alone must not skip Login
-  // (otherwise returning sessions land on a shell with placeholder 0x0).
-  const showOnboarding = !unlocked;
+  // Returning sessions with a complete address cache skip Login.
+  // Incomplete `ows-wallet-created` (no evm/solana cache) is cleared on hydrate.
+  const showOnboarding = !unlocked && !walletCreated;
 
   return (
     <div className="bg-background text-foreground flex h-full min-h-full flex-col">
