@@ -42,6 +42,8 @@ export interface IStyleFormState {
   setupCreate: string;
   setupLogin: string;
   setupCancel: string;
+  setupPasskeyTimeoutError: string;
+  setupPasskeyFailedError: string;
 
   // Text — Account shell (network + address chips)
   selectNetworkTitle: string;
@@ -237,6 +239,10 @@ export const ACME_PRESET: IStyleFormState = {
   setupCreate: "Get started",
   setupLogin: "Log in",
   setupCancel: "Cancel",
+  setupPasskeyTimeoutError:
+    "Passkey confirmation timed out. Please try again.",
+  setupPasskeyFailedError:
+    "Could not complete passkey authentication. Please try again.",
   selectNetworkTitle: "Select network",
   selectNetworkCancelLabel: "Cancel",
   copyAddressLabel: "Copy address",
@@ -545,6 +551,8 @@ export function buildSetStylePayload(
   put(walletSetup, "createLabel", form.setupCreate);
   put(walletSetup, "loginLabel", form.setupLogin);
   put(walletSetup, "cancelLabel", form.setupCancel);
+  put(walletSetup, "passkeyTimeoutError", form.setupPasskeyTimeoutError);
+  put(walletSetup, "passkeyFailedError", form.setupPasskeyFailedError);
   if (Object.keys(walletSetup).length > 0) copy.walletSetup = walletSetup;
 
   const account: Record<string, string> = {};

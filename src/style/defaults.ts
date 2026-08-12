@@ -45,6 +45,10 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       cancelLabel: "Cancel",
       loginLabel: "Login with passkey ->",
       createLabel: "Create account",
+      passkeyTimeoutError:
+        "Passkey confirmation timed out. Please try again.",
+      passkeyFailedError:
+        "Could not complete passkey authentication. Please try again.",
     },
     passkeyName: {
       title: "Name your passkey",

@@ -42,6 +42,10 @@ export interface IStyleCopyWalletSetup {
   cancelLabel: string;
   loginLabel: string;
   createLabel: string;
+  /** Passkey ceremony timed out (e.g. Signer RPC `getPublicKey`). */
+  passkeyTimeoutError: string;
+  /** Generic passkey login/create failure after cancel or other errors. */
+  passkeyFailedError: string;
 }
 
 /** Name passkey modal (create-account flow). */

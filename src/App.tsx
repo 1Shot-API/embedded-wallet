@@ -8,18 +8,18 @@ import { ModalHost } from "./components/ModalHost";
 import { PasskeyPromptModal } from "./components/modals/PasskeyPromptModal";
 
 export function App() {
-  const { bootError, ready, unlocked, walletCreated, embedded } =
-    useWalletSessionStore(
-      useShallow((state) => ({
-        bootError: state.bootError,
-        ready: state.ready,
-        unlocked: state.unlocked,
-        walletCreated: state.walletCreated,
-        embedded: state.embedded,
-      })),
-    );
+  const { bootError, ready, unlocked, embedded } = useWalletSessionStore(
+    useShallow((state) => ({
+      bootError: state.bootError,
+      ready: state.ready,
+      unlocked: state.unlocked,
+      embedded: state.embedded,
+    })),
+  );
 
-  const showOnboarding = embedded && !walletCreated && !unlocked;
+  // MainPanel requires unlock — walletCreated alone must not skip Login
+  // (otherwise returning sessions land on a shell with placeholder 0x0).
+  const showOnboarding = !unlocked;
 
   return (
     <div className="bg-background text-foreground flex h-full min-h-full flex-col">

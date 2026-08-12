@@ -19,6 +19,8 @@ export enum EWalletMode {
 
 export interface IWalletSessionState {
   ready: boolean;
+  /** Signing Layer iframe loaded (`OWSSigner.create` resolved). */
+  signerReady: boolean;
   bootError: string | null;
   embedded: boolean;
   unlocked: boolean;
@@ -33,6 +35,7 @@ export interface IWalletSessionState {
   focusedAssetAddress: EVMAccountAddress | null;
 
   setReady: (ready: boolean) => void;
+  setSignerReady: (ready: boolean) => void;
   setBootError: (error: string | null) => void;
   setUnlocked: (unlocked: boolean) => void;
   setWalletCreated: (created: boolean) => void;
@@ -76,6 +79,7 @@ function initialSolanaAddress(): SolanaAccountAddress {
 
 export const useWalletSessionStore = create<IWalletSessionState>((set) => ({
   ready: false,
+  signerReady: false,
   bootError: null,
   embedded: initialEmbedded(),
   unlocked: false,
@@ -89,6 +93,7 @@ export const useWalletSessionStore = create<IWalletSessionState>((set) => ({
   focusedAssetAddress: null,
 
   setReady: (ready) => set({ ready }),
+  setSignerReady: (signerReady) => set({ signerReady }),
   setBootError: (bootError) => set({ bootError }),
   setUnlocked: (unlocked) => set({ unlocked }),
   setWalletCreated: (walletCreated) => set({ walletCreated }),

@@ -45,6 +45,8 @@ const walletSetupCopySchema = z.strictObject({
     cancelLabel: z.string().optional(),
     loginLabel: z.string().optional(),
     createLabel: z.string().optional(),
+    passkeyTimeoutError: z.string().optional(),
+    passkeyFailedError: z.string().optional(),
   })
   .optional();
 
