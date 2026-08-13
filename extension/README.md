@@ -136,7 +136,7 @@ EIP-6963 announce                               allowlist inject
 
 - Closing the side panel destroys the `OWSProxy` session; the next RPC reopens the panel and recreates the proxy (wallet storage under the extension top-level partition should restore accounts).
 - Extension page CSP must allow framing your wallet URL (`https:` and localhost are allowed in this test build).
-- Safari `/create/` handoff still opens from Branding inside the panel iframe — allow popups from the extension page if prompted.
+- Safari `/create/` handoff still opens from Branding inside the panel iframe — allow popups from the extension page if prompted. The create tab does not require `window.opener` (Safari Web Extension often omits it); the result returns on a same-origin `BroadcastChannel`.
 
 ## Manual test checklist
 
