@@ -32,11 +32,52 @@ export function isAccountCreateHandoffMessage(
   );
 }
 
+/**
+ * Same-origin channel for `/create` → Branding handoff.
+ *
+ * Safari (and Chrome) extension sidebars often open a tab with
+ * `window.opener === null`, so `postMessage` to the opener never runs.
+ * Both documents are the wallet origin — the extension page is not in this
+ * channel and does not need to be an allowed postMessage origin.
+ */
+const CREATE_HANDOFF_CHANNEL = "ows:account-create-handoff";
+
+export function subscribeAccountCreateHandoff(
+  listener: (message: AccountCreateHandoffMessage) => void,
+): () => void {
+  if (typeof BroadcastChannel === "undefined") {
+    return () => {};
+  }
+  const channel = new BroadcastChannel(CREATE_HANDOFF_CHANNEL);
+  const onMessage = (event: MessageEvent) => {
+    if (isAccountCreateHandoffMessage(event.data)) {
+      listener(event.data);
+    }
+  };
+  channel.addEventListener("message", onMessage);
+  return () => {
+    channel.removeEventListener("message", onMessage);
+    channel.close();
+  };
+}
+
 export function postAccountCreateHandoff(
-  target: Window,
+  target: Window | null,
   message: AccountCreateHandoffMessage,
 ): void {
-  target.postMessage(message, window.location.origin);
+  if (target && !target.closed) {
+    try {
+      target.postMessage(message, window.location.origin);
+    } catch {
+      // Inaccessible opener (common when the tab was opened from an extension).
+    }
+  }
+  if (typeof BroadcastChannel === "undefined") {
+    return;
+  }
+  const channel = new BroadcastChannel(CREATE_HANDOFF_CHANNEL);
+  channel.postMessage(message);
+  channel.close();
 }
 
 export function newCreateHandoffNonce(): string {

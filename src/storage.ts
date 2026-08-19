@@ -17,9 +17,54 @@ const EVM_ADDRESS_KEY = "ows-evm-address";
 const SOLANA_ADDRESS_KEY = "ows-solana-address";
 /** Cached secp256k1 public key (0x-hex) so LocalAccount builds without Unlock. */
 const SECP256K1_PUBLIC_KEY_KEY = "ows-secp256k1-public-key";
+/** EIP-1193 eth_accounts was approved at least once (MetaMask-style reconnect). */
+const ETH_ACCOUNTS_GRANTED_KEY = "ows-eth-accounts-granted";
 
 export function isWalletCreated(): boolean {
   return localStorage.getItem(WALLET_CREATED_KEY) === "true";
+}
+
+export function clearWalletCreated(): void {
+  localStorage.removeItem(WALLET_CREATED_KEY);
+}
+
+const PLACEHOLDER_EVM = EVMAccountAddress("0x0");
+const PLACEHOLDER_SOLANA = SolanaAccountAddress("—");
+
+function isUsableEvmAddress(
+  address: EVMAccountAddress | undefined,
+): address is EVMAccountAddress {
+  return (
+    address !== undefined &&
+    address !== PLACEHOLDER_EVM &&
+    /^0x[0-9a-fA-F]{40}$/.test(address)
+  );
+}
+
+function isUsableSolanaAddress(
+  address: SolanaAccountAddress | undefined,
+): address is SolanaAccountAddress {
+  return address !== undefined && address !== PLACEHOLDER_SOLANA;
+}
+
+/**
+ * Returning-session cache: `ows-wallet-created` plus usable EVM + Solana
+ * addresses. Incomplete cache (created flag without addresses) is cleared so
+ * onboarding runs instead of MainPanel with placeholder `0x0`.
+ */
+export function reconcileCachedWalletSession(): {
+  walletCreated: boolean;
+  evmAddress: EVMAccountAddress | undefined;
+  solanaAddress: SolanaAccountAddress | undefined;
+} {
+  const evmAddress = loadCachedEvmAddress();
+  const solanaAddress = loadCachedSolanaAddress();
+  const created = isWalletCreated();
+  if (created && (!isUsableEvmAddress(evmAddress) || !isUsableSolanaAddress(solanaAddress))) {
+    clearWalletCreated();
+    return { walletCreated: false, evmAddress, solanaAddress };
+  }
+  return { walletCreated: created, evmAddress, solanaAddress };
 }
 
 export function loadCredentialId(): CredentialId | undefined {
@@ -74,6 +119,14 @@ export function saveCachedAddresses(
   }
 }
 
+export function loadAccountsPermissionGranted(): boolean {
+  return localStorage.getItem(ETH_ACCOUNTS_GRANTED_KEY) === "1";
+}
+
+export function saveAccountsPermissionGranted(): void {
+  localStorage.setItem(ETH_ACCOUNTS_GRANTED_KEY, "1");
+}
+
 export function loadCachedSecp256k1PublicKey(): `0x${string}` | undefined {
   const value = localStorage.getItem(SECP256K1_PUBLIC_KEY_KEY);
   if (!value || !value.startsWith("0x")) {
@@ -93,6 +146,7 @@ export function clearWalletStorage(): void {
   localStorage.removeItem(EVM_ADDRESS_KEY);
   localStorage.removeItem(SOLANA_ADDRESS_KEY);
   localStorage.removeItem(SECP256K1_PUBLIC_KEY_KEY);
+  localStorage.removeItem(ETH_ACCOUNTS_GRANTED_KEY);
   // Legacy keys from earlier passkey-public-key caching (no longer used).
   localStorage.removeItem("ows-passkey-public-key");
   localStorage.removeItem("ows-relayer-passkey-registered");

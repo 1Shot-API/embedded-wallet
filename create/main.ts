@@ -37,24 +37,19 @@ function readHandoff(): string | null {
   return value && value.length > 0 ? value : null;
 }
 
-function notifyOpener(message: AccountCreateHandoffMessage): void {
-  const opener = window.opener;
-  if (!opener || opener.closed) {
-    console.warn("[create] cannot notify opener", {
-      hasOpener: Boolean(opener),
-      closed: opener?.closed,
-      type: message.type,
-    });
-    return;
-  }
-  console.info("[create] postMessage → opener", {
+function notifyWallet(message: AccountCreateHandoffMessage): void {
+  const opener = window.opener as Window | null;
+  const hasOpener = Boolean(opener) && !opener!.closed;
+  console.info("[create] notify wallet", {
     type: message.type,
     handoff: message.handoff,
+    hasOpener,
     credentialId: message.credentialId ? "(present)" : undefined,
     cosePublicKey: message.cosePublicKey ? "(present)" : undefined,
-    targetOrigin: window.location.origin,
   });
-  postAccountCreateHandoff(opener, message);
+  // Always BroadcastChannel (same-origin Branding iframe). Also postMessage
+  // when opener exists — extension-opened tabs often have opener === null.
+  postAccountCreateHandoff(hasOpener ? opener : null, message);
 }
 
 async function closeOrPrompt(): Promise<void> {
@@ -71,18 +66,12 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!window.opener) {
-    setStatus(
-      "This page must be opened from the wallet. Return to the app and try Create again.",
-      true,
-    );
-    return;
-  }
-
+  const opener = window.opener as Window | null;
+  const hasOpener = Boolean(opener) && !opener!.closed;
   console.info("[create] start", {
     handoff,
     origin: window.location.origin,
-    hasOpener: true,
+    hasOpener,
   });
 
   const walletUrl = new URL("/", window.location.origin).href;
@@ -120,7 +109,7 @@ async function main(): Promise<void> {
       hasCosePublicKey: true,
     });
 
-    notifyOpener({
+    notifyWallet({
       type: OWS_ACCOUNT_CREATED,
       handoff,
       credentialId: result.credentialId,
@@ -137,7 +126,7 @@ async function main(): Promise<void> {
 
     console.warn("[create] createAccount failed", { cancelled, message, error });
 
-    notifyOpener({
+    notifyWallet({
       type: cancelled
         ? OWS_ACCOUNT_CREATE_CANCELLED
         : OWS_ACCOUNT_CREATE_FAILED,
@@ -155,7 +144,7 @@ main().catch((error: unknown) => {
   console.error("[create] failed", error);
   const handoff = readHandoff();
   if (handoff) {
-    notifyOpener({
+    notifyWallet({
       type: OWS_ACCOUNT_CREATE_FAILED,
       handoff,
       message: error instanceof Error ? error.message : String(error),

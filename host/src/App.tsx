@@ -8,6 +8,7 @@ import { AnalyticsPanel } from "./components/AnalyticsPanel";
 import { AppHeader } from "./components/AppHeader";
 import { AppSidebar, type HostMode } from "./components/AppSidebar";
 import { DesignPanel } from "./components/DesignPanel";
+import { InjectedPanel } from "./components/InjectedPanel";
 import { TestPanel } from "./components/TestPanel";
 import { SidebarInset, SidebarProvider } from "./components/ui/sidebar";
 import { TooltipProvider } from "./components/ui/tooltip";
@@ -41,7 +42,16 @@ export function App() {
 
   // Presentation is create-time only. Switching Test ↔ Design destroys and
   // recreates the proxy against the right container (reparenting breaks Postmate).
+  // Injected mode intentionally skips OWSProxy — extension provides window.ethereum.
   useEffect(() => {
+    if (mode === "injected") {
+      setReady(false);
+      setWalletVisible(false);
+      proxyRef.current?.destroy();
+      proxyRef.current = null;
+      return;
+    }
+
     if (mode === "design" && !previewMount) {
       return;
     }
@@ -185,6 +195,8 @@ export function App() {
               onApplyStyle={handleApplyStyle}
               previewMountRef={setPreviewMount}
             />
+          ) : mode === "injected" ? (
+            <InjectedPanel />
           ) : (
             <div className="mx-auto w-full max-w-2xl px-6 pb-6">
               <AnalyticsPanel

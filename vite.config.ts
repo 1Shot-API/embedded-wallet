@@ -90,6 +90,9 @@ function sendFile(res: ServerResponse, filePath: string): void {
     res.statusCode = 200;
     res.setHeader("Content-Type", contentType(filePath));
     res.setHeader("Content-Security-Policy", SIGNER_CSP);
+    // Signer JS changes often during local sibling-package work; avoid sticky
+    // browser caches that serve stale ceremony-lock logic across refreshes.
+    res.setHeader("Cache-Control", "no-store");
     stream.pipe(res);
   });
   stream.once("error", (error: NodeJS.ErrnoException) => {
@@ -176,10 +179,54 @@ function serveSignerPlugin(): Plugin {
   };
 }
 
+/**
+ * Host Layer MPA entries (`/mobile/`, `/create/`) must not get Vite's default
+ * SPA fallback to Branding `index.html`. That served Branding at the top level
+ * (no OWSProxy), so nesting became Branding→Signing only and the signer
+ * rejected with "Must be embedded in a wallet iframe (double iframe)."
+ */
+function serveHostMpaPlugin(): Plugin {
+  const entries: Record<string, string> = {
+    "/mobile": "/mobile/index.html",
+    "/mobile/": "/mobile/index.html",
+    "/create": "/create/index.html",
+    "/create/": "/create/index.html",
+  };
+
+  return {
+    name: "ows-serve-host-mpa",
+    configureServer(server) {
+      server.middlewares.use((req: IncomingMessage, res: ServerResponse, next) => {
+        const raw = req.url ?? "";
+        const q = raw.indexOf("?");
+        const pathname = q === -1 ? raw : raw.slice(0, q);
+        const search = q === -1 ? "" : raw.slice(q);
+        const target = entries[pathname];
+        if (!target) {
+          next();
+          return;
+        }
+        if (pathname === "/mobile" || pathname === "/create") {
+          res.statusCode = 301;
+          res.setHeader("Location", `${pathname}/${search}`);
+          res.end();
+          return;
+        }
+        req.url = `${target}${search}`;
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig({
+  // MPA: Branding (`/`), Host create (`/create/`), Host mobile (`/mobile/`).
+  // Default `spa` history-fallback would rewrite `/mobile` to Branding index
+  // and break Host → Branding → Signing double-iframe nesting.
+  appType: "mpa",
   base: "/",
   publicDir: "public",
-  plugins: [react(), tailwindcss(), serveSignerPlugin()],
+  plugins: [react(), tailwindcss(), serveHostMpaPlugin(), serveSignerPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -217,6 +264,7 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, "index.html"),
         create: path.resolve(__dirname, "create/index.html"),
+        mobile: path.resolve(__dirname, "mobile/index.html"),
       },
     },
   },

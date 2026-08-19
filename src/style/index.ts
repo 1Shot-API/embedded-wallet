@@ -1,5 +1,7 @@
 export type {
   IStyleOptions,
+  IStyleFeaturesOptions,
+  IResolvedStyleFeatures,
   IStyleThemeOptions,
   IStyleCopyOptions,
   IStyleCopyConnect,

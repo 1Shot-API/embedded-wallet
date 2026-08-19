@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>1Shot Wallet</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <img src="/icon/48.png" width="28" height="28" alt="" />
+      <div>
+        <strong>1Shot Wallet</strong>
+        <p class="muted" id="origin-line">No active tab</p>
+      </div>
+    </header>
+
+    <section class="stack">
+      <p id="status" class="status" aria-live="polite"></p>
+      <button type="button" id="inject-btn">Inject on this page</button>
+      <button type="button" id="allowlist-btn" class="secondary">
+        Always inject on this origin
+      </button>
+      <button type="button" id="open-wallet-btn" class="secondary">
+        Open wallet panel
+      </button>
+      <a id="options-link" href="#">Settings</a>
+    </section>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

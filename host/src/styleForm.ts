@@ -19,10 +19,16 @@ export interface IStyleFormState {
   fontSans: string;
   dark: boolean;
   /**
-   * Hex chain ids to pass as `allowedChains`.
+   * Hex chain ids to pass as `features.allowedChains`.
    * Empty ⇒ omit (all catalog-enabled chains).
    */
   allowedChainIds: string[];
+  /** Pass as `features.hideCloseBox` (Inline hosts). */
+  hideCloseBox: boolean;
+  /** Pass as `features.disableCredentials`. */
+  disableCredentials: boolean;
+  /** Pass as `features.disableDelegations`. */
+  disableDelegations: boolean;
 
   // Text — Connect
   connectTitle: string;
@@ -36,6 +42,8 @@ export interface IStyleFormState {
   setupCreate: string;
   setupLogin: string;
   setupCancel: string;
+  setupPasskeyTimeoutError: string;
+  setupPasskeyFailedError: string;
 
   // Text — Account shell (network + address chips)
   selectNetworkTitle: string;
@@ -200,6 +208,7 @@ export const CATALOG_CHAIN_OPTIONS: ReadonlyArray<{
   { chainId: "0x82", label: "Unichain" },
   { chainId: "0x8f", label: "Monad" },
   { chainId: "0xa4ec", label: "Celo" },
+  { chainId: "0x1237", label: "Robinhood" },
 ];
 
 export const ACME_PRESET: IStyleFormState = {
@@ -219,6 +228,9 @@ export const ACME_PRESET: IStyleFormState = {
   fontSans: "",
   dark: false,
   allowedChainIds: [],
+  hideCloseBox: false,
+  disableCredentials: false,
+  disableDelegations: false,
   connectTitle: "Connect to Acme",
   connectBody: "Acme is requesting your wallet address.",
   connectContinue: "Allow",
@@ -228,6 +240,10 @@ export const ACME_PRESET: IStyleFormState = {
   setupCreate: "Get started",
   setupLogin: "Log in",
   setupCancel: "Cancel",
+  setupPasskeyTimeoutError:
+    "Passkey confirmation timed out. Please try again.",
+  setupPasskeyFailedError:
+    "Could not complete passkey authentication. Please try again.",
   selectNetworkTitle: "Select network",
   selectNetworkCancelLabel: "Cancel",
   copyAddressLabel: "Copy address",
@@ -536,6 +552,8 @@ export function buildSetStylePayload(
   put(walletSetup, "createLabel", form.setupCreate);
   put(walletSetup, "loginLabel", form.setupLogin);
   put(walletSetup, "cancelLabel", form.setupCancel);
+  put(walletSetup, "passkeyTimeoutError", form.setupPasskeyTimeoutError);
+  put(walletSetup, "passkeyFailedError", form.setupPasskeyFailedError);
   if (Object.keys(walletSetup).length > 0) copy.walletSetup = walletSetup;
 
   const account: Record<string, string> = {};
@@ -763,8 +781,11 @@ export function buildSetStylePayload(
   const payload: Record<string, unknown> = { dark: form.dark };
   if (Object.keys(theme).length > 0) payload.theme = theme;
   if (Object.keys(copy).length > 0) payload.copy = copy;
-  if (form.allowedChainIds.length > 0) {
-    payload.allowedChains = [...form.allowedChainIds];
-  }
+  payload.features = {
+    hideCloseBox: form.hideCloseBox,
+    disableCredentials: form.disableCredentials,
+    disableDelegations: form.disableDelegations,
+    allowedChains: [...form.allowedChainIds],
+  };
   return payload;
 }

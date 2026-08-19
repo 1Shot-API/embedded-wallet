@@ -37,17 +37,19 @@ export function WalletChrome() {
         >
           <SettingsIcon />
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Close wallet"
-          onClick={() => {
-            void requestHide();
-          }}
-        >
-          <XIcon />
-        </Button>
+        {!style.features.hideCloseBox ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Close wallet"
+            onClick={() => {
+              void requestHide();
+            }}
+          >
+            <XIcon />
+          </Button>
+        ) : null}
       </div>
     </header>
   );

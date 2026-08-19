@@ -142,12 +142,26 @@ export function mergeStyle(
       },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
-    allowedChains:
-      patch.allowedChains === undefined
-        ? current.allowedChains
-        : patch.allowedChains.length === 0
-          ? null
-          : [...patch.allowedChains],
+    features: {
+      hideCloseBox:
+        patch.features?.hideCloseBox === undefined
+          ? current.features.hideCloseBox
+          : patch.features.hideCloseBox,
+      disableCredentials:
+        patch.features?.disableCredentials === undefined
+          ? current.features.disableCredentials
+          : patch.features.disableCredentials,
+      disableDelegations:
+        patch.features?.disableDelegations === undefined
+          ? current.features.disableDelegations
+          : patch.features.disableDelegations,
+      allowedChains:
+        patch.features?.allowedChains === undefined
+          ? current.features.allowedChains
+          : patch.features.allowedChains.length === 0
+            ? null
+            : [...patch.features.allowedChains],
+    },
   };
 }
 
@@ -197,7 +211,12 @@ function cloneDefaultStyle(): IResolvedStyle {
       importPrivateKey: { ...DEFAULT_STYLE.copy.importPrivateKey },
       advancedOptions: { ...DEFAULT_STYLE.copy.advancedOptions },
     },
-    allowedChains: null,
+    features: {
+      hideCloseBox: DEFAULT_STYLE.features.hideCloseBox,
+      disableCredentials: DEFAULT_STYLE.features.disableCredentials,
+      disableDelegations: DEFAULT_STYLE.features.disableDelegations,
+      allowedChains: null,
+    },
   };
 }
 
