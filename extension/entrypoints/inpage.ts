@@ -38,6 +38,7 @@ const listeners = new Map<string, Set<(...args: unknown[]) => void>>();
 let preferOneshot = false;
 let iconUrl = "";
 let announced = false;
+let installedProvider: EthereumProvider | null = null;
 
 function nextId(): string {
   return crypto.randomUUID();
@@ -151,9 +152,17 @@ function announceEip6963(provider: EthereumProvider): void {
 function applyConfig(config: ContentToInpageConfig): void {
   preferOneshot = config.preferOneshot;
   iconUrl = config.iconUrl;
-  const provider = createProvider();
-  installWindowEthereum(provider);
-  announceEip6963(provider);
+  if (!installedProvider) {
+    installedProvider = createProvider();
+    installWindowEthereum(installedProvider);
+    announceEip6963(installedProvider);
+    return;
+  }
+  // Content sends config on startup and again on inpage `ready`. Reuse the
+  // same provider so `window.ethereum.providers` and EIP-6963 stay single-entry.
+  if (preferOneshot && window.ethereum !== installedProvider) {
+    installWindowEthereum(installedProvider);
+  }
 }
 
 function onMessage(event: MessageEvent): void {

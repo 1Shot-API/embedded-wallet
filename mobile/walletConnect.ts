@@ -6,7 +6,7 @@ import { getSdkError } from "@walletconnect/utils";
 import {
   buildApprovedNamespaces,
   hexChainIdToDecimal,
-  mergeProposalNamespaces,
+  NamespaceApprovalError,
 } from "./namespaces";
 import { REOWN_PROJECT_ID, walletMetadataForOrigin } from "./constants";
 
@@ -108,10 +108,8 @@ export async function startWalletConnectBridge(
         lastChainId = chainIdHex;
 
         const namespaces = buildApprovedNamespaces({
-          proposalNamespaces: mergeProposalNamespaces(
-            proposal.params.requiredNamespaces,
-            proposal.params.optionalNamespaces,
-          ),
+          requiredNamespaces: proposal.params.requiredNamespaces,
+          optionalNamespaces: proposal.params.optionalNamespaces,
           address,
         });
 
@@ -123,7 +121,9 @@ export async function startWalletConnectBridge(
       } catch (error) {
         const reason = isUserRejected(error)
           ? getSdkError("USER_REJECTED")
-          : getSdkError("USER_REJECTED_METHODS");
+          : error instanceof NamespaceApprovalError
+            ? getSdkError(error.sdkError)
+            : getSdkError("USER_REJECTED_METHODS");
         try {
           await walletKit.rejectSession({
             id: proposal.id,

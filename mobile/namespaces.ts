@@ -59,75 +59,187 @@ export function supportedCaip2Chains(): string[] {
 
 type NamespaceInput = {
   chains?: string[];
+  accounts?: string[];
   methods?: string[];
   events?: string[];
 };
 
+export type ApprovedEip155Namespace = {
+  chains: string[];
+  accounts: string[];
+  methods: string[];
+  events: string[];
+};
+
+/** WalletConnect `getSdkError` keys for an unsatisfiable session proposal. */
+export type NamespaceApprovalSdkError =
+  | "UNSUPPORTED_CHAINS"
+  | "UNSUPPORTED_METHODS"
+  | "UNSUPPORTED_EVENTS"
+  | "UNSUPPORTED_NAMESPACE_KEY";
+
+export class NamespaceApprovalError extends Error {
+  constructor(
+    message: string,
+    public readonly sdkError: NamespaceApprovalSdkError,
+  ) {
+    super(message);
+    this.name = "NamespaceApprovalError";
+  }
+}
+
+const EIP155_CHAIN_RE = /^eip155:\d+$/;
+
+function isEip155NamespaceKey(key: string): boolean {
+  return key === "eip155" || EIP155_CHAIN_RE.test(key);
+}
+
+function eip155ChainsFrom(key: string, ns: NamespaceInput): string[] {
+  const chains: string[] = [];
+  if (EIP155_CHAIN_RE.test(key)) {
+    chains.push(key);
+  }
+  for (const chain of ns.chains ?? []) {
+    if (EIP155_CHAIN_RE.test(chain)) {
+      chains.push(chain);
+    }
+  }
+  for (const account of ns.accounts ?? []) {
+    const match = /^(eip155:\d+):/u.exec(account);
+    if (match) {
+      chains.push(match[1]);
+    }
+  }
+  return chains;
+}
+
+function collectEip155(
+  namespaces: Record<string, NamespaceInput>,
+  options: { required: boolean },
+): {
+  chains: Set<string>;
+  methods: Set<string>;
+  events: Set<string>;
+} {
+  const chains = new Set<string>();
+  const methods = new Set<string>();
+  const events = new Set<string>();
+  for (const [key, ns] of Object.entries(namespaces)) {
+    if (!isEip155NamespaceKey(key)) {
+      if (options.required) {
+        throw new NamespaceApprovalError(
+          `Required namespace ${key} is not supported`,
+          "UNSUPPORTED_NAMESPACE_KEY",
+        );
+      }
+      continue;
+    }
+    for (const chain of eip155ChainsFrom(key, ns)) {
+      chains.add(chain);
+    }
+    for (const method of ns.methods ?? []) {
+      methods.add(method);
+    }
+    for (const event of ns.events ?? []) {
+      events.add(event);
+    }
+  }
+  return { chains, methods, events };
+}
+
 /**
  * Build approved EIP-155 namespaces from a session proposal ∩ wallet support.
+ * Required namespaces must be fully satisfiable; optional non-eip155 keys and
+ * unsupported optional chains/methods/events are dropped. Throws
+ * {@link NamespaceApprovalError} instead of approving a mismatched session.
  */
 export function buildApprovedNamespaces(params: {
-  proposalNamespaces: Record<string, NamespaceInput>;
+  requiredNamespaces?: Record<string, NamespaceInput>;
+  optionalNamespaces?: Record<string, NamespaceInput>;
   address: string;
-}): Record<
-  string,
-  {
-    chains: string[];
-    accounts: string[];
-    methods: string[];
-    events: string[];
-  }
-> {
-  const { proposalNamespaces, address } = params;
+}): Record<string, ApprovedEip155Namespace> {
   const walletChains = new Set(supportedCaip2Chains());
+  const walletMethods = new Set<string>(EIP155_METHODS);
+  const walletEvents = new Set<string>(EIP155_EVENTS);
 
-  const requestedChains = new Set<string>();
-  for (const ns of Object.values(proposalNamespaces)) {
-    for (const chain of ns.chains ?? []) {
-      if (chain.startsWith("eip155:") && walletChains.has(chain)) {
-        requestedChains.add(chain);
-      }
+  const required = collectEip155(params.requiredNamespaces ?? {}, {
+    required: true,
+  });
+  const optional = collectEip155(params.optionalNamespaces ?? {}, {
+    required: false,
+  });
+
+  for (const chain of required.chains) {
+    if (!walletChains.has(chain)) {
+      throw new NamespaceApprovalError(
+        `Required chain ${chain} is not supported`,
+        "UNSUPPORTED_CHAINS",
+      );
+    }
+  }
+  for (const method of required.methods) {
+    if (!walletMethods.has(method)) {
+      throw new NamespaceApprovalError(
+        `Required method ${method} is not supported`,
+        "UNSUPPORTED_METHODS",
+      );
+    }
+  }
+  for (const event of required.events) {
+    if (!walletEvents.has(event)) {
+      throw new NamespaceApprovalError(
+        `Required event ${event} is not supported`,
+        "UNSUPPORTED_EVENTS",
+      );
     }
   }
 
-  const chains =
-    requestedChains.size > 0 ? [...requestedChains] : [...walletChains];
-
-  const methods = new Set<string>(EIP155_METHODS);
-  const events = new Set<string>(EIP155_EVENTS);
-  for (const ns of Object.values(proposalNamespaces)) {
-    for (const m of ns.methods ?? []) methods.add(m);
-    for (const e of ns.events ?? []) events.add(e);
+  const chains = new Set<string>(required.chains);
+  for (const chain of optional.chains) {
+    if (walletChains.has(chain)) {
+      chains.add(chain);
+    }
+  }
+  if (chains.size === 0) {
+    throw new NamespaceApprovalError(
+      "Proposal has no supported eip155 chains",
+      "UNSUPPORTED_CHAINS",
+    );
   }
 
+  const methods = new Set<string>(required.methods);
+  for (const method of optional.methods) {
+    if (walletMethods.has(method)) {
+      methods.add(method);
+    }
+  }
+  const events = new Set<string>(required.events);
+  for (const event of optional.events) {
+    if (walletEvents.has(event)) {
+      events.add(event);
+    }
+  }
+  if (methods.size === 0) {
+    for (const method of EIP155_METHODS) {
+      methods.add(method);
+    }
+  }
+  if (events.size === 0) {
+    for (const event of EIP155_EVENTS) {
+      events.add(event);
+    }
+  }
+
+  const chainList = [...chains];
   return {
     eip155: {
-      chains,
-      accounts: chains.map((chain) => {
+      chains: chainList,
+      accounts: chainList.map((chain) => {
         const decimal = Number(chain.slice("eip155:".length));
-        return caip10Account(decimal, address);
+        return caip10Account(decimal, params.address);
       }),
       methods: [...methods],
       events: [...events],
     },
   };
-}
-
-/** Merge required + optional proposal namespaces into one map for approval. */
-export function mergeProposalNamespaces(
-  required: Record<string, NamespaceInput> = {},
-  optional: Record<string, NamespaceInput> = {},
-): Record<string, NamespaceInput> {
-  const keys = new Set([...Object.keys(required), ...Object.keys(optional)]);
-  const merged: Record<string, NamespaceInput> = {};
-  for (const key of keys) {
-    const req = required[key];
-    const opt = optional[key];
-    merged[key] = {
-      chains: [...(req?.chains ?? []), ...(opt?.chains ?? [])],
-      methods: [...(req?.methods ?? []), ...(opt?.methods ?? [])],
-      events: [...(req?.events ?? []), ...(opt?.events ?? [])],
-    };
-  }
-  return merged;
 }
