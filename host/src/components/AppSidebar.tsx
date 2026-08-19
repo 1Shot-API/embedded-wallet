@@ -1,4 +1,9 @@
-import { BarChart3Icon, FlaskConicalIcon, PaletteIcon } from "lucide-react";
+import {
+  BarChart3Icon,
+  FlaskConicalIcon,
+  PaletteIcon,
+  PlugZapIcon,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,7 +17,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-export type HostMode = "test" | "design" | "analytics";
+export type HostMode = "test" | "design" | "analytics" | "injected";
 
 export interface IAppSidebarProps {
   mode: HostMode;
@@ -42,6 +47,12 @@ const NAV_ITEMS: {
     label: "Analytics",
     description: "Live proxy.analytics event stream",
     icon: BarChart3Icon,
+  },
+  {
+    mode: "injected",
+    label: "Injected",
+    description: "window.ethereum / EIP-6963 only (extension)",
+    icon: PlugZapIcon,
   },
 ];
 
@@ -81,7 +92,9 @@ export function AppSidebar({ mode, onModeChange }: IAppSidebarProps) {
                 ? "Wallet stays hidden. Use actions below to exercise EIP-1193."
                 : mode === "design"
                   ? "Configurator on the left; wallet flyout stays open on the right."
-                  : "Events accumulate across tabs. Switch to Test to generate traffic."}
+                  : mode === "injected"
+                    ? "No OWSProxy here. Inject the extension on this tab, then Connect."
+                    : "Events accumulate across tabs. Switch to Test to generate traffic."}
             </p>
           </SidebarGroupContent>
         </SidebarGroup>

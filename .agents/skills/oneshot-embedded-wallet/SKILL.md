@@ -80,7 +80,10 @@ await proxy.rpc("setStyle", options);
 | `theme.border` / `accent` / `accentForeground` | string | chrome |
 | `theme.radius` | string | `--radius` (e.g. `"0.625rem"`) |
 | `theme.fontSans` | string | `--font-sans` |
-| `allowedChains` | `string[]` (hex `0x…` chain ids) | Restrict Network dropdown to these catalog chains; omit or `[]` ⇒ all enabled |
+| `features.hideCloseBox` | boolean | Hide chrome Close (X); default `false`. Use in Inline hosts (e.g. extension) |
+| `features.disableCredentials` | boolean | Hide Credentials tab; default `false`. Host credential flows still work |
+| `features.disableDelegations` | boolean | Hide Delegations tab; default `false`. Host delegation flows still work |
+| `features.allowedChains` | `string[]` (hex `0x…` chain ids) | Restrict Network dropdown to these catalog chains; omit or `[]` ⇒ all enabled |
 | `copy.productName` | string | titles / chrome |
 | `copy.tagline` | string | supporting line |
 | `copy.connect.title` | string | connect modal title |
@@ -228,7 +231,7 @@ proxy.showWallet();
 
 Returns `{ ok: true, chainId, assetAddress }` when the user accepts.
 
-Users can also add assets from the Balances tab without a host RPC. The Balances list shows tracked assets for the currently selected network only (USDC is always tracked per supported chain).
+Users can also add assets from the Balances tab without a host RPC. The Balances list shows tracked assets for the currently selected network only (USDC is always tracked where listed; USDG on Robinhood).
 
 ## Custom RPC — `createAccount`
 

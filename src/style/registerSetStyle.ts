@@ -45,6 +45,8 @@ const walletSetupCopySchema = z.strictObject({
     cancelLabel: z.string().optional(),
     loginLabel: z.string().optional(),
     createLabel: z.string().optional(),
+    passkeyTimeoutError: z.string().optional(),
+    passkeyFailedError: z.string().optional(),
   })
   .optional();
 
@@ -386,13 +388,20 @@ const copySchema = z.strictObject({
   .optional();
 
 export const setStyleParamsSchema = z.strictObject({
-    theme: themeSchema,
-    copy: copySchema,
-    dark: z.boolean().optional(),
-    allowedChains: z
-      .array(z.string().regex(/^0x[0-9a-fA-F]+$/))
-      .optional(),
-  });
+  theme: themeSchema,
+  copy: copySchema,
+  dark: z.boolean().optional(),
+  features: z
+    .strictObject({
+      hideCloseBox: z.boolean().optional(),
+      disableCredentials: z.boolean().optional(),
+      disableDelegations: z.boolean().optional(),
+      allowedChains: z
+        .array(z.string().regex(/^0x[0-9a-fA-F]+$/))
+        .optional(),
+    })
+    .optional(),
+});
 
 export type ISetStyleParams = z.infer<typeof setStyleParamsSchema>;
 
@@ -405,14 +414,14 @@ export function registerSetStyleRpc(
     async (params) => {
       const styleParams = params as ISetStyleParams;
       const resolved = styleController.merge(styleParams);
-      if (styleParams.allowedChains !== undefined) {
+      if (styleParams.features?.allowedChains !== undefined) {
         const catalogIds = new Set(
           chainRepository
             .getCatalog()
             .map((chain) => String(chain.chainId).toLowerCase()),
         );
         const valid: ReturnType<typeof EVMChainId>[] = [];
-        for (const id of styleParams.allowedChains) {
+        for (const id of styleParams.features.allowedChains) {
           const lower = id.toLowerCase();
           if (catalogIds.has(lower)) {
             valid.push(EVMChainId(lower as `0x${string}`));

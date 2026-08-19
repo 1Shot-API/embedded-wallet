@@ -42,6 +42,10 @@ export interface IStyleCopyWalletSetup {
   cancelLabel: string;
   loginLabel: string;
   createLabel: string;
+  /** Passkey ceremony timed out (e.g. Signer RPC `getPublicKey`). */
+  passkeyTimeoutError: string;
+  /** Generic passkey login/create failure after cancel or other errors. */
+  passkeyFailedError: string;
 }
 
 /** Name passkey modal (create-account flow). */
@@ -495,11 +499,16 @@ export interface IResolvedCopy {
   advancedOptions: IStyleCopyAdvancedOptions;
 }
 
-export interface IStyleOptions {
-  theme?: IStyleThemeOptions;
-  copy?: IStyleCopyOptions;
-  /** When true, add `.dark` on <html>; when false, remove it; omit = unchanged */
-  dark?: boolean;
+export interface IStyleFeaturesOptions {
+  /**
+   * When true, hide the wallet chrome Close (X) control.
+   * Useful for Inline hosts (extension side panel) where hide is a no-op.
+   */
+  hideCloseBox?: boolean;
+  /** When true, hide the Credentials tab (host-driven credential flows still work). */
+  disableCredentials?: boolean;
+  /** When true, hide the Delegations tab (host-driven delegation flows still work). */
+  disableDelegations?: boolean;
   /**
    * Hex EVM chain ids the Network dropdown may show.
    * Omit or empty ⇒ all catalog-enabled chains.
@@ -507,11 +516,26 @@ export interface IStyleOptions {
   allowedChains?: string[];
 }
 
+export interface IResolvedStyleFeatures {
+  hideCloseBox: boolean;
+  disableCredentials: boolean;
+  disableDelegations: boolean;
+  /** `null` means no host allowlist (all enabled catalog chains). */
+  allowedChains: string[] | null;
+}
+
+export interface IStyleOptions {
+  theme?: IStyleThemeOptions;
+  copy?: IStyleCopyOptions;
+  /** When true, add `.dark` on <html>; when false, remove it; omit = unchanged */
+  dark?: boolean;
+  features?: IStyleFeaturesOptions;
+}
+
 /** Fully resolved style after merging defaults + setStyle patches. */
 export interface IResolvedStyle {
   theme: Required<IStyleThemeOptions>;
   copy: IResolvedCopy;
   dark: boolean;
-  /** `null` means no host allowlist (all enabled catalog chains). */
-  allowedChains: string[] | null;
+  features: IResolvedStyleFeatures;
 }

@@ -19,7 +19,9 @@ export function App() {
       })),
     );
 
-  const showOnboarding = embedded && !walletCreated && !unlocked;
+  // Returning sessions with a complete address cache skip Login.
+  // Incomplete `ows-wallet-created` (no evm/solana cache) is cleared on hydrate.
+  const showOnboarding = !unlocked && !walletCreated;
 
   return (
     <div className="bg-background text-foreground flex h-full min-h-full flex-col">
