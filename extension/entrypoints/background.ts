@@ -83,14 +83,31 @@ function attachSidepanelPort(
     if (sidepanelPort === port) {
       sidepanelPort = null;
     }
-    // Re-queue in-flight requests so a reopened panel can retry them.
-    for (const [id, pending] of pendingById) {
-      pendingById.delete(id);
-      queuedWhilePanelBootstraps.push(pending);
+    // Do not retry in-flight RPCs: Branding may already have submitted
+    // (eth_sendTransaction, etc.) and only the response was lost with the port.
+    for (const [, pending] of pendingById) {
+      failPending(
+        pending,
+        "Wallet UI disconnected before the request completed. Retry the request.",
+      );
     }
+    pendingById.clear();
   });
 
   flushBootstrapQueue();
+}
+
+function failPending(pending: PendingRequest, message: string): void {
+  clearTimeout(pending.timer);
+  pending.resolve({
+    type: "eip1193-response",
+    tabId: pending.message.tabId,
+    id: pending.message.id,
+    error: {
+      code: 4900,
+      message,
+    },
+  });
 }
 
 function flushBootstrapQueue(): void {

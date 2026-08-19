@@ -40,6 +40,7 @@ function setInjectStatus(
 }
 
 let proxy: OWSProxy | null = null;
+let connecting: Promise<OWSProxy> | null = null;
 let activeTabId: number | undefined;
 let activeOrigin: string | undefined;
 const port = browser.runtime.connect({ name: "sidepanel" });
@@ -78,61 +79,66 @@ async function refreshActiveTab(): Promise<void> {
 
 async function ensureProxy(): Promise<OWSProxy> {
   if (proxy) return proxy;
+  if (connecting) return connecting;
 
-  const settings = await getSettings();
-  setStatus(`Connecting to ${settings.walletUrl}…`);
+  connecting = (async () => {
+    const settings = await getSettings();
+    setStatus(`Connecting to ${settings.walletUrl}…`);
 
-  try {
-    proxy = await OWSProxy.create(container, settings.walletUrl, {
+    const created = await OWSProxy.create(container, settings.walletUrl, {
       presentationMode: EWalletPresentationMode.Inline,
       classList: ["oneshot-ows-extension-host"],
     });
-  } catch (error) {
-    proxy = null;
-    throw error;
-  }
 
-  try {
-    await proxy.rpc("setStyle", {
-      copy: { productName: "1Shot Wallet" },
-      features: { hideCloseBox: true },
+    try {
+      await created.rpc("setStyle", {
+        copy: { productName: "1Shot Wallet" },
+        features: { hideCloseBox: true },
+      });
+    } catch (error) {
+      console.warn("[1Shot sidepanel] setStyle failed", error);
+    }
+
+    created.ethereum.on("accountsChanged", (...params: unknown[]) => {
+      port.postMessage({
+        type: "eip1193-event",
+        event: "accountsChanged",
+        params,
+      } satisfies ExtRuntimeMessage);
     });
-  } catch (error) {
-    console.warn("[1Shot sidepanel] setStyle failed", error);
-  }
+    created.ethereum.on("chainChanged", (...params: unknown[]) => {
+      port.postMessage({
+        type: "eip1193-event",
+        event: "chainChanged",
+        params,
+      } satisfies ExtRuntimeMessage);
+    });
+    created.ethereum.on("connect", (...params: unknown[]) => {
+      port.postMessage({
+        type: "eip1193-event",
+        event: "connect",
+        params,
+      } satisfies ExtRuntimeMessage);
+    });
+    created.ethereum.on("disconnect", (...params: unknown[]) => {
+      port.postMessage({
+        type: "eip1193-event",
+        event: "disconnect",
+        params,
+      } satisfies ExtRuntimeMessage);
+    });
 
-  proxy.ethereum.on("accountsChanged", (...params: unknown[]) => {
-    port.postMessage({
-      type: "eip1193-event",
-      event: "accountsChanged",
-      params,
-    } satisfies ExtRuntimeMessage);
-  });
-  proxy.ethereum.on("chainChanged", (...params: unknown[]) => {
-    port.postMessage({
-      type: "eip1193-event",
-      event: "chainChanged",
-      params,
-    } satisfies ExtRuntimeMessage);
-  });
-  proxy.ethereum.on("connect", (...params: unknown[]) => {
-    port.postMessage({
-      type: "eip1193-event",
-      event: "connect",
-      params,
-    } satisfies ExtRuntimeMessage);
-  });
-  proxy.ethereum.on("disconnect", (...params: unknown[]) => {
-    port.postMessage({
-      type: "eip1193-event",
-      event: "disconnect",
-      params,
-    } satisfies ExtRuntimeMessage);
+    proxy = created;
+    hideStatus();
+    void browser.runtime.sendMessage({ type: "sidepanel-ready" });
+    return created;
+  })().catch((error) => {
+    proxy = null;
+    connecting = null;
+    throw error;
   });
 
-  hideStatus();
-  void browser.runtime.sendMessage({ type: "sidepanel-ready" });
-  return proxy;
+  return connecting;
 }
 
 async function handleRequest(
