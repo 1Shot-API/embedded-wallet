@@ -17,6 +17,7 @@ export const SUPPORTED_EIP155_CHAIN_IDS: readonly number[] = [
   0x82, // Unichain
   0x8f, // Monad
   0xa4ec, // Celo
+  0x1237, // Robinhood
 ];
 
 export const EIP155_METHODS = [

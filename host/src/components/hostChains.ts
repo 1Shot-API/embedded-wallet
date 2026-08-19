@@ -3,25 +3,36 @@ export const HOST_CHAINS = [
     value: "0x4cef52",
     label: "Arc Testnet",
     usdc: "0x3600000000000000000000000000000000000000",
+    tokenSymbol: "USDC",
     blockExplorerUrl: "https://testnet.arcscan.app",
   },
   {
     value: "0xaa36a7",
     label: "Sepolia",
     usdc: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    tokenSymbol: "USDC",
     blockExplorerUrl: "https://sepolia.etherscan.io",
   },
   {
     value: "0x14a34",
     label: "Base Sepolia",
     usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    tokenSymbol: "USDC",
     blockExplorerUrl: "https://sepolia.basescan.org",
   },
   {
     value: "0x2105",
     label: "Base",
     usdc: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    tokenSymbol: "USDC",
     blockExplorerUrl: "https://basescan.org",
+  },
+  {
+    value: "0x1237",
+    label: "Robinhood",
+    usdc: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+    tokenSymbol: "USDG",
+    blockExplorerUrl: "https://robinhoodchain.blockscout.com",
   },
 ] as const;
 

@@ -18,24 +18,26 @@ const BY_KEY = new Map(
   ]),
 );
 
-const DEFAULT_TRACKED_USDC_CHAIN_IDS = new Set([
-  "0x4cef52",
-  "0xaa36a7",
-  "0x14a34",
-  "0x2105",
+/** Chain → pinned default stablecoin symbol (always shown, not removable). */
+const DEFAULT_TRACKED_STABLE_BY_CHAIN = new Map([
+  ["0x4cef52", "USDC"],
+  ["0xaa36a7", "USDC"],
+  ["0x14a34", "USDC"],
+  ["0x2105", "USDC"],
+  ["0x1237", "USDG"],
 ]);
 
 /**
- * USDC on every supported demo chain — always shown in Balances (not removable).
+ * Default stablecoin on demo chains — always shown in Balances (not removable).
+ * USDC where listed; USDG on Robinhood (USDC is not deployed there).
  */
 export const DEFAULT_TRACKED_USDC: readonly NewTrackedAsset[] =
-  RELAYER_KNOWN_ASSETS.filter(
-    (asset) =>
-      asset.symbol === "USDC" &&
-      DEFAULT_TRACKED_USDC_CHAIN_IDS.has(
-        String(asset.chainId).toLowerCase(),
-      ),
-  ).map((asset) => NewTrackedAsset.fromKnown(asset));
+  RELAYER_KNOWN_ASSETS.filter((asset) => {
+    const expected = DEFAULT_TRACKED_STABLE_BY_CHAIN.get(
+      String(asset.chainId).toLowerCase(),
+    );
+    return expected != null && asset.symbol === expected;
+  }).map((asset) => NewTrackedAsset.fromKnown(asset));
 
 const DEFAULT_TRACKED_USDC_KEYS = new Set(
   DEFAULT_TRACKED_USDC.map((asset) =>

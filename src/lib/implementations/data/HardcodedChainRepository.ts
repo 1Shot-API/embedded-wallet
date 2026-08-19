@@ -17,6 +17,7 @@ import lineaLogo from "../../../assets/images/chains/linea-logo.png";
 import monadLogo from "../../../assets/images/chains/monad-logo.png";
 import optimismLogo from "../../../assets/images/chains/optimism-logo.png";
 import polygonLogo from "../../../assets/images/chains/polygon-logo.png";
+import robinhoodLogo from "../../../assets/images/chains/robinhood-logo.png";
 import sonicLogo from "../../../assets/images/chains/sonic-logo.png";
 import unichainLogo from "../../../assets/images/chains/unichain-logo.png";
 
@@ -27,7 +28,7 @@ const DEVELOPMENT_RELAYER_URL = "https://relayer.1shotapi.dev";
 const ALCHEMY_KEY = "jqLUTbHeN_cVsIX2W7tJk";
 
 /**
- * Public Relayer docs networks + Arc Testnet.
+ * Public Relayer docs networks + Arc Testnet (dev relayer) + Robinhood.
  * @see https://1shotapi.com/docs/relayer/get-started/overview
  */
 const CATALOG: readonly SupportedChain[] = [
@@ -35,7 +36,7 @@ const CATALOG: readonly SupportedChain[] = [
     EVMChainId("0x4cef52"),
     EChainNetworkType.Testnet,
     DEVELOPMENT_RELAYER_URL,
-    false,
+    true,
     arcLogo,
     true,
     `https://arc-testnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
@@ -184,6 +185,17 @@ const CATALOG: readonly SupportedChain[] = [
     "https://forno.celo.org",
     "Celo",
     "https://celoscan.io",
+  ),
+  new SupportedChain(
+    EVMChainId("0x1237"),
+    EChainNetworkType.Mainnet,
+    PRODUCTION_RELAYER_URL,
+    true,
+    robinhoodLogo,
+    true,
+    "https://rpc.mainnet.chain.robinhood.com",
+    "Robinhood",
+    "https://robinhoodchain.blockscout.com",
   ),
 ];
 

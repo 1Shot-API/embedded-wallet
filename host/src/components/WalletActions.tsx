@@ -114,6 +114,7 @@ export function WalletActions({
   onGetGrantedPermissions,
 }: IWalletActionsProps) {
   const meta = hostChainMeta(chainId);
+  const tokenSymbol = meta?.tokenSymbol ?? "USDC";
   const accountLabel = account
     ? `${account.slice(0, 6)}…${account.slice(-4)}`
     : ready
@@ -271,11 +272,11 @@ export function WalletActions({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="balance">Check Balance</SelectItem>
-            <SelectItem value="send">Send USDC</SelectItem>
+            <SelectItem value="send">Send {tokenSymbol}</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-muted-foreground font-mono text-xs break-all">
-          {meta ? `USDC: ${meta.usdc}` : "USDC: unsupported chain"}
+          {meta ? `${tokenSymbol}: ${meta.usdc}` : "Token: unsupported chain"}
         </p>
       </div>
 
@@ -319,7 +320,7 @@ export function WalletActions({
           disabled={!ready || busy}
           onClick={onUsdcAction}
         >
-          {usdcMode === "send" ? "Send USDC" : "Check Balance"}
+          {usdcMode === "send" ? `Send ${tokenSymbol}` : "Check Balance"}
         </Button>
       </div>
 
