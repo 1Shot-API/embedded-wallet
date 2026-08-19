@@ -6,6 +6,8 @@ import {
   newCreateHandoffNonce,
   OWS_ACCOUNT_CREATED,
   OWS_ACCOUNT_CREATE_CANCELLED,
+  subscribeAccountCreateHandoff,
+  type AccountCreateHandoffMessage,
 } from "./createAccountHandoffMessages";
 
 export {
@@ -45,12 +47,15 @@ export async function createAccountViaFirstPartyTab(): Promise<IFirstPartyCreate
   return new Promise<IFirstPartyCreateResult>((resolve, reject) => {
     let settled = false;
     let popup: Window | null = null;
+    let sawPopupOpen = false;
     let pollId: ReturnType<typeof setInterval> | undefined;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     let closedGraceId: ReturnType<typeof setTimeout> | undefined;
+    let unsubscribeBroadcast = () => {};
 
     const cleanup = () => {
       window.removeEventListener("message", onMessage);
+      unsubscribeBroadcast();
       if (pollId !== undefined) clearInterval(pollId);
       if (timeoutId !== undefined) clearTimeout(timeoutId);
       if (closedGraceId !== undefined) clearTimeout(closedGraceId);
@@ -76,36 +81,33 @@ export async function createAccountViaFirstPartyTab(): Promise<IFirstPartyCreate
       reject(error);
     };
 
-    const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) {
-        return;
-      }
-      if (!isAccountCreateHandoffMessage(event.data)) {
-        return;
-      }
-
+    const handleHandoff = (
+      data: AccountCreateHandoffMessage,
+      meta: { via: "postMessage" | "broadcast"; sourceIsPopup?: boolean | string },
+    ) => {
       console.info("[create-handoff] message received", {
-        type: event.data.type,
-        handoff: event.data.handoff,
+        type: data.type,
+        handoff: data.handoff,
         expectedHandoff: handoff,
-        handoffMatch: event.data.handoff === handoff,
-        sourceIsPopup: popup ? event.source === popup : "(no popup ref)",
-        hasCredentialId: Boolean(event.data.credentialId),
-        hasCosePublicKey: Boolean(event.data.cosePublicKey),
+        handoffMatch: data.handoff === handoff,
+        via: meta.via,
+        sourceIsPopup: meta.sourceIsPopup,
+        hasCredentialId: Boolean(data.credentialId),
+        hasCosePublicKey: Boolean(data.cosePublicKey),
       });
 
-      if (event.data.handoff !== handoff) return;
+      if (data.handoff !== handoff) return;
 
       // Handoff nonce is authoritative. Do not require event.source === popup —
       // some browsers (notably after close) lose WindowProxy identity and would
       // drop a valid success message, leaving the opener on the login screen.
 
-      if (event.data.type === OWS_ACCOUNT_CREATED) {
-        if (!event.data.credentialId) {
+      if (data.type === OWS_ACCOUNT_CREATED) {
+        if (!data.credentialId) {
           finishReject(new Error("Account created but credential id missing"));
           return;
         }
-        if (!event.data.cosePublicKey) {
+        if (!data.cosePublicKey) {
           finishReject(
             new Error(
               "Account created but authenticator public key missing — cannot register with relayer",
@@ -114,33 +116,53 @@ export async function createAccountViaFirstPartyTab(): Promise<IFirstPartyCreate
           return;
         }
         finishResolve({
-          credentialId: event.data.credentialId,
-          cosePublicKey: event.data.cosePublicKey,
+          credentialId: data.credentialId,
+          cosePublicKey: data.cosePublicKey,
         });
         return;
       }
-      if (event.data.type === OWS_ACCOUNT_CREATE_CANCELLED) {
+      if (data.type === OWS_ACCOUNT_CREATE_CANCELLED) {
         finishReject(
           new OwsUserRejectedError(
-            event.data.message ?? "User cancelled passkey creation",
+            data.message ?? "User cancelled passkey creation",
           ),
         );
         return;
       }
-      finishReject(
-        new Error(event.data.message ?? "Passkey creation failed"),
-      );
+      finishReject(new Error(data.message ?? "Passkey creation failed"));
+    };
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+      if (!isAccountCreateHandoffMessage(event.data)) {
+        return;
+      }
+      handleHandoff(event.data, {
+        via: "postMessage",
+        sourceIsPopup: popup ? event.source === popup : "(no popup ref)",
+      });
     };
 
     window.addEventListener("message", onMessage);
+    unsubscribeBroadcast = subscribeAccountCreateHandoff((data) => {
+      handleHandoff(data, { via: "broadcast" });
+    });
 
     timeoutId = setTimeout(() => {
       finishReject(new Error("Passkey creation timed out"));
     }, HANDOFF_TIMEOUT_MS);
 
     pollId = setInterval(() => {
-      if (!popup || !popup.closed || settled) return;
-      if (closedGraceId !== undefined) return;
+      if (!popup || settled) return;
+      if (!popup.closed) {
+        sawPopupOpen = true;
+        return;
+      }
+      // Extension-opened tabs sometimes return a WindowProxy that is already
+      // `.closed` while the real tab is open — only treat close after we saw open.
+      if (!sawPopupOpen || closedGraceId !== undefined) return;
 
       console.info(
         "[create-handoff] popup closed; waiting for in-flight message",
@@ -153,7 +175,8 @@ export async function createAccountViaFirstPartyTab(): Promise<IFirstPartyCreate
       }, POPUP_CLOSED_GRACE_MS);
     }, 500);
 
-    // Do not pass noopener/noreferrer — we need window.opener in /create.
+    // Prefer keeping opener for postMessage; BroadcastChannel covers extension
+    // sidebars that open the tab with window.opener === null.
     const openPopup = (): Window | null =>
       window.open(url, "ows-create-account");
 

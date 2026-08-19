@@ -2,8 +2,8 @@ import { injectProviderIntoTab } from "../src/shared/inject";
 import { openWalletUi } from "../src/shared/openWalletUi";
 import {
   isInteractiveMethod,
-  type ExtEip1193RequestMessage,
   type ExtEip1193ResponseMessage,
+  type ExtEip1193RoutedRequestMessage,
   type ExtRuntimeMessage,
   type ExtStatusResponse,
 } from "../src/shared/protocol";
@@ -14,7 +14,7 @@ import {
 } from "../src/shared/storage";
 
 type PendingRequest = {
-  message: ExtEip1193RequestMessage;
+  message: ExtEip1193RoutedRequestMessage;
   resolve: (value: ExtEip1193ResponseMessage) => void;
   reject: (error: Error) => void;
   timer: ReturnType<typeof setTimeout>;
@@ -124,7 +124,7 @@ function forwardToSidepanel(pending: PendingRequest): void {
  * postMessage traffic (Connect then spins forever with no Branding UI).
  */
 async function ensureSidepanelForRequest(
-  message: ExtEip1193RequestMessage,
+  message: ExtEip1193RoutedRequestMessage,
 ): Promise<void> {
   if (sidepanelPort) {
     return;
@@ -155,7 +155,7 @@ async function ensureSidepanelForRequest(
 }
 
 async function handleEip1193Request(
-  message: ExtEip1193RequestMessage,
+  message: ExtEip1193RoutedRequestMessage,
 ): Promise<ExtEip1193ResponseMessage> {
   await ensureSidepanelForRequest(message);
 
@@ -307,12 +307,25 @@ export default defineBackground(() => {
               break;
             }
             case "eip1193-request": {
-              const tabId = sender.tab?.id ?? raw.tabId;
-              const message: ExtEip1193RequestMessage = {
+              const tabId = sender.tab?.id;
+              if (typeof tabId !== "number" || tabId <= 0) {
+                respond({
+                  type: "eip1193-response",
+                  tabId: -1,
+                  id: raw.id,
+                  error: {
+                    code: -32603,
+                    message:
+                      "EIP-1193 request has no valid tab id (content script sender.tab missing)",
+                  },
+                } satisfies ExtEip1193ResponseMessage);
+                break;
+              }
+              const message: ExtEip1193RoutedRequestMessage = {
                 ...raw,
                 tabId,
               };
-              if (tabId) injectedTabs.add(tabId);
+              injectedTabs.add(tabId);
               console.info("[1Shot] eip1193-request", message.method, {
                 tabId,
                 id: message.id,

@@ -4,8 +4,8 @@ import {
 } from "@1shotapi/ows-provider";
 import { queryActiveDappTab } from "../../src/shared/activeTab";
 import type {
-  ExtEip1193RequestMessage,
   ExtEip1193ResponseMessage,
+  ExtEip1193RoutedRequestMessage,
   ExtRuntimeMessage,
   ExtStatusResponse,
 } from "../../src/shared/protocol";
@@ -135,7 +135,9 @@ async function ensureProxy(): Promise<OWSProxy> {
   return proxy;
 }
 
-async function handleRequest(message: ExtEip1193RequestMessage): Promise<void> {
+async function handleRequest(
+  message: ExtEip1193RoutedRequestMessage,
+): Promise<void> {
   const reply = (payload: ExtEip1193ResponseMessage) => {
     port.postMessage(payload);
   };
@@ -174,9 +176,12 @@ async function handleRequest(message: ExtEip1193RequestMessage): Promise<void> {
 
 port.onMessage.addListener((raw) => {
   const message = raw as ExtRuntimeMessage;
-  if (message.type === "eip1193-request") {
-    void handleRequest(message);
+  if (message.type !== "eip1193-request") return;
+  if (typeof message.tabId !== "number" || message.tabId <= 0) {
+    console.warn("[1Shot sidepanel] dropping eip1193-request without tab id");
+    return;
   }
+  void handleRequest(message as ExtEip1193RoutedRequestMessage);
 });
 
 injectBtn.addEventListener("click", () => {

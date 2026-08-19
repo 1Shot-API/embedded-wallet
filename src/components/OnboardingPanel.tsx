@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "../wallet/WalletProvider";
+import { useWalletSessionStore } from "../wallet/sessionStore";
+import { formatWalletSetupError } from "../wallet/formatWalletSetupError";
 import { useStyle } from "../style/StyleProvider";
 import { BrandLogo } from "./BrandLogo";
 
@@ -14,14 +16,55 @@ function taglineLines(tagline: string): string[] {
 export function OnboardingPanel() {
   const { loginWithPasskey, createNewWalletFromUi, openImportPrivateKey } =
     useWallet();
+  const signerReady = useWalletSessionStore((state) => state.signerReady);
   const { style } = useStyle();
   const { productName, tagline, logoUrl, walletSetup, advancedOptions } =
     style.copy;
   const lines = taglineLines(tagline);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const actionsDisabled = busy || !signerReady;
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showSetupError = (err: unknown) => {
+    const message = formatWalletSetupError(err, walletSetup);
+    setError(message);
+    setToast(message);
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, 4_500);
+  };
+
+  const runSetup = async (action: () => Promise<void>, label: string) => {
+    if (actionsDisabled) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+    } catch (err: unknown) {
+      console.error(`[wallet-setup] ${label} failed`, err);
+      showSetupError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col">
+    <div className="relative flex h-full min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-8 text-center">
         <BrandLogo
           logoUrl={logoUrl}
@@ -45,10 +88,9 @@ export function OnboardingPanel() {
             type="button"
             size="lg"
             className="h-11 w-full text-[0.95rem] font-semibold"
+            disabled={actionsDisabled}
             onClick={() => {
-              void loginWithPasskey().catch((error: unknown) => {
-                console.error("[wallet-setup] embedded login failed", error);
-              });
+              void runSetup(loginWithPasskey, "embedded login");
             }}
           >
             {walletSetup.loginLabel}
@@ -58,19 +100,28 @@ export function OnboardingPanel() {
             variant="outline"
             size="lg"
             className="h-11 w-full text-[0.95rem] font-semibold"
+            disabled={actionsDisabled}
             onClick={() => {
-              void createNewWalletFromUi().catch((error: unknown) => {
-                console.error("[wallet-setup] embedded create failed", error);
-              });
+              void runSetup(createNewWalletFromUi, "embedded create");
             }}
           >
             {walletSetup.createLabel}
           </Button>
 
+          {error ? (
+            <p
+              role="alert"
+              className="text-destructive m-0 text-left text-[0.8rem] leading-snug"
+            >
+              {error}
+            </p>
+          ) : null}
+
           {!showAdvanced ? (
             <button
               type="button"
               className="text-muted-foreground hover:text-foreground mt-1 text-[0.8rem] underline-offset-2 hover:underline"
+              disabled={actionsDisabled}
               onClick={() => setShowAdvanced(true)}
             >
               {advancedOptions.onboardingLabel}
@@ -85,9 +136,11 @@ export function OnboardingPanel() {
                 variant="ghost"
                 size="sm"
                 className="h-9 w-full justify-start text-[0.85rem] font-medium"
+                disabled={actionsDisabled}
                 onClick={() => {
-                  void openImportPrivateKey().catch((error: unknown) => {
-                    console.error("[import-private-key] failed", error);
+                  void openImportPrivateKey().catch((err: unknown) => {
+                    console.error("[import-private-key] failed", err);
+                    showSetupError(err);
                   });
                 }}
               >
@@ -103,6 +156,16 @@ export function OnboardingPanel() {
           Powered by 1Shot
         </p>
       </footer>
+
+      {toast ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="bg-foreground text-background pointer-events-none absolute inset-x-3 bottom-[4.25rem] z-20 rounded-md px-3 py-2.5 text-center text-[0.8rem] leading-snug shadow-md"
+        >
+          {toast}
+        </div>
+      ) : null}
     </div>
   );
 }

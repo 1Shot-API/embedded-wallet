@@ -60,6 +60,25 @@ export function useWalletAuth({
     useWalletSessionStore.getState().setUnlocked(value);
   }, []);
 
+  /**
+   * Serialize post-create / unlock work with {@link ensureReady} so a host
+   * cannot start a second passkey ceremony after `saveWalletCreated` flips
+   * `isWalletCreated()` but before `unlocked` is true.
+   */
+  const runWhileUnlockInFlight = useCallback(async (work: () => Promise<void>) => {
+    if (unlockInFlightRef.current) {
+      await unlockInFlightRef.current;
+    }
+    unlockInFlightRef.current = (async () => {
+      await work();
+    })();
+    try {
+      await unlockInFlightRef.current;
+    } finally {
+      unlockInFlightRef.current = undefined;
+    }
+  }, []);
+
   const refreshAddresses = useCallback(async () => {
     const signer = signerRef.current;
     if (!signer) return;
@@ -97,32 +116,53 @@ export function useWalletAuth({
       }));
     }, []);
 
+  /**
+   * One PRF/get ceremony that optionally binds a relayer challenge so a
+   * following `registerPasskey` / `refreshFromRelayer` can reuse the assertion
+   * via {@link IRelayerCredentialsClient.takeAssertion} (no second unlock).
+   */
+  const getPublicKeyCachingRelayerAssertion = useCallback(
+    async (opts: {
+      credentialId?: CredentialId;
+      discoverable?: boolean;
+      logLabel: string;
+    }) => {
+      const signer = signerRef.current;
+      if (!signer) throw new Error("Signer not ready");
+
+      let challengeId: ChallengeId | null = null;
+      let challenge: HexString | undefined;
+      try {
+        const minted = await relayerCredentialsClient.getChallenge();
+        challengeId = minted.challengeId;
+        challenge = minted.challenge;
+      } catch (error: unknown) {
+        console.warn(
+          `[${opts.logLabel}] relayer challenge mint failed; continuing without assertion cache`,
+          error,
+        );
+      }
+
+      const { logLabel: _logLabel, ...getOpts } = opts;
+      const result = await signer.getPublicKey({
+        ...getOpts,
+        ...(challenge ? { challenge } : {}),
+      });
+      if (challengeId && result.assertion) {
+        relayerCredentialsClient.setAssertion(challengeId, result.assertion);
+      }
+      return result;
+    },
+    [relayerCredentialsClient, signerRef],
+  );
+
   const loginWithPasskey = useCallback(async () => {
-    const signer = signerRef.current;
-    if (!signer) throw new Error("Signer not ready");
-
-    let challengeId: ChallengeId | null = null;
-    let challenge: HexString | undefined;
-    try {
-      const minted = await relayerCredentialsClient.getChallenge();
-      challengeId = minted.challengeId;
-      challenge = minted.challenge;
-    } catch (error: unknown) {
-      console.warn(
-        "[login] relayer challenge mint failed; login without assertion cache",
-        error,
-      );
-    }
-
-    const result = await signer.getPublicKey({
+    const result = await getPublicKeyCachingRelayerAssertion({
       discoverable: true,
-      ...(challenge ? { challenge } : {}),
+      logLabel: "login",
     });
-    if (challengeId && result.assertion) {
-      relayerCredentialsClient.setAssertion(challengeId, result.assertion);
-    }
 
-    const credentialId = result.credentialId ?? signer.getCredentialId();
+    const credentialId = result.credentialId ?? signerRef.current?.getCredentialId();
     if (!credentialId) {
       throw new Error("Passkey login succeeded but credential id missing");
     }
@@ -141,9 +181,9 @@ export function useWalletAuth({
     setUnlocked(true);
   }, [
     credentialRepository,
+    getPublicKeyCachingRelayerAssertion,
     refreshAddresses,
     refreshCredentialCount,
-    relayerCredentialsClient,
     setUnlocked,
     signerRef,
   ]);
@@ -154,25 +194,33 @@ export function useWalletAuth({
         credentialIdPrefix: credentialId.slice(0, 8),
         hasCosePublicKey: Boolean(cosePublicKey),
       });
-      saveWalletCreated(credentialId);
-      useWalletSessionStore.getState().setWalletCreated(true);
       const signer = signerRef.current;
       if (!signer) throw new Error("Signer not ready");
-      // Unlock on this signer session (PRF get) — deferred from /create.
-      await signer.getPublicKey({ credentialId });
-      await refreshAddresses();
-      // Relayer register — also deferred from /create (one assertion here).
-      saveCosePublicKey(COSEPublicKey(cosePublicKey));
-      await credentialRepository.registerPasskey(COSEPublicKey(cosePublicKey));
-      try {
-        await refreshCredentialCount();
-      } catch (error: unknown) {
-        console.warn(
-          "[credentials] refresh after first-party create failed",
-          error,
-        );
-      }
-      setUnlocked(true);
+
+      await runWhileUnlockInFlight(async () => {
+        // Persist id only inside the in-flight lock so ensureReady cannot
+        // unlock in parallel (isWalletCreated becomes true here).
+        saveWalletCreated(credentialId);
+        // Unlock + cache relayer assertion in one ceremony (deferred from /create).
+        await getPublicKeyCachingRelayerAssertion({
+          credentialId,
+          logLabel: "create-handoff",
+        });
+        await refreshAddresses();
+        saveCosePublicKey(COSEPublicKey(cosePublicKey));
+        await credentialRepository.registerPasskey(COSEPublicKey(cosePublicKey));
+        try {
+          await refreshCredentialCount();
+        } catch (error: unknown) {
+          console.warn(
+            "[credentials] refresh after first-party create failed",
+            error,
+          );
+        }
+        setUnlocked(true);
+        useWalletSessionStore.getState().setWalletCreated(true);
+      });
+
       const address = await signer.evm.getAccountAddress();
       const { hostDomain } = await configProvider.getConfig();
       eventBus.emitAnalytics(new AccountCreatedEvent(hostDomain, address));
@@ -182,8 +230,10 @@ export function useWalletAuth({
       configProvider,
       credentialRepository,
       eventBus,
+      getPublicKeyCachingRelayerAssertion,
       refreshAddresses,
       refreshCredentialCount,
+      runWhileUnlockInFlight,
       setUnlocked,
       signerRef,
     ],
@@ -220,9 +270,8 @@ export function useWalletAuth({
           "Passkey created but authenticator public key missing — cannot register with relayer",
         );
       }
-      saveWalletCreated(credentialId);
-      saveCosePublicKey(created.cosePublicKey);
-      // Do not unlock or register — opener adopts via handoff.
+      // Do not mark wallet created or unlock here — the opener adopts via
+      // handoff under unlockInFlight so ensureReady cannot race a second get.
       return {
         credentialId,
         cosePublicKey: created.cosePublicKey,
@@ -259,12 +308,19 @@ export function useWalletAuth({
             "Passkey created but authenticator public key missing — cannot register with relayer",
           );
         }
-        saveWalletCreated(credentialId);
-        saveCosePublicKey(created.cosePublicKey);
-        await credentialRepository.registerPasskey(created.cosePublicKey);
-        useWalletSessionStore.getState().setWalletCreated(true);
-        await refreshAddresses();
-        setUnlocked(true);
+        await runWhileUnlockInFlight(async () => {
+          saveWalletCreated(credentialId);
+          saveCosePublicKey(created.cosePublicKey!);
+          // One get with relayer challenge — registerPasskey reuses the assertion.
+          await getPublicKeyCachingRelayerAssertion({
+            credentialId,
+            logLabel: "create",
+          });
+          await credentialRepository.registerPasskey(created.cosePublicKey!);
+          await refreshAddresses();
+          setUnlocked(true);
+          useWalletSessionStore.getState().setWalletCreated(true);
+        });
         const address = await signer.evm.getAccountAddress();
         eventBus.emitAnalytics(new AccountCreatedEvent(hostDomain, address));
       } catch (error: unknown) {
@@ -283,7 +339,9 @@ export function useWalletAuth({
       configProvider,
       credentialRepository,
       eventBus,
+      getPublicKeyCachingRelayerAssertion,
       refreshAddresses,
+      runWhileUnlockInFlight,
       setUnlocked,
       signerRef,
     ],
@@ -333,27 +391,10 @@ export function useWalletAuth({
     if (!signer) throw new Error("Signer not ready");
     const storedCredentialId = loadCredentialId();
     if (storedCredentialId) {
-      let challengeId: ChallengeId | null = null;
-      let challenge: HexString | undefined;
-      try {
-        const minted = await relayerCredentialsClient.getChallenge();
-        challengeId = minted.challengeId;
-        challenge = minted.challenge;
-      } catch (error: unknown) {
-        console.warn(
-          "[unlock] relayer challenge mint failed; unlocking without assertion cache",
-          error,
-        );
-      }
-
-      const result = await signer.getPublicKey({
+      const result = await getPublicKeyCachingRelayerAssertion({
         credentialId: storedCredentialId,
-        ...(challenge ? { challenge } : {}),
+        logLabel: "unlock",
       });
-
-      if (challengeId && result.assertion) {
-        relayerCredentialsClient.setAssertion(challengeId, result.assertion);
-      }
 
       const credentialId = result.credentialId ?? signer.getCredentialId();
       if (!credentialId) {
@@ -370,9 +411,9 @@ export function useWalletAuth({
     }
     await loginWithPasskey();
   }, [
+    getPublicKeyCachingRelayerAssertion,
     loginWithPasskey,
     refreshAddresses,
-    relayerCredentialsClient,
     setUnlocked,
     signerRef,
   ]);

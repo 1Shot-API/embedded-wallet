@@ -791,13 +791,18 @@ export function useWalletBoot({
           .setBootError(error instanceof Error ? error.message : String(error));
       });
 
-      void awaitSigner().catch((error: unknown) => {
-        if (cancelled) return;
-        console.error("[oneshot-wallet] Signing Layer failed to load", error);
-        useWalletSessionStore
-          .getState()
-          .setBootError(error instanceof Error ? error.message : String(error));
-      });
+      void awaitSigner()
+        .then(() => {
+          if (cancelled) return;
+          useWalletSessionStore.getState().setSignerReady(true);
+        })
+        .catch((error: unknown) => {
+          if (cancelled) return;
+          console.error("[oneshot-wallet] Signing Layer failed to load", error);
+          useWalletSessionStore
+            .getState()
+            .setBootError(error instanceof Error ? error.message : String(error));
+        });
 
       const listed = await credentialRepository.list();
       if (cancelled) return;

@@ -111,10 +111,19 @@ export type ExtGetStatusMessage = {
 
 export type ExtEip1193RequestMessage = {
   type: "eip1193-request";
-  tabId: number;
+  /**
+   * Optional from content scripts — background fills from `sender.tab.id`.
+   * Never send `0` (not a valid WebExtensions tab id).
+   */
+  tabId?: number;
   id: string;
   method: string;
   params?: unknown;
+};
+
+/** EIP-1193 request after background has bound a real tab id. */
+export type ExtEip1193RoutedRequestMessage = ExtEip1193RequestMessage & {
+  tabId: number;
 };
 
 export type ExtEip1193ResponseMessage = {
