@@ -231,7 +231,7 @@ proxy.showWallet();
 
 Returns `{ ok: true, chainId, assetAddress }` when the user accepts.
 
-Users can also add assets from the Balances tab without a host RPC. The Balances list shows tracked assets for the currently selected network only (USDC is always tracked per supported chain).
+Users can also add assets from the Balances tab without a host RPC. The Balances list shows tracked assets for the currently selected network only (USDC is always tracked where listed; USDG on Robinhood).
 
 ## Custom RPC — `createAccount`
 

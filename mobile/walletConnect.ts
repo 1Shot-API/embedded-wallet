@@ -147,11 +147,11 @@ export async function startWalletConnectBridge(
       const { request, chainId } = params;
       setStatus(`Request: ${request.method}`);
 
-      if (chainId?.startsWith("eip155:")) {
-        const requestedHex = `0x${Number(
-          chainId.slice("eip155:".length),
-        ).toString(16)}`;
-        try {
+      try {
+        if (chainId?.startsWith("eip155:")) {
+          const requestedHex = `0x${Number(
+            chainId.slice("eip155:".length),
+          ).toString(16)}`;
           const current = String(
             await proxy.ethereum.request({ method: "eth_chainId" }),
           );
@@ -164,12 +164,8 @@ export async function startWalletConnectBridge(
             });
             lastChainId = requestedHex;
           }
-        } catch (error) {
-          console.warn("[mobile/wc] chain switch before request failed", error);
         }
-      }
 
-      try {
         const result = await proxy.ethereum.request({
           method: request.method,
           params: normalizeRequestParams(request.params) as never,

@@ -208,6 +208,7 @@ export const CATALOG_CHAIN_OPTIONS: ReadonlyArray<{
   { chainId: "0x82", label: "Unichain" },
   { chainId: "0x8f", label: "Monad" },
   { chainId: "0xa4ec", label: "Celo" },
+  { chainId: "0x1237", label: "Robinhood" },
 ];
 
 export const ACME_PRESET: IStyleFormState = {
