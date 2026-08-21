@@ -31,8 +31,8 @@ export { DEFAULT_STYLE } from "./defaults";
 export { StyleProvider, useStyle } from "./StyleProvider";
 export { styleController } from "./styleController";
 export {
-  registerSetStyleRpc,
-  SET_STYLE_RPC_METHOD,
-  setStyleParamsSchema,
-  type ISetStyleParams,
-} from "./registerSetStyle";
+  registerConfigureRpc,
+  CONFIGURE_RPC_METHOD,
+  configureParamsSchema,
+  type IConfigureParams,
+} from "./registerConfigure";

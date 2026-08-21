@@ -2,7 +2,7 @@
   "name": "@1shotapi/oneshot-wallet-host",
   "version": "0.0.0",
   "private": true,
-  "description": "Local Host Layer for testing 1Shot Wallet Branding (setStyle + EIP-1193)",
+  "description": "Local Host Layer for testing 1Shot Wallet Branding (configure + EIP-1193)",
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",

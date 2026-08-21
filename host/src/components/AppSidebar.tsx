@@ -39,7 +39,7 @@ const NAV_ITEMS: {
   {
     mode: "design",
     label: "Design",
-    description: "Live setStyle playground",
+    description: "Live configure playground",
     icon: PaletteIcon,
   },
   {

@@ -371,6 +371,7 @@ export class TransactionUtils implements ITransactionUtils {
             args: [capabilities.feeCollector, feeAmount],
           }),
         );
+        const destinationUrl = styleController.get().destinationUrl;
         return {
           chainId: chainIdNumber.toString(10),
           transactions: [
@@ -404,6 +405,7 @@ export class TransactionUtils implements ITransactionUtils {
             this.options.presentationTransactionUtils.resolveHostDomain(),
           ),
           delegationSecret,
+          ...(destinationUrl ? { destinationUrl } : {}),
         };
       };
 

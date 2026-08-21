@@ -3,7 +3,7 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as setStyle / focusWallet / addAsset / createAccount for
+  or custom RPC such as configure / focusWallet / addAsset / createAccount for
   theming, host-driven focus mode, tracked assets, and first-party Safari create.
 license: MIT
 metadata:
@@ -43,7 +43,7 @@ const container = document.getElementById("wallet-container")!;
 const proxy = await OWSProxy.create(container, WALLET_URL);
 
 // Optional: theme / copy before showing the flyout
-await proxy.rpc("setStyle", {
+await proxy.rpc("configure", {
   copy: { productName: "Acme Wallet", tagline: "Powered by 1Shot" },
   theme: { primary: "oklch(0.45 0.18 250)" },
 });
@@ -61,12 +61,12 @@ const accounts = await proxy.ethereum.request({ method: "eth_requestAccounts" })
 - Production wallet URL: **`https://wallet.1shotapi.com/`** (Signing Layer at `/signer/` on the same origin — do not embed `/signer/` from the host).
 - Safari / iOS WebKit cannot create passkeys inside a **cross-origin** wallet iframe. The branding layer detects this and opens **`https://wallet.1shotapi.com/create/`** in a new tab (same origin as the wallet). Allow pop-ups from the embedding page so that handoff can complete; no host code changes are required.
 
-## Custom RPC — `setStyle`
+## Custom RPC — `configure`
 
 1Shot-specific method registered on the Branding Layer. Call via:
 
 ```typescript
-await proxy.rpc("setStyle", options);
+await proxy.rpc("configure", options);
 ```
 
 `options` is a partial merge (safe to call repeatedly):
@@ -84,6 +84,7 @@ await proxy.rpc("setStyle", options);
 | `features.disableCredentials` | boolean | Hide Credentials tab; default `false`. Host credential flows still work |
 | `features.disableDelegations` | boolean | Hide Delegations tab; default `false`. Host delegation flows still work |
 | `features.allowedChains` | `string[]` (hex `0x…` chain ids) | Restrict Network dropdown to these catalog chains; omit or `[]` ⇒ all enabled |
+| `destinationUrl` | string \| null | URL to receive transaction status update webhooks from the [1Shot Relayer](https://1shotapi.com/docs/relayer/get-started/overview) (≤256 chars). `null` or `""` clears |
 | `copy.productName` | string | titles / chrome |
 | `copy.tagline` | string | supporting line |
 | `copy.connect.title` | string | connect modal title |
@@ -258,7 +259,7 @@ await proxy.rpc("createAccount", { accountName: "My Wallet" });
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.analytics.on(listener)` / `.on(name, listener)` / `.off(listener)` | Branding→Host product analytics (`ows:analytics`) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, …) |
+| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, …) |
 
 Subscribe so in-wallet chain/account changes update host UI without polling:
 
@@ -304,6 +305,6 @@ include a live Analytics panel fed by `proxy.analytics.on` (filter by `name`).
 
 - Never embed the Signing Layer iframe from the Host — always Host → Branding → Signing.
 - Prefer the published wallet URL in production; point at a local Branding origin only while developing this repo.
-- Theme with `setStyle`; do not ask integrators to fork CSS for basic brand colors / product name.
+- Theme with `configure`; do not ask integrators to fork CSS for basic brand colors / product name.
 - Use `focusWallet` / `unfocusWallet` for host-driven single-asset flows; do not expose mode switching in the wallet UI.
 - Use `addAsset` when the host wants a lasting Balances entry; expect a confirm modal (contrast with `focusWallet`).

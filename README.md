@@ -37,7 +37,7 @@ cp .env.example .env  # set NGROK_AUTHTOKEN (and optional NGROK_DOMAIN)
 ```bash
 npm run dev           # Branding Layer + ngrok HTTPS tunnel
 npm run dev:local     # Branding Layer, local HTTP only
-npm run dev:host      # Test Host Layer (setStyle knobs + EIP-1193)
+npm run dev:host      # Test Host Layer (configure knobs + EIP-1193)
 npm run dev:extension # Browser extension (side panel + EIP-1193 shim)
 ```
 
@@ -52,7 +52,7 @@ Passkeys need HTTPS — use the printed ngrok wallet URL as the host iframe sour
 
 By default Vite uses published `@1shotapi/ows-*` from `node_modules`. To point at a sibling `../prf-wallet` checkout, set `OWS_LOCAL_PACKAGES=1` (Firefox often breaks on the resulting `/@fs/C:` module URLs — prefer Chrome, or leave the flag unset for ngrok).
 
-Style testing: use the **Style (setStyle RPC)** panel on the test host (`host/`), not in-wallet debug UI. See [host/README.md](host/README.md).
+Style testing: use the **Style (configure RPC)** panel on the test host (`host/`), not in-wallet debug UI. See [host/README.md](host/README.md).
 
 ## Host integration
 
@@ -67,7 +67,7 @@ import { OWSProxy } from "@1shotapi/ows-provider";
 
 const proxy = await OWSProxy.create(container, "https://wallet.1shotapi.com/");
 
-await proxy.rpc("setStyle", {
+await proxy.rpc("configure", {
   copy: { productName: "Acme Wallet", tagline: "Powered by 1Shot" },
   theme: { primary: "oklch(0.45 0.18 250)" },
 });
@@ -102,9 +102,16 @@ The same rich payload is also POSTed fire-and-forget to the 1Shot relayer
 Analytics panel fed by `proxy.analytics.on` — filter by `name` to inspect
 outcomes while testing.
 
-### `setStyle` (custom RPC)
+### `configure` (custom RPC)
 
-Additive merge of theme CSS variables + copy. Safe to call repeatedly. Schema is Zod-strict (unknown keys rejected). Full field list: [skills/oneshot-embedded-wallet/SKILL.md](skills/oneshot-embedded-wallet/SKILL.md).
+Additive merge of theme CSS variables, copy, feature flags, and optional
+`destinationUrl` (status webhooks from the
+[1Shot Relayer](https://1shotapi.com/docs/relayer/get-started/overview)).
+Safe to call repeatedly. Schema is Zod-strict (unknown keys rejected). Full field
+list: [skills/oneshot-embedded-wallet/SKILL.md](skills/oneshot-embedded-wallet/SKILL.md).
+
+When `destinationUrl` is set, the wallet asks the 1Shot Relayer to send
+transaction status update webhooks to that URL.
 
 ### Agent skill
 
@@ -150,4 +157,4 @@ See [roadmap.md](roadmap.md) (ShadCN + customization phases).
 
 ## Status
 
-Functional Branding Layer (passkey unlock, EIP-1193, signing consent, recovery, credentials) with Phase 0–1 style foundations (`setStyle` + StyleProvider + shell). ShadCN UI migration in progress.
+Functional Branding Layer (passkey unlock, EIP-1193, signing consent, recovery, credentials) with Phase 0–1 style foundations (`configure` + StyleProvider + shell). ShadCN UI migration in progress.

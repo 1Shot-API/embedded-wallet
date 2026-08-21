@@ -1,10 +1,10 @@
 # 1Shot Wallet — ShadCN + customization roadmap
 
-Phased refactor of the Branding Layer UI onto ShadCN, with host-driven theming via `setStyle`, and cleaner state boundaries. Work proceeds **one phase (or one modal) per query**.
+Phased refactor of the Branding Layer UI onto ShadCN, with host-driven theming via `configure`, and cleaner state boundaries. Work proceeds **one phase (or one modal) per query**.
 
 ## Goals
 
-1. **Integrator customization** — Host calls `proxy.rpc("setStyle", options)` before / during display; wallet applies CSS tokens + copy overrides. Re-callable for the future customization tester site.
+1. **Integrator customization** — Host calls `proxy.rpc("configure", options)` before / during display; wallet applies CSS tokens + copy overrides. Re-callable for the future customization tester site.
 2. **ShadCN UI** — Replace bespoke Tailwind shells/modals with tokenized shadcn/ui components.
 3. **State that scales** — Theme in Context; wallet session / modal queue in Zustand; server data (later) via TanStack Query.
 
@@ -12,7 +12,7 @@ Phased refactor of the Branding Layer UI onto ShadCN, with host-driven theming v
 
 ```
 Host OWSProxy
-  └── rpc("setStyle", IStyleOptions)     # branding-app registerRpc
+  └── rpc("configure", IStyleOptions)     # branding-app registerRpc
         └── StyleProvider (React Context)
               ├── CSS variables on document / root
               └── copy / labels object
@@ -26,8 +26,8 @@ Relayer / credential fetch    →  TanStack Query (later phase)
 
 - No hardcoded brand colors — use semantic tokens (`bg-primary`, `text-muted-foreground`, etc.).
 - User-visible copy comes from StyleContext defaults / overrides, not scattered string literals.
-- `setStyle` merges into current style state (additive, re-applicable).
-- Defaults = 1Shot branding when host never calls `setStyle`.
+- `configure` merges into current style state (additive, re-applicable).
+- Defaults = 1Shot branding when host never calls `configure`.
 - Style state stays separate from unlock / chain / modal runtime state.
 
 ---
@@ -68,16 +68,16 @@ Relayer / credential fetch    →  TanStack Query (later phase)
 
 ### Phase 0 — Foundations (style + RPC, no visual redesign)
 
-**Outcome:** Host can call `setStyle`; CSS vars + copy map exist; shadcn theme CSS restored alongside wallet layout.
+**Outcome:** Host can call `configure`; CSS vars + copy map exist; shadcn theme CSS restored alongside wallet layout.
 
 - [x] Define `IStyleOptions` (theme tokens + copy/labels + feature flags as needed).
 - [x] Defaults module (`DEFAULT_STYLE` / 1Shot branding).
 - [x] `applyStyleToDocument(options)` → set CSS variables on `document.documentElement` (or `#root`).
 - [x] `StyleProvider` + `useStyle()` context.
-- [x] Register `wallet.registerRpc("setStyle", …)` **before** `wallet.start()` (merge + apply).
+- [x] Register `wallet.registerRpc("configure", …)` **before** `wallet.start()` (merge + apply).
 - [x] Restore / merge shadcn theme into `src/index.css` (css variables + Tailwind) without breaking `/signer/` host styles.
-- [x] Smoke: call `setStyle` from a temporary button or host console; primary/background tokens update.
-- [x] Bootstrap Host integrator skill (`skills/oneshot-embedded-wallet`) documenting `setStyle` + wallet URL.
+- [x] Smoke: call `configure` from a temporary button or host console; primary/background tokens update.
+- [x] Bootstrap Host integrator skill (`skills/oneshot-embedded-wallet`) documenting `configure` + wallet URL.
 
 **Exit criteria:** Defaults render; RPC path works; no modal UI rewritten yet.
 
@@ -85,15 +85,15 @@ Relayer / credential fetch    →  TanStack Query (later phase)
 
 ### Phase 1 — Shell on ShadCN + tokens
 
-**Outcome:** App chrome uses Button / layout primitives; reads brand name / labels from StyleContext. Host test app exercises `setStyle` over Host ↔ Branding RPC (not an in-wallet debug button).
+**Outcome:** App chrome uses Button / layout primitives; reads brand name / labels from StyleContext. Host test app exercises `configure` over Host ↔ Branding RPC (not an in-wallet debug button).
 
 - [x] Wire `StyleProvider` around app in `main.tsx`.
 - [x] Refactor `WalletChrome` → tokens + styled title from copy map.
 - [x] Refactor `OnboardingPanel` → shadcn Button / typography.
 - [x] Refactor `MainPanel` → shadcn Button, Select (chain).
 - [x] Replace shell ad-hoc `<button>` styles with `@/components/ui/button`.
-- [x] Ensure shell respects `setStyle` colors and product name.
-- [x] Add `host/` test Host Layer (from OWS `examples/host`) with setStyle knobs; `npm run dev:host`.
+- [x] Ensure shell respects `configure` colors and product name.
+- [x] Add `host/` test Host Layer (from OWS `examples/host`) with configure knobs; `npm run dev:host`.
 
 **Exit criteria:** Standalone + embedded shell looks like a coherent 1Shot product; theme knobs on the host exercise host↔branding communication.
 
@@ -168,17 +168,17 @@ Keep OID4 wiring in `registerCredentialsProvider` / WalletProvider; UI-only chan
 
 ### Phase 8 — Polish + customization tester prep
 
-**Outcome:** Host tester is a professional playground for `setStyle`; wallet docs catch up.
+**Outcome:** Host tester is a professional playground for `configure`; wallet docs catch up.
 
-- [ ] Document `IStyleOptions` and example host `setStyle` call in README.
+- [ ] Document `IStyleOptions` and example host `configure` call in README.
 - [x] Expand knobs as needed (logo URL, colors, radius, font; showBackup later).
 - [x] Host tester: React + ShadCN shell; style knobs encapsulated in `WalletConfigurator` (organization TBD).
 - [x] Host layout v1: 1Shot-branded header + Sidebar (Test / Design); Design embeds wallet inline with configurator.
 - [x] Wallet presentation: MetaMask-like 360×600; create-time `presentationMode`; Test/Design destroy+recreate proxy (no reparent).
 - [x] Reorganize `WalletConfigurator` (Basic / Style / Text tabs; color picker + accordion).
-- [ ] Dark mode strategy if we support host toggle via `setStyle`.
+- [ ] Dark mode strategy if we support host toggle via `configure`.
 
-**Exit criteria:** Host looks intentional; `setStyle` knobs are maintainable as we grow the wallet UI.
+**Exit criteria:** Host looks intentional; `configure` knobs are maintainable as we grow the wallet UI.
 ---
 
 ### Later (out of this refactor)
@@ -207,7 +207,7 @@ Keep OID4 wiring in `registerCredentialsProvider` / WalletProvider; UI-only chan
 
 - One phase or one modal per chat query unless explicitly batched.
 - Prefer grepping `examples/general-wallet` + this roadmap over reinventing flows.
-- Keep OWS boot order: register handlers (including `setStyle`) → `wallet.start()` → deferred signer.
+- Keep OWS boot order: register handlers (including `configure`) → `wallet.start()` → deferred signer.
 - No deprecation shims — update call sites when renaming.
 
 ## Progress

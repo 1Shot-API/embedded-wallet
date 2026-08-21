@@ -91,12 +91,12 @@ async function ensureProxy(): Promise<OWSProxy> {
     });
 
     try {
-      await created.rpc("setStyle", {
+      await created.rpc("configure", {
         copy: { productName: "1Shot Wallet" },
         features: { hideCloseBox: true },
       });
     } catch (error) {
-      console.warn("[1Shot sidepanel] setStyle failed", error);
+      console.warn("[1Shot sidepanel] configure failed", error);
     }
 
     created.ethereum.on("accountsChanged", (...params: unknown[]) => {

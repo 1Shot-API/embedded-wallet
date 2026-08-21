@@ -27,7 +27,7 @@ export function AppHeader() {
         <div className="ml-auto hidden sm:block">
           <p className="text-muted-foreground max-w-md text-right text-xs">
             Host Layer → Branding Layer ·{" "}
-            <code className="text-[0.7rem]">setStyle</code> + EIP-1193
+            <code className="text-[0.7rem]">configure</code> + EIP-1193
           </p>
         </div>
       </div>

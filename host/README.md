@@ -2,7 +2,7 @@
 
 Local Host Layer for exercising Host ↔ Branding communication against this repo’s wallet (served at domain root).
 
-Adapted from OWS [`examples/host`](https://github.com/1Shot-API/open-wallet/tree/main/examples/host), plus a **Style** panel that calls `proxy.rpc("setStyle", options)`.
+Adapted from OWS [`examples/host`](https://github.com/1Shot-API/open-wallet/tree/main/examples/host), plus a **Style** panel that calls `proxy.rpc("configure", options)`.
 
 ## Run
 

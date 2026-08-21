@@ -44,7 +44,7 @@ export function DesignPanel({
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
               Fresh inline proxy in this slot. Styles are re-applied via{" "}
-              <code className="text-xs">setStyle</code> when you return to Test.
+              <code className="text-xs">configure</code> when you return to Test.
             </p>
           </div>
           <span className="bg-accent text-accent-foreground inline-flex items-center rounded-full border border-cyan-100 px-2.5 py-1 text-xs font-semibold">

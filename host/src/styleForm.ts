@@ -29,6 +29,12 @@ export interface IStyleFormState {
   disableCredentials: boolean;
   /** Pass as `features.disableDelegations`. */
   disableDelegations: boolean;
+  /**
+   * Status webhook URL for the 1Shot Relayer (`destinationUrl` on configure).
+   * Empty ⇒ omit / clear when applying a full features payload.
+   * @see https://1shotapi.com/docs/relayer/get-started/overview
+   */
+  destinationUrl: string;
 
   // Text — Connect
   connectTitle: string;
@@ -231,6 +237,7 @@ export const ACME_PRESET: IStyleFormState = {
   hideCloseBox: false,
   disableCredentials: false,
   disableDelegations: false,
+  destinationUrl: "",
   connectTitle: "Connect to Acme",
   connectBody: "Acme is requesting your wallet address.",
   connectContinue: "Allow",
@@ -363,7 +370,7 @@ export const ACME_PRESET: IStyleFormState = {
 export const OCEAN_PRESET: IStyleFormState = {
   ...ACME_PRESET,
   productName: "Ocean Wallet",
-  tagline: "Host setStyle preset",
+  tagline: "Host configure preset",
   primary: "#0e7490",
   primaryForeground: "#ffffff",
   background: "#f0f9ff",
@@ -517,8 +524,8 @@ function put(
   if (trimmed) target[key] = trimmed;
 }
 
-/** Build a `setStyle` RPC payload from the flat form (omit empty theme/copy keys). */
-export function buildSetStylePayload(
+/** Build a `configure` RPC payload from the flat form (omit empty theme/copy keys). */
+export function buildConfigurePayload(
   form: IStyleFormState,
 ): Record<string, unknown> {
   const theme: Record<string, string> = {};
@@ -787,5 +794,8 @@ export function buildSetStylePayload(
     disableDelegations: form.disableDelegations,
     allowedChains: [...form.allowedChainIds],
   };
+  const destinationUrl = form.destinationUrl.trim();
+  // Always send so Apply can clear a previously configured URL.
+  payload.destinationUrl = destinationUrl.length > 0 ? destinationUrl : null;
   return payload;
 }
