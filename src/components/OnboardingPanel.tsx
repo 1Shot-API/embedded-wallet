@@ -5,6 +5,7 @@ import { useWalletSessionStore } from "../wallet/sessionStore";
 import { formatWalletSetupError } from "../wallet/formatWalletSetupError";
 import { useStyle } from "../style/StyleProvider";
 import { BrandLogo } from "./BrandLogo";
+import { CloseWalletButton } from "./CloseWalletButton";
 
 function taglineLines(tagline: string): string[] {
   return tagline
@@ -65,6 +66,10 @@ export function OnboardingPanel() {
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col">
+      <div className="absolute top-2.5 right-2.5 z-10">
+        <CloseWalletButton />
+      </div>
+
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-8 text-center">
         <BrandLogo
           logoUrl={logoUrl}
