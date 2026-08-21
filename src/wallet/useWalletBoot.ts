@@ -30,7 +30,7 @@ import {
 } from "../ows/registerAccountConnect";
 import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
-import { registerSetStyleRpc } from "../style/registerSetStyle";
+import { registerConfigureRpc } from "../style/registerConfigure";
 import { wrapSignerWithCeremonyCopy } from "./wrapSignerWithCeremonyCopy";
 import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
 import {
@@ -269,7 +269,7 @@ export function useWalletBoot({
         }) => ActiveModal,
       ) => pushModal(build);
 
-      registerSetStyleRpc(wallet, chainRepository);
+      registerConfigureRpc(wallet, chainRepository);
 
       registerAccountConnect(wallet, signer, {
         storage: walletStorage,

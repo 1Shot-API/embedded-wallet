@@ -11,7 +11,7 @@ import {
   CATALOG_CHAIN_OPTIONS,
   DEFAULTS_PRESET,
   OCEAN_PRESET,
-  buildSetStylePayload,
+  buildConfigurePayload,
   type IStyleFormState,
 } from "../styleForm";
 
@@ -22,7 +22,7 @@ export interface IWalletConfiguratorProps {
 }
 
 /**
- * Host-side style playground for `proxy.rpc("setStyle", …)`.
+ * Host-side style playground for `proxy.rpc("configure", …)`.
  * Tabs: Basic (identity), Style (theme colors), Text (modal copy).
  */
 export function WalletConfigurator({
@@ -46,13 +46,13 @@ export function WalletConfigurator({
     if (next) setForm(next);
     setBusy(true);
     setIsError(false);
-    setStatus("Calling setStyle…");
+    setStatus("Calling configure…");
     try {
-      await onApply(buildSetStylePayload(payloadForm));
-      setStatus("setStyle applied.");
+      await onApply(buildConfigurePayload(payloadForm));
+      setStatus("Configuration applied.");
     } catch (error) {
       setIsError(true);
-      setStatus(error instanceof Error ? error.message : "setStyle failed");
+      setStatus(error instanceof Error ? error.message : "Configuration failed");
     } finally {
       setBusy(false);
     }
@@ -87,6 +87,25 @@ export function WalletConfigurator({
             value={form.tagline}
             onChange={(value) => patch("tagline", value)}
           />
+          <TextField
+            id="style-destination-url"
+            label="Status webhook URL"
+            value={form.destinationUrl}
+            mono
+            onChange={(value) => patch("destinationUrl", value)}
+          />
+          <p className="-mt-2 text-muted-foreground text-xs">
+            URL to receive transaction status update webhooks from the{" "}
+            <a
+              href="https://1shotapi.com/docs/relayer/get-started/overview"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2"
+            >
+              1Shot Relayer
+            </a>
+            . Leave empty to clear.
+          </p>
           <fieldset className="grid gap-3 rounded-lg border p-3">
             <legend className="px-1 text-sm font-medium">Features</legend>
             <div className="flex items-center justify-between gap-3">
@@ -151,7 +170,7 @@ export function WalletConfigurator({
                 Leave all unchecked to allow every catalog network. Checking any
                 restricts the wallet Network dropdown via{" "}
                 <code className="text-[0.7rem]">
-                  setStyle.features.allowedChains
+                  configure.features.allowedChains
                 </code>
                 .
               </p>
@@ -281,7 +300,7 @@ export function WalletConfigurator({
             void apply();
           }}
         >
-          Apply setStyle
+          Apply configuration
         </Button>
         <Button
           type="button"

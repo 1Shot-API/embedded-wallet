@@ -20,7 +20,7 @@ export const styleController = {
     return current;
   },
 
-  /** Deep-merge options (additive; used by setStyle RPC). */
+  /** Deep-merge options (additive; used by configure RPC). */
   merge(patch: IStyleOptions): IResolvedStyle {
     current = mergeStyle(current, patch);
     applyStyleToDocument(current);

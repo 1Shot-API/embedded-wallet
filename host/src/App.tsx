@@ -22,7 +22,7 @@ const MAX_ANALYTICS_EVENTS = 50;
 export function App() {
   const flyoutContainerRef = useRef<HTMLDivElement | null>(null);
   const proxyRef = useRef<OWSProxy | null>(null);
-  /** Last setStyle payload from Design mode — re-applied after Test recreate. */
+  /** Last configure payload from Design mode — re-applied after Test recreate. */
   const lastStyleRef = useRef<Record<string, unknown> | null>(null);
   const [previewMount, setPreviewMount] = useState<HTMLDivElement | null>(null);
   const [mode, setMode] = useState<HostMode>("test");
@@ -107,7 +107,7 @@ export function App() {
         });
 
         if (lastStyleRef.current) {
-          await proxy.rpc("setStyle", lastStyleRef.current);
+          await proxy.rpc("configure", lastStyleRef.current);
         }
 
         if (cancelled) {
@@ -121,7 +121,7 @@ export function App() {
           const connectedChain = await refreshChainFromWallet(proxy);
           reportStatus(
             mode === "design"
-              ? `Design preview connected on ${connectedChain}. Apply setStyle to refresh.`
+              ? `Design preview connected on ${connectedChain}. Apply configure to refresh.`
               : mode === "analytics"
                 ? "Live analytics — switch to Test to generate events."
                 : `Wallet connected on ${connectedChain}. Enter a message and click Sign.`,

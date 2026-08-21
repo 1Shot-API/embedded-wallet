@@ -1,5 +1,5 @@
 /**
- * Host-facing style knobs for `proxy.rpc("setStyle", options)`.
+ * Host-facing branding / config knobs for `proxy.rpc("configure", options)`.
  * All fields optional — omitted keys keep the previous / default value.
  */
 export interface IStyleThemeOptions {
@@ -471,7 +471,7 @@ export interface IStyleCopyOptions {
   advancedOptions?: Partial<IStyleCopyAdvancedOptions>;
 }
 
-/** Fully resolved copy map after merging defaults + setStyle. */
+/** Fully resolved copy map after merging defaults + configure. */
 export interface IResolvedCopy {
   productName: string;
   tagline: string;
@@ -530,12 +530,20 @@ export interface IStyleOptions {
   /** When true, add `.dark` on <html>; when false, remove it; omit = unchanged */
   dark?: boolean;
   features?: IStyleFeaturesOptions;
+  /**
+   * Optional URL to receive transaction status update webhooks from the
+   * 1Shot Relayer (https://1shotapi.com/docs/relayer/get-started/overview).
+   * Pass `null` or `""` to clear.
+   */
+  destinationUrl?: string | null;
 }
 
-/** Fully resolved style after merging defaults + setStyle patches. */
+/** Fully resolved style after merging defaults + configure patches. */
 export interface IResolvedStyle {
   theme: Required<IStyleThemeOptions>;
   copy: IResolvedCopy;
   dark: boolean;
   features: IResolvedStyleFeatures;
+  /** Status webhook URL for the 1Shot Relayer; `null` when unset. */
+  destinationUrl: string | null;
 }
