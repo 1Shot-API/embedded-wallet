@@ -21,6 +21,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
     disableDelegations: false,
     allowedChains: null,
   },
+  destinationUrl: null,
   copy: {
     productName: "1Shot Wallet",
     tagline:

@@ -193,7 +193,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     robinhoodLogo,
     true,
-    "https://rpc.mainnet.chain.robinhood.com",
+    `https://robinhood-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
     "Robinhood",
     "https://robinhoodchain.blockscout.com",
   ),
@@ -243,7 +243,7 @@ export class HardcodedChainRepository implements IChainRepository {
     };
   }
 
-  /** Full catalog (including disabled), for configurators / setStyle validation. */
+  /** Full catalog (including disabled), for configurators / configure validation. */
   getCatalog(): readonly SupportedChain[] {
     return CATALOG;
   }

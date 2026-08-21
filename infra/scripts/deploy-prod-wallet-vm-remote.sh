@@ -9,11 +9,11 @@ echo "----------------------- Start of Wallet Deployment Script ----------------
 echo "----------------------------------------------------------------------------------------"
 
 echo "---------------------------- Docker Deployment ---------------------------------------"
-docker compose pull
+docker compose --env-file secrets.env pull
 
 docker stop wallet || true
 docker rm -f wallet || true
 
-docker compose up -d
+docker compose --env-file secrets.env up -d
 
 docker system prune -f

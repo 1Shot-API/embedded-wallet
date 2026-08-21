@@ -632,6 +632,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         session.setCredentialCount(0);
         session.setTrackedAssetCount(0);
         session.unfocusWallet();
+        walletRef.current?.providerEvents.emit("accountsChanged", []);
         // Land on OnboardingPanel (login / create). Do not call ensureReady —
         // that would immediately reopen the setup modal.
       }

@@ -162,7 +162,20 @@ export function mergeStyle(
             ? null
             : [...patch.features.allowedChains],
     },
+    destinationUrl:
+      patch.destinationUrl === undefined
+        ? current.destinationUrl
+        : normalizeDestinationUrl(patch.destinationUrl),
   };
+}
+
+/** Empty / null clears; otherwise trim. Schema validates URL shape on RPC. */
+function normalizeDestinationUrl(value: string | null): string | null {
+  if (value == null) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
 }
 
 function cloneDefaultStyle(): IResolvedStyle {
@@ -217,6 +230,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       disableDelegations: DEFAULT_STYLE.features.disableDelegations,
       allowedChains: null,
     },
+    destinationUrl: null,
   };
 }
 

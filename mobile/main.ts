@@ -64,12 +64,12 @@ async function main(): Promise<void> {
   });
 
   try {
-    await proxy.rpc("setStyle", {
+    await proxy.rpc("configure", {
       copy: { productName: "1Shot Wallet" },
       features: { hideCloseBox: true },
     });
   } catch (error) {
-    console.warn("[mobile] setStyle failed", error);
+    console.warn("[mobile] configure failed", error);
   }
 
   setStatus("Starting WalletConnect…");

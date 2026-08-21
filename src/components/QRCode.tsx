@@ -49,7 +49,7 @@ function cssColorToHex(color: string, fallback: string): string {
 
 /**
  * Renders a QR code for `value`. All QR encoding lives in this module.
- * Module/quiet-zone colors follow host `setStyle` theme foreground/background.
+ * Module/quiet-zone colors follow host `configure` theme foreground/background.
  */
 export function QRCode({
   value,

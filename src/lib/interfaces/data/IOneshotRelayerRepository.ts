@@ -63,6 +63,8 @@ export interface IRelayer7710Params {
   context?: string;
   memo?: string;
   delegationSecret?: string;
+  /** URL for transaction status update webhooks from the 1Shot Relayer (≤256 chars). */
+  destinationUrl?: string;
 }
 
 export interface IRelayerEstimateResult {
