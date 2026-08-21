@@ -1,14 +1,15 @@
-import { SettingsIcon, XIcon } from "lucide-react";
+import { SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStyle } from "../style/StyleProvider";
 import { useWallet } from "../wallet/WalletProvider";
 import { BrandLogo } from "./BrandLogo";
+import { CloseWalletButton } from "./CloseWalletButton";
 
 /**
  * Top shell bar: brand logo + product name + settings / close.
  */
 export function WalletChrome() {
-  const { requestHide, openAdvancedOptions } = useWallet();
+  const { openAdvancedOptions } = useWallet();
   const { style } = useStyle();
 
   return (
@@ -37,19 +38,7 @@ export function WalletChrome() {
         >
           <SettingsIcon />
         </Button>
-        {!style.features.hideCloseBox ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Close wallet"
-            onClick={() => {
-              void requestHide();
-            }}
-          >
-            <XIcon />
-          </Button>
-        ) : null}
+        <CloseWalletButton />
       </div>
     </header>
   );
