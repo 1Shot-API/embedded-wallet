@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>1Shot Wallet — Settings</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>1Shot Wallet settings</h1>
+
+      <label>
+        Wallet iframe URL
+        <input id="wallet-url" type="url" spellcheck="false" />
+      </label>
+      <p class="hint">
+        Default is <code>https://wallet.1shotapi.com/</code>. Use your ngrok or
+        local branding URL while developing.
+      </p>
+
+      <label class="row">
+        <input id="prefer-oneshot" type="checkbox" />
+        Prefer 1Shot as <code>window.ethereum</code> when another wallet is present
+      </label>
+
+      <label>
+        Auto-inject allowlist (one origin per line)
+        <textarea id="allowlist" rows="8" spellcheck="false"></textarea>
+      </label>
+      <p class="hint">Example: <code>https://app.uniswap.org</code></p>
+
+      <div class="actions">
+        <button type="button" id="save-btn">Save</button>
+        <span id="status" class="status" aria-live="polite"></span>
+      </div>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

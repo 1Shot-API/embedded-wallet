@@ -6,6 +6,9 @@ import { MainPanel } from "./components/MainPanel";
 import { SignerHost } from "./components/SignerHost";
 import { ModalHost } from "./components/ModalHost";
 import { PasskeyPromptModal } from "./components/modals/PasskeyPromptModal";
+import { useStyle } from "./style/StyleProvider";
+import { useWallet } from "./wallet/WalletProvider";
+import { useSwipeDownToDismiss } from "./wallet/useSwipeDownToDismiss";
 
 export function App() {
   const { bootError, ready, unlocked, walletCreated, embedded } =
@@ -18,11 +21,23 @@ export function App() {
         embedded: state.embedded,
       })),
     );
+  const { requestHide } = useWallet();
+  const { style } = useStyle();
 
-  const showOnboarding = embedded && !walletCreated && !unlocked;
+  // Returning sessions with a complete address cache skip Login.
+  // Incomplete `ows-wallet-created` (no evm/solana cache) is cleared on hydrate.
+  const showOnboarding = !unlocked && !walletCreated;
+  const swipeDismissEnabled =
+    embedded && !style.features.hideCloseBox;
+  const swipeHandlers = useSwipeDownToDismiss(swipeDismissEnabled, () => {
+    void requestHide();
+  });
 
   return (
-    <div className="bg-background text-foreground flex h-full min-h-full flex-col">
+    <div
+      className="bg-background text-foreground flex h-full min-h-full flex-col"
+      {...swipeHandlers}
+    >
       {embedded && !showOnboarding ? <WalletChrome /> : null}
 
       <div

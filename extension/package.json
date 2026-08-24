@@ -1,0 +1,30 @@
+{
+  "name": "@1shotapi/oneshot-wallet-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "1Shot Wallet browser extension - MetaMask-style EIP-1193 shim + side-panel Inline OWSProxy host",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt build -b firefox --mv3",
+    "dev:firefox:vite": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox --mv3",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox --mv3",
+    "pack:chrome": "wxt zip",
+    "pack:firefox": "wxt zip -b firefox --mv3",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "clean": "node scripts/clean.mjs",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "@1shotapi/ows-provider": "^0.4.2",
+    "@1shotapi/ows-types": "^0.5.1"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "typescript": "~5.8.0",
+    "wxt": "^0.21.3"
+  }
+}

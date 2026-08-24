@@ -71,16 +71,24 @@ function normalizeNgrokDomain(value) {
 function printUrls(tunnelUrl) {
   const localWallet = `http://localhost:${listenPort}/`;
   const localSigner = `http://localhost:${listenPort}/signer/`;
+  const localMobile = `http://localhost:${listenPort}/mobile/`;
+  const localCreate = `http://localhost:${listenPort}/create/`;
 
   console.log(`1Shot Wallet dev server: http://localhost:${listenPort}`);
   console.log(`  Branding Layer (local):  ${localWallet}`);
   console.log(`  Signing Layer (local):   ${localSigner}`);
+  console.log(`  Host /mobile (local):    ${localMobile}`);
+  console.log(`  Host /create (local):    ${localCreate}`);
 
   if (tunnelUrl) {
     const walletUrl = new URL("/", tunnelUrl).href;
     const signerUrl = new URL("/signer/", tunnelUrl).href;
+    const mobileUrl = new URL("/mobile/", tunnelUrl).href;
+    const createUrl = new URL("/create/", tunnelUrl).href;
     console.log(`  Branding Layer (ngrok):  ${walletUrl}`);
     console.log(`  Signing Layer (ngrok):   ${signerUrl}`);
+    console.log(`  Host /mobile (ngrok):    ${mobileUrl}`);
+    console.log(`  Host /create (ngrok):    ${createUrl}`);
     console.log(`  Host env:        WALLET_IFRAME_URL=${walletUrl}`);
   }
 }

@@ -30,7 +30,7 @@ import {
 } from "../ows/registerAccountConnect";
 import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
-import { registerSetStyleRpc } from "../style/registerSetStyle";
+import { registerConfigureRpc } from "../style/registerConfigure";
 import { wrapSignerWithCeremonyCopy } from "./wrapSignerWithCeremonyCopy";
 import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
 import {
@@ -270,7 +270,7 @@ export function useWalletBoot({
         }) => ActiveModal,
       ) => pushModal(build);
 
-      registerSetStyleRpc(wallet, chainRepository);
+      registerConfigureRpc(wallet, chainRepository);
 
       registerAccountConnect(wallet, signer, {
         storage: walletStorage,
@@ -281,6 +281,7 @@ export function useWalletBoot({
             kind: "connect",
             resolve,
           })),
+        getChainId: () => useWalletSessionStore.getState().chainId,
       });
 
       const catalog = chainRepository.getCatalog();
@@ -801,13 +802,18 @@ export function useWalletBoot({
           .setBootError(error instanceof Error ? error.message : String(error));
       });
 
-      void awaitSigner().catch((error: unknown) => {
-        if (cancelled) return;
-        console.error("[oneshot-wallet] Signing Layer failed to load", error);
-        useWalletSessionStore
-          .getState()
-          .setBootError(error instanceof Error ? error.message : String(error));
-      });
+      void awaitSigner()
+        .then(() => {
+          if (cancelled) return;
+          useWalletSessionStore.getState().setSignerReady(true);
+        })
+        .catch((error: unknown) => {
+          if (cancelled) return;
+          console.error("[oneshot-wallet] Signing Layer failed to load", error);
+          useWalletSessionStore
+            .getState()
+            .setBootError(error instanceof Error ? error.message : String(error));
+        });
 
       const listed = await credentialRepository.list();
       if (cancelled) return;

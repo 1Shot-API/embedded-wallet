@@ -4,8 +4,8 @@ import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import type { IChainRepository } from "../lib/interfaces/data/IChainRepository";
 import { styleController } from "./styleController";
 
-/** Custom RPC method name — host: `await proxy.rpc("setStyle", options)`. */
-export const SET_STYLE_RPC_METHOD = "setStyle";
+/** Custom RPC method name — host: `await proxy.rpc("configure", options)`. */
+export const CONFIGURE_RPC_METHOD = "configure";
 
 const themeSchema = z.strictObject({
     primary: z.string().optional(),
@@ -45,6 +45,8 @@ const walletSetupCopySchema = z.strictObject({
     cancelLabel: z.string().optional(),
     loginLabel: z.string().optional(),
     createLabel: z.string().optional(),
+    passkeyTimeoutError: z.string().optional(),
+    passkeyFailedError: z.string().optional(),
   })
   .optional();
 
@@ -385,34 +387,53 @@ const copySchema = z.strictObject({
   })
   .optional();
 
-export const setStyleParamsSchema = z.strictObject({
-    theme: themeSchema,
-    copy: copySchema,
-    dark: z.boolean().optional(),
-    allowedChains: z
-      .array(z.string().regex(/^0x[0-9a-fA-F]+$/))
-      .optional(),
-  });
+export const configureParamsSchema = z.strictObject({
+  theme: themeSchema,
+  copy: copySchema,
+  dark: z.boolean().optional(),
+  features: z
+    .strictObject({
+      hideCloseBox: z.boolean().optional(),
+      disableCredentials: z.boolean().optional(),
+      disableDelegations: z.boolean().optional(),
+      allowedChains: z
+        .array(z.string().regex(/^0x[0-9a-fA-F]+$/))
+        .optional(),
+    })
+    .optional(),
+  /**
+   * URL to receive transaction status update webhooks from the 1Shot Relayer
+   * (≤256 chars). `null` or `""` clears a previously configured value.
+   * @see https://1shotapi.com/docs/relayer/get-started/overview
+   */
+  destinationUrl: z
+    .union([
+      z.url().max(256),
+      z.literal(""),
+      z.null(),
+    ])
+    .optional(),
+});
 
-export type ISetStyleParams = z.infer<typeof setStyleParamsSchema>;
+export type IConfigureParams = z.infer<typeof configureParamsSchema>;
 
-export function registerSetStyleRpc(
+export function registerConfigureRpc(
   wallet: OWSWallet,
   chainRepository: IChainRepository,
 ): void {
   wallet.registerRpc(
-    SET_STYLE_RPC_METHOD,
+    CONFIGURE_RPC_METHOD,
     async (params) => {
-      const styleParams = params as ISetStyleParams;
-      const resolved = styleController.merge(styleParams);
-      if (styleParams.allowedChains !== undefined) {
+      const configureParams = params as IConfigureParams;
+      const resolved = styleController.merge(configureParams);
+      if (configureParams.features?.allowedChains !== undefined) {
         const catalogIds = new Set(
           chainRepository
             .getCatalog()
             .map((chain) => String(chain.chainId).toLowerCase()),
         );
         const valid: ReturnType<typeof EVMChainId>[] = [];
-        for (const id of styleParams.allowedChains) {
+        for (const id of configureParams.features.allowedChains) {
           const lower = id.toLowerCase();
           if (catalogIds.has(lower)) {
             valid.push(EVMChainId(lower as `0x${string}`));
@@ -425,6 +446,6 @@ export function registerSetStyleRpc(
         productName: resolved.copy.productName,
       };
     },
-    setStyleParamsSchema,
+    configureParamsSchema,
   );
 }

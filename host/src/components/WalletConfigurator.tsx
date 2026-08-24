@@ -11,7 +11,7 @@ import {
   CATALOG_CHAIN_OPTIONS,
   DEFAULTS_PRESET,
   OCEAN_PRESET,
-  buildSetStylePayload,
+  buildConfigurePayload,
   type IStyleFormState,
 } from "../styleForm";
 
@@ -22,7 +22,7 @@ export interface IWalletConfiguratorProps {
 }
 
 /**
- * Host-side style playground for `proxy.rpc("setStyle", …)`.
+ * Host-side style playground for `proxy.rpc("configure", …)`.
  * Tabs: Basic (identity), Style (theme colors), Text (modal copy).
  */
 export function WalletConfigurator({
@@ -46,13 +46,13 @@ export function WalletConfigurator({
     if (next) setForm(next);
     setBusy(true);
     setIsError(false);
-    setStatus("Calling setStyle…");
+    setStatus("Calling configure…");
     try {
-      await onApply(buildSetStylePayload(payloadForm));
-      setStatus("setStyle applied.");
+      await onApply(buildConfigurePayload(payloadForm));
+      setStatus("Configuration applied.");
     } catch (error) {
       setIsError(true);
-      setStatus(error instanceof Error ? error.message : "setStyle failed");
+      setStatus(error instanceof Error ? error.message : "Configuration failed");
     } finally {
       setBusy(false);
     }
@@ -87,44 +87,123 @@ export function WalletConfigurator({
             value={form.tagline}
             onChange={(value) => patch("tagline", value)}
           />
-          <fieldset className="grid gap-2">
-            <legend className="text-sm font-medium">
-              Allowed chains
-            </legend>
-            <p className="text-muted-foreground text-xs">
-              Leave all unchecked to allow every catalog network. Checking any
-              restricts the wallet Network dropdown via{" "}
-              <code className="text-[0.7rem]">setStyle.allowedChains</code>.
-            </p>
-            <div className="grid max-h-48 gap-1.5 overflow-y-auto rounded-md border p-2">
-              {CATALOG_CHAIN_OPTIONS.map((chain) => {
-                const checked = form.allowedChainIds.includes(chain.chainId);
-                return (
-                  <label
-                    key={chain.chainId}
-                    className="flex cursor-pointer items-center gap-2 text-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => {
-                        patch(
-                          "allowedChainIds",
-                          checked
-                            ? form.allowedChainIds.filter(
-                                (id) => id !== chain.chainId,
-                              )
-                            : [...form.allowedChainIds, chain.chainId],
-                        );
-                      }}
-                    />
-                    <span>{chain.label}</span>
-                    <span className="text-muted-foreground font-mono text-[0.7rem]">
-                      {chain.chainId}
-                    </span>
-                  </label>
-                );
-              })}
+          <TextField
+            id="style-destination-url"
+            label="Status webhook URL"
+            value={form.destinationUrl}
+            mono
+            onChange={(value) => patch("destinationUrl", value)}
+          />
+          <p className="-mt-2 text-muted-foreground text-xs">
+            URL to receive transaction status update webhooks from the{" "}
+            <a
+              href="https://1shotapi.com/docs/relayer/get-started/overview"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2"
+            >
+              1Shot Relayer
+            </a>
+            . Leave empty to clear.
+          </p>
+          <fieldset className="grid gap-3 rounded-lg border p-3">
+            <legend className="px-1 text-sm font-medium">Features</legend>
+            <div className="flex items-center justify-between gap-3">
+              <div className="grid gap-0.5">
+                <Label htmlFor="style-hide-close" className="cursor-pointer">
+                  Hide Close Box
+                </Label>
+                <p className="text-muted-foreground text-xs">
+                  Hides the chrome Close (X). Use for Inline hosts where hide
+                  is a no-op.
+                </p>
+              </div>
+              <Switch
+                id="style-hide-close"
+                checked={form.hideCloseBox}
+                onCheckedChange={(checked) => patch("hideCloseBox", checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="grid gap-0.5">
+                <Label
+                  htmlFor="style-disable-credentials"
+                  className="cursor-pointer"
+                >
+                  Disable Credentials
+                </Label>
+                <p className="text-muted-foreground text-xs">
+                  Hides the Credentials tab. Host credential flows still work.
+                </p>
+              </div>
+              <Switch
+                id="style-disable-credentials"
+                checked={form.disableCredentials}
+                onCheckedChange={(checked) =>
+                  patch("disableCredentials", checked)
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="grid gap-0.5">
+                <Label
+                  htmlFor="style-disable-delegations"
+                  className="cursor-pointer"
+                >
+                  Disable Delegations
+                </Label>
+                <p className="text-muted-foreground text-xs">
+                  Hides the Delegations tab. Host delegation flows still work.
+                </p>
+              </div>
+              <Switch
+                id="style-disable-delegations"
+                checked={form.disableDelegations}
+                onCheckedChange={(checked) =>
+                  patch("disableDelegations", checked)
+                }
+              />
+            </div>
+            <div className="grid gap-2">
+              <p className="text-sm font-medium">Allowed chains</p>
+              <p className="text-muted-foreground text-xs">
+                Leave all unchecked to allow every catalog network. Checking any
+                restricts the wallet Network dropdown via{" "}
+                <code className="text-[0.7rem]">
+                  configure.features.allowedChains
+                </code>
+                .
+              </p>
+              <div className="grid max-h-48 gap-1.5 overflow-y-auto rounded-md border p-2">
+                {CATALOG_CHAIN_OPTIONS.map((chain) => {
+                  const checked = form.allowedChainIds.includes(chain.chainId);
+                  return (
+                    <label
+                      key={chain.chainId}
+                      className="flex cursor-pointer items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          patch(
+                            "allowedChainIds",
+                            checked
+                              ? form.allowedChainIds.filter(
+                                  (id) => id !== chain.chainId,
+                                )
+                              : [...form.allowedChainIds, chain.chainId],
+                          );
+                        }}
+                      />
+                      <span>{chain.label}</span>
+                      <span className="text-muted-foreground font-mono text-[0.7rem]">
+                        {chain.chainId}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </fieldset>
         </TabsContent>
@@ -221,7 +300,7 @@ export function WalletConfigurator({
             void apply();
           }}
         >
-          Apply setStyle
+          Apply configuration
         </Button>
         <Button
           type="button"

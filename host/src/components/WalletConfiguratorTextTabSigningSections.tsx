@@ -75,6 +75,18 @@ export function WalletConfiguratorTextTabSigningSections({
             value={form.setupCancel}
             onChange={(value) => patch("setupCancel", value)}
           />
+          <TextField
+            id="setup-passkey-timeout"
+            label="Passkey timeout error"
+            value={form.setupPasskeyTimeoutError}
+            onChange={(value) => patch("setupPasskeyTimeoutError", value)}
+          />
+          <TextField
+            id="setup-passkey-failed"
+            label="Passkey failed error"
+            value={form.setupPasskeyFailedError}
+            onChange={(value) => patch("setupPasskeyFailedError", value)}
+          />
         </AccordionContent>
       </AccordionItem>
 

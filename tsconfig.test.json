@@ -5,5 +5,5 @@
     "noEmit": true,
     "rootDir": "."
   },
-  "include": ["src/**/*", "test/**/*", "create/**/*", "vite.config.ts"]
+  "include": ["src/**/*", "test/**/*", "create/**/*", "mobile/**/*", "vite.config.ts"]
 }

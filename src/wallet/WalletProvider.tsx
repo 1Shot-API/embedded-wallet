@@ -87,6 +87,8 @@ import type { DelegationId } from "../lib/types/primitives/DelegationId";
 import type { TrackedAssetId } from "../lib/types/primitives";
 import {
   loadCachedEvmAddress,
+  loadAccountsPermissionGranted,
+  saveAccountsPermissionGranted,
   saveCachedAddresses,
   clearWalletStorage,
 } from "../storage";
@@ -174,6 +176,8 @@ const walletStorage: AccountConnectStorage = {
       session.setAddresses(evm, session.solanaAddress);
     }
   },
+  loadAccountsPermissionGranted,
+  saveAccountsPermissionGranted,
 };
 
 /** Imperative wallet APIs that need refs / boot (not UI session state). */
@@ -632,6 +636,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         session.setCredentialCount(0);
         session.setTrackedAssetCount(0);
         session.unfocusWallet();
+        walletRef.current?.providerEvents.emit("accountsChanged", []);
         // Land on OnboardingPanel (login / create). Do not call ensureReady —
         // that would immediately reopen the setup modal.
       }

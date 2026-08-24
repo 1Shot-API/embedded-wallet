@@ -530,7 +530,7 @@ export function useHostTestActions({
     if (!proxy) {
       throw new Error("Wallet not connected");
     }
-    await proxy.rpc("setStyle", options);
+    await proxy.rpc("configure", options);
   };
 
   const handleFocusUsdcArc = () => {

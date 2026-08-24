@@ -142,6 +142,10 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# WXT browser extension (generated)
+extension/.wxt/
+extension/.output/
+
 # Local HTTPS certs (mkcert) for host tester
 host/certs/*.pem
 

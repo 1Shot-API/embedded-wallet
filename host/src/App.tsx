@@ -8,6 +8,7 @@ import { AnalyticsPanel } from "./components/AnalyticsPanel";
 import { AppHeader } from "./components/AppHeader";
 import { AppSidebar, type HostMode } from "./components/AppSidebar";
 import { DesignPanel } from "./components/DesignPanel";
+import { InjectedPanel } from "./components/InjectedPanel";
 import { TestPanel } from "./components/TestPanel";
 import { SidebarInset, SidebarProvider } from "./components/ui/sidebar";
 import { TooltipProvider } from "./components/ui/tooltip";
@@ -21,7 +22,7 @@ const MAX_ANALYTICS_EVENTS = 50;
 export function App() {
   const flyoutContainerRef = useRef<HTMLDivElement | null>(null);
   const proxyRef = useRef<OWSProxy | null>(null);
-  /** Last setStyle payload from Design mode — re-applied after Test recreate. */
+  /** Last configure payload from Design mode — re-applied after Test recreate. */
   const lastStyleRef = useRef<Record<string, unknown> | null>(null);
   const [previewMount, setPreviewMount] = useState<HTMLDivElement | null>(null);
   const [mode, setMode] = useState<HostMode>("test");
@@ -41,7 +42,16 @@ export function App() {
 
   // Presentation is create-time only. Switching Test ↔ Design destroys and
   // recreates the proxy against the right container (reparenting breaks Postmate).
+  // Injected mode intentionally skips OWSProxy — extension provides window.ethereum.
   useEffect(() => {
+    if (mode === "injected") {
+      setReady(false);
+      setWalletVisible(false);
+      proxyRef.current?.destroy();
+      proxyRef.current = null;
+      return;
+    }
+
     if (mode === "design" && !previewMount) {
       return;
     }
@@ -97,7 +107,7 @@ export function App() {
         });
 
         if (lastStyleRef.current) {
-          await proxy.rpc("setStyle", lastStyleRef.current);
+          await proxy.rpc("configure", lastStyleRef.current);
         }
 
         if (cancelled) {
@@ -111,7 +121,7 @@ export function App() {
           const connectedChain = await refreshChainFromWallet(proxy);
           reportStatus(
             mode === "design"
-              ? `Design preview connected on ${connectedChain}. Apply setStyle to refresh.`
+              ? `Design preview connected on ${connectedChain}. Apply configure to refresh.`
               : mode === "analytics"
                 ? "Live analytics — switch to Test to generate events."
                 : `Wallet connected on ${connectedChain}. Enter a message and click Sign.`,
@@ -185,6 +195,8 @@ export function App() {
               onApplyStyle={handleApplyStyle}
               previewMountRef={setPreviewMount}
             />
+          ) : mode === "injected" ? (
+            <InjectedPanel />
           ) : (
             <div className="mx-auto w-full max-w-2xl px-6 pb-6">
               <AnalyticsPanel

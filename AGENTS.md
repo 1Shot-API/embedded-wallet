@@ -13,6 +13,8 @@ Prefer **clean code over backwards compatibility**. Do not add legacy redirects,
 | `/` | Branding Layer (React SPA) |
 | `/signer/` | Signing Layer (`@1shotapi/ows-signer`) |
 | `/create/` | First-party Host for Safari passkey create (`createAccount` RPC) |
+| `/mobile/` | First-party Host PWA + WalletConnect (Inline OWSProxy ↔ Reown WalletKit) |
+| `extension/` | MV3 Chrome/Firefox extension (side-panel Inline OWSProxy + MAIN-world EIP-1193 shim) |
 | `src/lib/types/primitives/` | Wallet-local branded types (one file each) |
 | `src/lib/types/enum/` | Domain enums (`EAssetType`, `EWalletEventKind`, …) |
 | `src/lib/types/domain/` | Domain DTOs (e.g. `KnownAsset`, `TrackedAsset`, `WalletConfig`) |
@@ -21,7 +23,7 @@ Prefer **clean code over backwards compatibility**. Do not add legacy redirects,
 | `src/lib/implementations/{business,data,utils}/` | Layer implementations (`CircleProvider` for AppKit onramp) |
 | `src/assets/` | Static media only (SVGs, images) |
 
-Test Host Layer: `host/` (`npm run dev:host`). Style via Host RPC `setStyle`, not in-wallet debug knobs.
+Test Host Layer: `host/` (`npm run dev:host`). Browser extension: `extension/` (`npm run dev:extension`) — see [`extension/README.md`](extension/README.md). Branding / host config via Host RPC `configure`, not in-wallet debug knobs.
 
 Fiat onramp: Asset Details **Buy** and host RPC `onramp({ chainId?, amount? })` open `OnrampView` (Circle AppKit). Sessions come from Relayer `POST /wallet/onramp` — never put the Circle kit key in this SPA. Default UI is `mountIframe`; for local/ngrok before Circle CSP allowlisting, set `localStorage.circlePopup = "true"` to use `openWindow` (prefetch session, then a sync click). Cloudsmith: set `CLOUDSMITH_TOKEN` before `npm install` (see README).
 
@@ -35,13 +37,13 @@ Signing Layer WebAuthn (PRF via `OWSSigner`) shows Confirm/Cancel **inside the s
 
 Branding `PasskeyPromptModal` + `withPasskeyPrompt` remain **only** for Branding-native WebAuthn that never enters Signing (e.g. Relayer `createRelayerAssertion` in `webauthnAuth.ts`).
 
-### User-facing copy (`setStyle`)
+### Host configuration (`configure`)
 
-When adding or changing UI strings:
+When adding or changing UI strings or host-tunable options:
 
-1. Wire them through `style.copy` (defaults, types, and `registerSetStyle` Zod schema) so hosts can override via `setStyle`.
+1. Wire them through `style` / `IStyleOptions` (defaults, types, and `registerConfigure` Zod schema) so hosts can override via `configure`.
 2. Expose the same keys in **both** WalletConfigurator playgrounds: `host/` in this repo and `app/playground/` in **1Shot-API-Website-New** (`styleForm.ts` + `WalletConfigurator.tsx`).
-
+3. Optional top-level `destinationUrl` is a URL for transaction status update webhooks from the [1Shot Relayer](https://1shotapi.com/docs/relayer/get-started/overview).
 ### Domain layers (assets example)
 
 - **Utils:** `IBlockchainProvider` / `AddressUtils` (from `@1shotapi/ows-wallet-utils`) / `SupportedChainsBlockchainProvider`, `IEventBus` / `EventBus`, `ITransactionUtils` / `TransactionUtils`, `IConfigProvider` / `ConfigProvider`, `IChainRepository` / `HardcodedChainRepository`

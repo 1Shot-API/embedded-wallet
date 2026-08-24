@@ -71,7 +71,7 @@ Host `OWSProxy` shows a lower-right opaque flyout (no modal backdrop).
 
 **Reference wallet path (EIP-1193):**
 
-1. `src/ows/registerAccountConnect.ts` — `eth_accounts` / `eth_requestAccounts` (cached addresses; connect consent + `ensureReady`). Emit `wallet.providerEvents.emit("accountsChanged", [evm])` after a new connect.
+1. `src/ows/registerAccountConnect.ts` — `eth_accounts` / `eth_requestAccounts` (grant-gated cache; connect consent + `ensureReady`). Emit `accountsChanged` / `connect` only after a fresh approval — not on silent reconnect.
 2. `RpcHelper` for JSON-RPC reads / `wallet_switchEthereumChain` (`src/ows/demoChains.ts`, construct in `WalletProvider.tsx`). Forward `rpc.events.on("chainChanged", …)` to `wallet.providerEvents.emit("chainChanged", next)` so hosts listening on `proxy.ethereum.on("chainChanged", …)` stay in sync.
 3. `SignHelper` for `personal_sign` / typed data (task 5).
 

@@ -16,7 +16,7 @@ export interface IChainRepository {
   /** Subscribe to allowlist (and thus `list()`) changes. Returns unsubscribe. */
   onAllowedChainsChanged(handler: () => void): () => void;
 
-  /** Full catalog (not filtered by allowlist), for RPC / setStyle validation. */
+  /** Full catalog (not filtered by allowlist), for RPC / configure validation. */
   getCatalog(): readonly SupportedChain[];
 
   /**

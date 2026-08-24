@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; frame-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'"
+    />
+    <title>1Shot extension CSP-hostile test page</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 40rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.45;
+      }
+      pre {
+        background: #111;
+        color: #eee;
+        padding: 0.75rem;
+        overflow: auto;
+      }
+      button {
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CSP-hostile dApp stub</h1>
+    <p>
+      This page sets <code>frame-src 'self'</code> so an in-page Branding iframe
+      would fail. The extension side-panel architecture should still work after
+      you inject the 1Shot provider.
+    </p>
+    <p>
+      Serve with any static server (e.g.
+      <code>npx serve extension/test-pages</code>) over
+      <code>http://localhost</code>, then Inject from the extension popup.
+    </p>
+    <button type="button" id="list">List providers (EIP-6963)</button>
+    <button type="button" id="connect">eth_requestAccounts</button>
+    <pre id="out">(no output yet)</pre>
+    <script>
+      const out = document.getElementById("out");
+      const providers = [];
+
+      window.addEventListener("eip6963:announceProvider", (event) => {
+        providers.push(event.detail);
+        out.textContent = "EIP-6963 providers:\n" + providers
+          .map((p) => `- ${p.info.name} (${p.info.rdns})`)
+          .join("\n");
+      });
+      window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+      document.getElementById("list").onclick = () => {
+        providers.length = 0;
+        window.dispatchEvent(new Event("eip6963:requestProvider"));
+        out.textContent =
+          "Requested EIP-6963 announce.\nwindow.ethereum is1Shot=" +
+          String(window.ethereum?.is1Shot);
+      };
+
+      document.getElementById("connect").onclick = async () => {
+        try {
+          const detail = providers.find((p) => p.info.rdns === "com.1shotapi.wallet");
+          const eth = detail?.provider || window.ethereum;
+          if (!eth) throw new Error("No provider — inject the extension first");
+          const accounts = await eth.request({ method: "eth_requestAccounts" });
+          out.textContent = JSON.stringify(accounts, null, 2);
+        } catch (error) {
+          out.textContent = String(error?.message || error);
+        }
+      };
+    </script>
+  </body>
+</html>

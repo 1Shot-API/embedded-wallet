@@ -33,21 +33,12 @@ function seed(row: ISeedRow): KnownAsset {
 }
 
 /**
- * Static snapshot from `relayer_getCapabilities` (prod + dev) plus Arc USDC.
+ * Static snapshot from `relayer_getCapabilities` (prod + dev), including
+ * Arc Testnet USDC and Robinhood USDG.
  * @see https://www.1shotapi.com/docs/relayer/get-started/overview
  */
 const SEED_ROWS: readonly ISeedRow[] = [
-  // Arc mainnet — no MetaMask contracts / relayer yet.
-  {
-    chainId: EVMChainId("0x13b2"),
-    address: EVMAccountAddress(
-      "0x3600000000000000000000000000000000000000",
-    ),
-    symbol: "USDC",
-    name: "USDC",
-    decimals: 6,
-  },
-  // Arc Testnet — demo network, not returned by relayer.
+  // Arc Testnet (5042002) — native USDC
   {
     chainId: EVMChainId("0x4cef52"),
     address: EVMAccountAddress(
@@ -55,6 +46,16 @@ const SEED_ROWS: readonly ISeedRow[] = [
     ),
     symbol: "USDC",
     name: "USDC",
+    decimals: 6,
+  },
+  // Robinhood (4663) — official USDG (USDC is not deployed)
+  {
+    chainId: EVMChainId("0x1237"),
+    address: EVMAccountAddress(
+      "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+    ),
+    symbol: "USDG",
+    name: "Global Dollar",
     decimals: 6,
   },
   // Ethereum mainnet (1)
