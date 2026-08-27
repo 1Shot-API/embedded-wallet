@@ -7,6 +7,9 @@ export interface IKnownAssetRepository {
     address: EVMAccountAddress,
   ): Promise<KnownAsset | null>;
 
+  /** Native Circle USDC on `chainId` when the catalog marks `useCCTPBridge`. */
+  getCctpBridgeAsset(chainId: EVMChainId): Promise<KnownAsset | null>;
+
   /**
    * Catalog hit or on-chain ERC-20 probe → NewTrackedAsset.
    * Throws if the address is not a contract or not ERC-20.

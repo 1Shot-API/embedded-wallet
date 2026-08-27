@@ -143,6 +143,13 @@ export interface IStyleFormState {
   receiveCopyFailedLabel: string;
   receiveCloseLabel: string;
   sendLabel: string;
+  bridgeLabel: string;
+  cctpBridgeTitle: string;
+  cctpBridgeBody: string;
+  cctpBridgeGetQuote: string;
+  cctpBridgeConfirm: string;
+  cctpBridgeCancel: string;
+  cctpBridgeSentTitle: string;
 
   // Text — Confirm transfer (host ERC-20)
   confirmTransferTitle: string;
@@ -327,6 +334,14 @@ export const ACME_PRESET: IStyleFormState = {
   receiveCopyFailedLabel: "Copy failed",
   receiveCloseLabel: "Close",
   sendLabel: "Send",
+  bridgeLabel: "Bridge",
+  cctpBridgeTitle: "Bridge USDC",
+  cctpBridgeBody:
+    "Send USDC to another network. Circle mints on the destination — you never pay native gas.",
+  cctpBridgeGetQuote: "Get quote",
+  cctpBridgeConfirm: "Confirm bridge",
+  cctpBridgeCancel: "Cancel",
+  cctpBridgeSentTitle: "Bridge complete",
   confirmTransferTitle: "Confirm Transfer",
   confirmTransferBody:
     "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
@@ -481,6 +496,14 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   receiveCopyFailedLabel: "Copy failed",
   receiveCloseLabel: "Close",
   sendLabel: "Send",
+  bridgeLabel: "Bridge",
+  cctpBridgeTitle: "Bridge USDC",
+  cctpBridgeBody:
+    "Send USDC to another network. Circle mints on the destination — you never pay native gas.",
+  cctpBridgeGetQuote: "Get quote",
+  cctpBridgeConfirm: "Confirm bridge",
+  cctpBridgeCancel: "Cancel",
+  cctpBridgeSentTitle: "Bridge complete",
   confirmTransferTitle: "Confirm transfer",
   confirmTransferBody:
     "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
@@ -753,7 +776,17 @@ export function buildConfigurePayload(
   put(balances, "receiveCopyFailedLabel", form.receiveCopyFailedLabel);
   put(balances, "receiveCloseLabel", form.receiveCloseLabel);
   put(balances, "sendLabel", form.sendLabel);
+  put(balances, "bridgeLabel", form.bridgeLabel);
   if (Object.keys(balances).length > 0) copy.balances = balances;
+
+  const cctpBridge: Record<string, string> = {};
+  put(cctpBridge, "title", form.cctpBridgeTitle);
+  put(cctpBridge, "body", form.cctpBridgeBody);
+  put(cctpBridge, "getQuoteLabel", form.cctpBridgeGetQuote);
+  put(cctpBridge, "confirmLabel", form.cctpBridgeConfirm);
+  put(cctpBridge, "cancelLabel", form.cctpBridgeCancel);
+  put(cctpBridge, "successTitle", form.cctpBridgeSentTitle);
+  if (Object.keys(cctpBridge).length > 0) copy.cctpBridge = cctpBridge;
 
   const exportPrivateKey: Record<string, string> = {};
   put(exportPrivateKey, "title", form.exportPrivateKeyTitle);

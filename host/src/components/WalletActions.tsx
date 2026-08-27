@@ -58,6 +58,7 @@ export interface IWalletActionsProps {
   onAddUsdcArc: () => void;
   onAddUsdtBase: () => void;
   onOnramp: () => void;
+  onBridge: () => void;
   /** In-memory grants from this session (`wallet_requestExecutionPermissions`). */
   sessionGrants: ReadonlyArray<{
     id: string;
@@ -108,6 +109,7 @@ export function WalletActions({
   onAddUsdcArc,
   onAddUsdtBase,
   onOnramp,
+  onBridge,
   sessionGrants,
   delegationsOutput,
   onRequestDelegation,
@@ -408,10 +410,10 @@ export function WalletActions({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Onramp</Label>
+        <Label>Onramp / Bridge</Label>
         <p className="text-muted-foreground text-xs">
-          Open Circle fiat onramp via <code>onramp</code> (Buy crypto into the
-          unlocked wallet address).
+          Open Circle fiat onramp via <code>onramp</code>, or gasless CCTP USDC
+          bridge via <code>bridge</code>.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -421,6 +423,14 @@ export function WalletActions({
             onClick={onOnramp}
           >
             Onramp
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready || busy}
+            onClick={onBridge}
+          >
+            Bridge
           </Button>
         </div>
       </div>

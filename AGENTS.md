@@ -27,6 +27,8 @@ Test Host Layer: `host/` (`npm run dev:host`). Browser extension: `extension/` (
 
 Fiat onramp: Asset Details **Buy** and host RPC `onramp({ chainId?, amount? })` open `OnrampView` (Circle AppKit). Sessions come from Relayer `POST /wallet/onramp` — never put the Circle kit key in this SPA. Default UI is `mountIframe`; for local/ngrok before Circle CSP allowlisting, set `localStorage.circlePopup = "true"` to use `openWindow` (prefetch session, then a sync click). Cloudsmith: set `CLOUDSMITH_TOKEN` before `npm install` (see README).
 
+CCTP bridge: Asset Details **Bridge** (native USDC with `useCCTPBridge`) and host RPC `bridge({ amount?, sourceChainId?, destinationChainId? })` open `CCTPBridge`. Source omit → session chain. Burns via `TokenMessengerV2.depositForBurnWithHook` + `cctp-forward` hook through the EIP-7710 relayer (same USDC fee as Send). Destination mint is Circle’s Forwarding Service — no dest-chain signature, no native gas, no BridgeKit.
+
 ### Form validation UX
 
 Primary submit actions (e.g. Send in `TransferTokensModal`) stay **disabled until every required field is valid**. Do not leave the button enabled and only reject on click. Empty fields show no error text; invalid non-empty input shows inline errors; the CTA enables only when the whole form is ready.
@@ -49,6 +51,32 @@ When adding or changing UI strings or host-tunable options:
 - **Utils:** `IBlockchainProvider` / `AddressUtils` (from `@1shotapi/ows-wallet-utils`) / `SupportedChainsBlockchainProvider`, `IEventBus` / `EventBus`, `ITransactionUtils` / `TransactionUtils`, `IConfigProvider` / `ConfigProvider`, `IChainRepository` / `HardcodedChainRepository`
 - **Data:** `IKnownAssetRepository`, `ITrackedAssetRepository`, `IOneshotRelayerRepository` (`src/lib`) and their implementations
 - **Business:** services that orchestrate domain logic (add as needed)
+
+### Injectable classes (constructor DI)
+
+Prefer **direct constructor parameter properties** for injectable services/utils — not an `XXXOptions` bag. Call sites pass dependencies positionally; implementations use `this.chainRepository` (etc.), never `this.options.*`.
+
+```ts
+// Prefer
+export class BridgeService implements IBridgeService {
+  constructor(
+    protected readonly chainRepository: IChainRepository,
+    protected readonly knownAssetRepository: IKnownAssetRepository,
+    protected readonly circleRepository: ICircleRepository,
+    protected readonly transactionUtils: ITransactionUtils,
+    protected readonly cctpUtils: ICCTPUtils,
+    protected readonly blockchain: IBlockchainProvider,
+  ) {}
+}
+
+// Avoid
+export type BridgeServiceOptions = { chainRepository: IChainRepository; /* … */ };
+export class BridgeService {
+  constructor(private readonly options: BridgeServiceOptions) {}
+}
+```
+
+Wire at the composition root (e.g. `WalletProvider`) with positional args: `new BridgeService(chainRepository, knownAssetRepository, …)`.
 
 `IOneshotRelayerRepository.sendTransaction` owns prepare + passkey sign + broadcast (interim: `eth_sendRawTransaction`). Host EIP-1193 sends go SignHelper → branding `approveAndSignTransaction` (ConfirmTransfer / SendTransaction consent) → relayer. In-wallet Send uses `TransferTokensModal` → `WalletProvider.sendTransaction` → relayer, then `SentTransactionModal` (hash + explorer link). Host-driven sends do not show that confirmation — the host surfaces the hash itself.
 

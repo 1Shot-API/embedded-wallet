@@ -9,7 +9,11 @@ import { KnownAsset } from "../../types/domain/KnownAsset";
 import { NewTrackedAsset } from "../../types/domain/TrackedAsset";
 import { EAssetType } from "../../types/enum/EAssetType";
 import { makeTrackedAssetId } from "@/lib/types/primitives";
-import { RELAYER_KNOWN_ASSETS } from "./relayerKnownAssets";
+import { EChain } from "../../types/enum/EChain";
+import {
+  RELAYER_KNOWN_ASSETS,
+  getCctpBridgeAsset as lookupCctpBridgeAsset,
+} from "./relayerKnownAssets";
 
 const BY_KEY = new Map(
   RELAYER_KNOWN_ASSETS.map((asset) => [
@@ -20,11 +24,11 @@ const BY_KEY = new Map(
 
 /** Chain → pinned default stablecoin symbol (always shown, not removable). */
 const DEFAULT_TRACKED_STABLE_BY_CHAIN = new Map([
-  ["0x4cef52", "USDC"],
-  ["0xaa36a7", "USDC"],
-  ["0x14a34", "USDC"],
-  ["0x2105", "USDC"],
-  ["0x1237", "USDG"],
+  [String(EChain.ArcTestnet).toLowerCase(), "USDC"],
+  [String(EChain.Sepolia).toLowerCase(), "USDC"],
+  [String(EChain.BaseSepolia).toLowerCase(), "USDC"],
+  [String(EChain.Base).toLowerCase(), "USDC"],
+  [String(EChain.Robinhood).toLowerCase(), "USDG"],
 ]);
 
 /**
@@ -60,6 +64,12 @@ export class HardcodedKnownAssetRepository implements IKnownAssetRepository {
     address: EVMAccountAddressType,
   ): Promise<KnownAsset | null> {
     return BY_KEY.get(makeTrackedAssetId(chainId, address)) ?? null;
+  }
+
+  async getCctpBridgeAsset(
+    chainId: EVMChainIdType,
+  ): Promise<KnownAsset | null> {
+    return lookupCctpBridgeAsset(chainId);
   }
 
   async resolveForTracking(

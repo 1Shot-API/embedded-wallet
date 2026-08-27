@@ -3,7 +3,7 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as configure / focusWallet / addAsset / createAccount / onramp for
+  or custom RPC such as configure / focusWallet / addAsset / createAccount / onramp / bridge for
   theming, host-driven focus mode, tracked assets, and first-party Safari create.
 license: MIT
 metadata:
@@ -268,6 +268,25 @@ await proxy.rpc("onramp", {
 
 Returns `{ ok: true }` when the user closes the onramp view. The Relayer holds the Circle kit key; the browser only receives a single-use session. Inline iframe requires Circle CSP allowlisting of the wallet origin; for local/ngrok testing the branding layer honors `localStorage.setItem("circlePopup", "true")` and uses AppKit `openWindow` instead.
 
+## Custom RPC — `bridge`
+
+Opens the gasless CCTP USDC bridge (native TokenMessengerV2 + Circle Forwarding Service, submitted through the 1Shot relayer). Locked wallet → error. Close before confirm → `OwsUserRejectedError`. Omit `sourceChainId` to use the session chain.
+
+```typescript
+await proxy.rpc("bridge", {
+  amount: "10.50",           // optional human USDC
+  sourceChainId: 8453,       // optional decimal; omit → session chain
+  destinationChainId: 1,     // optional; omit → user picks
+});
+// or: await proxy.rpc("bridge", {});
+```
+
+| Method | Params | Behavior |
+|--------|--------|----------|
+| `bridge` | `{ amount?: string, sourceChainId?: number, destinationChainId?: number }` | Shows wallet, opens CCTP bridge for native USDC on a relayer CCTP source. Dest must be a same-network CCTP chain. |
+
+Returns `{ ok: true, burnTxHash, forwardTxHash? }` when the source burn is submitted (and destination mint if Iris has completed). The user pays the relayer USDC fee (same path as Send); destination mint is Circle’s Forwarding Service — no dest-chain signature and no native gas.
+
 ## Other Host APIs
 
 | API | Use |
@@ -276,7 +295,7 @@ Returns `{ ok: true }` when the user closes the onramp view. The Relayer holds t
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.analytics.on(listener)` / `.on(name, listener)` / `.off(listener)` | Branding→Host product analytics (`ows:analytics`) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, …) |
+| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, `bridge`, …) |
 
 ## Analytics (`proxy.analytics`)
 
@@ -315,3 +334,4 @@ include a live Analytics panel fed by `proxy.analytics.on` (filter by `name`).
 - Use `focusWallet` / `unfocusWallet` for host-driven single-asset flows; do not expose mode switching in the wallet UI.
 - Use `addAsset` when the host wants a lasting Balances entry; expect a confirm modal (contrast with `focusWallet`).
 - Use `onramp` (or the in-wallet Buy button) for fiat → crypto; do not put the Circle kit key in the Host or Branding Layer.
+- Use `bridge` (or the in-wallet Bridge button) for gasless CCTP USDC; do not require native gas or dest-chain `receiveMessage`.

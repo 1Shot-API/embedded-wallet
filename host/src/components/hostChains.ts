@@ -3,6 +3,7 @@ export const HOST_CHAINS = [
     value: "0x13b2",
     label: "Arc",
     usdc: "0x3600000000000000000000000000000000000000",
+    tokenSymbol: "USDC",
     blockExplorerUrl: "https://explorer.arc.io",
   },
   {
