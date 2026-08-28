@@ -304,7 +304,10 @@ include a live Analytics panel fed by `proxy.analytics.on` (filter by `name`).
 ## Relayer integration (when the host submits txs)
 
 - **Default sends:** `eth_sendTransaction` through OWSProxy — the wallet signs delegations and calls `relayer_*` internally. The host does **not** implement a relayer JSON-RPC client.
-- **Delegated execution (Path B):** when the host or backend will **redeem** a user grant via public relayer JSON-RPC, also install the **`public-relayer`** skill. Flow: `wallet_requestExecutionPermissions` → `response.context` → host calls `relayer_estimate7710Transaction` / `relayer_send7710Transaction`. See **`public-relayer/SKILL.md`** (Integration paths with `1shot-wallet`) and Example 0b in **`public-relayer/references/examples.md`**.
+- **Delegated execution (Path B):** when the host or backend will **redeem** a user grant via public relayer JSON-RPC, also install the **`public-relayer`** skill.
+  - **B1 direct:** grant **`to: relayer targetAddress`** → Example 0b in **`public-relayer/references/examples.md`**.
+  - **B2 session key (recommended):** grant **`to: host session account`**, redelegate **`to: targetAddress`**, submit delegation chain → Example 0c.
+  - See **`public-relayer/SKILL.md`** (Integration paths with `1shot-wallet`).
 - **Status webhooks:** optional `configure.destinationUrl` — the wallet forwards it to the relayer on send. Still no direct relayer client in the host.
 
 EIP-7715 host RPCs: `wallet_requestExecutionPermissions`, `wallet_revokeExecutionPermission` (grant consent and on-chain revoke are wallet-driven).
