@@ -16,6 +16,7 @@ import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import { openOnramp } from "../circle/openOnramp";
 import { openCctpBridge } from "../circle/openCctpBridge";
+import { EnableArcMainnet } from "../lib/features";
 import { AssetIdentityMark } from "./AssetIdentityMark";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { TransactionHistory } from "./TransactionHistory";
@@ -172,14 +173,16 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
           className="flex items-start justify-center gap-6"
           aria-label="Asset actions"
         >
-          <ActionButton
-            label="Buy"
-            variant="outline"
-            disabled={!canBuy || buyBusy}
-            onClick={openBuy}
-          >
-            <PlusIcon className="size-5" />
-          </ActionButton>
+          {EnableArcMainnet ? (
+            <ActionButton
+              label="Buy"
+              variant="outline"
+              disabled={!canBuy || buyBusy}
+              onClick={openBuy}
+            >
+              <PlusIcon className="size-5" />
+            </ActionButton>
+          ) : null}
           <ActionButton
             label={copy.sendLabel}
             variant="primary"
