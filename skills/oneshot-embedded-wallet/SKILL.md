@@ -84,7 +84,7 @@ await proxy.rpc("configure", options);
 | `features.disableCredentials` | boolean | Hide Credentials tab; default `false`. Host credential flows still work |
 | `features.disableDelegations` | boolean | Hide Delegations tab; default `false`. Host delegation flows still work |
 | `features.allowedChains` | `string[]` (hex `0x…` chain ids) | Restrict Network dropdown to these catalog chains; omit or `[]` ⇒ all enabled |
-| `destinationUrl` | string \| null | URL to receive transaction status update webhooks from the [1Shot Relayer](https://1shotapi.com/docs/relayer/get-started/overview) (≤256 chars). `null` or `""` clears |
+| `destinationUrl` | string \| null | URL to receive transaction status update webhooks from the [1Shot Relayer](https://1shotapi.com/docs/embedded-wallet/webhooks) (≤256 chars). `null` or `""` clears |
 | `copy.productName` | string | titles / chrome |
 | `copy.tagline` | string | supporting line |
 | `copy.connect.title` | string | connect modal title |
@@ -292,10 +292,22 @@ Returns `{ ok: true, burnTxHash, forwardTxHash? }` when the source burn is submi
 | API | Use |
 |-----|-----|
 | `proxy.ethereum.request(...)` | EIP-1193 (accounts, sign, chain, …) |
+| `proxy.ethereum.on` / `removeListener` | Branding→Host EIP-1193 notifications (`chainChanged`, `accountsChanged` via `ows:eip1193`) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.analytics.on(listener)` / `.on(name, listener)` / `.off(listener)` | Branding→Host product analytics (`ows:analytics`) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
 | `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, `bridge`, …) |
+
+Subscribe so in-wallet chain/account changes update host UI without polling:
+
+```typescript
+proxy.ethereum.on("chainChanged", (chainId) => {
+  // hex chain id string
+});
+proxy.ethereum.on("accountsChanged", (accounts) => {
+  // EVM address array
+});
+```
 
 ## Analytics (`proxy.analytics`)
 
@@ -325,6 +337,17 @@ proxy.analytics.on("PersonalSign", (event) => {
 The same rich payload is POSTed fire-and-forget to `POST /wallet/product-events` on the
 1Shot relayer. The local Host (`host/`) and marketing [wallet playground](https://www.1shotapi.com/playground)
 include a live Analytics panel fed by `proxy.analytics.on` (filter by `name`).
+
+## Relayer integration (when the host submits txs)
+
+- **Default sends:** `eth_sendTransaction` through OWSProxy — the wallet signs delegations and calls `relayer_*` internally. The host does **not** implement a relayer JSON-RPC client.
+- **Delegated execution (Path B):** when the host or backend will **redeem** a user grant via public relayer JSON-RPC, also install the **`public-relayer`** skill.
+  - **B1 direct:** grant **`to: relayer targetAddress`** → Example 0b in **`public-relayer/references/examples.md`**.
+  - **B2 session key (recommended):** grant **`to: host session account`**, redelegate **`to: targetAddress`**, submit delegation chain → Example 0c.
+  - See **`public-relayer/SKILL.md`** (Integration paths with `1shot-wallet`).
+- **Status webhooks:** optional `configure.destinationUrl` — the wallet forwards it to the relayer on send. Still no direct relayer client in the host.
+
+EIP-7715 host RPCs: `wallet_requestExecutionPermissions`, `wallet_revokeExecutionPermission` (grant consent and on-chain revoke are wallet-driven).
 
 ## Hard rules
 

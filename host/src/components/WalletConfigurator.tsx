@@ -97,7 +97,7 @@ export function WalletConfigurator({
           <p className="-mt-2 text-muted-foreground text-xs">
             URL to receive transaction status update webhooks from the{" "}
             <a
-              href="https://1shotapi.com/docs/relayer/get-started/overview"
+              href="https://1shotapi.com/docs/embedded-wallet/webhooks"
               target="_blank"
               rel="noreferrer"
               className="underline underline-offset-2"

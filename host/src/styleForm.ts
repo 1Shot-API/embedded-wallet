@@ -34,7 +34,7 @@ export interface IStyleFormState {
   /**
    * Status webhook URL for the 1Shot Relayer (`destinationUrl` on configure).
    * Empty ⇒ omit / clear when applying a full features payload.
-   * @see https://1shotapi.com/docs/relayer/get-started/overview
+   * @see https://1shotapi.com/docs/embedded-wallet/webhooks
    */
   destinationUrl: string;
 
