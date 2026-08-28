@@ -301,6 +301,14 @@ The same rich payload is POSTed fire-and-forget to `POST /wallet/product-events`
 1Shot relayer. The local Host (`host/`) and marketing [wallet playground](https://www.1shotapi.com/playground)
 include a live Analytics panel fed by `proxy.analytics.on` (filter by `name`).
 
+## Relayer integration (when the host submits txs)
+
+- **Default sends:** `eth_sendTransaction` through OWSProxy — the wallet signs delegations and calls `relayer_*` internally. The host does **not** implement a relayer JSON-RPC client.
+- **Delegated execution (Path B):** when the host or backend will **redeem** a user grant via public relayer JSON-RPC, also install the **`public-relayer`** skill. Flow: `wallet_requestExecutionPermissions` → `response.context` → host calls `relayer_estimate7710Transaction` / `relayer_send7710Transaction`. See **`public-relayer/SKILL.md`** (Integration paths with `1shot-wallet`) and Example 0b in **`public-relayer/references/examples.md`**.
+- **Status webhooks:** optional `configure.destinationUrl` — the wallet forwards it to the relayer on send. Still no direct relayer client in the host.
+
+EIP-7715 host RPCs: `wallet_requestExecutionPermissions`, `wallet_revokeExecutionPermission` (grant consent and on-chain revoke are wallet-driven).
+
 ## Hard rules
 
 - Never embed the Signing Layer iframe from the Host — always Host → Branding → Signing.
