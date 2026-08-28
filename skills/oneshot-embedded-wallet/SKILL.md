@@ -84,7 +84,7 @@ await proxy.rpc("configure", options);
 | `features.disableCredentials` | boolean | Hide Credentials tab; default `false`. Host credential flows still work |
 | `features.disableDelegations` | boolean | Hide Delegations tab; default `false`. Host delegation flows still work |
 | `features.allowedChains` | `string[]` (hex `0x…` chain ids) | Restrict Network dropdown to these catalog chains; omit or `[]` ⇒ all enabled |
-| `destinationUrl` | string \| null | URL to receive transaction status update webhooks from the [1Shot Relayer](https://1shotapi.com/docs/relayer/get-started/overview) (≤256 chars). `null` or `""` clears |
+| `destinationUrl` | string \| null | URL to receive transaction status update webhooks from the [1Shot Relayer](https://1shotapi.com/docs/embedded-wallet/webhooks) (≤256 chars). `null` or `""` clears |
 | `copy.productName` | string | titles / chrome |
 | `copy.tagline` | string | supporting line |
 | `copy.connect.title` | string | connect modal title |
