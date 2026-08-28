@@ -4,6 +4,8 @@
 
 This repo is the **OWS Branding Layer** for the 1Shot Wallet — a frontend-only static app (React + Vite + Tailwind + shadcn/ui) hosted at `wallet.1shotapi.com`.
 
+> Use of 1Shot-hosted public infrastructure is subject to the [Public Infrastructure Terms](https://1shotapi.com/legal/public-infrastructure-terms) and [Acceptable Use Policy](https://1shotapi.com/legal/acceptable-use-policy). By accessing or using those hosted services, you agree to those terms.
+
 ```
 Host Layer (integrator dapp)
   └── This app /            Branding Layer (@1shotapi/ows-wallet-utils)
@@ -27,9 +29,34 @@ Production deliverable: a static **nginx** Docker image (no server-side runtime)
 
 ## Setup
 
+Circle’s private AppKit canary requires Cloudsmith auth. The repo includes `.npmrc`;
+export your token before installing:
+
+```bash
+# Linux / macOS
+export CLOUDSMITH_TOKEN=<your-cloudsmith-token>
+```
+
+```powershell
+# Windows PowerShell
+$env:CLOUDSMITH_TOKEN = "<your-cloudsmith-token>"
+```
+
+CI Docker builds expect GitHub Actions secret `CLOUDSMITH_TOKEN`.
+
 ```bash
 npm install
 cp .env.example .env  # set NGROK_AUTHTOKEN (and optional NGROK_DOMAIN)
+```
+
+Fiat onramp uses Circle AppKit (`Buy` in Asset Details, or host RPC `onramp`).
+Sessions are minted by the Relayer (`POST /wallet/onramp`); the kit key never
+ships in this SPA. Inline iframe onramp requires your wallet domain to be
+registered with Circle for CSP — see Circle’s beta docs. For local/ngrok
+testing before CSP allowlisting, force the popup flow:
+
+```js
+localStorage.setItem("circlePopup", "true")
 ```
 
 ## Develop

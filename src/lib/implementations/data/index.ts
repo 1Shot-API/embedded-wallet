@@ -13,6 +13,13 @@ export {
   DEFAULT_CHAIN_ID,
   HardcodedChainRepository,
 } from "./HardcodedChainRepository";
+export { CircleRepository } from "./CircleRepository";
+export {
+  parseInFlight,
+  serializeInFlight,
+  inFlightStorageKey,
+} from "./CircleRepository";
+export { getCctpBridgeAsset } from "./relayerKnownAssets";
 export {
   RelayerCredentialsClient,
   RelayerCredentialsError,

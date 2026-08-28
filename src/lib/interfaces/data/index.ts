@@ -25,6 +25,13 @@ export type {
 export { IOneshotRelayerRepositoryType } from "./IOneshotRelayerRepository";
 export type { IChainRepository } from "./IChainRepository";
 export { IChainRepositoryType } from "./IChainRepository";
+export type {
+  ICctpInFlightBurn,
+  ICircleRepository,
+  IIrisCctpMessage,
+  IIrisForwardingFee,
+} from "./ICircleRepository";
+export { ICircleRepositoryType } from "./ICircleRepository";
 export type { IDelegationRepository } from "./IDelegationRepository";
 export { IDelegationRepositoryType } from "./IDelegationRepository";
 export type { IRelayerCredentialsClient } from "./IRelayerCredentialsClient";

@@ -34,7 +34,7 @@ export interface ITransactionWork {
 
 export interface ISendViaRelayerParams {
   chainId: EVMChainId;
-  work: ITransactionWork;
+  work: ITransactionWork | ITransactionWork[];
   paymentToken: EVMAccountAddress;
   /** Fee atoms from the confirm UI quote; may be adjusted after estimate. */
   feeAtoms: bigint;

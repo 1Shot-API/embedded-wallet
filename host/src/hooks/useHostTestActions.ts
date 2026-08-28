@@ -547,7 +547,7 @@ export function useHostTestActions({
         setChainId(FOCUS_USDC_ARC.chainId);
         proxy.showWallet();
         setWalletVisible(true);
-        reportStatus("Wallet focused on USDC (Arc Testnet).");
+        reportStatus("Wallet focused on USDC (Arc).");
       } catch (error) {
         reportStatus(
           error instanceof Error ? error.message : "focusWallet failed",
@@ -647,6 +647,50 @@ export function useHostTestActions({
       } catch (error) {
         reportStatus(
           error instanceof Error ? error.message : "addAsset failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleOnramp = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Opening onramp…");
+    void (async () => {
+      try {
+        await proxy.rpc("onramp", {});
+        proxy.showWallet();
+        setWalletVisible(true);
+        reportStatus("Onramp closed.");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "onramp failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleBridge = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Opening CCTP bridge…");
+    void (async () => {
+      try {
+        await proxy.rpc("bridge", {});
+        proxy.showWallet();
+        setWalletVisible(true);
+        reportStatus("Bridge closed.");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "bridge failed",
           true,
         );
       } finally {
@@ -842,6 +886,8 @@ export function useHostTestActions({
     onUnfocusWallet: handleUnfocusWallet,
     onAddUsdcArc: handleAddUsdcArc,
     onAddUsdtBase: handleAddUsdtBase,
+    onOnramp: handleOnramp,
+    onBridge: handleBridge,
     sessionGrants: sessionGrants.map((g) => ({
       id: g.id,
       summary: grantSummary(g.response),

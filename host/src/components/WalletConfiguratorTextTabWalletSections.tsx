@@ -88,6 +88,48 @@ export function WalletConfiguratorTextTabWalletSections({
             onChange={(value) => patch("sendLabel", value)}
           />
           <TextField
+            id="bridge-label"
+            label="Bridge button"
+            value={form.bridgeLabel}
+            onChange={(value) => patch("bridgeLabel", value)}
+          />
+          <TextField
+            id="cctp-bridge-title"
+            label="Bridge modal title"
+            value={form.cctpBridgeTitle}
+            onChange={(value) => patch("cctpBridgeTitle", value)}
+          />
+          <BodyField
+            id="cctp-bridge-body"
+            label="Bridge modal body"
+            value={form.cctpBridgeBody}
+            onChange={(value) => patch("cctpBridgeBody", value)}
+          />
+          <TextField
+            id="cctp-bridge-get-quote"
+            label="Bridge get quote"
+            value={form.cctpBridgeGetQuote}
+            onChange={(value) => patch("cctpBridgeGetQuote", value)}
+          />
+          <TextField
+            id="cctp-bridge-confirm"
+            label="Bridge confirm"
+            value={form.cctpBridgeConfirm}
+            onChange={(value) => patch("cctpBridgeConfirm", value)}
+          />
+          <TextField
+            id="cctp-bridge-cancel"
+            label="Bridge cancel"
+            value={form.cctpBridgeCancel}
+            onChange={(value) => patch("cctpBridgeCancel", value)}
+          />
+          <TextField
+            id="cctp-bridge-sent-title"
+            label="Bridge success title"
+            value={form.cctpBridgeSentTitle}
+            onChange={(value) => patch("cctpBridgeSentTitle", value)}
+          />
+          <TextField
             id="confirm-transfer-title"
             label="Confirm transfer title"
             value={form.confirmTransferTitle}

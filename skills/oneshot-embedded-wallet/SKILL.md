@@ -3,7 +3,7 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as configure / focusWallet / addAsset / createAccount for
+  or custom RPC such as configure / focusWallet / addAsset / createAccount / onramp / bridge for
   theming, host-driven focus mode, tracked assets, and first-party Safari create.
 license: MIT
 metadata:
@@ -15,6 +15,8 @@ metadata:
 # 1Shot Embedded Wallet (Host integration)
 
 Teach an agent how to embed the **1Shot Wallet** Branding Layer from a Host Layer app using `@1shotapi/ows-provider`.
+
+> Use of 1Shot-hosted public infrastructure is subject to the [Public Infrastructure Terms](https://1shotapi.com/legal/public-infrastructure-terms) and [Acceptable Use Policy](https://1shotapi.com/legal/acceptable-use-policy). By accessing or using those hosted services, you agree to those terms.
 
 ```
 Host (your dapp)          @1shotapi/ows-provider → OWSProxy
@@ -84,7 +86,7 @@ await proxy.rpc("configure", options);
 | `features.disableCredentials` | boolean | Hide Credentials tab; default `false`. Host credential flows still work |
 | `features.disableDelegations` | boolean | Hide Delegations tab; default `false`. Host delegation flows still work |
 | `features.allowedChains` | `string[]` (hex `0x…` chain ids) | Restrict Network dropdown to these catalog chains; omit or `[]` ⇒ all enabled |
-| `destinationUrl` | string \| null | URL to receive transaction status update webhooks from the [1Shot Relayer](https://1shotapi.com/docs/relayer/get-started/overview) (≤256 chars). `null` or `""` clears |
+| `destinationUrl` | string \| null | URL to receive transaction status update webhooks from the [1Shot Relayer](https://1shotapi.com/docs/embedded-wallet/webhooks) (≤256 chars). `null` or `""` clears |
 | `copy.productName` | string | titles / chrome |
 | `copy.tagline` | string | supporting line |
 | `copy.connect.title` | string | connect modal title |
@@ -195,7 +197,7 @@ Host-controlled shell modes. Callers (not end users) switch between **General** 
 ```typescript
 // Lock to one chain + ERC-20 (or other) asset
 await proxy.rpc("focusWallet", {
-  chainId: "0x4cef52", // Arc Testnet
+  chainId: "0x13b2", // Arc
   assetAddress: "0x3600000000000000000000000000000000000000", // USDC
 });
 proxy.showWallet();
@@ -220,7 +222,7 @@ Propose a tracked **ERC-20** for the Balances tab. The wallet resolves the token
 
 ```typescript
 await proxy.rpc("addAsset", {
-  chainId: "0x4cef52", // Arc Testnet
+  chainId: "0x13b2", // Arc
   assetAddress: "0x3600000000000000000000000000000000000000", // USDC
 });
 proxy.showWallet();
@@ -236,7 +238,7 @@ Users can also add assets from the Balances tab without a host RPC. The Balances
 
 ## Custom RPC — `createAccount`
 
-Used by the first-party **`/create/`** host page (Safari passkey create). Hosts embedding the wallet normally do **not** call this — the branding layer opens `/create/` itself when needed.
+Used by the first-party **`/create/`** host page (Safari passkey create). Hosts embedding the wallet normally do **not** call this — the branding layer opens `/create/` itself when needed. Not exposed as a playground button.
 
 ```typescript
 const result = await proxy.rpc("createAccount");
@@ -250,15 +252,64 @@ await proxy.rpc("createAccount", { accountName: "My Wallet" });
 |--------|--------|--------|
 | `createAccount` | `{ accountName?: string }` optional | Runs setup create (passkey + relayer register); returns credential id |
 
+## Custom RPC — `onramp`
+
+Opens Circle fiat onramp fullscreen inside the Branding Layer for the unlocked EVM address.
+
+```typescript
+await proxy.rpc("onramp", {
+  chainId: 8453, // optional — decimal chain id for catalog scoping
+  amount: "50", // optional — amount hint when supported by the kit
+});
+// or: await proxy.rpc("onramp", {});
+```
+
+| Method | Params | Behavior |
+|--------|--------|----------|
+| `onramp` | `{ chainId?: number, amount?: string }` | Shows wallet, mounts Circle AppKit onramp; session minted via Relayer `POST /wallet/onramp` |
+
+Returns `{ ok: true }` when the user closes the onramp view. The Relayer holds the Circle kit key; the browser only receives a single-use session. Inline iframe requires Circle CSP allowlisting of the wallet origin; for local/ngrok testing the branding layer honors `localStorage.setItem("circlePopup", "true")` and uses AppKit `openWindow` instead.
+
+## Custom RPC — `bridge`
+
+Opens the gasless CCTP USDC bridge (native TokenMessengerV2 + Circle Forwarding Service, submitted through the 1Shot relayer). Locked wallet → error. Close before confirm → `OwsUserRejectedError`. Omit `sourceChainId` to use the session chain.
+
+```typescript
+await proxy.rpc("bridge", {
+  amount: "10.50",           // optional human USDC
+  sourceChainId: 8453,       // optional decimal; omit → session chain
+  destinationChainId: 1,     // optional; omit → user picks
+});
+// or: await proxy.rpc("bridge", {});
+```
+
+| Method | Params | Behavior |
+|--------|--------|----------|
+| `bridge` | `{ amount?: string, sourceChainId?: number, destinationChainId?: number }` | Shows wallet, opens CCTP bridge for native USDC on a relayer CCTP source. Dest must be a same-network CCTP chain. |
+
+Returns `{ ok: true, burnTxHash, forwardTxHash? }` when the source burn is submitted (and destination mint if Iris has completed). The user pays the relayer USDC fee (same path as Send); destination mint is Circle’s Forwarding Service — no dest-chain signature and no native gas.
+
 ## Other Host APIs
 
 | API | Use |
 |-----|-----|
 | `proxy.ethereum.request(...)` | EIP-1193 (accounts, sign, chain, …) |
+| `proxy.ethereum.on` / `removeListener` | Branding→Host EIP-1193 notifications (`chainChanged`, `accountsChanged` via `ows:eip1193`) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.analytics.on(listener)` / `.on(name, listener)` / `.off(listener)` | Branding→Host product analytics (`ows:analytics`) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, …) |
+| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, `bridge`, …) |
+
+Subscribe so in-wallet chain/account changes update host UI without polling:
+
+```typescript
+proxy.ethereum.on("chainChanged", (chainId) => {
+  // hex chain id string
+});
+proxy.ethereum.on("accountsChanged", (accounts) => {
+  // EVM address array
+});
+```
 
 ## Analytics (`proxy.analytics`)
 
@@ -289,6 +340,17 @@ The same rich payload is POSTed fire-and-forget to `POST /wallet/product-events`
 1Shot relayer. The local Host (`host/`) and marketing [wallet playground](https://www.1shotapi.com/playground)
 include a live Analytics panel fed by `proxy.analytics.on` (filter by `name`).
 
+## Relayer integration (when the host submits txs)
+
+- **Default sends:** `eth_sendTransaction` through OWSProxy — the wallet signs delegations and calls `relayer_*` internally. The host does **not** implement a relayer JSON-RPC client.
+- **Delegated execution (Path B):** when the host or backend will **redeem** a user grant via public relayer JSON-RPC, also install the **`public-relayer`** skill.
+  - **B1 direct:** grant **`to: relayer targetAddress`** → Example 0b in **`public-relayer/references/examples.md`**.
+  - **B2 session key (recommended):** grant **`to: host session account`**, redelegate **`to: targetAddress`**, submit delegation chain → Example 0c.
+  - See **`public-relayer/SKILL.md`** (Integration paths with `1shot-wallet`).
+- **Status webhooks:** optional `configure.destinationUrl` — the wallet forwards it to the relayer on send. Still no direct relayer client in the host.
+
+EIP-7715 host RPCs: `wallet_requestExecutionPermissions`, `wallet_revokeExecutionPermission` (grant consent and on-chain revoke are wallet-driven).
+
 ## Hard rules
 
 - Never embed the Signing Layer iframe from the Host — always Host → Branding → Signing.
@@ -296,3 +358,5 @@ include a live Analytics panel fed by `proxy.analytics.on` (filter by `name`).
 - Theme with `configure`; do not ask integrators to fork CSS for basic brand colors / product name.
 - Use `focusWallet` / `unfocusWallet` for host-driven single-asset flows; do not expose mode switching in the wallet UI.
 - Use `addAsset` when the host wants a lasting Balances entry; expect a confirm modal (contrast with `focusWallet`).
+- Use `onramp` (or the in-wallet Buy button) for fiat → crypto; do not put the Circle kit key in the Host or Branding Layer.
+- Use `bridge` (or the in-wallet Bridge button) for gasless CCTP USDC; do not require native gas or dest-chain `receiveMessage`.

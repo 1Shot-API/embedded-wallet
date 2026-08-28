@@ -4,6 +4,8 @@ MetaMask-style host for the 1Shot Branding Layer: a thin MAIN-world EIP-1193 / E
 
 This avoids page `frame-src` CSP, hostile host CSS, and per-dApp third-party storage partitions.
 
+> Use of 1Shot-hosted public infrastructure is subject to the [Public Infrastructure Terms](https://1shotapi.com/legal/public-infrastructure-terms) and [Acceptable Use Policy](https://1shotapi.com/legal/acceptable-use-policy). By accessing or using those hosted services, you agree to those terms.
+
 ## Requirements
 
 - Node.js 22+
