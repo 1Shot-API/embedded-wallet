@@ -4,6 +4,8 @@
 
 This repo is the **OWS Branding Layer** for the 1Shot Wallet — a frontend-only static app (React + Vite + Tailwind + shadcn/ui) hosted at `wallet.1shotapi.com`.
 
+> Use of 1Shot-hosted public infrastructure is subject to the [Public Infrastructure Terms](https://1shotapi.com/legal/public-infrastructure-terms) and [Acceptable Use Policy](https://1shotapi.com/legal/acceptable-use-policy). By accessing or using those hosted services, you agree to those terms.
+
 ```
 Host Layer (integrator dapp)
   └── This app /            Branding Layer (@1shotapi/ows-wallet-utils)
