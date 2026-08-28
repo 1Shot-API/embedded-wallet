@@ -16,6 +16,8 @@ metadata:
 
 Teach an agent how to embed the **1Shot Wallet** Branding Layer from a Host Layer app using `@1shotapi/ows-provider`.
 
+> Use of 1Shot-hosted public infrastructure is subject to the [Public Infrastructure Terms](https://1shotapi.com/legal/public-infrastructure-terms) and [Acceptable Use Policy](https://1shotapi.com/legal/acceptable-use-policy). By accessing or using those hosted services, you agree to those terms.
+
 ```
 Host (your dapp)          @1shotapi/ows-provider → OWSProxy
   └── Branding iframe     https://wallet.1shotapi.com/
