@@ -40,11 +40,12 @@ export interface ITransactionUtils {
 
   /**
    * Public-relayer ExactCalldata fee + work path: optional EIP-7702 upgrade,
-   * estimate, send, poll.
+   * estimate, send, poll. `work` may be one item (Send) or several
+   * (e.g. USDC approve + CCTP burn) — still one fee and one passkey ceremony.
    */
   sendViaRelayer(args: {
     chainId: EVMChainId;
-    work: ITransactionWork;
+    work: ITransactionWork | ITransactionWork[];
     paymentToken: EVMAccountAddress;
     feeAtoms: bigint;
     authorizationList?: IRelayerAuthorizationEntry[];

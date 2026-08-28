@@ -1,17 +1,24 @@
+import { EnableArcMainnet } from "../features";
+
+const ARC_MAINNET = {
+  value: "0x13b2",
+  label: "Arc",
+  usdc: "0x3600000000000000000000000000000000000000",
+  tokenSymbol: "USDC",
+  blockExplorerUrl: "https://explorer.arc.io",
+} as const;
+
+const ARC_TESTNET = {
+  value: "0x4cef52",
+  label: "Arc Testnet",
+  usdc: "0x3600000000000000000000000000000000000000",
+  tokenSymbol: "USDC",
+  blockExplorerUrl: "https://testnet.arcscan.app",
+} as const;
+
 export const HOST_CHAINS = [
-  {
-    value: "0x13b2",
-    label: "Arc",
-    usdc: "0x3600000000000000000000000000000000000000",
-    blockExplorerUrl: "https://explorer.arc.io",
-  },
-  {
-    value: "0x4cef52",
-    label: "Arc Testnet",
-    usdc: "0x3600000000000000000000000000000000000000",
-    tokenSymbol: "USDC",
-    blockExplorerUrl: "https://testnet.arcscan.app",
-  },
+  ...(EnableArcMainnet ? [ARC_MAINNET] : []),
+  ARC_TESTNET,
   {
     value: "0xaa36a7",
     label: "Sepolia",
@@ -42,12 +49,18 @@ export const HOST_CHAINS = [
   },
 ] as const;
 
-/** Focus demo: Arc mainnet USDC. */
-export const FOCUS_USDC_ARC = {
-  chainId: "0x13b2",
-  assetAddress: "0x3600000000000000000000000000000000000000",
-  label: "USDC (Arc)",
-} as const;
+/** Focus demo: Arc USDC (mainnet when enabled, else testnet). */
+export const FOCUS_USDC_ARC = EnableArcMainnet
+  ? ({
+      chainId: "0x13b2",
+      assetAddress: "0x3600000000000000000000000000000000000000",
+      label: "USDC (Arc)",
+    } as const)
+  : ({
+      chainId: "0x4cef52",
+      assetAddress: "0x3600000000000000000000000000000000000000",
+      label: "USDC (Arc)",
+    } as const);
 
 /** Focus demo: Base mainnet USDT. */
 export const FOCUS_USDT_BASE = {

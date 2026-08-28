@@ -677,6 +677,28 @@ export function useHostTestActions({
     })();
   };
 
+  const handleBridge = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    reportStatus("Opening CCTP bridge…");
+    void (async () => {
+      try {
+        await proxy.rpc("bridge", {});
+        proxy.showWallet();
+        setWalletVisible(true);
+        reportStatus("Bridge closed.");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "bridge failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
   const handleRequestDelegation = () => {
     const proxy = proxyRef.current;
     if (!proxy) return;
@@ -865,6 +887,7 @@ export function useHostTestActions({
     onAddUsdcArc: handleAddUsdcArc,
     onAddUsdtBase: handleAddUsdtBase,
     onOnramp: handleOnramp,
+    onBridge: handleBridge,
     sessionGrants: sessionGrants.map((g) => ({
       id: g.id,
       summary: grantSummary(g.response),

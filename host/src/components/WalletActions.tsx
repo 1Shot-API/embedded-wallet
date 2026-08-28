@@ -12,6 +12,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import type { SignMode } from "@/constants/signDemo";
+import { EnableArcMainnet } from "@/features";
 import {
   HOST_CHAINS,
   hostChainMeta,
@@ -58,6 +59,7 @@ export interface IWalletActionsProps {
   onAddUsdcArc: () => void;
   onAddUsdtBase: () => void;
   onOnramp: () => void;
+  onBridge: () => void;
   /** In-memory grants from this session (`wallet_requestExecutionPermissions`). */
   sessionGrants: ReadonlyArray<{
     id: string;
@@ -108,6 +110,7 @@ export function WalletActions({
   onAddUsdcArc,
   onAddUsdtBase,
   onOnramp,
+  onBridge,
   sessionGrants,
   delegationsOutput,
   onRequestDelegation,
@@ -408,19 +411,37 @@ export function WalletActions({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Onramp</Label>
+        <Label>{EnableArcMainnet ? "Onramp / Bridge" : "Bridge"}</Label>
         <p className="text-muted-foreground text-xs">
-          Open Circle fiat onramp via <code>onramp</code> (Buy crypto into the
-          unlocked wallet address).
+          {EnableArcMainnet ? (
+            <>
+              Open Circle fiat onramp via <code>onramp</code>, or gasless CCTP
+              USDC bridge via <code>bridge</code>.
+            </>
+          ) : (
+            <>
+              Open gasless CCTP USDC bridge via <code>bridge</code>.
+            </>
+          )}
         </p>
         <div className="flex flex-wrap gap-2">
+          {EnableArcMainnet ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!ready || busy}
+              onClick={onOnramp}
+            >
+              Onramp
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="outline"
             disabled={!ready || busy}
-            onClick={onOnramp}
+            onClick={onBridge}
           >
-            Onramp
+            Bridge
           </Button>
         </div>
       </div>

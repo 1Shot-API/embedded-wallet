@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
+  ArrowLeftRightIcon,
   PlusIcon,
   QrCodeIcon,
   SendIcon,
@@ -14,6 +15,8 @@ import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import { openOnramp } from "../circle/openOnramp";
+import { openCctpBridge } from "../circle/openCctpBridge";
+import { EnableArcMainnet } from "../lib/features";
 import { AssetIdentityMark } from "./AssetIdentityMark";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { TransactionHistory } from "./TransactionHistory";
@@ -31,7 +34,7 @@ export interface IAssetDetailsProps {
 export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   const { style } = useStyle();
   const { balances: copy } = style.copy;
-  const { requestBalanceRefresh, resolveChain } = useWallet();
+  const { requestBalanceRefresh, resolveChain, getKnownAsset } = useWallet();
   const { evmAddress, solanaAddress } = useWalletSessionStore(
     useShallow((state) => ({
       evmAddress: state.evmAddress,
@@ -41,6 +44,8 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
   const [buyBusy, setBuyBusy] = useState(false);
+  const [bridgeBusy, setBridgeBusy] = useState(false);
+  const [canBridge, setCanBridge] = useState(false);
 
   const { balance, decimals } = useLiveTrackedBalance(
     assetProp.id,
@@ -64,6 +69,18 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   useEffect(() => {
     void requestBalanceRefresh(assetProp.id);
   }, [assetProp.id, requestBalanceRefresh]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getKnownAsset(assetProp.chainId, assetProp.address).then((known) => {
+      if (!cancelled) {
+        setCanBridge(known?.useCCTPBridge === true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [assetProp.address, assetProp.chainId, getKnownAsset]);
 
   const chain = resolveChain(asset.chainId);
   const network = chain?.label ?? String(asset.chainId);
@@ -97,6 +114,31 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
       });
   }, [asset.chainId, asset.symbol, buyBusy, evmAddress]);
 
+  const openBridge = useCallback(() => {
+    if (!evmAddress || bridgeBusy || !canBridge) return;
+    setBridgeBusy(true);
+    void openCctpBridge({
+      sourceChainId: asset.chainId,
+      ownerAddress: evmAddress,
+      balance,
+    })
+      .catch(() => {
+        /* user closed or rejected */
+      })
+      .finally(() => {
+        setBridgeBusy(false);
+        void requestBalanceRefresh(asset.id);
+      });
+  }, [
+    asset.chainId,
+    asset.id,
+    balance,
+    bridgeBusy,
+    canBridge,
+    evmAddress,
+    requestBalanceRefresh,
+  ]);
+
   return (
     <div
       className="flex min-h-0 flex-1 flex-col gap-5"
@@ -128,17 +170,19 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
         </header>
 
         <nav
-          className="flex items-start justify-center gap-8"
+          className="flex items-start justify-center gap-6"
           aria-label="Asset actions"
         >
-          <ActionButton
-            label="Buy"
-            variant="outline"
-            disabled={!canBuy || buyBusy}
-            onClick={openBuy}
-          >
-            <PlusIcon className="size-5" />
-          </ActionButton>
+          {EnableArcMainnet ? (
+            <ActionButton
+              label="Buy"
+              variant="outline"
+              disabled={!canBuy || buyBusy}
+              onClick={openBuy}
+            >
+              <PlusIcon className="size-5" />
+            </ActionButton>
+          ) : null}
           <ActionButton
             label={copy.sendLabel}
             variant="primary"
@@ -154,6 +198,16 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
           >
             <QrCodeIcon className="size-5" />
           </ActionButton>
+          {canBridge ? (
+            <ActionButton
+              label={copy.bridgeLabel}
+              variant="outline"
+              disabled={!canBuy || bridgeBusy}
+              onClick={openBridge}
+            >
+              <ArrowLeftRightIcon className="size-5" />
+            </ActionButton>
+          ) : null}
         </nav>
       </div>
 

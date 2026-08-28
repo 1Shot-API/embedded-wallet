@@ -239,13 +239,17 @@ export class TransactionUtils implements ITransactionUtils {
 
   async sendViaRelayer(args: {
     chainId: EVMChainId;
-    work: ITransactionWork;
+    work: ITransactionWork | ITransactionWork[];
     paymentToken: EVMAccountAddress;
     feeAtoms: bigint;
     authorizationList?: IRelayerAuthorizationEntry[];
     relayerUrl: string;
   }): Promise<ISendTransactionResult> {
-    const { chainId, work, paymentToken, relayerUrl } = args;
+    const { chainId, paymentToken, relayerUrl } = args;
+    const workItems = Array.isArray(args.work) ? args.work : [args.work];
+    if (workItems.length === 0) {
+      throw new Error("sendViaRelayer requires at least one work item");
+    }
     let feeAtoms = args.feeAtoms;
     let authorizationList = args.authorizationList;
 
@@ -308,12 +312,11 @@ export class TransactionUtils implements ITransactionUtils {
           args: [capabilities.feeCollector, feeAtoms],
         }),
       );
-      const workData = (work.data || "0x") as Hex;
-      const workValue = work.value ?? 0n;
 
       const approveCopy = approveTransactionCeremony(needsUpgrade);
+      const minCalls = (needsUpgrade ? 1 : 0) + 1 + workItems.length;
 
-      // One passkey: optional EIP-7702 auth + fee + work delegations.
+      // One passkey: optional EIP-7702 auth + fee + each work delegation.
       const signed = await withCeremonyUiReason(
         EPasskeyPromptReason.ApproveTransaction,
         () =>
@@ -321,7 +324,7 @@ export class TransactionUtils implements ITransactionUtils {
             signer,
             approveCopy,
             async () => {
-              const [authEntry, feeDelegation, workDelegation] =
+              const [authEntry, feeDelegation, ...workDelegations] =
                 await Promise.all([
                   needsUpgrade
                     ? this.signWalletUpgradeAuthorizationInner(chainId, {
@@ -338,18 +341,20 @@ export class TransactionUtils implements ITransactionUtils {
                     callData: feeCalldata,
                     chainIdNumber,
                   }),
-                  this.createAndSignExactCalldataDelegation({
-                    smartAccount,
-                    delegate: capabilities.targetAddress,
-                    target: work.to,
-                    value: workValue,
-                    callData: workData,
-                    chainIdNumber,
-                  }),
+                  ...workItems.map((item) =>
+                    this.createAndSignExactCalldataDelegation({
+                      smartAccount,
+                      delegate: capabilities.targetAddress,
+                      target: item.to,
+                      value: item.value ?? 0n,
+                      callData: (item.data || "0x") as Hex,
+                      chainIdNumber,
+                    }),
+                  ),
                 ]);
-              return { authEntry, feeDelegation, workDelegation };
+              return { authEntry, feeDelegation, workDelegations };
             },
-            { minCalls: needsUpgrade ? 3 : 2 },
+            { minCalls },
           ),
       );
 
@@ -357,7 +362,7 @@ export class TransactionUtils implements ITransactionUtils {
         authorizationList = [signed.authEntry];
       }
       let feeDelegation = signed.feeDelegation;
-      const workDelegation = signed.workDelegation;
+      const workDelegations = signed.workDelegations;
 
       const buildParams = (
         feeSig: unknown,
@@ -385,16 +390,19 @@ export class TransactionUtils implements ITransactionUtils {
                 },
               ],
             },
-            {
-              permissionContext: [toRelayerJson(workDelegation)],
-              executions: [
-                {
-                  target: work.to,
-                  value: workValue === 0n ? "0" : `0x${workValue.toString(16)}`,
-                  data: workData as HexString,
-                },
-              ],
-            },
+            ...workItems.map((item, index) => {
+              const value = item.value ?? 0n;
+              return {
+                permissionContext: [toRelayerJson(workDelegations[index])],
+                executions: [
+                  {
+                    target: item.to,
+                    value: value === 0n ? "0" : `0x${value.toString(16)}`,
+                    data: (item.data || "0x") as HexString,
+                  },
+                ],
+              };
+            }),
           ],
           ...(authorizationList?.length
             ? { authorizationList }
