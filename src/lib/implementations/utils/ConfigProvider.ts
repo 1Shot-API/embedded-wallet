@@ -11,6 +11,8 @@ const DEFAULT_TRACKED_ASSETS_STORAGE_KEY = "ows.tracked-assets.v2";
 const DEFAULT_VAULT_STORAGE_KEY = "ows.vault.v1";
 const DEFAULT_ASSET_ACTIVITY_LIMIT = 10;
 const DEFAULT_ASSET_ACTIVITY_MAX_OPTIMISTIC = 100;
+const DEFAULT_ONRAMP_WIDGET_BASE_URL =
+  "https://onramp.arc.io/launch/onramp/v1";
 
 /**
  * Resolves {@link WalletConfig} from the Branding Layer iframe host.
@@ -32,6 +34,7 @@ export class ConfigProvider implements IConfigProvider {
       DEFAULT_VAULT_STORAGE_KEY,
       DEFAULT_ASSET_ACTIVITY_LIMIT,
       DEFAULT_ASSET_ACTIVITY_MAX_OPTIMISTIC,
+      DEFAULT_ONRAMP_WIDGET_BASE_URL,
     );
     return this.cached;
   }

@@ -30,17 +30,21 @@ import { CachedRelayerVaultRepository } from "../lib/implementations/data/Cached
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
 import { RelayerCredentialsClient } from "../lib/implementations/data/utils/RelayerCredentialsClient";
 import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
+import { CircleRepository } from "../lib/implementations/data/CircleRepository";
 import { HardcodedKnownAssetRepository } from "../lib/implementations/data/HardcodedKnownAssetRepository";
 import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
 import { BlockscoutAssetActivityRepository } from "../lib/implementations/data/BlockscoutAssetActivityRepository";
 import { OneshotRelayerRepository } from "../lib/implementations/data/OneshotRelayerRepository";
 import {
+  BridgeService,
   BusinessTransactionUtils,
+  CCTPUtils,
   DelegationService,
   TransactionService,
 } from "../lib/implementations/business";
 import {
   ConfigProvider,
+  CircleProvider,
   OWSProvider,
   SupportedChainsBlockchainProvider,
   EventBus,
@@ -56,16 +60,20 @@ import {
 import type {
   IAssetActivityRepository,
   IChainRepository,
+  ICircleRepository,
   IKnownAssetRepository,
   IOneshotRelayerRepository,
   IRecordSentActivityParams,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
 import type {
+  IBridgeService,
   IDelegationService,
   ITransactionService,
 } from "../lib/interfaces/business";
+import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import type {
+  ICircleProvider,
   IConfigProvider,
   IEventBus,
   IOWSProvider,
@@ -96,8 +104,11 @@ import { useWalletAuth } from "./useWalletAuth";
 import { useWalletAssets } from "./useWalletAssets";
 import { useWalletBoot } from "./useWalletBoot";
 import { useWalletSessionStore } from "./sessionStore";
+import { CircleContextProvider } from "../circle/CircleContext";
+import { openCctpBridge } from "../circle/openCctpBridge";
 /** Filled once the Signing Layer iframe finishes loading / wallet handshake. */
 const configProvider: IConfigProvider = new ConfigProvider();
+const circleProvider: ICircleProvider = new CircleProvider(configProvider);
 const owsProvider: IOWSProvider = new OWSProvider();
 const chainRepository: IChainRepository = new HardcodedChainRepository();
 const blockchainProvider: IBlockchainProvider =
@@ -126,6 +137,7 @@ const oneshotRelayerRepository: IOneshotRelayerRepository =
     blockchain: blockchainProvider,
     owsProvider,
   });
+const circleRepository: ICircleRepository = new CircleRepository();
 
 const businessTransactionUtils = new BusinessTransactionUtils({
   chainRepository,
@@ -135,11 +147,22 @@ const businessTransactionUtils = new BusinessTransactionUtils({
   owsProvider,
 });
 
+const cctpUtils: ICCTPUtils = new CCTPUtils();
+
 const transactionService: ITransactionService = new TransactionService({
   chainRepository,
   relayerRepository: oneshotRelayerRepository,
   transactionUtils: businessTransactionUtils,
 });
+
+const bridgeService: IBridgeService = new BridgeService(
+  chainRepository,
+  knownAssetRepository,
+  circleRepository,
+  businessTransactionUtils,
+  cctpUtils,
+  blockchainProvider,
+);
 
 const relayerCredentialsClient = new RelayerCredentialsClient({
   configProvider,
@@ -189,6 +212,7 @@ export type WalletContextValue = {
   assetActivityRepository: IAssetActivityRepository;
   oneshotRelayerRepository: IOneshotRelayerRepository;
   transactionService: ITransactionService;
+  bridgeService: IBridgeService;
   delegationService: IDelegationService;
   eventBus: IEventBus;
 
@@ -332,6 +356,28 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     });
   }, [refreshAllowedChains]);
 
+  const evmAddress = useWalletSessionStore((state) => state.evmAddress);
+  const unlocked = useWalletSessionStore((state) => state.unlocked);
+  useEffect(() => {
+    if (!unlocked || !evmAddress || String(evmAddress).toLowerCase() === "0x0") {
+      return;
+    }
+    let cancelled = false;
+    void bridgeService.resume(evmAddress).then((inFlight) => {
+      if (cancelled || !inFlight) return;
+      void openCctpBridge({
+        sourceChainId: inFlight.sourceChainId,
+        ownerAddress: evmAddress,
+        resume: inFlight,
+      }).catch(() => {
+        /* user closed resume modal */
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [evmAddress, unlocked]);
+
   const {
     setUnlocked,
     refreshAddresses,
@@ -418,6 +464,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     transactionService,
     delegationService,
     transactionUtils,
+    cctpUtils,
     credentialRepository,
     walletStorage,
     eventBus,
@@ -654,6 +701,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       assetActivityRepository,
       oneshotRelayerRepository,
       transactionService,
+      bridgeService,
       delegationService,
       eventBus,
       chains,
@@ -725,6 +773,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
+    <CircleContextProvider provider={circleProvider}>
+      <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
+    </CircleContextProvider>
   );
 }

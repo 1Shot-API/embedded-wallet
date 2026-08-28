@@ -53,6 +53,7 @@ import type {
   ISIWEUtils,
   ITransactionUtils,
 } from "../lib/interfaces/utils";
+import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type { SupportedChain } from "../lib/types/domain";
 import {
@@ -76,6 +77,8 @@ import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerCreateAccountRpc } from "./registerCreateAccount";
 import type { IPasskeyRegistrationResult } from "./registerCreateAccount";
 import { registerFocusModeRpc } from "./registerFocusMode";
+import { registerOnrampRpc } from "./registerOnramp";
+import { registerBridgeRpc } from "./registerBridge";
 import { loadCachedEvmAddress, loadCredentialId } from "../storage";
 import { pushModal } from "./pushModal";
 import type {
@@ -183,6 +186,7 @@ export interface IUseWalletBootParams {
   transactionService: ITransactionService;
   delegationService: IDelegationService;
   transactionUtils: ITransactionUtils;
+  cctpUtils: ICCTPUtils;
   credentialRepository: CachedRelayerVaultRepository;
   walletStorage: AccountConnectStorage;
   eventBus: IEventBus;
@@ -212,6 +216,7 @@ export function useWalletBoot({
   transactionService,
   delegationService,
   transactionUtils,
+  cctpUtils,
   credentialRepository,
   walletStorage,
   eventBus,
@@ -463,6 +468,30 @@ export function useWalletBoot({
       chainEvents = rpcHelper.events;
 
       registerFocusModeRpc(wallet, rpcHelper);
+
+      registerOnrampRpc(wallet, {
+        getOwnerAddress: () => {
+          const address = useWalletSessionStore.getState().evmAddress;
+          if (!address || String(address).toLowerCase() === "0x0") {
+            return null;
+          }
+          return address;
+        },
+      });
+
+      registerBridgeRpc(wallet, {
+        getOwnerAddress: () => {
+          const address = useWalletSessionStore.getState().evmAddress;
+          if (!address || String(address).toLowerCase() === "0x0") {
+            return null;
+          }
+          return address;
+        },
+        getSessionChainId: () => useWalletSessionStore.getState().chainId,
+        chainRepository,
+        knownAssetRepository,
+        cctpUtils,
+      });
 
       registerAddAssetRpc(wallet, {
         knownAssetRepository,

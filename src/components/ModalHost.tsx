@@ -20,6 +20,8 @@ import { ImportPrivateKeyModal } from "./modals/ImportPrivateKeyModal";
 import { AdvancedOptionsModal } from "./modals/AdvancedOptionsModal";
 import { AddAssetModal } from "./modals/AddAssetModal";
 import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
+import { OnrampView } from "./OnrampView";
+import { CCTPBridge } from "./modals/CCTPBridge";
 import { GrantExecutionPermissionModal } from "./modals/GrantExecutionPermissionModal";
 import { CancelDelegationModal } from "./modals/CancelDelegationModal";
 
@@ -142,6 +144,24 @@ export function ModalHost() {
         <OpenCreateTabModal
           createUrl={activeModal.createUrl}
           onResolve={activeModal.resolve}
+        />
+      );
+    case "onramp":
+      return (
+        <OnrampView
+          destinationAddress={activeModal.request.destinationAddress}
+          chainId={activeModal.request.chainId}
+          amount={activeModal.request.amount}
+          tokenSymbol={activeModal.request.tokenSymbol}
+          onClose={() => activeModal.resolve()}
+        />
+      );
+    case "cctpBridge":
+      return (
+        <CCTPBridge
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
         />
       );
     default:

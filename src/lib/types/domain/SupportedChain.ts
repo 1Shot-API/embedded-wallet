@@ -20,6 +20,7 @@ export class SupportedChain {
     public readonly label: string,
     /** Base URL for tx/address explorer links (no trailing slash). */
     public readonly blockExplorerUrl: string,
+    public readonly cctpBridgeDestination: boolean,
   ) {}
 
   public txExplorerUrl(transactionHash: string): string {

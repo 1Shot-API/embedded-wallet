@@ -15,6 +15,11 @@ import type {
 } from "@1shotapi/ows-types";
 import type { ISiweFields } from "../lib/types/domain/SiweFields";
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
+import type { IOnrampOpenRequest } from "../circle/onrampTypes";
+import type {
+  ICctpBridgeModalResult,
+  ICctpBridgeOpenRequest,
+} from "../circle/cctpBridgeTypes";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
@@ -182,6 +187,20 @@ export type ModalRequest =
       createUrl: string;
       /** true when user confirms open; false when cancelled. */
       resolve: (opened: boolean) => void;
+    }
+  | {
+      id: string;
+      kind: "onramp";
+      request: IOnrampOpenRequest;
+      resolve: () => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "cctpBridge";
+      request: ICctpBridgeOpenRequest;
+      resolve: (result: ICctpBridgeModalResult) => void;
+      reject: (error: unknown) => void;
     };
 
 export type ActiveModal = ModalRequest;

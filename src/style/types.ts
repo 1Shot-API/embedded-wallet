@@ -159,6 +159,49 @@ export interface IStyleCopyTransferTokens {
 }
 
 /**
+ * In-wallet CCTP USDC bridge modal (quote + confirm + Iris progress).
+ */
+export interface IStyleCopyCctpBridge {
+  title: string;
+  body: string;
+  amountLabel: string;
+  amountPlaceholder: string;
+  destinationLabel: string;
+  destinationPlaceholder: string;
+  speedLabel: string;
+  speedFastLabel: string;
+  speedSlowLabel: string;
+  recipientLabel: string;
+  recipientHint: string;
+  getQuoteLabel: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  retryLabel: string;
+  transferAmountLabel: string;
+  forwardFeeLabel: string;
+  protocolFeeLabel: string;
+  cctpFeeLabel: string;
+  relayerFeeLabel: string;
+  totalBurnLabel: string;
+  netReceivedLabel: string;
+  quotingLabel: string;
+  submittingLabel: string;
+  pollingLabel: string;
+  sourceHashLabel: string;
+  destHashLabel: string;
+  successTitle: string;
+  successBody: string;
+  quoteFailedError: string;
+  submitFailedError: string;
+  timeoutError: string;
+  insufficientBalanceError: string;
+  invalidAmountError: string;
+  noDestinationError: string;
+  viewOnExplorerLabel: string;
+  doneLabel: string;
+}
+
+/**
  * EIP-7715 grant consent form (`wallet_requestExecutionPermissions`).
  * `body` supports `{domain}`, `{to}`, `{chainName}`, `{permissionType}`.
  */
@@ -352,6 +395,7 @@ export interface IStyleCopyBalances {
   receiveCopyFailedLabel: string;
   receiveCloseLabel: string;
   sendLabel: string;
+  bridgeLabel: string;
 }
 
 /**
@@ -435,6 +479,8 @@ export interface IStyleCopyOptions {
   confirmTransfer?: Partial<IStyleCopyConfirmTransfer>;
   /** Partial patch for the in-wallet transfer tokens modal */
   transferTokens?: Partial<IStyleCopyTransferTokens>;
+  /** Partial patch for the in-wallet CCTP USDC bridge modal */
+  cctpBridge?: Partial<IStyleCopyCctpBridge>;
   /** Partial patch for EIP-7715 grant consent */
   grantExecutionPermission?: Partial<IStyleCopyGrantExecutionPermission>;
   /** Partial patch for delegation cancel / revoke confirm */
@@ -486,6 +532,7 @@ export interface IResolvedCopy {
   sendTransaction: IStyleCopySendTransaction;
   confirmTransfer: IStyleCopyConfirmTransfer;
   transferTokens: IStyleCopyTransferTokens;
+  cctpBridge: IStyleCopyCctpBridge;
   grantExecutionPermission: IStyleCopyGrantExecutionPermission;
   cancelDelegation: IStyleCopyCancelDelegation;
   passkeyPrompt: IStyleCopyPasskeyPrompt;

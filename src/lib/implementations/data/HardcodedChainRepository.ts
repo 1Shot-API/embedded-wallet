@@ -1,10 +1,11 @@
 import {
-  EVMChainId,
   type EVMAccountAddress,
   type EVMChainId as EVMChainIdType,
 } from "@1shotapi/ows-types";
+import { EnableArcMainnet } from "../../features";
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
 import { SupportedChain } from "../../types/domain/SupportedChain";
+import { EChain } from "../../types/enum/EChain";
 import { EChainNetworkType } from "../../types/enum/EChainNetworkType";
 
 import arcLogo from "../../../assets/images/chains/arc-logo.png";
@@ -33,7 +34,19 @@ const ALCHEMY_KEY = "jqLUTbHeN_cVsIX2W7tJk";
  */
 const CATALOG: readonly SupportedChain[] = [
   new SupportedChain(
-    EVMChainId("0x4cef52"),
+    EChain.Arc,
+    EChainNetworkType.Mainnet,
+    PRODUCTION_RELAYER_URL,
+    false,
+    arcLogo,
+    EnableArcMainnet,
+    `https://arc-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
+    "Arc",
+    "https://explorer.arc.io",
+    false,
+  ),
+  new SupportedChain(
+    EChain.ArcTestnet,
     EChainNetworkType.Testnet,
     DEVELOPMENT_RELAYER_URL,
     true,
@@ -42,9 +55,10 @@ const CATALOG: readonly SupportedChain[] = [
     `https://arc-testnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
     "Arc Testnet",
     "https://testnet.arcscan.app",
+    true,
   ),
   new SupportedChain(
-    EVMChainId("0xaa36a7"),
+    EChain.Sepolia,
     EChainNetworkType.Testnet,
     DEVELOPMENT_RELAYER_URL,
     true,
@@ -53,9 +67,10 @@ const CATALOG: readonly SupportedChain[] = [
     `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_KEY}`,
     "Sepolia",
     "https://sepolia.etherscan.io",
+    true,
   ),
   new SupportedChain(
-    EVMChainId("0x14a34"),
+    EChain.BaseSepolia,
     EChainNetworkType.Testnet,
     DEVELOPMENT_RELAYER_URL,
     true,
@@ -64,9 +79,10 @@ const CATALOG: readonly SupportedChain[] = [
     `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_KEY}`,
     "Base Sepolia",
     "https://sepolia.basescan.org",
+    true,
   ),
   new SupportedChain(
-    EVMChainId("0x1"),
+    EChain.Ethereum,
     EChainNetworkType.Mainnet,
     PRODUCTION_RELAYER_URL,
     true,
@@ -75,9 +91,10 @@ const CATALOG: readonly SupportedChain[] = [
     "https://ethereum.publicnode.com",
     "Ethereum",
     "https://etherscan.io",
+    true,
   ),
   new SupportedChain(
-    EVMChainId("0xe708"),
+    EChain.Linea,
     EChainNetworkType.Mainnet,
     PRODUCTION_RELAYER_URL,
     true,
@@ -86,9 +103,10 @@ const CATALOG: readonly SupportedChain[] = [
     "https://rpc.linea.build",
     "Linea",
     "https://lineascan.build",
+    true,
   ),
   new SupportedChain(
-    EVMChainId("0xa4b1"),
+    EChain.Arbitrum,
     EChainNetworkType.Mainnet,
     PRODUCTION_RELAYER_URL,
     true,
@@ -97,9 +115,10 @@ const CATALOG: readonly SupportedChain[] = [
     "https://arb1.arbitrum.io/rpc",
     "Arbitrum",
     "https://arbiscan.io",
+    true,
   ),
   new SupportedChain(
-    EVMChainId("0xa"),
+    EChain.Optimism,
     EChainNetworkType.Mainnet,
     PRODUCTION_RELAYER_URL,
     true,
@@ -108,9 +127,10 @@ const CATALOG: readonly SupportedChain[] = [
     "https://mainnet.optimism.io",
     "Optimism",
     "https://optimistic.etherscan.io",
+    true,
   ),
   new SupportedChain(
-    EVMChainId("0x38"),
+    EChain.Bsc,
     EChainNetworkType.Mainnet,
     PRODUCTION_RELAYER_URL,
     true,
@@ -119,9 +139,10 @@ const CATALOG: readonly SupportedChain[] = [
     "https://bsc-dataseed.binance.org",
     "BSC",
     "https://bscscan.com",
+    false,
   ),
   new SupportedChain(
-    EVMChainId("0x2105"),
+    EChain.Base,
     EChainNetworkType.Mainnet,
     PRODUCTION_RELAYER_URL,
     true,
@@ -130,9 +151,10 @@ const CATALOG: readonly SupportedChain[] = [
     `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
     "Base",
     "https://basescan.org",
+    true,
   ),
   new SupportedChain(
-    EVMChainId("0x89"),
+    EChain.Polygon,
     EChainNetworkType.Mainnet,
     PRODUCTION_RELAYER_URL,
     true,
@@ -141,9 +163,10 @@ const CATALOG: readonly SupportedChain[] = [
     "https://polygon-rpc.com",
     "Polygon",
     "https://polygonscan.com",
+    true,
   ),
   new SupportedChain(
-    EVMChainId("0x92"),
+    EChain.Sonic,
     EChainNetworkType.Mainnet,
     PRODUCTION_RELAYER_URL,
     true,
@@ -152,9 +175,10 @@ const CATALOG: readonly SupportedChain[] = [
     "https://rpc.soniclabs.com",
     "Sonic",
     "https://sonicscan.org",
+    true,
   ),
   new SupportedChain(
-    EVMChainId("0x82"),
+    EChain.Unichain,
     EChainNetworkType.Mainnet,
     PRODUCTION_RELAYER_URL,
     true,
@@ -163,9 +187,10 @@ const CATALOG: readonly SupportedChain[] = [
     "https://mainnet.unichain.org",
     "Unichain",
     "https://uniscan.xyz",
+    true,
   ),
   new SupportedChain(
-    EVMChainId("0x8f"),
+    EChain.Monad,
     EChainNetworkType.Mainnet,
     PRODUCTION_RELAYER_URL,
     true,
@@ -174,9 +199,10 @@ const CATALOG: readonly SupportedChain[] = [
     "https://rpc.monad.xyz",
     "Monad",
     "https://monadvision.com",
+    true,
   ),
   new SupportedChain(
-    EVMChainId("0xa4ec"),
+    EChain.Celo,
     EChainNetworkType.Mainnet,
     PRODUCTION_RELAYER_URL,
     true,
@@ -185,9 +211,10 @@ const CATALOG: readonly SupportedChain[] = [
     "https://forno.celo.org",
     "Celo",
     "https://celoscan.io",
+    false,
   ),
   new SupportedChain(
-    EVMChainId("0x1237"),
+    EChain.Robinhood,
     EChainNetworkType.Mainnet,
     PRODUCTION_RELAYER_URL,
     true,
@@ -196,11 +223,14 @@ const CATALOG: readonly SupportedChain[] = [
     `https://robinhood-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
     "Robinhood",
     "https://robinhoodchain.blockscout.com",
+    false,
   ),
 ];
 
-/** Default chain for a fresh session (Arc Testnet). */
-export const DEFAULT_CHAIN_ID = EVMChainId("0x4cef52");
+/** Default chain for a fresh session. */
+export const DEFAULT_CHAIN_ID = EnableArcMainnet
+  ? EChain.Arc
+  : EChain.ArcTestnet;
 
 export class HardcodedChainRepository implements IChainRepository {
   private allowedChains: Set<string> | null = null;

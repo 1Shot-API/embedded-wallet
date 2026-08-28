@@ -10,6 +10,7 @@ export class KnownAsset {
     public readonly name: string,
     public readonly symbol: string,
     public readonly decimals: number,
+    public readonly useCCTPBridge: boolean,
     public readonly iconUrl?: string,
   ) {}
 }
