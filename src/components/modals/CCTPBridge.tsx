@@ -107,9 +107,12 @@ export function CCTPBridge({
 
   const hostInitiated = Boolean(request.hostInitiated);
   const openedAtRef = useRef(Date.now());
-  const hostDomainRef = useRef<DomainString | null>(null);
   const settledRef = useRef(false);
   const autoQuoteStartedRef = useRef(false);
+  /** Stable promise so settle/open analytics can await hostDomain even if settle races the first getConfig. */
+  const [hostDomainPromise] = useState(() =>
+    configProvider.getConfig().then(({ hostDomain }) => hostDomain),
+  );
 
   const [sourceUsdc, setSourceUsdc] = useState<KnownAsset | null>(null);
   const [destinations, setDestinations] = useState<SupportedChain[]>([]);
@@ -213,43 +216,46 @@ export function CCTPBridge({
     );
   }
 
-  function settleResolve(result: ICctpBridgeResult): void {
+  async function settleResolve(result: ICctpBridgeResult): Promise<void> {
     if (settledRef.current) return;
     settledRef.current = true;
-    const hostDomain = hostDomainRef.current;
-    if (hostDomain) {
+    try {
+      const hostDomain = await hostDomainPromise;
       emitCompleted(hostDomain, result.burnTxHash);
+    } catch {
+      // Analytics is best-effort; still settle the modal.
     }
     onResolve(result);
   }
 
-  function settleReject(error: unknown): void {
+  async function settleReject(error: unknown): Promise<void> {
     if (settledRef.current) return;
     settledRef.current = true;
-    const hostDomain = hostDomainRef.current;
-    if (hostDomain) {
+    try {
+      const hostDomain = await hostDomainPromise;
       if (error instanceof OwsUserRejectedError) {
         emitCancelled(hostDomain);
       } else {
         emitFailed(hostDomain, error);
       }
+    } catch {
+      // Analytics is best-effort; still settle the modal.
     }
     onReject(error);
   }
 
   useEffect(() => {
     let cancelled = false;
-    void configProvider.getConfig().then(({ hostDomain }) => {
+    void hostDomainPromise.then((hostDomain) => {
       if (cancelled) return;
-      hostDomainRef.current = hostDomain;
       emitOpened(hostDomain);
     });
     return () => {
       cancelled = true;
     };
-    // Fire once on mount for this open request.
+    // Fire BridgeOpened once when hostDomain is ready for this open request.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open analytics once
-  }, []);
+  }, [hostDomainPromise]);
 
   useEffect(() => {
     let cancelled = false;
@@ -492,7 +498,7 @@ export function CCTPBridge({
         setPhase("timeout");
         return;
       }
-      settleReject(
+      void settleReject(
         err instanceof Error ? err : new Error(copy.submitFailedError),
       );
     }
@@ -500,13 +506,13 @@ export function CCTPBridge({
 
   function handleCancel(): void {
     if (burnTxHash) {
-      settleResolve({
+      void settleResolve({
         burnTxHash,
         ...(forwardTxHash ? { forwardTxHash } : {}),
       });
       return;
     }
-    settleReject(new OwsUserRejectedError("User closed bridge"));
+    void settleReject(new OwsUserRejectedError("User closed bridge"));
   }
 
   const busy =
@@ -520,10 +526,10 @@ export function CCTPBridge({
 
   function handleDone(): void {
     if (!burnTxHash) {
-      settleReject(new OwsUserRejectedError("User closed bridge"));
+      void settleReject(new OwsUserRejectedError("User closed bridge"));
       return;
     }
-    settleResolve({
+    void settleResolve({
       burnTxHash,
       ...(forwardTxHash ? { forwardTxHash } : {}),
     });
