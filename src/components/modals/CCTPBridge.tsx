@@ -27,12 +27,17 @@ import {
   BridgeOpenedEvent,
 } from "../../lib/types/events/productEvents";
 import { makeTrackedAssetId } from "../../lib/types/primitives";
+import {
+  usdcAmountFromAtoms,
+  usdcAmountToAtoms,
+} from "../../lib/types/primitives/USDCAmount";
 import { analyticsErrorCode } from "../../lib/implementations/utils";
 import { useStyle } from "../../style/StyleProvider";
 import type { IStyleCopyCctpBridge } from "../../style/types";
 import { useWallet } from "../../wallet/WalletProvider";
 import { Modal } from "../Modal";
 import { PaymentFeePicker } from "../PaymentFeePicker";
+import { QuoteCountdown } from "../QuoteCountdown";
 import { TokenAmountInput } from "../TokenAmountInput";
 import { CopyableText } from "../CopyableText";
 import {
@@ -325,9 +330,17 @@ export function CCTPBridge({
   }, [bridgeService, copy.timeoutError, request, requestBalanceRefresh]);
 
   const fetchQuote = useCallback(
-    async (opts: { amountRaw: string; dest: string; transferSpeed: ECctpTransferSpeed }) => {
-      setError(null);
-      setPhase("quoting");
+    async (opts: {
+      amountRaw: string;
+      dest: string;
+      transferSpeed: ECctpTransferSpeed;
+      /** When true, stay on confirm (auto-refresh); otherwise setup Get Quote flow. */
+      silent?: boolean;
+    }) => {
+      if (!opts.silent) {
+        setError(null);
+        setPhase("quoting");
+      }
       try {
         const parsed = parseUnits(opts.amountRaw.trim(), decimals);
         const next = await bridgeService.quote({
@@ -338,10 +351,17 @@ export function CCTPBridge({
           owner: request.ownerAddress,
         });
         setIrisQuote(next);
-        setPhase("quoted");
+        if (!opts.silent) {
+          setPhase("quoted");
+        }
+        return next;
       } catch (err: unknown) {
+        if (opts.silent) {
+          throw err;
+        }
         setError(err instanceof Error ? err.message : copy.quoteFailedError);
         setPhase("form");
+        return null;
       }
     },
     [
@@ -352,6 +372,29 @@ export function CCTPBridge({
       request.sourceChainId,
     ],
   );
+
+  const refreshIrisQuote = useCallback(async (): Promise<string> => {
+    if (!destChainId) {
+      throw new Error(copy.noDestinationError);
+    }
+    const next = await fetchQuote({
+      amountRaw: amount,
+      dest: destChainId,
+      transferSpeed: speed,
+      silent: true,
+    });
+    if (!next) {
+      throw new Error(copy.quoteFailedError);
+    }
+    return `${formatUnits(next.netReceivedAtoms, next.sourceUsdc.decimals)} USDC`;
+  }, [
+    amount,
+    copy.noDestinationError,
+    copy.quoteFailedError,
+    destChainId,
+    fetchQuote,
+    speed,
+  ]);
 
   useEffect(() => {
     if (request.resume) return;
@@ -376,16 +419,21 @@ export function CCTPBridge({
 
   const requiredUsdc = useMemo(() => {
     if (!irisQuote || !paymentQuote || !sourceUsdc) return null;
+    const burn = usdcAmountFromAtoms(irisQuote.totalBurn);
     const same =
       String(paymentQuote.selectedToken).toLowerCase() ===
       String(sourceUsdc.address).toLowerCase();
-    return same
-      ? irisQuote.totalBurn + paymentQuote.feeAtoms
-      : irisQuote.totalBurn;
+    if (!same) {
+      return burn;
+    }
+    const fee = usdcAmountFromAtoms(paymentQuote.feeAtoms);
+    return usdcAmountFromAtoms(usdcAmountToAtoms(burn) + usdcAmountToAtoms(fee));
   }, [irisQuote, paymentQuote, sourceUsdc]);
 
   const insufficient =
-    requiredUsdc !== null && balance !== null && balance < requiredUsdc;
+    requiredUsdc !== null &&
+    balance !== null &&
+    usdcAmountFromAtoms(balance) < requiredUsdc;
 
   const isSetupScreen = phase === "form" || phase === "quoting";
   const isConfirmScreen =
@@ -738,6 +786,12 @@ export function CCTPBridge({
                 : copy.speedSlowLabel
             }
             copy={copy}
+            getIrisQuote={refreshIrisQuote}
+            paused={
+              phase === "submitting" ||
+              phase === "polling" ||
+              phase === "timeout"
+            }
           />
         ) : null}
 
@@ -748,6 +802,11 @@ export function CCTPBridge({
             quote={paymentQuote}
             error={paymentError}
             loading={false}
+            paused={
+              phase === "submitting" ||
+              phase === "polling" ||
+              phase === "timeout"
+            }
             onQuoteChange={onPaymentQuoteChange}
           />
         ) : null}
@@ -788,6 +847,8 @@ function ConfirmSummary({
   destLabel,
   speedLabel,
   copy,
+  getIrisQuote,
+  paused,
 }: {
   quote: ICctpBridgeQuote;
   payment: IPaymentQuote | null;
@@ -795,6 +856,8 @@ function ConfirmSummary({
   destLabel: string;
   speedLabel: string;
   copy: IStyleCopyCctpBridge;
+  getIrisQuote: () => Promise<string>;
+  paused: boolean;
 }) {
   const decimals = quote.sourceUsdc.decimals;
   return (
@@ -834,7 +897,9 @@ function ConfirmSummary({
       ) : null}
       <div className="flex justify-between gap-3 font-medium">
         <dt>{copy.netReceivedLabel}</dt>
-        <dd>{formatUnits(quote.netReceivedAtoms, decimals)} USDC</dd>
+        <dd>
+          <QuoteCountdown getNewQuote={getIrisQuote} paused={paused} />
+        </dd>
       </div>
     </dl>
   );

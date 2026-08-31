@@ -90,7 +90,7 @@ import type {
   IStoredDelegation,
 } from "../lib/types/domain/StoredDelegation";
 import type { DelegationId } from "../lib/types/primitives/DelegationId";
-import type { TrackedAssetId } from "../lib/types/primitives";
+import type { TrackedAssetId, TokenAmount } from "../lib/types/primitives";
 import {
   loadCachedEvmAddress,
   loadAccountsPermissionGranted,
@@ -287,7 +287,7 @@ export type WalletContextValue = {
     value?: bigint,
     payment?: {
       paymentToken: EVMAccountAddress;
-      feeAtoms: bigint;
+      feeAtoms: TokenAmount;
     },
   ) => Promise<EVMTransactionHash>;
   openExportPrivateKey: () => Promise<void>;
@@ -496,7 +496,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       value?: bigint,
       payment?: {
         paymentToken: EVMAccountAddress;
-        feeAtoms: bigint;
+        feeAtoms: TokenAmount;
       },
     ) => {
       const { hostDomain } = await configProvider.getConfig();

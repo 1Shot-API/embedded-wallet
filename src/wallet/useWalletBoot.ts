@@ -56,6 +56,7 @@ import type {
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type { SupportedChain } from "../lib/types/domain";
+import type { TokenAmount } from "../lib/types/primitives";
 import {
   DelegationCancelAbortedEvent,
   DelegationCancelledEvent,
@@ -150,7 +151,7 @@ function createDeferredSigner(
 
 function requireRelayerConfirmPayment(confirmed: {
   paymentToken?: EVMAccountAddress;
-  feeAtoms?: bigint;
+  feeAtoms?: TokenAmount;
 }): IRelayerConfirmSendResult {
   if (!confirmed.paymentToken || confirmed.feeAtoms === undefined) {
     throw new OwsInvalidParamsError(
@@ -652,12 +653,12 @@ export function useWalletBoot({
 
               const executeSend = async (payment: {
                 paymentToken?: EVMAccountAddress;
-                feeAtoms?: bigint;
+                feeAtoms?: TokenAmount;
               }) => {
                 let relayerOptions:
                   | {
                       paymentToken: EVMAccountAddress;
-                      feeAtoms: bigint;
+                      feeAtoms: TokenAmount;
                     }
                   | undefined;
                 if (useRelayer) {

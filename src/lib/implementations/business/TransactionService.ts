@@ -14,6 +14,7 @@ import type {
   ITransactionWork,
 } from "../../interfaces/business/ITransactionService";
 import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
+import type { TokenAmount } from "../../types/primitives";
 
 export type TransactionServiceOptions = {
   chainRepository: IChainRepository;
@@ -61,7 +62,7 @@ export class TransactionService implements ITransactionService {
     work: ITransactionWork,
     options?: {
       paymentToken?: EVMAccountAddress;
-      feeAtoms?: bigint;
+      feeAtoms?: TokenAmount;
       authorizationList?: IRelayerAuthorizationEntry[];
     },
   ): Promise<ISendTransactionResult> {

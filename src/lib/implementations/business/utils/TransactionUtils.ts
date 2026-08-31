@@ -41,6 +41,11 @@ import type { ITransactionUtils } from "../../../interfaces/business/utils/ITran
 import type { ITransactionUtils as IPresentationTransactionUtils } from "../../../interfaces/utils/ITransactionUtils";
 import type { IOWSProvider } from "../../../interfaces/utils/IOWSProvider";
 import { EPasskeyPromptReason } from "../../../types/enum/EPasskeyPromptReason";
+import {
+  makeTokenAmount,
+  tokenAmountFromAtomString,
+  type TokenAmount,
+} from "../../../types/primitives";
 import { idbGetString, idbSetString } from "../../../utils/idbStringStore";
 import { withCeremonyUiReason } from "../../../../wallet/ceremonyUiOverrideStore";
 import { withCoalescedSignDigest } from "../../../../wallet/withCoalescedSignDigest";
@@ -212,7 +217,7 @@ export class TransactionUtils implements ITransactionUtils {
         } catch {
           balance = 0n;
         }
-        return { ...token, balance };
+        return { ...token, balance: makeTokenAmount(balance) };
       }),
     );
 
@@ -224,7 +229,7 @@ export class TransactionUtils implements ITransactionUtils {
     // Confirm UI uses a conservative mock (≥ typical $0.01 minFee). The real fee
     // comes from relayer_estimate7710Transaction at submit — not getFeeData
     // (whose minFee is a human decimal string, not atoms).
-    const feeAtoms = parseUnits("0.01", selected.decimals);
+    const feeAtoms = makeTokenAmount(parseUnits("0.01", selected.decimals));
 
     return {
       tokens,
@@ -241,7 +246,7 @@ export class TransactionUtils implements ITransactionUtils {
     chainId: EVMChainId;
     work: ITransactionWork | ITransactionWork[];
     paymentToken: EVMAccountAddress;
-    feeAtoms: bigint;
+    feeAtoms: TokenAmount;
     authorizationList?: IRelayerAuthorizationEntry[];
     relayerUrl: string;
   }): Promise<ISendTransactionResult> {
@@ -250,7 +255,7 @@ export class TransactionUtils implements ITransactionUtils {
     if (workItems.length === 0) {
       throw new Error("sendViaRelayer requires at least one work item");
     }
-    let feeAtoms = args.feeAtoms;
+    let feeAtoms: TokenAmount = args.feeAtoms;
     let authorizationList = args.authorizationList;
 
     const signer = await this.options.owsProvider.getSigner();
@@ -427,9 +432,9 @@ export class TransactionUtils implements ITransactionUtils {
       if (
         estimate.success &&
         estimate.requiredPaymentAmount &&
-        BigInt(estimate.requiredPaymentAmount) !== feeAtoms
+        tokenAmountFromAtomString(estimate.requiredPaymentAmount) !== feeAtoms
       ) {
-        feeAtoms = BigInt(estimate.requiredPaymentAmount);
+        feeAtoms = tokenAmountFromAtomString(estimate.requiredPaymentAmount);
         const nextFeeCalldata = HexStringCompat(
           encodeFunctionData({
             abi: erc20Abi,

@@ -9,6 +9,7 @@ import type { KnownAsset } from "../../types/domain/KnownAsset";
 import type { SupportedChain } from "../../types/domain/SupportedChain";
 import type { ICctpInFlightBurn } from "../data/ICircleRepository";
 import type { IPaymentQuote } from "./ITransactionService";
+import type { TokenAmount } from "../../types/primitives";
 
 export interface ICctpQuoteParams {
   sourceChainId: EVMChainId;
@@ -38,7 +39,7 @@ export interface ICctpBridgeQuote {
 
 export interface ICctpBridgePayment {
   paymentToken: EVMAccountAddress;
-  feeAtoms: bigint;
+  feeAtoms: TokenAmount;
 }
 
 export interface ICctpBridgeResult {
