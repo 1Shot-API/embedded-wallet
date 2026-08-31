@@ -462,6 +462,7 @@ export function SendTransactionModal({
           quote={quote}
           error={quoteError}
           loading={false}
+          paused={phase === "signing"}
           onQuoteChange={(next, err) => {
             setQuote(next);
             setQuoteError(err);
@@ -598,6 +599,7 @@ export function ConfirmTransferModal({
           quote={quote}
           error={quoteError}
           loading={false}
+          paused={phase === "signing"}
           onQuoteChange={(next, err) => {
             setQuote(next);
             setQuoteError(err);

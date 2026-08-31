@@ -20,6 +20,7 @@ import type {
   ICctpBridgeModalResult,
   ICctpBridgeOpenRequest,
 } from "../circle/cctpBridgeTypes";
+import type { TokenAmount } from "../lib/types/primitives";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
@@ -41,13 +42,13 @@ export interface IConfirmTransferRequest {
 export type IConfirmSendPayment = {
   /** Required when the confirm modal was opened with `useRelayer: true`. */
   paymentToken?: EVMAccountAddress;
-  feeAtoms?: bigint;
+  feeAtoms?: TokenAmount;
 };
 
 /** Relayer confirm payload after UI validation. */
 export type IRelayerConfirmSendResult = {
   paymentToken: EVMAccountAddress;
-  feeAtoms: bigint;
+  feeAtoms: TokenAmount;
 };
 
 /** Result from TX confirm when canceling or selecting payment (legacy shape). */

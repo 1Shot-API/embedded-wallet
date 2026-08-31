@@ -10,6 +10,7 @@ import type {
 import type { ISendTransactionResult } from "../data/IOneshotRelayerRepository";
 import type { IStoredDelegation } from "../../types/domain/StoredDelegation";
 import type { DelegationId } from "../../types/primitives/DelegationId";
+import type { TokenAmount } from "../../types/primitives";
 
 /** Phase-1 EIP-7715 permission type (ERC-20 period transfer). */
 export const ERC20_TOKEN_PERIODIC = "erc20-token-periodic" as const;
@@ -24,7 +25,7 @@ export interface ICreateExecutionPermissionParams {
 export interface ICancelDelegationParams {
   chainId: EVMChainId;
   paymentToken: EVMAccountAddress;
-  feeAtoms: bigint;
+  feeAtoms: TokenAmount;
   /** Vault row when canceling from the Delegations tab. */
   stored?: IStoredDelegation;
   /**

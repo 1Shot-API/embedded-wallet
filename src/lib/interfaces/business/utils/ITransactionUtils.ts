@@ -4,6 +4,7 @@ import type {
   IRelayerAuthorizationEntry,
   ISendTransactionResult,
 } from "../../data/IOneshotRelayerRepository";
+import type { TokenAmount } from "../../../types/primitives";
 import type {
   IPaymentQuote,
   ITransactionWork,
@@ -47,7 +48,7 @@ export interface ITransactionUtils {
     chainId: EVMChainId;
     work: ITransactionWork | ITransactionWork[];
     paymentToken: EVMAccountAddress;
-    feeAtoms: bigint;
+    feeAtoms: TokenAmount;
     authorizationList?: IRelayerAuthorizationEntry[];
     relayerUrl: string;
   }): Promise<ISendTransactionResult>;

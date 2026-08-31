@@ -124,6 +124,7 @@ export function CancelDelegationModal({
         quote={quote}
         error={quoteError}
         loading={false}
+        paused={phase === "signing"}
         onQuoteChange={(next, err) => {
           setQuote(next);
           setQuoteError(err);
