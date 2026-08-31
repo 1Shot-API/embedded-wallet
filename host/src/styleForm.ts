@@ -148,9 +148,12 @@ export interface IStyleFormState {
   bridgeLabel: string;
   cctpBridgeTitle: string;
   cctpBridgeBody: string;
+  cctpBridgeConfirmTitle: string;
+  cctpBridgeConfirmBody: string;
   cctpBridgeGetQuote: string;
   cctpBridgeConfirm: string;
   cctpBridgeCancel: string;
+  cctpBridgeBack: string;
   cctpBridgeSentTitle: string;
 
   // Text — Confirm transfer (host ERC-20)
@@ -340,9 +343,13 @@ export const ACME_PRESET: IStyleFormState = {
   cctpBridgeTitle: "Bridge USDC",
   cctpBridgeBody:
     "Send USDC to another network. Circle mints on the destination — you never pay native gas.",
+  cctpBridgeConfirmTitle: "Confirm bridge",
+  cctpBridgeConfirmBody:
+    "Review the quote, then confirm to burn USDC on the source network.",
   cctpBridgeGetQuote: "Get quote",
   cctpBridgeConfirm: "Confirm bridge",
   cctpBridgeCancel: "Cancel",
+  cctpBridgeBack: "Back",
   cctpBridgeSentTitle: "Bridge complete",
   confirmTransferTitle: "Confirm Transfer",
   confirmTransferBody:
@@ -502,9 +509,13 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   cctpBridgeTitle: "Bridge USDC",
   cctpBridgeBody:
     "Send USDC to another network. Circle mints on the destination — you never pay native gas.",
+  cctpBridgeConfirmTitle: "Confirm bridge",
+  cctpBridgeConfirmBody:
+    "Review the quote, then confirm to burn USDC on the source network.",
   cctpBridgeGetQuote: "Get quote",
   cctpBridgeConfirm: "Confirm bridge",
   cctpBridgeCancel: "Cancel",
+  cctpBridgeBack: "Back",
   cctpBridgeSentTitle: "Bridge complete",
   confirmTransferTitle: "Confirm transfer",
   confirmTransferBody:
@@ -874,9 +885,12 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   const cctpBridge: Record<string, string> = {};
   put(cctpBridge, "title", form.cctpBridgeTitle);
   put(cctpBridge, "body", form.cctpBridgeBody);
+  put(cctpBridge, "confirmTitle", form.cctpBridgeConfirmTitle);
+  put(cctpBridge, "confirmBody", form.cctpBridgeConfirmBody);
   put(cctpBridge, "getQuoteLabel", form.cctpBridgeGetQuote);
   put(cctpBridge, "confirmLabel", form.cctpBridgeConfirm);
   put(cctpBridge, "cancelLabel", form.cctpBridgeCancel);
+  put(cctpBridge, "backLabel", form.cctpBridgeBack);
   put(cctpBridge, "successTitle", form.cctpBridgeSentTitle);
   if (Object.keys(cctpBridge).length > 0) copy.cctpBridge = cctpBridge;
 

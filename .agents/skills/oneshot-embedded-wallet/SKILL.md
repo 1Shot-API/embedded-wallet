@@ -272,22 +272,28 @@ Returns `{ ok: true }` when the user closes the onramp view. The Relayer holds t
 
 ## Custom RPC — `bridge`
 
-Opens the gasless CCTP USDC bridge (native TokenMessengerV2 + Circle Forwarding Service, submitted through the 1Shot relayer). Locked wallet → error. Close before confirm → `OwsUserRejectedError`. Omit `sourceChainId` to use the session chain.
+Opens the gasless CCTP USDC bridge (native TokenMessengerV2 + Circle Forwarding Service, submitted through the 1Shot relayer). Locked wallet → error. Cancel before success → `OwsUserRejectedError`. Execute failure → thrown error. Flyout closes when the RPC settles (`requestDisplay` / `hide`). Omit `sourceChainId` to use the session chain.
+
+When `amount`, `destinationChainId`, and `speed` are all provided, the wallet skips the setup form, auto-quotes, and shows the confirmation screen only (secondary action is **Cancel**). Partial params open setup with those values as defaults.
 
 ```typescript
 await proxy.rpc("bridge", {
   amount: "10.50",           // optional human USDC
   sourceChainId: 8453,       // optional decimal; omit → session chain
   destinationChainId: 1,     // optional; omit → user picks
+  speed: "fast",             // optional "fast" | "slow"; required with amount+dest to skip setup
+  tokenAddress: "0x…",       // optional; must be native CCTP USDC on source (default)
 });
 // or: await proxy.rpc("bridge", {});
 ```
 
 | Method | Params | Behavior |
 |--------|--------|----------|
-| `bridge` | `{ amount?: string, sourceChainId?: number, destinationChainId?: number }` | Shows wallet, opens CCTP bridge for native USDC on a relayer CCTP source. Dest must be a same-network CCTP chain. |
+| `bridge` | `{ amount?: string, sourceChainId?: number, destinationChainId?: number, speed?: "fast" \| "slow", tokenAddress?: string }` | Shows wallet, opens CCTP bridge for native USDC on a relayer CCTP source. Dest must be a same-network CCTP chain. Full params → confirm-only. |
 
-Returns `{ ok: true, burnTxHash, forwardTxHash? }` when the source burn is submitted (and destination mint if Iris has completed). The user pays the relayer USDC fee (same path as Send); destination mint is Circle’s Forwarding Service — no dest-chain signature and no native gas.
+Returns `{ ok: true, burnTxHash, forwardTxHash? }` when the bridge succeeds (destination mint if Iris has completed). The user pays the relayer USDC fee (same path as Send); destination mint is Circle’s Forwarding Service — no dest-chain signature and no native gas.
+
+Product analytics: `BridgeOpened`, `BridgeCompleted`, `BridgeFailed`, `BridgeCancelled` (burn submit still also emits `TransactionSubmitted*`).
 
 ## Other Host APIs
 

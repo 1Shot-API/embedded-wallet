@@ -36,6 +36,12 @@ export {
   DelegationCreatedEvent,
   DelegationCreateFailedEvent,
 } from "./DelegationEvents";
+export {
+  BridgeCancelledEvent,
+  BridgeCompletedEvent,
+  BridgeFailedEvent,
+  BridgeOpenedEvent,
+} from "./BridgeEvents";
 
 /** Any branding analytics event published on the EventBus analytics channel. */
 export type WalletAnalyticsEvent = OWSAnalyticsEvent;

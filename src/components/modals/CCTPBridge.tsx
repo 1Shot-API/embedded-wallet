@@ -1,11 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatUnits, parseUnits, erc20Abi } from "viem";
 import {
+  DomainString,
   EVMChainId,
   OwsUserRejectedError,
+  type EVMChainId as EVMChainIdType,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
-import type { ICctpBridgeOpenRequest } from "../../circle/cctpBridgeTypes";
+import {
+  isCctpBridgeParamsComplete,
+  type ICctpBridgeOpenRequest,
+} from "../../circle/cctpBridgeTypes";
 import type {
   ICctpBridgeQuote,
   ICctpBridgeResult,
@@ -15,8 +20,16 @@ import type { ICctpInFlightBurn } from "../../lib/interfaces/data/ICircleReposit
 import type { KnownAsset } from "../../lib/types/domain/KnownAsset";
 import type { SupportedChain } from "../../lib/types/domain/SupportedChain";
 import { ECctpTransferSpeed } from "../../lib/types/enum/ECctpTransferSpeed";
+import {
+  BridgeCancelledEvent,
+  BridgeCompletedEvent,
+  BridgeFailedEvent,
+  BridgeOpenedEvent,
+} from "../../lib/types/events/productEvents";
 import { makeTrackedAssetId } from "../../lib/types/primitives";
+import { analyticsErrorCode } from "../../lib/implementations/utils";
 import { useStyle } from "../../style/StyleProvider";
+import type { IStyleCopyCctpBridge } from "../../style/types";
 import { useWallet } from "../../wallet/WalletProvider";
 import { Modal } from "../Modal";
 import { PaymentFeePicker } from "../PaymentFeePicker";
@@ -65,8 +78,14 @@ function amountValidationError(
   return null;
 }
 
+function initialPhase(request: ICctpBridgeOpenRequest): BridgePhase {
+  if (request.resume) return "polling";
+  if (isCctpBridgeParamsComplete(request)) return "quoting";
+  return "form";
+}
+
 /**
- * Gasless CCTP USDC bridge. Quote → relayer approve/burn → Iris dest mint.
+ * Gasless CCTP USDC bridge. Setup → quote → confirm → relayer burn → Iris mint.
  */
 export function CCTPBridge({
   request,
@@ -82,7 +101,15 @@ export function CCTPBridge({
     resolveChain,
     requestBalanceRefresh,
     switchChain,
+    eventBus,
+    configProvider,
   } = useWallet();
+
+  const hostInitiated = Boolean(request.hostInitiated);
+  const openedAtRef = useRef(Date.now());
+  const hostDomainRef = useRef<DomainString | null>(null);
+  const settledRef = useRef(false);
+  const autoQuoteStartedRef = useRef(false);
 
   const [sourceUsdc, setSourceUsdc] = useState<KnownAsset | null>(null);
   const [destinations, setDestinations] = useState<SupportedChain[]>([]);
@@ -95,7 +122,7 @@ export function CCTPBridge({
     request.destinationChainId ? String(request.destinationChainId) : "",
   );
   const [speed, setSpeed] = useState<ECctpTransferSpeed>(
-    ECctpTransferSpeed.Fast,
+    request.speed ?? ECctpTransferSpeed.Fast,
   );
   const [balance, setBalance] = useState<bigint | null>(
     request.balance ?? null,
@@ -103,9 +130,7 @@ export function CCTPBridge({
   const [irisQuote, setIrisQuote] = useState<ICctpBridgeQuote | null>(null);
   const [paymentQuote, setPaymentQuote] = useState<IPaymentQuote | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<BridgePhase>(
-    request.resume ? "polling" : "form",
-  );
+  const [phase, setPhase] = useState<BridgePhase>(() => initialPhase(request));
   const [error, setError] = useState<string | null>(null);
   const [burnTxHash, setBurnTxHash] = useState<EVMTransactionHash | null>(
     request.resume?.burnTxHash ?? null,
@@ -124,6 +149,107 @@ export function CCTPBridge({
     () => amountValidationError(amount, decimals, copy),
     [amount, decimals, copy],
   );
+
+  const resolvedDestChainId = useMemo((): EVMChainIdType | null => {
+    if (!destChainId) return null;
+    try {
+      return EVMChainId(destChainId as `0x${string}`);
+    } catch {
+      return null;
+    }
+  }, [destChainId]);
+
+  const durationMs = () => Date.now() - openedAtRef.current;
+
+  function emitOpened(hostDomain: DomainString): void {
+    eventBus.emitAnalytics(
+      new BridgeOpenedEvent(
+        hostDomain,
+        request.ownerAddress,
+        request.sourceChainId,
+        request.destinationChainId ?? null,
+      ),
+    );
+  }
+
+  function emitCancelled(hostDomain: DomainString): void {
+    eventBus.emitAnalytics(
+      new BridgeCancelledEvent(
+        hostDomain,
+        request.ownerAddress,
+        request.sourceChainId,
+        durationMs(),
+        resolvedDestChainId,
+      ),
+    );
+  }
+
+  function emitFailed(hostDomain: DomainString, err: unknown): void {
+    eventBus.emitAnalytics(
+      new BridgeFailedEvent(
+        hostDomain,
+        request.ownerAddress,
+        request.sourceChainId,
+        analyticsErrorCode(err),
+        durationMs(),
+        resolvedDestChainId,
+      ),
+    );
+  }
+
+  function emitCompleted(
+    hostDomain: DomainString,
+    hash: EVMTransactionHash,
+  ): void {
+    eventBus.emitAnalytics(
+      new BridgeCompletedEvent(
+        hostDomain,
+        request.ownerAddress,
+        request.sourceChainId,
+        resolvedDestChainId,
+        hash,
+        durationMs(),
+      ),
+    );
+  }
+
+  function settleResolve(result: ICctpBridgeResult): void {
+    if (settledRef.current) return;
+    settledRef.current = true;
+    const hostDomain = hostDomainRef.current;
+    if (hostDomain) {
+      emitCompleted(hostDomain, result.burnTxHash);
+    }
+    onResolve(result);
+  }
+
+  function settleReject(error: unknown): void {
+    if (settledRef.current) return;
+    settledRef.current = true;
+    const hostDomain = hostDomainRef.current;
+    if (hostDomain) {
+      if (error instanceof OwsUserRejectedError) {
+        emitCancelled(hostDomain);
+      } else {
+        emitFailed(hostDomain, error);
+      }
+    }
+    onReject(error);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    void configProvider.getConfig().then(({ hostDomain }) => {
+      if (cancelled) return;
+      hostDomainRef.current = hostDomain;
+      emitOpened(hostDomain);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Fire once on mount for this open request.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open analytics once
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,6 +318,48 @@ export function CCTPBridge({
     };
   }, [bridgeService, copy.timeoutError, request, requestBalanceRefresh]);
 
+  const fetchQuote = useCallback(
+    async (opts: { amountRaw: string; dest: string; transferSpeed: ECctpTransferSpeed }) => {
+      setError(null);
+      setPhase("quoting");
+      try {
+        const parsed = parseUnits(opts.amountRaw.trim(), decimals);
+        const next = await bridgeService.quote({
+          sourceChainId: request.sourceChainId,
+          destChainId: EVMChainId(opts.dest as `0x${string}`),
+          amountAtoms: parsed,
+          speed: opts.transferSpeed,
+          owner: request.ownerAddress,
+        });
+        setIrisQuote(next);
+        setPhase("quoted");
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : copy.quoteFailedError);
+        setPhase("form");
+      }
+    },
+    [
+      bridgeService,
+      copy.quoteFailedError,
+      decimals,
+      request.ownerAddress,
+      request.sourceChainId,
+    ],
+  );
+
+  useEffect(() => {
+    if (request.resume) return;
+    if (!isCctpBridgeParamsComplete(request)) return;
+    if (autoQuoteStartedRef.current) return;
+    if (!sourceUsdc) return;
+    autoQuoteStartedRef.current = true;
+    void fetchQuote({
+      amountRaw: formatUnits(request.amountAtoms!, decimals),
+      dest: String(request.destinationChainId!),
+      transferSpeed: request.speed!,
+    });
+  }, [decimals, fetchQuote, request, sourceUsdc]);
+
   const onPaymentQuoteChange = useCallback(
     (next: IPaymentQuote | null, quoteError: string | null) => {
       setPaymentQuote(next);
@@ -211,17 +379,20 @@ export function CCTPBridge({
   }, [irisQuote, paymentQuote, sourceUsdc]);
 
   const insufficient =
-    requiredUsdc !== null &&
-    balance !== null &&
-    balance < requiredUsdc;
+    requiredUsdc !== null && balance !== null && balance < requiredUsdc;
+
+  const isSetupScreen = phase === "form" || phase === "quoting";
+  const isConfirmScreen =
+    phase === "quoted" ||
+    phase === "submitting" ||
+    phase === "polling" ||
+    phase === "timeout";
 
   const canQuote =
     Boolean(amount.trim()) &&
     !amountError &&
     Boolean(destChainId) &&
-    phase !== "quoting" &&
-    phase !== "submitting" &&
-    phase !== "polling";
+    phase === "form";
 
   const canConfirm =
     phase === "quoted" &&
@@ -230,32 +401,20 @@ export function CCTPBridge({
     !paymentError &&
     !insufficient;
 
-  function clearQuote(): void {
+  function clearQuoteToSetup(): void {
     setIrisQuote(null);
-    if (phase === "quoted" || phase === "quoting") {
-      setPhase("form");
-    }
+    setPaymentQuote(null);
+    setPaymentError(null);
+    setPhase("form");
   }
 
   async function handleGetQuote(): Promise<void> {
     if (!canQuote || !destChainId) return;
-    setError(null);
-    setPhase("quoting");
-    try {
-      const parsed = parseUnits(amount.trim(), decimals);
-      const next = await bridgeService.quote({
-        sourceChainId: request.sourceChainId,
-        destChainId: EVMChainId(destChainId as `0x${string}`),
-        amountAtoms: parsed,
-        speed,
-        owner: request.ownerAddress,
-      });
-      setIrisQuote(next);
-      setPhase("quoted");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : copy.quoteFailedError);
-      setPhase("form");
-    }
+    await fetchQuote({
+      amountRaw: amount,
+      dest: destChainId,
+      transferSpeed: speed,
+    });
   }
 
   async function pollInFlight(record: ICctpInFlightBurn): Promise<void> {
@@ -333,37 +492,42 @@ export function CCTPBridge({
         setPhase("timeout");
         return;
       }
-      setError(err instanceof Error ? err.message : copy.submitFailedError);
-      setPhase("quoted");
+      settleReject(
+        err instanceof Error ? err : new Error(copy.submitFailedError),
+      );
     }
   }
 
   function handleCancel(): void {
     if (burnTxHash) {
-      onResolve({
+      settleResolve({
         burnTxHash,
         ...(forwardTxHash ? { forwardTxHash } : {}),
       });
       return;
     }
-    onReject(new OwsUserRejectedError("User closed bridge"));
+    settleReject(new OwsUserRejectedError("User closed bridge"));
+  }
+
+  const busy =
+    phase === "quoting" || phase === "submitting" || phase === "polling";
+
+  function handleBack(): void {
+    if (hostInitiated || busy) return;
+    setError(null);
+    clearQuoteToSetup();
   }
 
   function handleDone(): void {
     if (!burnTxHash) {
-      onReject(new OwsUserRejectedError("User closed bridge"));
+      settleReject(new OwsUserRejectedError("User closed bridge"));
       return;
     }
-    onResolve({
+    settleResolve({
       burnTxHash,
       ...(forwardTxHash ? { forwardTxHash } : {}),
     });
   }
-
-  const busy =
-    phase === "quoting" ||
-    phase === "submitting" ||
-    phase === "polling";
   const destChain = destChainId
     ? destinations.find(
         (chain) =>
@@ -372,9 +536,10 @@ export function CCTPBridge({
     : undefined;
 
   if (phase === "success" && burnTxHash) {
-    const destExplorer = destChain && forwardTxHash
-      ? destChain.txExplorerUrl(forwardTxHash)
-      : undefined;
+    const destExplorer =
+      destChain && forwardTxHash
+        ? destChain.txExplorerUrl(forwardTxHash)
+        : undefined;
     const sourceExplorer = sourceChain?.txExplorerUrl(burnTxHash);
     return (
       <Modal
@@ -410,6 +575,21 @@ export function CCTPBridge({
     );
   }
 
+  const secondaryAction =
+    isConfirmScreen && !hostInitiated && phase === "quoted"
+      ? {
+          label: copy.backLabel,
+          variant: "secondary" as const,
+          disabled: busy,
+          onClick: handleBack,
+        }
+      : {
+          label: copy.cancelLabel,
+          variant: "secondary" as const,
+          disabled: busy,
+          onClick: handleCancel,
+        };
+
   const primaryAction =
     phase === "timeout"
       ? {
@@ -421,12 +601,17 @@ export function CCTPBridge({
             if (record) void pollInFlight(record);
           },
         }
-      : phase === "quoted"
+      : isConfirmScreen
         ? {
-            label: copy.confirmLabel,
+            label:
+              phase === "submitting"
+                ? copy.submittingLabel
+                : phase === "polling"
+                  ? copy.pollingLabel
+                  : copy.confirmLabel,
             variant: "primary" as const,
             autoFocus: true,
-            disabled: !canConfirm,
+            disabled: phase !== "quoted" || !canConfirm,
             onClick: () => void handleConfirm(),
           }
         : {
@@ -439,101 +624,108 @@ export function CCTPBridge({
 
   return (
     <Modal
-      title={copy.title}
+      title={isConfirmScreen ? copy.confirmTitle : copy.title}
       onBackdropDismiss={busy ? undefined : handleCancel}
-      actions={[
-        {
-          label: copy.cancelLabel,
-          variant: "secondary",
-          disabled: busy,
-          onClick: handleCancel,
-        },
-        primaryAction,
-      ]}
+      actions={[secondaryAction, primaryAction]}
     >
-      <p className="text-muted-foreground m-0">{copy.body}</p>
+      <p className="text-muted-foreground m-0">
+        {isConfirmScreen ? copy.confirmBody : copy.body}
+      </p>
       <div className="mt-4 flex flex-col gap-4">
-        <TokenAmountInput
-          label={copy.amountLabel}
-          placeholder={copy.amountPlaceholder}
-          symbol={sourceUsdc?.symbol ?? "USDC"}
-          value={amount}
-          onChange={(next) => {
-            setAmount(next);
-            setError(null);
-            clearQuote();
-          }}
-          error={amountError}
-          disabled={busy || Boolean(request.resume)}
-        />
-        <div className="flex flex-col gap-1.5">
-          <span className="text-muted-foreground text-xs font-medium">
-            {copy.destinationLabel}
-          </span>
-          <Select
-            value={destChainId || undefined}
-            disabled={busy || destLocked || Boolean(request.resume)}
-            onValueChange={(value) => {
-              setDestChainId(value);
-              setError(null);
-              clearQuote();
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={copy.destinationPlaceholder} />
-            </SelectTrigger>
-            <SelectContent className="z-[10001]">
-              {destinations.map((chain) => (
-                <SelectItem
-                  key={String(chain.chainId)}
-                  value={String(chain.chainId)}
-                >
-                  {chain.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <span className="text-muted-foreground text-xs font-medium">
-            {copy.speedLabel}
-          </span>
-          <Select
-            value={speed}
-            disabled={busy || Boolean(request.resume)}
-            onValueChange={(value) => {
-              setSpeed(value as ECctpTransferSpeed);
-              setError(null);
-              clearQuote();
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="z-[10001]">
-              <SelectItem value={ECctpTransferSpeed.Fast}>
-                {copy.speedFastLabel}
-              </SelectItem>
-              <SelectItem value={ECctpTransferSpeed.Slow}>
-                {copy.speedSlowLabel}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <span className="text-muted-foreground text-xs font-medium">
-            {copy.recipientLabel}
-          </span>
-          <CopyableText text={String(request.ownerAddress)} truncate />
-          <p className="text-muted-foreground m-0 text-xs">{copy.recipientHint}</p>
-        </div>
-        {irisQuote &&
-        (phase === "quoted" ||
-          phase === "submitting" ||
-          phase === "polling") ? (
-          <QuoteBreakdown quote={irisQuote} payment={paymentQuote} copy={copy} />
+        {isSetupScreen ? (
+          <>
+            <TokenAmountInput
+              label={copy.amountLabel}
+              placeholder={copy.amountPlaceholder}
+              symbol={sourceUsdc?.symbol ?? "USDC"}
+              value={amount}
+              onChange={(next) => {
+                setAmount(next);
+                setError(null);
+              }}
+              error={amountError}
+              disabled={busy}
+            />
+            <div className="flex flex-col gap-1.5">
+              <span className="text-muted-foreground text-xs font-medium">
+                {copy.destinationLabel}
+              </span>
+              <Select
+                value={destChainId || undefined}
+                disabled={busy || destLocked}
+                onValueChange={(value) => {
+                  setDestChainId(value);
+                  setError(null);
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={copy.destinationPlaceholder} />
+                </SelectTrigger>
+                <SelectContent className="z-[10001]">
+                  {destinations.map((chain) => (
+                    <SelectItem
+                      key={String(chain.chainId)}
+                      value={String(chain.chainId)}
+                    >
+                      {chain.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-muted-foreground text-xs font-medium">
+                {copy.speedLabel}
+              </span>
+              <Select
+                value={speed}
+                disabled={busy}
+                onValueChange={(value) => {
+                  setSpeed(value as ECctpTransferSpeed);
+                  setError(null);
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-[10001]">
+                  <SelectItem value={ECctpTransferSpeed.Fast}>
+                    {copy.speedFastLabel}
+                  </SelectItem>
+                  <SelectItem value={ECctpTransferSpeed.Slow}>
+                    {copy.speedSlowLabel}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-muted-foreground text-xs font-medium">
+                {copy.recipientLabel}
+              </span>
+              <CopyableText text={String(request.ownerAddress)} truncate />
+              <p className="text-muted-foreground m-0 text-xs">
+                {copy.recipientHint}
+              </p>
+            </div>
+          </>
         ) : null}
-        {irisQuote && request.ownerAddress ? (
+
+        {isConfirmScreen && irisQuote ? (
+          <ConfirmSummary
+            quote={irisQuote}
+            payment={paymentQuote}
+            sourceLabel={sourceChain?.label ?? String(request.sourceChainId)}
+            destLabel={destChain?.label ?? destChainId}
+            speedLabel={
+              speed === ECctpTransferSpeed.Fast
+                ? copy.speedFastLabel
+                : copy.speedSlowLabel
+            }
+            copy={copy}
+          />
+        ) : null}
+
+        {isConfirmScreen && irisQuote && request.ownerAddress ? (
           <PaymentFeePicker
             chainId={request.sourceChainId}
             ownerAddress={request.ownerAddress}
@@ -543,6 +735,7 @@ export function CCTPBridge({
             onQuoteChange={onPaymentQuoteChange}
           />
         ) : null}
+
         {phase === "submitting" ? (
           <p className="text-muted-foreground text-sm">{copy.submittingLabel}</p>
         ) : null}
@@ -557,7 +750,7 @@ export function CCTPBridge({
             viewLabel={copy.viewOnExplorerLabel}
           />
         ) : null}
-        {insufficient ? (
+        {insufficient && isConfirmScreen ? (
           <p className="text-destructive text-xs" role="alert">
             {copy.insufficientBalanceError}
           </p>
@@ -572,23 +765,36 @@ export function CCTPBridge({
   );
 }
 
-function QuoteBreakdown({
+function ConfirmSummary({
   quote,
   payment,
+  sourceLabel,
+  destLabel,
+  speedLabel,
   copy,
 }: {
   quote: ICctpBridgeQuote;
   payment: IPaymentQuote | null;
-  copy: {
-    transferAmountLabel: string;
-    cctpFeeLabel: string;
-    relayerFeeLabel: string;
-    netReceivedLabel: string;
-  };
+  sourceLabel: string;
+  destLabel: string;
+  speedLabel: string;
+  copy: IStyleCopyCctpBridge;
 }) {
   const decimals = quote.sourceUsdc.decimals;
   return (
     <dl className="bg-muted/50 flex flex-col gap-1.5 rounded-md p-3 text-sm">
+      <div className="flex justify-between gap-3">
+        <dt className="text-muted-foreground">{copy.sourceChainLabel}</dt>
+        <dd>{sourceLabel}</dd>
+      </div>
+      <div className="flex justify-between gap-3">
+        <dt className="text-muted-foreground">{copy.destinationLabel}</dt>
+        <dd>{destLabel}</dd>
+      </div>
+      <div className="flex justify-between gap-3">
+        <dt className="text-muted-foreground">{copy.speedLabel}</dt>
+        <dd>{speedLabel}</dd>
+      </div>
       <div className="flex justify-between gap-3">
         <dt className="text-muted-foreground">{copy.transferAmountLabel}</dt>
         <dd>{formatUnits(quote.amountAtoms, decimals)} USDC</dd>

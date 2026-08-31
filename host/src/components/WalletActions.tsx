@@ -1,4 +1,5 @@
 import { RefreshCwIcon } from "lucide-react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,15 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import type { SignMode } from "@/constants/signDemo";
+import {
+  BRIDGE_SESSION_SOURCE,
+  BRIDGE_SOURCE_CHAINS,
+  BRIDGE_SPEED_UNSET,
+  BRIDGE_USER_PICKS_DEST,
+  bridgeDestinationsForSource,
+  isBridgeAmountValid,
+  type BridgeSpeedOption,
+} from "@/constants/bridgeDemo";
 import { EnableArcMainnet } from "@/features";
 import {
   HOST_CHAINS,
@@ -60,6 +70,14 @@ export interface IWalletActionsProps {
   onAddUsdtBase: () => void;
   onOnramp: () => void;
   onBridge: () => void;
+  bridgeSourceChainId: string;
+  bridgeDestinationChainId: string;
+  bridgeAmount: string;
+  bridgeSpeed: BridgeSpeedOption | "";
+  onBridgeSourceChange: (value: string) => void;
+  onBridgeDestinationChange: (value: string) => void;
+  onBridgeAmountChange: (value: string) => void;
+  onBridgeSpeedChange: (value: BridgeSpeedOption | "") => void;
   /** In-memory grants from this session (`wallet_requestExecutionPermissions`). */
   sessionGrants: ReadonlyArray<{
     id: string;
@@ -111,6 +129,14 @@ export function WalletActions({
   onAddUsdtBase,
   onOnramp,
   onBridge,
+  bridgeSourceChainId,
+  bridgeDestinationChainId,
+  bridgeAmount,
+  bridgeSpeed,
+  onBridgeSourceChange,
+  onBridgeDestinationChange,
+  onBridgeAmountChange,
+  onBridgeSpeedChange,
   sessionGrants,
   delegationsOutput,
   onRequestDelegation,
@@ -119,6 +145,27 @@ export function WalletActions({
   onGetGrantedPermissions,
 }: IWalletActionsProps) {
   const meta = hostChainMeta(chainId);
+
+  const bridgeDestinations = useMemo(
+    () => bridgeDestinationsForSource(bridgeSourceChainId, chainId),
+    [bridgeSourceChainId, chainId],
+  );
+
+  const bridgeAmountValid = isBridgeAmountValid(bridgeAmount);
+  const bridgeDisabled = !ready || busy || !bridgeAmountValid;
+
+  function handleBridgeSourceChange(value: string): void {
+    onBridgeSourceChange(value);
+    const nextDestinations = bridgeDestinationsForSource(value, chainId);
+    if (
+      bridgeDestinationChainId &&
+      !nextDestinations.some(
+        (chain) => chain.value === bridgeDestinationChainId,
+      )
+    ) {
+      onBridgeDestinationChange("");
+    }
+  }
   const tokenSymbol = meta?.tokenSymbol ?? "USDC";
   const accountLabel = account
     ? `${account.slice(0, 6)}…${account.slice(-4)}`
@@ -416,14 +463,114 @@ export function WalletActions({
           {EnableArcMainnet ? (
             <>
               Open Circle fiat onramp via <code>onramp</code>, or gasless CCTP
-              USDC bridge via <code>bridge</code>.
+              USDC bridge via <code>bridge</code>. Pre-fill source, destination,
+              amount, and speed — when amount, destination, and speed are all
+              set, the wallet skips setup and shows the confirmation quote.
             </>
           ) : (
             <>
-              Open gasless CCTP USDC bridge via <code>bridge</code>.
+              Open gasless CCTP USDC bridge via <code>bridge</code>. Pre-fill
+              source, destination, amount, and speed — when amount, destination,
+              and speed are all set, the wallet skips setup and shows the
+              confirmation quote.
             </>
           )}
         </p>
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <Label htmlFor="bridge-source-select">Source chain</Label>
+              <Select
+                value={bridgeSourceChainId}
+                disabled={!ready || busy}
+                onValueChange={handleBridgeSourceChange}
+              >
+                <SelectTrigger id="bridge-source-select" className="w-full">
+                  <SelectValue placeholder="Source chain" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={BRIDGE_SESSION_SOURCE}>
+                    Session chain
+                  </SelectItem>
+                  {BRIDGE_SOURCE_CHAINS.map((chain) => (
+                    <SelectItem key={chain.value} value={chain.value}>
+                      {chain.label}
+                      {chain.value.toLowerCase() === chainId.toLowerCase()
+                        ? " (session)"
+                        : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <Label htmlFor="bridge-destination-select">Destination</Label>
+              <Select
+                value={bridgeDestinationChainId || BRIDGE_USER_PICKS_DEST}
+                disabled={!ready || busy}
+                onValueChange={(value) => {
+                  onBridgeDestinationChange(
+                    value === BRIDGE_USER_PICKS_DEST ? "" : value,
+                  );
+                }}
+              >
+                <SelectTrigger id="bridge-destination-select" className="w-full">
+                  <SelectValue placeholder="Destination" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={BRIDGE_USER_PICKS_DEST}>
+                    User picks in wallet
+                  </SelectItem>
+                  {bridgeDestinations.map((chain) => (
+                    <SelectItem key={chain.value} value={chain.value}>
+                      {chain.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="bridge-amount-input">Amount (USDC)</Label>
+              <Input
+                id="bridge-amount-input"
+                spellCheck={false}
+                autoComplete="off"
+                inputMode="decimal"
+                placeholder="1.0"
+                value={bridgeAmount}
+                disabled={!ready || busy}
+                onChange={(event) => onBridgeAmountChange(event.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="bridge-speed-select">Speed</Label>
+              <Select
+                value={bridgeSpeed || BRIDGE_SPEED_UNSET}
+                disabled={!ready || busy}
+                onValueChange={(value) => {
+                  onBridgeSpeedChange(
+                    value === BRIDGE_SPEED_UNSET
+                      ? ""
+                      : (value as BridgeSpeedOption),
+                  );
+                }}
+              >
+                <SelectTrigger id="bridge-speed-select" className="w-full">
+                  <SelectValue placeholder="User picks in wallet" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={BRIDGE_SPEED_UNSET}>
+                    User picks in wallet
+                  </SelectItem>
+                  <SelectItem value="fast">Fast</SelectItem>
+                  <SelectItem value="slow">Standard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
         <div className="flex flex-wrap gap-2">
           {EnableArcMainnet ? (
             <Button
@@ -438,7 +585,7 @@ export function WalletActions({
           <Button
             type="button"
             variant="outline"
-            disabled={!ready || busy}
+            disabled={bridgeDisabled}
             onClick={onBridge}
           >
             Bridge

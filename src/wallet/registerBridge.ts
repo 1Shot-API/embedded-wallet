@@ -2,18 +2,21 @@ import { z } from "zod";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
   EVMChainId,
+  EVMContractAddress,
   OwsInvalidParamsError,
   OwsUserRejectedError,
   type EVMAccountAddress,
   type EVMChainId as EVMChainIdType,
+  type EVMContractAddress as EVMContractAddressType,
 } from "@1shotapi/ows-types";
-import { parseUnits } from "viem";
+import { getAddress, parseUnits } from "viem";
 import { openCctpBridge } from "../circle/openCctpBridge";
 import type { IChainRepository } from "../lib/interfaces/data/IChainRepository";
 import type { IKnownAssetRepository } from "../lib/interfaces/data/IKnownAssetRepository";
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
+import { ECctpTransferSpeed } from "../lib/types/enum/ECctpTransferSpeed";
 
-/** Custom RPC — host: `await proxy.rpc("bridge", { amount?, sourceChainId?, destinationChainId? })`. */
+/** Custom RPC — host: `await proxy.rpc("bridge", { amount?, sourceChainId?, destinationChainId?, speed?, tokenAddress? })`. */
 export const BRIDGE_RPC_METHOD = "bridge";
 
 const bridgeParamsSchema = z
@@ -21,6 +24,11 @@ const bridgeParamsSchema = z
     amount: z.string().min(1).optional(),
     sourceChainId: z.number().int().positive().optional(),
     destinationChainId: z.number().int().positive().optional(),
+    speed: z.enum(["fast", "slow"]).optional(),
+    tokenAddress: z
+      .string()
+      .regex(/^0x[a-fA-F0-9]{40}$/)
+      .optional(),
   })
   .default({});
 
@@ -49,6 +57,14 @@ export function resolveBridgeSourceChainId(
   return evmChainIdFromDecimal(sourceChainIdDecimal);
 }
 
+function resolveBridgeSpeed(
+  speed: "fast" | "slow" | undefined,
+): ECctpTransferSpeed | undefined {
+  if (speed === "fast") return ECctpTransferSpeed.Fast;
+  if (speed === "slow") return ECctpTransferSpeed.Slow;
+  return undefined;
+}
+
 /**
  * Register host `bridge` RPC — opens the CCTP USDC bridge for the unlocked
  * EVM address on a relayer CCTP source chain.
@@ -60,7 +76,7 @@ export function registerBridgeRpc(
   wallet.registerRpc(
     BRIDGE_RPC_METHOD,
     async (params) => {
-      const { amount, sourceChainId, destinationChainId } =
+      const { amount, sourceChainId, destinationChainId, speed, tokenAddress } =
         params as IBridgeParams;
       const owner = options.getOwnerAddress();
       if (!owner) {
@@ -84,6 +100,24 @@ export function registerBridgeRpc(
         throw new OwsInvalidParamsError(
           `Source chain ${sourceId} is not a relayer CCTP source`,
         );
+      }
+
+      let token: EVMContractAddressType | undefined;
+      if (tokenAddress !== undefined) {
+        let checksummed: string;
+        try {
+          checksummed = getAddress(tokenAddress);
+        } catch {
+          throw new OwsInvalidParamsError("tokenAddress must be a valid address");
+        }
+        if (
+          checksummed.toLowerCase() !== String(sourceUsdc.address).toLowerCase()
+        ) {
+          throw new OwsInvalidParamsError(
+            "tokenAddress must be native CCTP USDC on the source chain",
+          );
+        }
+        token = EVMContractAddress(checksummed as `0x${string}`);
       }
 
       let destId: EVMChainIdType | undefined;
@@ -111,13 +145,18 @@ export function registerBridgeRpc(
         }
       }
 
+      const transferSpeed = resolveBridgeSpeed(speed);
+
       const display = await wallet.requestDisplay();
       try {
         const result = await openCctpBridge({
           sourceChainId: sourceId,
           ownerAddress: owner,
+          hostInitiated: true,
           ...(amountAtoms !== undefined ? { amountAtoms } : {}),
           ...(destId ? { destinationChainId: destId } : {}),
+          ...(transferSpeed !== undefined ? { speed: transferSpeed } : {}),
+          ...(token !== undefined ? { tokenAddress: token } : {}),
         });
         return {
           ok: true as const,
