@@ -106,6 +106,18 @@ export function WalletConfiguratorTextTabWalletSections({
             onChange={(value) => patch("cctpBridgeBody", value)}
           />
           <TextField
+            id="cctp-bridge-confirm-title"
+            label="Bridge confirm title"
+            value={form.cctpBridgeConfirmTitle}
+            onChange={(value) => patch("cctpBridgeConfirmTitle", value)}
+          />
+          <BodyField
+            id="cctp-bridge-confirm-body"
+            label="Bridge confirm body"
+            value={form.cctpBridgeConfirmBody}
+            onChange={(value) => patch("cctpBridgeConfirmBody", value)}
+          />
+          <TextField
             id="cctp-bridge-get-quote"
             label="Bridge get quote"
             value={form.cctpBridgeGetQuote}
@@ -122,6 +134,12 @@ export function WalletConfiguratorTextTabWalletSections({
             label="Bridge cancel"
             value={form.cctpBridgeCancel}
             onChange={(value) => patch("cctpBridgeCancel", value)}
+          />
+          <TextField
+            id="cctp-bridge-back"
+            label="Bridge back"
+            value={form.cctpBridgeBack}
+            onChange={(value) => patch("cctpBridgeBack", value)}
           />
           <TextField
             id="cctp-bridge-sent-title"

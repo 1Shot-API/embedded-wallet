@@ -164,8 +164,11 @@ export interface IStyleCopyTransferTokens {
 export interface IStyleCopyCctpBridge {
   title: string;
   body: string;
+  confirmTitle: string;
+  confirmBody: string;
   amountLabel: string;
   amountPlaceholder: string;
+  sourceChainLabel: string;
   destinationLabel: string;
   destinationPlaceholder: string;
   speedLabel: string;
@@ -176,6 +179,7 @@ export interface IStyleCopyCctpBridge {
   getQuoteLabel: string;
   confirmLabel: string;
   cancelLabel: string;
+  backLabel: string;
   retryLabel: string;
   transferAmountLabel: string;
   forwardFeeLabel: string;

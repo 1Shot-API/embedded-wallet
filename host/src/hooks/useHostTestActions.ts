@@ -28,6 +28,11 @@ import {
   type SignMode,
 } from "../constants/signDemo";
 import {
+  BRIDGE_SESSION_SOURCE,
+  chainIdToNumber,
+  type BridgeSpeedOption,
+} from "../constants/bridgeDemo";
+import {
   DEMO_EXECUTION_DELEGATEE,
   FOCUS_USDC_ARC,
   FOCUS_USDT_BASE,
@@ -116,6 +121,12 @@ export function useHostTestActions({
   const [usdcMode, setUsdcMode] = useState<UsdcMode>("balance");
   const [usdcDestination, setUsdcDestination] = useState("");
   const [usdcAmount, setUsdcAmount] = useState("");
+  const [bridgeSourceChainId, setBridgeSourceChainId] = useState(
+    BRIDGE_SESSION_SOURCE,
+  );
+  const [bridgeDestinationChainId, setBridgeDestinationChainId] = useState("");
+  const [bridgeAmount, setBridgeAmount] = useState("");
+  const [bridgeSpeed, setBridgeSpeed] = useState<BridgeSpeedOption | "">("");
   const [status, setStatus] = useState("Connecting to wallet…");
   const [statusIsError, setStatusIsError] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
@@ -681,10 +692,27 @@ export function useHostTestActions({
     const proxy = proxyRef.current;
     if (!proxy) return;
     setBusy(true);
-    reportStatus("Opening CCTP bridge…");
+    const trimmedAmount = bridgeAmount.trim();
+    const params: Record<string, string | number> = {};
+    if (trimmedAmount) params.amount = trimmedAmount;
+    if (bridgeSourceChainId !== BRIDGE_SESSION_SOURCE) {
+      params.sourceChainId = chainIdToNumber(bridgeSourceChainId);
+    }
+    if (bridgeDestinationChainId) {
+      params.destinationChainId = chainIdToNumber(bridgeDestinationChainId);
+    }
+    if (bridgeSpeed) {
+      params.speed = bridgeSpeed;
+    }
+    const paramSummary = Object.keys(params).length
+      ? ` (${Object.entries(params)
+          .map(([key, value]) => `${key}=${value}`)
+          .join(", ")})`
+      : "";
+    reportStatus(`Opening CCTP bridge${paramSummary}…`);
     void (async () => {
       try {
-        await proxy.rpc("bridge", {});
+        await proxy.rpc("bridge", params);
         proxy.showWallet();
         setWalletVisible(true);
         reportStatus("Bridge closed.");
@@ -888,6 +916,14 @@ export function useHostTestActions({
     onAddUsdtBase: handleAddUsdtBase,
     onOnramp: handleOnramp,
     onBridge: handleBridge,
+    bridgeSourceChainId,
+    bridgeDestinationChainId,
+    bridgeAmount,
+    bridgeSpeed,
+    onBridgeSourceChange: setBridgeSourceChainId,
+    onBridgeDestinationChange: setBridgeDestinationChainId,
+    onBridgeAmountChange: setBridgeAmount,
+    onBridgeSpeedChange: setBridgeSpeed,
     sessionGrants: sessionGrants.map((g) => ({
       id: g.id,
       summary: grantSummary(g.response),
