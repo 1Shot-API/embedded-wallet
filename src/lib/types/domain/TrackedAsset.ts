@@ -18,6 +18,8 @@ export class NewTrackedAsset {
     public readonly name: string,
     public readonly symbol: string,
     public readonly decimals: number,
+    /** Optional host- or catalog-supplied HTTPS icon URL. */
+    public readonly iconUrl?: string,
   ) {}
 
   static fromKnown(known: KnownAsset): NewTrackedAsset {
@@ -28,10 +30,22 @@ export class NewTrackedAsset {
       known.name,
       known.symbol,
       known.decimals,
+      known.iconUrl,
+    );
+  }
+
+  withIconUrl(iconUrl: string | undefined): NewTrackedAsset {
+    return new NewTrackedAsset(
+      this.chainId,
+      this.address,
+      this.type,
+      this.name,
+      this.symbol,
+      this.decimals,
+      iconUrl,
     );
   }
 }
-
 
 /** Session-facing tracked asset with id and optional raw balance. */
 export class TrackedAsset extends NewTrackedAsset {
@@ -44,8 +58,9 @@ export class TrackedAsset extends NewTrackedAsset {
     decimals: number,
     public readonly id: TrackedAssetId,
     public balance: bigint | null,
+    iconUrl?: string,
   ) {
-    super(chainId, address, type, name, symbol, decimals);
+    super(chainId, address, type, name, symbol, decimals, iconUrl);
   }
 
   static fromNew(
@@ -61,6 +76,7 @@ export class TrackedAsset extends NewTrackedAsset {
       asset.decimals,
       makeTrackedAssetId(asset.chainId, asset.address),
       balance,
+      asset.iconUrl,
     );
   }
 
@@ -74,6 +90,7 @@ export class TrackedAsset extends NewTrackedAsset {
       this.decimals,
       this.id,
       balance,
+      this.iconUrl,
     );
   }
 }

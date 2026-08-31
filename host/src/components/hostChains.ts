@@ -69,6 +69,10 @@ export const FOCUS_USDT_BASE = {
   label: "Tether (Base)",
 } as const;
 
+/** Default HTTPS icon for addAsset playground demos (Trust Wallet assets). */
+export const DEMO_ADD_ASSET_ICON_URL =
+  "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png";
+
 /**
  * Playground session / delegatee for `wallet_requestExecutionPermissions`.
  * Not a controlled key — only used to exercise the EIP-7715 grant UX.

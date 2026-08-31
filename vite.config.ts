@@ -219,6 +219,39 @@ function serveHostMpaPlugin(): Plugin {
   };
 }
 
+/** Branding Layer production CSP (dev omits this so Vite HMR keeps working). */
+const BRANDING_CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self' https: wss:",
+  "frame-src https:",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join("; ");
+
+function brandingProductionCspPlugin(): Plugin {
+  return {
+    name: "ows-branding-production-csp",
+    transformIndexHtml: {
+      order: "pre",
+      handler(html, ctx) {
+        if (ctx.server) {
+          return html;
+        }
+        return html.replace(
+          /<head>/i,
+          `<head>\n    <meta http-equiv="Content-Security-Policy" content="${BRANDING_CSP}" />`,
+        );
+      },
+    },
+  };
+}
+
 export default defineConfig({
   // MPA: Branding (`/`), Host create (`/create/`), Host mobile (`/mobile/`).
   // Default `spa` history-fallback would rewrite `/mobile` to Branding index
@@ -226,7 +259,13 @@ export default defineConfig({
   appType: "mpa",
   base: "/",
   publicDir: "public",
-  plugins: [react(), tailwindcss(), serveHostMpaPlugin(), serveSignerPlugin()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    brandingProductionCspPlugin(),
+    serveHostMpaPlugin(),
+    serveSignerPlugin(),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

@@ -616,45 +616,26 @@ export function useHostTestActions({
     })();
   };
 
-  const handleAddUsdcArc = () => {
+  const handleAddAsset = (params: {
+    chainId: string;
+    assetAddress: string;
+    iconUrl?: string;
+  }) => {
     const proxy = proxyRef.current;
     if (!proxy) return;
     setBusy(true);
-    reportStatus("Requesting add Arc USDC…");
+    const iconHint = params.iconUrl ? " (with icon)" : "";
+    reportStatus(`Requesting addAsset${iconHint}…`);
     void (async () => {
       try {
         await proxy.rpc("addAsset", {
-          chainId: FOCUS_USDC_ARC.chainId,
-          assetAddress: FOCUS_USDC_ARC.assetAddress,
+          chainId: params.chainId,
+          assetAddress: params.assetAddress,
+          ...(params.iconUrl ? { iconUrl: params.iconUrl } : {}),
         });
         proxy.showWallet();
         setWalletVisible(true);
-        reportStatus("Arc USDC added to tracked assets.");
-      } catch (error) {
-        reportStatus(
-          error instanceof Error ? error.message : "addAsset failed",
-          true,
-        );
-      } finally {
-        setBusy(false);
-      }
-    })();
-  };
-
-  const handleAddUsdtBase = () => {
-    const proxy = proxyRef.current;
-    if (!proxy) return;
-    setBusy(true);
-    reportStatus("Requesting add Base USDT…");
-    void (async () => {
-      try {
-        await proxy.rpc("addAsset", {
-          chainId: FOCUS_USDT_BASE.chainId,
-          assetAddress: FOCUS_USDT_BASE.assetAddress,
-        });
-        proxy.showWallet();
-        setWalletVisible(true);
-        reportStatus("Base USDT added to tracked assets.");
+        reportStatus("Asset added to tracked assets.");
       } catch (error) {
         reportStatus(
           error instanceof Error ? error.message : "addAsset failed",
@@ -912,8 +893,7 @@ export function useHostTestActions({
     onFocusUsdcArc: handleFocusUsdcArc,
     onFocusUsdtBase: handleFocusUsdtBase,
     onUnfocusWallet: handleUnfocusWallet,
-    onAddUsdcArc: handleAddUsdcArc,
-    onAddUsdtBase: handleAddUsdtBase,
+    onAddAsset: handleAddAsset,
     onOnramp: handleOnramp,
     onBridge: handleBridge,
     bridgeSourceChainId,
