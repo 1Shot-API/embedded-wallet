@@ -43,9 +43,10 @@ Branding `PasskeyPromptModal` + `withPasskeyPrompt` remain **only** for Branding
 
 When adding or changing UI strings or host-tunable options:
 
-1. Wire them through `style` / `IStyleOptions` (defaults, types, and `registerConfigure` Zod schema) so hosts can override via `configure`.
-2. Expose the same keys in **both** WalletConfigurator playgrounds: `host/` in this repo and `app/playground/` in **1Shot-API-Website-New** (`styleForm.ts` + `WalletConfigurator.tsx`).
-3. Optional top-level `destinationUrl` is a URL for transaction status update webhooks from the [1Shot Relayer](https://1shotapi.com/docs/relayer/get-started/overview).
+1. **Zod is the source of truth.** Add/change fields in `src/style/configureSchemas.ts` (resolved `styleCopy*Schema` / `styleThemeSchema`, then the configure patch built via `.partial()`). Types such as `IStyleCopyTransferTokens` and `IStyleOptions` are `z.infer` aliases — do not re-declare parallel interfaces in `types.ts` or the RPC schema will drift and hosts will get `Invalid params`.
+2. Update `DEFAULT_STYLE` in `src/style/defaults.ts` for every new required copy/theme key.
+3. Expose the same keys in **both** WalletConfigurator playgrounds: `host/` in this repo and `app/playground/` in **1Shot-API-Website-New** (`styleForm.ts` + `WalletConfigurator.tsx`).
+4. Optional top-level `destinationUrl` is a URL for transaction status update webhooks from the [1Shot Relayer](https://1shotapi.com/docs/relayer/get-started/overview).
 ### Domain layers (assets example)
 
 - **Utils:** `IBlockchainProvider` / `AddressUtils` (from `@1shotapi/ows-wallet-utils`) / `SupportedChainsBlockchainProvider`, `IEventBus` / `EventBus`, `ITransactionUtils` / `TransactionUtils`, `IConfigProvider` / `ConfigProvider`, `IChainRepository` / `HardcodedChainRepository`
