@@ -1,5 +1,5 @@
 import { RefreshCwIcon } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,8 @@ import {
 } from "@/constants/bridgeDemo";
 import { EnableArcMainnet } from "@/features";
 import {
+  DEMO_ADD_ASSET_ICON_URL,
+  FOCUS_USDT_BASE,
   HOST_CHAINS,
   hostChainMeta,
   type UsdcMode,
@@ -66,8 +68,11 @@ export interface IWalletActionsProps {
   onFocusUsdcArc: () => void;
   onFocusUsdtBase: () => void;
   onUnfocusWallet: () => void;
-  onAddUsdcArc: () => void;
-  onAddUsdtBase: () => void;
+  onAddAsset: (params: {
+    chainId: string;
+    assetAddress: string;
+    iconUrl?: string;
+  }) => void;
   onOnramp: () => void;
   onBridge: () => void;
   bridgeSourceChainId: string;
@@ -125,8 +130,7 @@ export function WalletActions({
   onFocusUsdcArc,
   onFocusUsdtBase,
   onUnfocusWallet,
-  onAddUsdcArc,
-  onAddUsdtBase,
+  onAddAsset,
   onOnramp,
   onBridge,
   bridgeSourceChainId,
@@ -145,6 +149,16 @@ export function WalletActions({
   onGetGrantedPermissions,
 }: IWalletActionsProps) {
   const meta = hostChainMeta(chainId);
+  const [addAssetChainId, setAddAssetChainId] = useState(FOCUS_USDT_BASE.chainId);
+  const [addAssetAddress, setAddAssetAddress] = useState(
+    FOCUS_USDT_BASE.assetAddress,
+  );
+  const [addAssetIconUrl, setAddAssetIconUrl] = useState(DEMO_ADD_ASSET_ICON_URL);
+  const addAssetAddressValid = /^0x[0-9a-fA-F]{40}$/.test(addAssetAddress.trim());
+  const addAssetIconTrimmed = addAssetIconUrl.trim();
+  const addAssetIconValid =
+    addAssetIconTrimmed.length === 0 ||
+    /^https:\/\/.+/i.test(addAssetIconTrimmed);
 
   const bridgeDestinations = useMemo(
     () => bridgeDestinationsForSource(bridgeSourceChainId, chainId),
@@ -435,24 +449,75 @@ export function WalletActions({
         <Label>Add asset</Label>
         <p className="text-muted-foreground text-xs">
           Propose a tracked asset via <code>addAsset</code> (user must confirm
-          in the wallet).
+          in the wallet). Optional HTTPS <code>iconUrl</code> is shown after
+          approval.
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="add-asset-chain" className="text-xs font-normal">
+              Chain
+            </Label>
+            <Select
+              value={addAssetChainId}
+              onValueChange={(value) => {
+                if (value) setAddAssetChainId(value);
+              }}
+            >
+              <SelectTrigger id="add-asset-chain" className="w-full">
+                <SelectValue placeholder="Select chain" />
+              </SelectTrigger>
+              <SelectContent>
+                {HOST_CHAINS.map((chain) => (
+                  <SelectItem key={chain.value} value={chain.value}>
+                    {chain.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="add-asset-address" className="text-xs font-normal">
+              Token address
+            </Label>
+            <Input
+              id="add-asset-address"
+              value={addAssetAddress}
+              onChange={(event) => setAddAssetAddress(event.target.value)}
+              placeholder="0x…"
+              className="font-mono text-xs"
+              spellCheck={false}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="add-asset-icon" className="text-xs font-normal">
+              Icon URL (optional, https)
+            </Label>
+            <Input
+              id="add-asset-icon"
+              value={addAssetIconUrl}
+              onChange={(event) => setAddAssetIconUrl(event.target.value)}
+              placeholder="https://…"
+              className="font-mono text-xs"
+              spellCheck={false}
+            />
+          </div>
           <Button
             type="button"
             variant="outline"
-            disabled={!ready || busy}
-            onClick={onAddUsdcArc}
+            disabled={
+              !ready || busy || !addAssetAddressValid || !addAssetIconValid
+            }
+            onClick={() =>
+              onAddAsset({
+                chainId: addAssetChainId,
+                assetAddress: addAssetAddress.trim(),
+                ...(addAssetIconTrimmed
+                  ? { iconUrl: addAssetIconTrimmed }
+                  : {}),
+              })
+            }
           >
-            Add Arc USDC
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!ready || busy}
-            onClick={onAddUsdtBase}
-          >
-            Add Base USDT
+            Add asset
           </Button>
         </div>
       </div>

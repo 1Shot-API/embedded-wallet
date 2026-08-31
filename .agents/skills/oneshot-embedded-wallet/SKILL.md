@@ -224,13 +224,15 @@ Propose a tracked **ERC-20** for the Balances tab. The wallet resolves the token
 await proxy.rpc("addAsset", {
   chainId: "0x13b2", // Arc
   assetAddress: "0x3600000000000000000000000000000000000000", // USDC
+  // Optional HTTPS icon (shown in confirm + Balances). `http:` / `data:` rejected.
+  iconUrl: "https://example.com/token-icon.png",
 });
 proxy.showWallet();
 ```
 
 | Method | Params | Effect |
 |--------|--------|--------|
-| `addAsset` | `{ chainId: \`0x…\`, assetAddress: \`0x…\` }` | Probes ERC-20, shows confirm modal; on accept, adds to tracked assets |
+| `addAsset` | `{ chainId: \`0x…\`, assetAddress: \`0x…\`, iconUrl?: \`https://…\` }` | Probes ERC-20, shows confirm modal; on accept, adds to tracked assets (persists optional host icon) |
 
 Returns `{ ok: true, chainId, assetAddress }` when the user accepts.
 

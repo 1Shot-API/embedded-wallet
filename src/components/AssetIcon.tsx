@@ -1,14 +1,18 @@
+import { useState } from "react";
 import type {
   EVMAccountAddress,
   EVMChainId,
 } from "@1shotapi/ows-types";
 import { cn } from "@/lib/utils";
 import { resolveAssetIconUrl } from "../lib/utils/tokenIcons";
+import { SafeAssetImage } from "./SafeAssetImage";
 
 export interface IAssetIconProps {
   chainId: EVMChainId;
   address: EVMAccountAddress;
   symbol: string;
+  /** Optional host / tracked override (HTTPS). */
+  iconUrl?: string;
   size?: "sm" | "lg";
   className?: string;
 }
@@ -22,19 +26,29 @@ export function AssetIcon({
   chainId,
   address,
   symbol,
+  iconUrl: iconUrlOverride,
   size = "sm",
   className,
 }: IAssetIconProps) {
-  const iconUrl = resolveAssetIconUrl(chainId, address, symbol);
+  const [imageFailed, setImageFailed] = useState(false);
+  const iconUrl = resolveAssetIconUrl(
+    chainId,
+    address,
+    symbol,
+    iconUrlOverride,
+  );
   const sizeClass = SIZE_CLASSES[size];
 
-  if (iconUrl) {
+  if (iconUrl && !imageFailed) {
     return (
-      <img
+      <SafeAssetImage
         src={iconUrl}
-        alt=""
-        aria-hidden
-        className={cn("shrink-0 rounded-full object-cover", sizeClass, className)}
+        className={cn(
+          "shrink-0 rounded-full object-cover",
+          sizeClass,
+          className,
+        )}
+        onLoadError={() => setImageFailed(true)}
       />
     );
   }

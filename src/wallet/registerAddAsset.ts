@@ -10,21 +10,28 @@ import type {
   IKnownAssetRepository,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
+import { isSafeHttpsIconUrl } from "../lib/utils/tokenIcons";
 import { useWalletSessionStore } from "./sessionStore";
 
-/** Custom RPC — host: `await proxy.rpc("addAsset", { chainId, assetAddress })`. */
+/** Custom RPC — host: `await proxy.rpc("addAsset", { chainId, assetAddress, iconUrl? })`. */
 export const ADD_ASSET_RPC_METHOD = "addAsset";
 
 const addAssetParamsSchema = z.strictObject({
-    chainId: z
-      .string()
-      .regex(/^0x[0-9a-fA-F]+$/)
-      .transform((value) => EVMChainId(value as `0x${string}`)),
-    assetAddress: z
-      .string()
-      .regex(/^0x[0-9a-fA-F]{40}$/)
-      .transform((value) => EVMAccountAddress(value as `0x${string}`)),
-  });
+  chainId: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]+$/)
+    .transform((value) => EVMChainId(value as `0x${string}`)),
+  assetAddress: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{40}$/)
+    .transform((value) => EVMAccountAddress(value as `0x${string}`)),
+  iconUrl: z
+    .url()
+    .refine((url) => isSafeHttpsIconUrl(url), {
+      message: "iconUrl must be an https URL",
+    })
+    .optional(),
+});
 
 export type IAddAssetParams = z.infer<typeof addAssetParamsSchema>;
 
@@ -34,6 +41,8 @@ export interface IAddAssetApprovalRequest {
   /** Resolved token name for the confirm modal. */
   assetName: string;
   assetSymbol: string;
+  /** Optional host-supplied HTTPS icon for preview + persistence. */
+  iconUrl?: string;
 }
 
 export type RegisterAddAssetOptions = {
@@ -56,7 +65,7 @@ export function registerAddAssetRpc(
   wallet.registerRpc(
     ADD_ASSET_RPC_METHOD,
     async (params) => {
-      const { chainId, assetAddress } = params as IAddAssetParams;
+      const { chainId, assetAddress, iconUrl } = params as IAddAssetParams;
       const owner = options.getOwnerAddress();
       const [resolved, display] = await Promise.all([
         options.knownAssetRepository.resolveForTracking(
@@ -66,6 +75,7 @@ export function registerAddAssetRpc(
         ),
         wallet.requestDisplay(),
       ]);
+      const toPersist = iconUrl ? resolved.withIconUrl(iconUrl) : resolved;
       try {
         // Consent UI requires the flyout already open — keep sequential.
         if (
@@ -74,12 +84,13 @@ export function registerAddAssetRpc(
             assetAddress,
             assetName: resolved.name,
             assetSymbol: resolved.symbol,
+            iconUrl: toPersist.iconUrl,
           }))
         ) {
           throw new OwsUserRejectedError("User rejected add asset request");
         }
 
-        await options.trackedAssetRepository.add(resolved, owner);
+        await options.trackedAssetRepository.add(toPersist, owner);
         const listed = await options.trackedAssetRepository.list(owner);
         useWalletSessionStore.getState().setTrackedAssetCount(listed.length);
 
