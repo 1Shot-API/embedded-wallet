@@ -498,9 +498,19 @@ export function CCTPBridge({
         setPhase("timeout");
         return;
       }
-      void settleReject(
-        err instanceof Error ? err : new Error(copy.submitFailedError),
-      );
+      // Keep confirm open so the user can retry or cancel; do not settle the
+      // host promise until success or explicit cancel.
+      const failure =
+        err instanceof Error ? err : new Error(copy.submitFailedError);
+      setError(failure.message);
+      setPhase("quoted");
+      void hostDomainPromise
+        .then((hostDomain) => {
+          emitFailed(hostDomain, failure);
+        })
+        .catch(() => {
+          // Analytics is best-effort.
+        });
     }
   }
 
