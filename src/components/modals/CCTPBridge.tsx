@@ -36,6 +36,7 @@ import { useStyle } from "../../style/StyleProvider";
 import type { IStyleCopyCctpBridge } from "../../style/types";
 import { useWallet } from "../../wallet/WalletProvider";
 import { Modal } from "../Modal";
+import { ChainSelector } from "../ChainSelector";
 import { PaymentFeePicker } from "../PaymentFeePicker";
 import { QuoteCountdown } from "../QuoteCountdown";
 import { TokenAmountInput } from "../TokenAmountInput";
@@ -714,28 +715,18 @@ export function CCTPBridge({
               <span className="text-muted-foreground text-xs font-medium">
                 {copy.destinationLabel}
               </span>
-              <Select
-                value={destChainId || undefined}
+              <ChainSelector
+                ariaLabel={copy.destinationLabel}
+                value={destChainId}
+                chains={destinations}
                 disabled={busy || destLocked}
+                placeholder={copy.destinationPlaceholder}
+                contentClassName="z-[10001]"
                 onValueChange={(value) => {
                   setDestChainId(value);
                   setError(null);
                 }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={copy.destinationPlaceholder} />
-                </SelectTrigger>
-                <SelectContent className="z-[10001]">
-                  {destinations.map((chain) => (
-                    <SelectItem
-                      key={String(chain.chainId)}
-                      value={String(chain.chainId)}
-                    >
-                      {chain.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-muted-foreground text-xs font-medium">

@@ -17,6 +17,7 @@ export interface IBridgeChainOption {
   networkType: BridgeNetworkType;
   isSource: boolean;
   isDestination: boolean;
+  weight?: number;
 }
 
 /** Chains usable as CCTP bridge sources / destinations in the host demo. */
@@ -27,6 +28,7 @@ const BRIDGE_CHAINS: readonly IBridgeChainOption[] = [
     networkType: "testnet",
     isSource: true,
     isDestination: true,
+    weight: 100,
   },
   {
     value: "0xaa36a7",
@@ -34,6 +36,7 @@ const BRIDGE_CHAINS: readonly IBridgeChainOption[] = [
     networkType: "testnet",
     isSource: true,
     isDestination: true,
+    weight: 80,
   },
   {
     value: "0x14a34",
@@ -41,6 +44,7 @@ const BRIDGE_CHAINS: readonly IBridgeChainOption[] = [
     networkType: "testnet",
     isSource: true,
     isDestination: true,
+    weight: 90,
   },
   {
     value: "0x1",
@@ -48,6 +52,7 @@ const BRIDGE_CHAINS: readonly IBridgeChainOption[] = [
     networkType: "mainnet",
     isSource: true,
     isDestination: true,
+    weight: 80,
   },
   {
     value: "0x2105",
@@ -55,6 +60,7 @@ const BRIDGE_CHAINS: readonly IBridgeChainOption[] = [
     networkType: "mainnet",
     isSource: true,
     isDestination: true,
+    weight: 90,
   },
   {
     value: "0xa4b1",

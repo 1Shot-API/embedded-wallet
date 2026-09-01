@@ -1,22 +1,37 @@
 import { EnableArcMainnet } from "../features";
 
-const ARC_MAINNET = {
+export interface IHostChainMeta {
+  value: string;
+  label: string;
+  usdc: string;
+  tokenSymbol: string;
+  blockExplorerUrl: string;
+  isTestnet: boolean;
+  /** Higher weight sorts above peers within the same network type. */
+  weight: number;
+}
+
+const ARC_MAINNET: IHostChainMeta = {
   value: "0x13b2",
   label: "Arc",
   usdc: "0x3600000000000000000000000000000000000000",
   tokenSymbol: "USDC",
   blockExplorerUrl: "https://explorer.arc.io",
-} as const;
+  isTestnet: false,
+  weight: 100,
+};
 
-const ARC_TESTNET = {
+const ARC_TESTNET: IHostChainMeta = {
   value: "0x4cef52",
   label: "Arc Testnet",
   usdc: "0x3600000000000000000000000000000000000000",
   tokenSymbol: "USDC",
   blockExplorerUrl: "https://testnet.arcscan.app",
-} as const;
+  isTestnet: true,
+  weight: 100,
+};
 
-export const HOST_CHAINS = [
+const HOST_CHAIN_SEED: readonly IHostChainMeta[] = [
   ...(EnableArcMainnet ? [ARC_MAINNET] : []),
   ARC_TESTNET,
   {
@@ -25,6 +40,8 @@ export const HOST_CHAINS = [
     usdc: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
     tokenSymbol: "USDC",
     blockExplorerUrl: "https://sepolia.etherscan.io",
+    isTestnet: true,
+    weight: 80,
   },
   {
     value: "0x14a34",
@@ -32,6 +49,8 @@ export const HOST_CHAINS = [
     usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     tokenSymbol: "USDC",
     blockExplorerUrl: "https://sepolia.basescan.org",
+    isTestnet: true,
+    weight: 90,
   },
   {
     value: "0x2105",
@@ -39,6 +58,8 @@ export const HOST_CHAINS = [
     usdc: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     tokenSymbol: "USDC",
     blockExplorerUrl: "https://basescan.org",
+    isTestnet: false,
+    weight: 90,
   },
   {
     value: "0x1237",
@@ -46,8 +67,28 @@ export const HOST_CHAINS = [
     usdc: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
     tokenSymbol: "USDG",
     blockExplorerUrl: "https://robinhoodchain.blockscout.com",
+    isTestnet: false,
+    weight: 0,
   },
-] as const;
+];
+
+function compareHostChains(a: IHostChainMeta, b: IHostChainMeta): number {
+  if (b.weight !== a.weight) return b.weight - a.weight;
+  return a.label.localeCompare(b.label);
+}
+
+/** Mainnets first (weight/alpha), then testnets (weight/alpha). */
+export const HOST_CHAINS: readonly IHostChainMeta[] = [
+  ...HOST_CHAIN_SEED.filter((c) => !c.isTestnet).sort(compareHostChains),
+  ...HOST_CHAIN_SEED.filter((c) => c.isTestnet).sort(compareHostChains),
+];
+
+/** Default session chain (Arc Testnet). */
+export const DEFAULT_HOST_CHAIN_ID =
+  HOST_CHAINS.find((chain) => chain.label === "Arc Testnet")?.value ??
+  HOST_CHAINS.find((chain) => chain.isTestnet)?.value ??
+  HOST_CHAINS[0]?.value ??
+  "0x4cef52";
 
 /** Focus demo: Arc USDC (mainnet when enabled, else testnet). */
 export const FOCUS_USDC_ARC = EnableArcMainnet
