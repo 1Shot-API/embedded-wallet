@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type {
   EVMAccountAddress,
   EVMChainId,
@@ -30,7 +29,6 @@ export function AssetIcon({
   size = "sm",
   className,
 }: IAssetIconProps) {
-  const [imageFailed, setImageFailed] = useState(false);
   const iconUrl = resolveAssetIconUrl(
     chainId,
     address,
@@ -39,30 +37,26 @@ export function AssetIcon({
   );
   const sizeClass = SIZE_CLASSES[size];
 
-  if (iconUrl && !imageFailed) {
-    return (
-      <SafeAssetImage
-        src={iconUrl}
-        className={cn(
-          "shrink-0 rounded-full object-cover",
-          sizeClass,
-          className,
-        )}
-        onLoadError={() => setImageFailed(true)}
-      />
-    );
-  }
-
   return (
-    <div
+    <SafeAssetImage
+      src={iconUrl}
       className={cn(
-        "bg-primary text-primary-foreground flex shrink-0 items-center justify-center rounded-full font-semibold tracking-tight",
+        "shrink-0 rounded-full object-cover",
         sizeClass,
         className,
       )}
-      aria-hidden
-    >
-      <span>$</span>
-    </div>
+      fallback={
+        <div
+          className={cn(
+            "bg-primary text-primary-foreground flex shrink-0 items-center justify-center rounded-full font-semibold tracking-tight",
+            sizeClass,
+            className,
+          )}
+          aria-hidden
+        >
+          <span>$</span>
+        </div>
+      }
+    />
   );
 }

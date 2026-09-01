@@ -14,13 +14,20 @@ export function BrandLogo({
   className,
   alt = "",
 }: IBrandLogoProps) {
-  const src = logoUrl?.trim() ? logoUrl : defaultLogoUrl;
+  const imageClassName = cn("shrink-0 object-contain", className);
 
   return (
     <SafeAssetImage
-      src={src}
+      src={logoUrl?.trim() || null}
       alt={alt}
-      className={cn("shrink-0 object-contain", className)}
+      className={imageClassName}
+      fallback={
+        <img
+          src={defaultLogoUrl}
+          alt={alt}
+          className={imageClassName}
+        />
+      }
     />
   );
 }

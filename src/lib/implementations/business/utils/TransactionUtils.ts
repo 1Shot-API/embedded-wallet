@@ -50,6 +50,7 @@ import {
 import { idbGetString, idbSetString } from "../../../utils/idbStringStore";
 import { withCeremonyUiReason } from "../../../../wallet/ceremonyUiOverrideStore";
 import { withCoalescedSignDigest } from "../../../../wallet/withCoalescedSignDigest";
+import type { CoalesceSignDigestOptions } from "../../../../wallet/withCoalescedSignDigest";
 import {
   loadCachedEvmAddress,
   loadCachedSecp256k1PublicKey,
@@ -326,7 +327,21 @@ export class TransactionUtils implements ITransactionUtils {
       const approveCopy = approveTransactionCeremony(needsUpgrade);
       const minCalls = (needsUpgrade ? 1 : 0) + 1 + workItems.length;
 
-      // One passkey: optional EIP-7702 auth + fee + each work delegation.
+      const coalesceOptions: CoalesceSignDigestOptions = { minCalls };
+      if (args.prefetchRelayerVaultAssertion) {
+        const { challengeId, challenge } =
+          await this.options.delegationRepository.mintRelayerVaultChallenge();
+        coalesceOptions.challenge = challenge as `0x${string}`;
+        coalesceOptions.onBatchAssertion = (assertion) => {
+          this.options.delegationRepository.cacheRelayerVaultAssertion(
+            challengeId,
+            assertion,
+          );
+        };
+      }
+
+      // One passkey: optional EIP-7702 auth + fee + each work delegation
+      // (+ relayer vault auth when prefetchRelayerVaultAssertion).
       const signed = await withCeremonyUiReason(
         EPasskeyPromptReason.ApproveTransaction,
         () =>
@@ -364,7 +379,7 @@ export class TransactionUtils implements ITransactionUtils {
                 ]);
               return { authEntry, feeDelegation, workDelegations };
             },
-            { minCalls },
+            coalesceOptions,
           ),
       );
 
@@ -474,10 +489,6 @@ export class TransactionUtils implements ITransactionUtils {
         throw new Error(
           estimate.error ?? "relayer_estimate7710Transaction failed",
         );
-      }
-
-      if (args.prefetchRelayerVaultAssertion) {
-        await this.options.delegationRepository.prepareRelayerVaultAssertion();
       }
 
       // Last passkey is done — collapse the flyout while submit/poll run.

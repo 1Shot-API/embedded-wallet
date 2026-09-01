@@ -121,7 +121,6 @@ export class DelegationService implements IDelegationService {
       );
 
       await onDelegationSigned?.();
-      await this.options.delegationRepository.prepareRelayerVaultAssertion();
 
       const delegationHash = HexString(hashDelegation(signedDelegation));
       const context = HexString(

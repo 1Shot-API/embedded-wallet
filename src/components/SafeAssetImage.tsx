@@ -1,14 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { isSafeHttpsIconUrl } from "../lib/utils/tokenIcons";
 
+function isSafeAssetImageSrc(src: string): boolean {
+  return (
+    src.startsWith("/") ||
+    src.startsWith("data:") ||
+    src.startsWith("blob:") ||
+    isSafeHttpsIconUrl(src)
+  );
+}
+
 export interface ISafeAssetImageProps {
-  /** Resolved icon URL (bundled or HTTPS). */
-  src: string;
+  /** Resolved icon URL (bundled or HTTPS). Null/empty/unsafe URLs show {@link fallback}. */
+  src?: string | null;
   className?: string;
   alt?: string;
-  /** Called when the image fails to load (caller should show fallback). */
-  onLoadError?: () => void;
+  /** Shown when `src` is missing, unsafe, or fails to load. Omit for blank. */
+  fallback?: ReactNode;
 }
 
 /**
@@ -19,30 +28,32 @@ export function SafeAssetImage({
   src,
   className,
   alt = "",
-  onLoadError,
+  fallback,
 }: ISafeAssetImageProps) {
   const [failed, setFailed] = useState(false);
-  const safe =
-    src.startsWith("/") ||
-    src.startsWith("data:") ||
-    src.startsWith("blob:") ||
-    isSafeHttpsIconUrl(src);
+  const trimmed = src?.trim();
+  const canLoad = Boolean(trimmed && isSafeAssetImageSrc(trimmed) && !failed);
 
-  if (!safe || failed) {
-    return null;
+  useEffect(() => {
+    setFailed(false);
+  }, [trimmed]);
+
+  if (canLoad && trimmed) {
+    return (
+      <img
+        src={trimmed}
+        alt={alt}
+        aria-hidden={alt === "" ? true : undefined}
+        referrerPolicy="no-referrer"
+        className={cn(className)}
+        onError={() => setFailed(true)}
+      />
+    );
   }
 
-  return (
-    <img
-      src={src}
-      alt={alt}
-      aria-hidden={alt === "" ? true : undefined}
-      referrerPolicy="no-referrer"
-      className={cn(className)}
-      onError={() => {
-        setFailed(true);
-        onLoadError?.();
-      }}
-    />
-  );
+  if (fallback !== undefined) {
+    return <>{fallback}</>;
+  }
+
+  return null;
 }
