@@ -14,6 +14,7 @@ import type {
   ITransactionWork,
 } from "../../interfaces/business/ITransactionService";
 import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
+import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
 import type { TokenAmount } from "../../types/primitives";
 
 export type TransactionServiceOptions = {
@@ -64,7 +65,7 @@ export class TransactionService implements ITransactionService {
       paymentToken?: EVMAccountAddress;
       feeAtoms?: TokenAmount;
       authorizationList?: IRelayerAuthorizationEntry[];
-    },
+    } & IRelayerSendUiCallbacks,
   ): Promise<ISendTransactionResult> {
     const chain = await this.options.chainRepository.get(chainId);
     if (!chain) {
@@ -93,6 +94,9 @@ export class TransactionService implements ITransactionService {
       feeAtoms: options.feeAtoms,
       authorizationList: options.authorizationList,
       relayerUrl: chain.relayerUrl,
+      onFinalFeeRequired: options.onFinalFeeRequired,
+      onAwaitingConfirmation: options.onAwaitingConfirmation,
+      retainDisplayDuringSubmit: options.retainDisplayDuringSubmit,
     });
   }
 }

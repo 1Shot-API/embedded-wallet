@@ -21,6 +21,7 @@ import type {
   ICctpBridgeOpenRequest,
 } from "../circle/cctpBridgeTypes";
 import type { TokenAmount } from "../lib/types/primitives";
+import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
@@ -117,7 +118,10 @@ export type ModalRequest =
       id: string;
       kind: "sendTransaction";
       request: SendTransactionApprovalRequest & { useRelayer?: boolean };
-      execute: (payment: IConfirmSendPayment) => Promise<EVMTransactionHash>;
+      execute: (
+        payment: IConfirmSendPayment,
+        ui?: IRelayerSendUiCallbacks,
+      ) => Promise<EVMTransactionHash>;
       resolve: (hash: EVMTransactionHash) => void;
       reject: (error: unknown) => void;
     }
@@ -125,7 +129,10 @@ export type ModalRequest =
       id: string;
       kind: "confirmTransfer";
       request: IConfirmTransferRequest;
-      execute: (payment: IConfirmSendPayment) => Promise<EVMTransactionHash>;
+      execute: (
+        payment: IConfirmSendPayment,
+        ui?: IRelayerSendUiCallbacks,
+      ) => Promise<EVMTransactionHash>;
       resolve: (hash: EVMTransactionHash) => void;
       reject: (error: unknown) => void;
     }
@@ -160,6 +167,7 @@ export type ModalRequest =
       request: ICancelDelegationConfirmRequest;
       execute: (
         payment: IRelayerConfirmSendResult,
+        ui: IRelayerSendUiCallbacks,
       ) => Promise<EVMTransactionHash>;
       onRegisterAwaitingConfirmation?: (notify: () => void) => void;
       resolve: (hash: EVMTransactionHash) => void;

@@ -66,6 +66,10 @@ export function mergeStyle(
         ...current.copy.cancelDelegation,
         ...patch.copy?.cancelDelegation,
       },
+      relayerSubmit: {
+        ...current.copy.relayerSubmit,
+        ...patch.copy?.relayerSubmit,
+      },
       passkeyPrompt: {
         unlock: {
           ...current.copy.passkeyPrompt.unlock,
@@ -203,6 +207,7 @@ function cloneDefaultStyle(): IResolvedStyle {
         ...DEFAULT_STYLE.copy.grantExecutionPermission,
       },
       cancelDelegation: { ...DEFAULT_STYLE.copy.cancelDelegation },
+      relayerSubmit: { ...DEFAULT_STYLE.copy.relayerSubmit },
       passkeyPrompt: {
         unlock: { ...DEFAULT_STYLE.copy.passkeyPrompt.unlock },
         create: { ...DEFAULT_STYLE.copy.passkeyPrompt.create },

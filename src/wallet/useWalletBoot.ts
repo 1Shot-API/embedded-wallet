@@ -420,13 +420,14 @@ export function useWalletBoot({
                           chainId,
                           ownerAddress: owner,
                         },
-                        execute: async (payment: IRelayerConfirmSendResult) => {
+                        execute: async (payment: IRelayerConfirmSendResult, ui) => {
                           const result = await delegationService.cancelDelegation({
                             chainId,
                             paymentToken: payment.paymentToken,
                             feeAtoms: payment.feeAtoms,
                             ...(stored ? { stored } : {}),
                             permissionContext: params.permissionContext,
+                            ...ui,
                           });
                           return result.transactionHash;
                         },
@@ -664,10 +665,13 @@ export function useWalletBoot({
                 request.data,
               );
 
-              const executeSend = async (payment: {
-                paymentToken?: EVMAccountAddress;
-                feeAtoms?: TokenAmount;
-              }) => {
+              const executeSend = async (
+                payment: {
+                  paymentToken?: EVMAccountAddress;
+                  feeAtoms?: TokenAmount;
+                },
+                ui?: import("../lib/types/domain/RelayerSendUi").IRelayerSendUiCallbacks,
+              ) => {
                 let relayerOptions:
                   | {
                       paymentToken: EVMAccountAddress;
@@ -695,7 +699,9 @@ export function useWalletBoot({
                     data: request.data,
                     value,
                   },
-                  relayerOptions,
+                  useRelayer && relayerOptions
+                    ? { ...relayerOptions, ...ui }
+                    : undefined,
                 );
                 return result.transactionHash;
               };

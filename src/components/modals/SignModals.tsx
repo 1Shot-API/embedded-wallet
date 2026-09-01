@@ -13,18 +13,19 @@ import {
 } from "@1shotapi/ows-types";
 import { useRef, useState } from "react";
 import type { TypedDataDefinition } from "viem";
-import type { IPaymentQuote } from "../../lib/interfaces/business";
 import type { ISiweFields } from "../../lib/types/domain/SiweFields";
 import type {
   IConfirmSendPayment,
   IConfirmTransferRequest,
 } from "../../wallet/modalTypes";
+import type { IRelayerSendUiCallbacks } from "../../lib/types/domain/RelayerSendUi";
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { Modal } from "../Modal";
 import { AssetIdentityMark } from "../AssetIdentityMark";
 import { CopyableText } from "../CopyableText";
-import { PaymentFeePicker } from "../PaymentFeePicker";
+import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
+import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
 
 function isSignDenied(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
@@ -380,55 +381,89 @@ export function SendTransactionModal({
   onReject,
 }: {
   request: SendTransactionApprovalRequest & { useRelayer?: boolean };
-  execute: (payment: IConfirmSendPayment) => Promise<EVMTransactionHash>;
+  execute: (
+    payment: IConfirmSendPayment,
+    ui?: IRelayerSendUiCallbacks,
+  ) => Promise<EVMTransactionHash>;
   onResolve: (hash: EVMTransactionHash) => void;
   onReject: (error: unknown) => void;
 }) {
   const { style } = useStyle();
   const { sendTransaction: copy } = style.copy;
-  const [quote, setQuote] = useState<IPaymentQuote | null>(null);
-  const [quoteError, setQuoteError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
-  const [error, setError] = useState<string | null>(null);
+  const relayerCopy = style.copy.relayerSubmit;
+
+  const relayerSubmit = useRelayerConfirmSubmit({
+    execute: (payment, ui) =>
+      execute(
+        {
+          paymentToken: payment.paymentToken,
+          feeAtoms: payment.feeAtoms,
+        },
+        ui,
+      ),
+    onResolve,
+    onReject,
+    rejectMessage: "User rejected the transaction request",
+    signingMessage: relayerCopy.signingMessage,
+    waitingMessage: relayerCopy.waitingMessage,
+    finalFeeNotice: relayerCopy.finalFeeNotice,
+  });
+
+  const [legacyPhase, setLegacyPhase] = useState<"confirm" | "signing">(
+    "confirm",
+  );
+  const [legacyError, setLegacyError] = useState<string | null>(null);
   const abortedRef = useRef(false);
 
-  const canConfirm =
-    !request.useRelayer || (quote !== null && quoteError === null);
+  const useRelayer = request.useRelayer === true;
+
+  const phase = useRelayer ? relayerSubmit.phase : legacyPhase;
+
+  const canConfirm = useRelayer
+    ? relayerSubmit.canConfirm
+    : true;
 
   const cancel = () => {
     abortedRef.current = true;
+    if (useRelayer) {
+      relayerSubmit.cancel();
+      return;
+    }
     onReject(new OwsUserRejectedError("User rejected the transaction request"));
   };
 
-  const startSend = () => {
+  const startLegacySend = () => {
     abortedRef.current = false;
-    setError(null);
-    setPhase("signing");
-    const payment: IConfirmSendPayment =
-      request.useRelayer && quote
-        ? { paymentToken: quote.selectedToken, feeAtoms: quote.feeAtoms }
-        : {};
-    void (async () => {
-      const hash = await execute(payment);
-      if (abortedRef.current) return;
-      onResolve(hash);
-    })().catch((err: unknown) => {
-      if (abortedRef.current) return;
-      if (isSignDenied(err)) {
-        setPhase("confirm");
-        return;
-      }
-      setError(err instanceof Error ? err.message : String(err));
-      setPhase("confirm");
-    });
+    setLegacyError(null);
+    setLegacyPhase("signing");
+    void execute({})
+      .then((hash) => {
+        if (abortedRef.current) return;
+        onResolve(hash);
+      })
+      .catch((err: unknown) => {
+        if (abortedRef.current) return;
+        if (isSignDenied(err)) {
+          setLegacyPhase("confirm");
+          return;
+        }
+        setLegacyError(err instanceof Error ? err.message : String(err));
+        setLegacyPhase("confirm");
+      });
   };
+
+  const showActions = useRelayer
+    ? phase === "confirm" || phase === "finalFee"
+    : legacyPhase === "confirm";
 
   return (
     <Modal
       title={copy.title}
-      onBackdropDismiss={phase === "confirm" ? cancel : undefined}
+      onBackdropDismiss={
+        phase === "confirm" || phase === "finalFee" ? cancel : undefined
+      }
       actions={
-        phase === "confirm"
+        showActions
           ? [
               {
                 label: copy.rejectLabel,
@@ -439,8 +474,12 @@ export function SendTransactionModal({
                 label: copy.signLabel,
                 variant: "primary",
                 autoFocus: true,
-                disabled: !canConfirm,
-                onClick: startSend,
+                disabled: useRelayer ? !canConfirm : false,
+                onClick: useRelayer
+                  ? phase === "finalFee"
+                    ? relayerSubmit.confirmFinalFee
+                    : relayerSubmit.startSubmit
+                  : startLegacySend,
               },
             ]
           : undefined
@@ -455,27 +494,19 @@ export function SendTransactionModal({
       <LabeledBlock label={copy.valueLabel} content={request.value} />
       <LabeledBlock label={copy.dataLabel} content={request.data} />
       <LabeledBlock label={copy.chainLabel} content={request.chainId} />
-      {request.useRelayer ? (
-        <PaymentFeePicker
+      {useRelayer ? (
+        <RelayerConfirmModalChrome
           chainId={request.chainId}
           ownerAddress={request.address}
-          quote={quote}
-          error={quoteError}
-          loading={false}
-          paused={phase === "signing"}
-          onQuoteChange={(next, err) => {
-            setQuote(next);
-            setQuoteError(err);
-          }}
+          submit={relayerSubmit}
         />
-      ) : null}
-      {phase === "signing" ? (
+      ) : legacyPhase === "signing" ? (
         <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
-          Confirm in the signing panel…
+          {relayerCopy.signingMessage}
         </p>
       ) : null}
-      {error ? (
-        <p className="text-destructive mt-3 m-0 text-[0.9rem]">{error}</p>
+      {!useRelayer && legacyError ? (
+        <p className="text-destructive mt-3 m-0 text-[0.9rem]">{legacyError}</p>
       ) : null}
     </Modal>
   );
@@ -488,58 +519,87 @@ export function ConfirmTransferModal({
   onReject,
 }: {
   request: IConfirmTransferRequest;
-  execute: (payment: IConfirmSendPayment) => Promise<EVMTransactionHash>;
+  execute: (
+    payment: IConfirmSendPayment,
+    ui?: IRelayerSendUiCallbacks,
+  ) => Promise<EVMTransactionHash>;
   onResolve: (hash: EVMTransactionHash) => void;
   onReject: (error: unknown) => void;
 }) {
   const { style } = useStyle();
   const { resolveChain } = useWallet();
   const { confirmTransfer: copy, account: accountCopy } = style.copy;
-  const [quote, setQuote] = useState<IPaymentQuote | null>(null);
-  const [quoteError, setQuoteError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
-  const [error, setError] = useState<string | null>(null);
-  const abortedRef = useRef(false);
+  const relayerCopy = style.copy.relayerSubmit;
   const body = copy.body.replace("{domain}", request.domain);
   const chain = resolveChain(request.chainId);
 
+  const submit = useRelayerConfirmSubmit({
+    execute: (payment, ui) =>
+      execute(
+        {
+          paymentToken: payment.paymentToken,
+          feeAtoms: payment.feeAtoms,
+        },
+        ui,
+      ),
+    onResolve,
+    onReject,
+    rejectMessage: "User rejected the transaction request",
+    signingMessage: relayerCopy.signingMessage,
+    waitingMessage: relayerCopy.waitingMessage,
+    finalFeeNotice: relayerCopy.finalFeeNotice,
+  });
+
   const canConfirm =
-    !request.useRelayer || (quote !== null && quoteError === null);
+    !request.useRelayer || submit.canConfirm;
 
   const cancel = () => {
-    abortedRef.current = true;
+    if (request.useRelayer) {
+      submit.cancel();
+      return;
+    }
     onReject(new OwsUserRejectedError("User rejected the transaction request"));
   };
 
-  const startSend = () => {
+  const [legacyPhase, setLegacyPhase] = useState<"confirm" | "signing">(
+    "confirm",
+  );
+  const [legacyError, setLegacyError] = useState<string | null>(null);
+  const abortedRef = useRef(false);
+
+  const startLegacySend = () => {
     abortedRef.current = false;
-    setError(null);
-    setPhase("signing");
-    const payment: IConfirmSendPayment =
-      request.useRelayer && quote
-        ? { paymentToken: quote.selectedToken, feeAtoms: quote.feeAtoms }
-        : {};
-    void (async () => {
-      const hash = await execute(payment);
-      if (abortedRef.current) return;
-      onResolve(hash);
-    })().catch((err: unknown) => {
-      if (abortedRef.current) return;
-      if (isSignDenied(err)) {
-        setPhase("confirm");
-        return;
-      }
-      setError(err instanceof Error ? err.message : String(err));
-      setPhase("confirm");
-    });
+    setLegacyError(null);
+    setLegacyPhase("signing");
+    void execute({})
+      .then((hash) => {
+        if (abortedRef.current) return;
+        onResolve(hash);
+      })
+      .catch((err: unknown) => {
+        if (abortedRef.current) return;
+        if (isSignDenied(err)) {
+          setLegacyPhase("confirm");
+          return;
+        }
+        setLegacyError(err instanceof Error ? err.message : String(err));
+        setLegacyPhase("confirm");
+      });
   };
+
+  const phase = request.useRelayer ? submit.phase : legacyPhase;
+  const showActions = request.useRelayer
+    ? phase === "confirm" || phase === "finalFee"
+    : legacyPhase === "confirm";
 
   return (
     <Modal
       title={copy.title}
-      onBackdropDismiss={phase === "confirm" ? cancel : undefined}
+      onBackdropDismiss={
+        phase === "confirm" || phase === "finalFee" ? cancel : undefined
+      }
       actions={
-        phase === "confirm"
+        showActions
           ? [
               {
                 label: copy.rejectLabel,
@@ -550,8 +610,12 @@ export function ConfirmTransferModal({
                 label: copy.confirmLabel,
                 variant: "primary",
                 autoFocus: true,
-                disabled: !canConfirm,
-                onClick: startSend,
+                disabled: request.useRelayer ? !canConfirm : false,
+                onClick: request.useRelayer
+                  ? phase === "finalFee"
+                    ? submit.confirmFinalFee
+                    : submit.startSubmit
+                  : startLegacySend,
               },
             ]
           : undefined
@@ -593,26 +657,18 @@ export function ConfirmTransferModal({
         </div>
       </div>
       {request.useRelayer ? (
-        <PaymentFeePicker
+        <RelayerConfirmModalChrome
           chainId={request.chainId}
           ownerAddress={request.ownerAddress}
-          quote={quote}
-          error={quoteError}
-          loading={false}
-          paused={phase === "signing"}
-          onQuoteChange={(next, err) => {
-            setQuote(next);
-            setQuoteError(err);
-          }}
+          submit={submit}
         />
-      ) : null}
-      {phase === "signing" ? (
+      ) : legacyPhase === "signing" ? (
         <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
-          Confirm in the signing panel…
+          {relayerCopy.signingMessage}
         </p>
       ) : null}
-      {error ? (
-        <p className="text-destructive mt-3 m-0 text-[0.9rem]">{error}</p>
+      {!request.useRelayer && legacyError ? (
+        <p className="text-destructive mt-3 m-0 text-[0.9rem]">{legacyError}</p>
       ) : null}
     </Modal>
   );

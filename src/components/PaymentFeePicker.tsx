@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
 import { formatUnits } from "viem";
 import type { IPaymentQuote, IPaymentTokenOption } from "../lib/interfaces/business";
+import type { IFinalRelayerFee } from "../lib/types/domain/RelayerSendUi";
 import { useWallet } from "../wallet/WalletProvider";
 import { AssetIcon } from "./AssetIcon";
 import { QuoteCountdown } from "./QuoteCountdown";
@@ -13,6 +14,8 @@ import {
   SelectValue,
 } from "./ui/select";
 
+export type IPaymentFeePickerMode = "estimate" | "final";
+
 export interface IPaymentFeePickerProps {
   chainId: EVMChainId;
   ownerAddress: EVMAccountAddress;
@@ -22,15 +25,19 @@ export interface IPaymentFeePickerProps {
   /** When true, pause the quote countdown (e.g. submit in flight). */
   paused?: boolean;
   onQuoteChange: (quote: IPaymentQuote | null, error: string | null) => void;
+  mode?: IPaymentFeePickerMode;
+  /** Relayer-settled fee after the first estimate (mode `final`). */
+  finalFee?: IFinalRelayerFee | null;
 }
 
 function findSelectedToken(
   quote: IPaymentQuote,
+  paymentToken?: EVMAccountAddress,
 ): IPaymentTokenOption | undefined {
+  const target = paymentToken ?? quote.selectedToken;
   return quote.tokens.find(
     (token) =>
-      String(token.address).toLowerCase() ===
-      String(quote.selectedToken).toLowerCase(),
+      String(token.address).toLowerCase() === String(target).toLowerCase(),
   );
 }
 
@@ -60,7 +67,7 @@ function PaymentTokenRow({
 /**
  * Loads payment-token options (USDC preferred) and shows a live fee quote
  * with auto-refresh. Exact fee is settled by `relayer_estimate7710Transaction`
- * at submit.
+ * at submit; use mode `final` to show the relayer-settled amount.
  */
 export function PaymentFeePicker({
   chainId,
@@ -70,6 +77,8 @@ export function PaymentFeePicker({
   loading,
   paused = false,
   onQuoteChange,
+  mode = "estimate",
+  finalFee = null,
 }: IPaymentFeePickerProps) {
   const { transactionService } = useWallet();
   const [preferredToken, setPreferredToken] = useState<
@@ -112,7 +121,18 @@ export function PaymentFeePicker({
   }
 
   const isLoading = loading || selectBusy;
-  const selectedToken = quote ? findSelectedToken(quote) : undefined;
+  const isFinal = mode === "final" && finalFee !== null;
+  const selectedToken = isFinal
+    ? quote
+      ? findSelectedToken(quote, finalFee.paymentToken)
+      : undefined
+    : quote
+      ? findSelectedToken(quote)
+      : undefined;
+  const feeLabel = isFinal ? "Final fee:" : "Est. fee:";
+  const feeDisplay = isFinal
+    ? finalFee.feeFormatted
+    : null;
 
   return (
     <div className="mt-4 flex flex-col gap-2 border-t pt-3">
@@ -123,13 +143,17 @@ export function PaymentFeePicker({
         <p className="text-destructive text-sm">{error}</p>
       ) : null}
       <p className="flex flex-wrap items-center gap-2 text-sm">
-        <span>Est. fee:</span>
+        <span>{feeLabel}</span>
         <span className="inline-flex flex-wrap items-center gap-1.5">
-          <QuoteCountdown
-            key={preferredToken ? String(preferredToken) : "default"}
-            getNewQuote={getNewQuote}
-            paused={paused || isLoading}
-          />
+          {isFinal ? (
+            <span>{feeDisplay}</span>
+          ) : (
+            <QuoteCountdown
+              key={preferredToken ? String(preferredToken) : "default"}
+              getNewQuote={getNewQuote}
+              paused={paused || isLoading}
+            />
+          )}
           {selectedToken ? (
             <>
               <AssetIcon
@@ -143,7 +167,7 @@ export function PaymentFeePicker({
           ) : null}
         </span>
       </p>
-      {quote ? (
+      {quote && !isFinal ? (
         <div className="text-muted-foreground flex flex-col gap-1 text-[0.8rem]">
           <span>Pay with</span>
           <Select
@@ -172,6 +196,10 @@ export function PaymentFeePicker({
               ))}
             </SelectContent>
           </Select>
+        </div>
+      ) : isFinal && selectedToken ? (
+        <div className="text-muted-foreground text-[0.8rem]">
+          <span>Pay with {selectedToken.symbol}</span>
         </div>
       ) : null}
     </div>
