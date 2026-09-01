@@ -20,6 +20,8 @@ export interface ICreateExecutionPermissionParams {
   /** Final permission after grant UI attenuation. */
   permission: IExecutionPermission;
   memo: string;
+  /** Called after delegation sign succeeds (e.g. mark session unlocked). */
+  onDelegationSigned?: () => Promise<void>;
 }
 
 export interface ICancelDelegationParams {
@@ -33,6 +35,8 @@ export interface ICancelDelegationParams {
    * the host. Used when `stored` is omitted; also drives hash lookup.
    */
   permissionContext?: HexString;
+  /** Called after passkey ceremonies, before relayer submit/poll. */
+  onAwaitingConfirmation?: () => void;
 }
 
 export interface ICancelDelegationResult extends ISendTransactionResult {

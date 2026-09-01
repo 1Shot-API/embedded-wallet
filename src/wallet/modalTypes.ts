@@ -161,6 +161,7 @@ export type ModalRequest =
       execute: (
         payment: IRelayerConfirmSendResult,
       ) => Promise<EVMTransactionHash>;
+      onRegisterAwaitingConfirmation?: (notify: () => void) => void;
       resolve: (hash: EVMTransactionHash) => void;
       reject: (error: unknown) => void;
     }

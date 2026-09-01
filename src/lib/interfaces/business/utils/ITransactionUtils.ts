@@ -51,6 +51,12 @@ export interface ITransactionUtils {
     feeAtoms: TokenAmount;
     authorizationList?: IRelayerAuthorizationEntry[];
     relayerUrl: string;
+    /** Cache relayer vault assertion after the coalesced sign ceremony. */
+    prefetchRelayerVaultAssertion?: boolean;
+    /** Keep the flyout open through submit/poll (in-wallet cancel flows). */
+    retainDisplayDuringSubmit?: boolean;
+    /** After passkey ceremonies, before relayer submit/poll. */
+    onAwaitingConfirmation?: () => void;
   }): Promise<ISendTransactionResult>;
 }
 

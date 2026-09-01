@@ -217,6 +217,8 @@ export const styleCopyCancelDelegationSchema = z.strictObject({
   chainLabel: z.string(),
   rejectLabel: z.string(),
   confirmLabel: z.string(),
+  signingMessage: z.string(),
+  waitingMessage: z.string(),
 });
 
 export const styleCopyPasskeyPromptEntrySchema = z.strictObject({

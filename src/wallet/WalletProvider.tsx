@@ -139,12 +139,24 @@ const oneshotRelayerRepository: IOneshotRelayerRepository =
   });
 const circleRepository: ICircleRepository = new CircleRepository();
 
+const relayerCredentialsClient = new RelayerCredentialsClient({
+  configProvider,
+  owsProvider,
+});
+
+const credentialRepository = new CachedRelayerVaultRepository({
+  client: relayerCredentialsClient,
+  configProvider,
+  owsProvider,
+});
+
 const businessTransactionUtils = new BusinessTransactionUtils({
   chainRepository,
   relayerRepository: oneshotRelayerRepository,
   blockchain: blockchainProvider,
   presentationTransactionUtils: transactionUtils,
   owsProvider,
+  delegationRepository: credentialRepository,
 });
 
 const cctpUtils: ICCTPUtils = new CCTPUtils();
@@ -163,17 +175,6 @@ const bridgeService: IBridgeService = new BridgeService(
   cctpUtils,
   blockchainProvider,
 );
-
-const relayerCredentialsClient = new RelayerCredentialsClient({
-  configProvider,
-  owsProvider,
-});
-
-const credentialRepository = new CachedRelayerVaultRepository({
-  client: relayerCredentialsClient,
-  configProvider,
-  owsProvider,
-});
 
 const delegationService: IDelegationService = new DelegationService({
   chainRepository,
@@ -572,6 +573,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (!owner) {
         throw new Error("Wallet address is required to cancel a permission");
       }
+      let notifyAwaitingConfirmation = () => {};
       const transactionHash = await pushModal<EVMTransactionHash>(
         ({ id, resolve, reject }) => ({
           id,
@@ -582,12 +584,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             chainId: stored.chainId,
             ownerAddress: owner,
           },
+          onRegisterAwaitingConfirmation: (notify) => {
+            notifyAwaitingConfirmation = notify;
+          },
           execute: async (payment: IRelayerConfirmSendResult) => {
             const result = await delegationService.cancelDelegation({
               chainId: stored.chainId,
               paymentToken: payment.paymentToken,
               feeAtoms: payment.feeAtoms,
               stored,
+              onAwaitingConfirmation: () => notifyAwaitingConfirmation(),
             });
             return result.transactionHash;
           },

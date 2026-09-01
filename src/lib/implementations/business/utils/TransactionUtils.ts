@@ -26,6 +26,7 @@ import {
 import { recoverAuthorizationAddress } from "viem/utils";
 import type { LocalAccount } from "viem/accounts";
 import type { IChainRepository } from "../../../interfaces/data/IChainRepository";
+import type { IDelegationRepository } from "../../../interfaces/data/IDelegationRepository";
 import type {
   IOneshotRelayerRepository,
   IRelayer7710Params,
@@ -71,6 +72,7 @@ export type TransactionUtilsOptions = {
   /** Presentation helpers (host domain for relayer memo). */
   presentationTransactionUtils: IPresentationTransactionUtils;
   owsProvider: IOWSProvider;
+  delegationRepository: IDelegationRepository;
 };
 
 /**
@@ -249,6 +251,9 @@ export class TransactionUtils implements ITransactionUtils {
     feeAtoms: TokenAmount;
     authorizationList?: IRelayerAuthorizationEntry[];
     relayerUrl: string;
+    prefetchRelayerVaultAssertion?: boolean;
+    retainDisplayDuringSubmit?: boolean;
+    onAwaitingConfirmation?: () => void;
   }): Promise<ISendTransactionResult> {
     const { chainId, paymentToken, relayerUrl } = args;
     const workItems = Array.isArray(args.work) ? args.work : [args.work];
@@ -471,8 +476,16 @@ export class TransactionUtils implements ITransactionUtils {
         );
       }
 
+      if (args.prefetchRelayerVaultAssertion) {
+        await this.options.delegationRepository.prepareRelayerVaultAssertion();
+      }
+
       // Last passkey is done — collapse the flyout while submit/poll run.
-      await this.options.owsProvider.hideDisplay();
+      if (!args.retainDisplayDuringSubmit) {
+        await this.options.owsProvider.hideDisplay();
+      } else {
+        args.onAwaitingConfirmation?.();
+      }
 
       params = buildParams(feeDelegation, feeAtoms, estimate.context);
       const taskId = await this.options.relayerRepository.send7710Transaction(

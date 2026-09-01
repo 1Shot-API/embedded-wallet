@@ -23,6 +23,12 @@ export interface IDelegationRepository {
   ): Promise<IStoredDelegation | undefined>;
   listDelegations(): Promise<IDelegationSummary[]>;
   deleteDelegation(delegationId: DelegationId): Promise<void>;
+
+  /**
+   * Mint a relayer challenge and cache a WebAuthn assertion for the next
+   * vault upload/delete (avoids a separate Unlock ceremony on assert).
+   */
+  prepareRelayerVaultAssertion(): Promise<void>;
 }
 
 export const IDelegationRepositoryType = Symbol.for("IDelegationRepository");
