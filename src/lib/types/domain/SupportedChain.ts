@@ -21,6 +21,8 @@ export class SupportedChain {
     /** Base URL for tx/address explorer links (no trailing slash). */
     public readonly blockExplorerUrl: string,
     public readonly cctpBridgeDestination: boolean,
+    /** Higher weight sorts above peers within the same network type. */
+    public readonly weight: number = 0,
   ) {}
 
   public txExplorerUrl(transactionHash: string): string {

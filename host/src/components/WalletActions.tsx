@@ -23,10 +23,10 @@ import {
   type BridgeSpeedOption,
 } from "@/constants/bridgeDemo";
 import { EnableArcMainnet } from "@/features";
+import { ChainSelector, type IChainSelectorOption } from "./ChainSelector";
 import {
   DEMO_ADD_ASSET_ICON_URL,
   FOCUS_USDT_BASE,
-  HOST_CHAINS,
   hostChainMeta,
   type UsdcMode,
 } from "./hostChains";
@@ -149,8 +149,10 @@ export function WalletActions({
   onGetGrantedPermissions,
 }: IWalletActionsProps) {
   const meta = hostChainMeta(chainId);
-  const [addAssetChainId, setAddAssetChainId] = useState(FOCUS_USDT_BASE.chainId);
-  const [addAssetAddress, setAddAssetAddress] = useState(
+  const [addAssetChainId, setAddAssetChainId] = useState<string>(
+    FOCUS_USDT_BASE.chainId,
+  );
+  const [addAssetAddress, setAddAssetAddress] = useState<string>(
     FOCUS_USDT_BASE.assetAddress,
   );
   const [addAssetIconUrl, setAddAssetIconUrl] = useState(DEMO_ADD_ASSET_ICON_URL);
@@ -164,6 +166,28 @@ export function WalletActions({
     () => bridgeDestinationsForSource(bridgeSourceChainId, chainId),
     [bridgeSourceChainId, chainId],
   );
+
+  const bridgeSourceOptions = useMemo((): readonly IChainSelectorOption[] => {
+    return BRIDGE_SOURCE_CHAINS.map((chain) => ({
+      value: chain.value,
+      label: chain.label,
+      isTestnet: chain.networkType === "testnet",
+      weight: chain.weight,
+      badge:
+        chain.value.toLowerCase() === chainId.toLowerCase()
+          ? "Session"
+          : undefined,
+    }));
+  }, [chainId]);
+
+  const bridgeDestinationOptions = useMemo((): readonly IChainSelectorOption[] => {
+    return bridgeDestinations.map((chain) => ({
+      value: chain.value,
+      label: chain.label,
+      isTestnet: chain.networkType === "testnet",
+      weight: chain.weight,
+    }));
+  }, [bridgeDestinations]);
 
   const bridgeAmountValid = isBridgeAmountValid(bridgeAmount);
   const bridgeDisabled = !ready || busy || !bridgeAmountValid;
@@ -213,28 +237,14 @@ export function WalletActions({
         <Label htmlFor="chain-select" className="shrink-0">
           Chain
         </Label>
-        <Select
+        <ChainSelector
+          id="chain-select"
+          ariaLabel="Chain"
           value={chainId}
           disabled={!ready || busy}
-          onValueChange={(value) => {
-            if (value) onChainChange(value);
-          }}
-        >
-          <SelectTrigger id="chain-select" className="min-w-40 flex-1">
-            <SelectValue placeholder="Select chain" />
-          </SelectTrigger>
-          <SelectContent>
-            {HOST_CHAINS.map((chain) => (
-              <SelectItem key={chain.value} value={chain.value}>
-                {chain.label}
-              </SelectItem>
-            ))}
-            {!HOST_CHAINS.some((chain) => chain.value === chainId) &&
-            chainId ? (
-              <SelectItem value={chainId}>{chainId}</SelectItem>
-            ) : null}
-          </SelectContent>
-        </Select>
+          triggerClassName="min-w-40 flex-1"
+          onValueChange={onChainChange}
+        />
         <Button
           type="button"
           variant="outline"
@@ -457,23 +467,13 @@ export function WalletActions({
             <Label htmlFor="add-asset-chain" className="text-xs font-normal">
               Chain
             </Label>
-            <Select
+            <ChainSelector
+              id="add-asset-chain"
+              ariaLabel="Add asset chain"
               value={addAssetChainId}
-              onValueChange={(value) => {
-                if (value) setAddAssetChainId(value);
-              }}
-            >
-              <SelectTrigger id="add-asset-chain" className="w-full">
-                <SelectValue placeholder="Select chain" />
-              </SelectTrigger>
-              <SelectContent>
-                {HOST_CHAINS.map((chain) => (
-                  <SelectItem key={chain.value} value={chain.value}>
-                    {chain.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              disabled={!ready || busy}
+              onValueChange={setAddAssetChainId}
+            />
           </div>
           <div className="flex flex-col gap-1">
             <Label htmlFor="add-asset-address" className="text-xs font-normal">
@@ -545,54 +545,43 @@ export function WalletActions({
           <div className="grid grid-cols-2 gap-2">
             <div className="flex min-w-0 flex-col gap-1.5">
               <Label htmlFor="bridge-source-select">Source chain</Label>
-              <Select
+              <ChainSelector
+                id="bridge-source-select"
+                ariaLabel="Bridge source chain"
                 value={bridgeSourceChainId}
                 disabled={!ready || busy}
+                options={bridgeSourceOptions}
+                leadingOptions={[
+                  {
+                    value: BRIDGE_SESSION_SOURCE,
+                    label: "Session chain",
+                    icon: "wallet",
+                  },
+                ]}
                 onValueChange={handleBridgeSourceChange}
-              >
-                <SelectTrigger id="bridge-source-select" className="w-full">
-                  <SelectValue placeholder="Source chain" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={BRIDGE_SESSION_SOURCE}>
-                    Session chain
-                  </SelectItem>
-                  {BRIDGE_SOURCE_CHAINS.map((chain) => (
-                    <SelectItem key={chain.value} value={chain.value}>
-                      {chain.label}
-                      {chain.value.toLowerCase() === chainId.toLowerCase()
-                        ? " (session)"
-                        : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </div>
             <div className="flex min-w-0 flex-col gap-1.5">
               <Label htmlFor="bridge-destination-select">Destination</Label>
-              <Select
+              <ChainSelector
+                id="bridge-destination-select"
+                ariaLabel="Bridge destination chain"
                 value={bridgeDestinationChainId || BRIDGE_USER_PICKS_DEST}
                 disabled={!ready || busy}
+                options={bridgeDestinationOptions}
+                leadingOptions={[
+                  {
+                    value: BRIDGE_USER_PICKS_DEST,
+                    label: "User picks in wallet",
+                    icon: "wallet",
+                  },
+                ]}
                 onValueChange={(value) => {
                   onBridgeDestinationChange(
                     value === BRIDGE_USER_PICKS_DEST ? "" : value,
                   );
                 }}
-              >
-                <SelectTrigger id="bridge-destination-select" className="w-full">
-                  <SelectValue placeholder="Destination" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={BRIDGE_USER_PICKS_DEST}>
-                    User picks in wallet
-                  </SelectItem>
-                  {bridgeDestinations.map((chain) => (
-                    <SelectItem key={chain.value} value={chain.value}>
-                      {chain.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">

@@ -34,9 +34,9 @@ import {
 } from "../constants/bridgeDemo";
 import {
   DEMO_EXECUTION_DELEGATEE,
+  DEFAULT_HOST_CHAIN_ID,
   FOCUS_USDC_ARC,
   FOCUS_USDT_BASE,
-  HOST_CHAINS,
   hostChainMeta,
   type UsdcMode,
 } from "../components/hostChains";
@@ -115,7 +115,7 @@ export function useHostTestActions({
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [account, setAccount] = useState<string | null>(null);
-  const [chainId, setChainId] = useState<string>(HOST_CHAINS[0].value);
+  const [chainId, setChainId] = useState<string>(DEFAULT_HOST_CHAIN_ID);
   const [message, setMessage] = useState("Hello from 1Shot Wallet");
   const [signMode, setSignMode] = useState<SignMode>("message");
   const [typedDataJson, setTypedDataJson] = useState(DEFAULT_TYPED_DATA_JSON);

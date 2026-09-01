@@ -1,5 +1,6 @@
 import { CheckIcon } from "lucide-react";
 import type { SupportedChain } from "../../lib/types/domain";
+import { ChainDisplayUtils } from "../../lib/implementations/utils/ChainDisplayUtils";
 import { useStyle } from "../../style/StyleProvider";
 import { Modal } from "../Modal";
 import { cn } from "@/lib/utils";
@@ -24,31 +25,24 @@ function ChainRowLabel({ chain }: { chain: SupportedChain }) {
   );
 }
 
-/**
- * Local modal to pick an active chain from the allowed catalog.
- */
-export function SelectNetworkModal({
+function NetworkGroup({
+  title,
   chains,
   selectedChainId,
   onSelect,
-  onClose,
-}: ISelectNetworkModalProps) {
-  const { style } = useStyle();
-  const { account: copy } = style.copy;
-
+}: {
+  title: string;
+  chains: readonly SupportedChain[];
+  selectedChainId: string;
+  onSelect: (chainId: string) => void;
+}) {
+  if (chains.length === 0) return null;
   return (
-    <Modal
-      title={copy.selectNetworkTitle}
-      onBackdropDismiss={onClose}
-      actions={[
-        {
-          label: copy.selectNetworkCancelLabel,
-          variant: "secondary",
-          onClick: onClose,
-        },
-      ]}
-    >
-      <ul className="m-0 flex list-none flex-col gap-1 p-0" role="listbox">
+    <li className="flex flex-col gap-1">
+      <div className="text-muted-foreground px-3 pt-1 text-xs font-medium">
+        {title}
+      </div>
+      <ul className="m-0 flex list-none flex-col gap-1 p-0">
         {chains.map((chain) => {
           const selected =
             String(chain.chainId).toLowerCase() ===
@@ -76,6 +70,50 @@ export function SelectNetworkModal({
             </li>
           );
         })}
+      </ul>
+    </li>
+  );
+}
+
+/**
+ * Local modal to pick an active chain from the allowed catalog.
+ * Groups Mainnet / Testnet like the host playground chain selector.
+ */
+export function SelectNetworkModal({
+  chains,
+  selectedChainId,
+  onSelect,
+  onClose,
+}: ISelectNetworkModalProps) {
+  const { style } = useStyle();
+  const { account: copy } = style.copy;
+  const { testnets, mainnets } = ChainDisplayUtils.groupByNetworkType(chains);
+
+  return (
+    <Modal
+      title={copy.selectNetworkTitle}
+      onBackdropDismiss={onClose}
+      actions={[
+        {
+          label: copy.selectNetworkCancelLabel,
+          variant: "secondary",
+          onClick: onClose,
+        },
+      ]}
+    >
+      <ul className="m-0 flex list-none flex-col gap-3 p-0" role="listbox">
+        <NetworkGroup
+          title="Mainnet"
+          chains={mainnets}
+          selectedChainId={selectedChainId}
+          onSelect={onSelect}
+        />
+        <NetworkGroup
+          title="Testnet"
+          chains={testnets}
+          selectedChainId={selectedChainId}
+          onSelect={onSelect}
+        />
       </ul>
     </Modal>
   );
