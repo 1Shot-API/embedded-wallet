@@ -1,0 +1,24 @@
+# Dependabot: dependency + Actions CVE / version PRs.
+# Alerts still appear under Security → Dependabot even without this file;
+# this config opens update PRs on a schedule.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    # Yarn Berry uses yarn.lock; Dependabot treats the root as npm ecosystem.
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5

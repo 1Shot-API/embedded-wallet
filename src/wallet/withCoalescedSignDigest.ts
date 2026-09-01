@@ -1,4 +1,9 @@
-import type { CeremonyUiParams, DigestSignedData } from "@1shotapi/ows-types";
+import type {
+  CeremonyUiParams,
+  DigestSignedData,
+  ExecuteBatchParams,
+  WebAuthnAssertionFields,
+} from "@1shotapi/ows-types";
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 
 type SignDigestFn = OWSSigner["signDigest"];
@@ -17,6 +22,13 @@ export type CoalesceSignDigestOptions = {
    * branch cannot hang forever.
    */
   minCalls?: number;
+  /**
+   * When set, the coalesced flush uses `executeBatch({ digests, challenge })`
+   * so TX signatures and relayer WebAuthn auth share one passkey ceremony.
+   */
+  challenge?: `0x${string}`;
+  /** Called with the batch assertion when {@link challenge} is set. */
+  onBatchAssertion?: (assertion: WebAuthnAssertionFields) => void;
 };
 
 /**
@@ -31,6 +43,8 @@ export type CoalesceSignDigestOptions = {
  * - Otherwise debounce with `setTimeout(0)` so same-turn resumes still merge.
  * - Never overlap signer RPCs — queue a follow-up flush instead of posting a
  *   second request that would abort the first.
+ * - Optional {@link CoalesceSignDigestOptions.challenge} routes the flush
+ *   through `executeBatch` for mixed sign + relayer auth.
  */
 export async function withCoalescedSignDigest<T>(
   signer: OWSSigner,
@@ -40,6 +54,9 @@ export async function withCoalescedSignDigest<T>(
 ): Promise<T> {
   const minCalls = Math.max(1, options?.minCalls ?? 1);
   const original = signer.signDigest.bind(signer) as SignDigestFn;
+  const originalExecuteBatch = options?.challenge
+    ? signer.executeBatch.bind(signer)
+    : null;
   let pending: IPendingBatch[] = [];
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let flushChain: Promise<void> = Promise.resolve();
@@ -50,6 +67,36 @@ export async function withCoalescedSignDigest<T>(
     if (batch.length === 0) return Promise.resolve();
 
     const allDigests = batch.flatMap((item) => item.digests);
+
+    if (options?.challenge) {
+      if (!originalExecuteBatch) {
+        throw new Error("withCoalescedSignDigest: challenge requires executeBatch");
+      }
+      return originalExecuteBatch({
+        ...ceremony,
+        digests: allDigests as ExecuteBatchParams["digests"],
+        challenge: options.challenge,
+      }).then(
+        (batchResult) => {
+          if (batchResult.assertion) {
+            options.onBatchAssertion?.(batchResult.assertion);
+          }
+          const results = batchResult.results ?? [];
+          let offset = 0;
+          for (const item of batch) {
+            const count = item.digests.length;
+            item.resolve(results.slice(offset, offset + count));
+            offset += count;
+          }
+        },
+        (error: unknown) => {
+          for (const item of batch) {
+            item.reject(error);
+          }
+        },
+      );
+    }
+
     return original(allDigests, ceremony).then(
       (results) => {
         let offset = 0;

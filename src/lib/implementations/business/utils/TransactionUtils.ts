@@ -26,6 +26,7 @@ import {
 import { recoverAuthorizationAddress } from "viem/utils";
 import type { LocalAccount } from "viem/accounts";
 import type { IChainRepository } from "../../../interfaces/data/IChainRepository";
+import type { IDelegationRepository } from "../../../interfaces/data/IDelegationRepository";
 import type {
   IOneshotRelayerRepository,
   IRelayer7710Params,
@@ -41,9 +42,16 @@ import type { ITransactionUtils } from "../../../interfaces/business/utils/ITran
 import type { ITransactionUtils as IPresentationTransactionUtils } from "../../../interfaces/utils/ITransactionUtils";
 import type { IOWSProvider } from "../../../interfaces/utils/IOWSProvider";
 import { EPasskeyPromptReason } from "../../../types/enum/EPasskeyPromptReason";
+import type { IFinalRelayerFee } from "../../../types/domain/RelayerSendUi";
+import {
+  makeTokenAmount,
+  tokenAmountFromAtomString,
+  type TokenAmount,
+} from "../../../types/primitives";
 import { idbGetString, idbSetString } from "../../../utils/idbStringStore";
 import { withCeremonyUiReason } from "../../../../wallet/ceremonyUiOverrideStore";
 import { withCoalescedSignDigest } from "../../../../wallet/withCoalescedSignDigest";
+import type { CoalesceSignDigestOptions } from "../../../../wallet/withCoalescedSignDigest";
 import {
   loadCachedEvmAddress,
   loadCachedSecp256k1PublicKey,
@@ -66,6 +74,7 @@ export type TransactionUtilsOptions = {
   /** Presentation helpers (host domain for relayer memo). */
   presentationTransactionUtils: IPresentationTransactionUtils;
   owsProvider: IOWSProvider;
+  delegationRepository: IDelegationRepository;
 };
 
 /**
@@ -212,7 +221,7 @@ export class TransactionUtils implements ITransactionUtils {
         } catch {
           balance = 0n;
         }
-        return { ...token, balance };
+        return { ...token, balance: makeTokenAmount(balance) };
       }),
     );
 
@@ -224,7 +233,7 @@ export class TransactionUtils implements ITransactionUtils {
     // Confirm UI uses a conservative mock (≥ typical $0.01 minFee). The real fee
     // comes from relayer_estimate7710Transaction at submit — not getFeeData
     // (whose minFee is a human decimal string, not atoms).
-    const feeAtoms = parseUnits("0.01", selected.decimals);
+    const feeAtoms = makeTokenAmount(parseUnits("0.01", selected.decimals));
 
     return {
       tokens,
@@ -241,16 +250,27 @@ export class TransactionUtils implements ITransactionUtils {
     chainId: EVMChainId;
     work: ITransactionWork | ITransactionWork[];
     paymentToken: EVMAccountAddress;
-    feeAtoms: bigint;
+    feeAtoms: TokenAmount;
     authorizationList?: IRelayerAuthorizationEntry[];
     relayerUrl: string;
+    prefetchRelayerVaultAssertion?: boolean;
+    retainDisplayDuringSubmit?: boolean;
+    onAwaitingConfirmation?: () => void;
+    onFinalFeeRequired?: (fee: IFinalRelayerFee) => Promise<void>;
   }): Promise<ISendTransactionResult> {
-    const { chainId, paymentToken, relayerUrl } = args;
+    const {
+      chainId,
+      paymentToken,
+      relayerUrl,
+      onAwaitingConfirmation,
+      onFinalFeeRequired,
+      retainDisplayDuringSubmit,
+    } = args;
     const workItems = Array.isArray(args.work) ? args.work : [args.work];
     if (workItems.length === 0) {
       throw new Error("sendViaRelayer requires at least one work item");
     }
-    let feeAtoms = args.feeAtoms;
+    let feeAtoms: TokenAmount = args.feeAtoms;
     let authorizationList = args.authorizationList;
 
     const signer = await this.options.owsProvider.getSigner();
@@ -316,7 +336,21 @@ export class TransactionUtils implements ITransactionUtils {
       const approveCopy = approveTransactionCeremony(needsUpgrade);
       const minCalls = (needsUpgrade ? 1 : 0) + 1 + workItems.length;
 
-      // One passkey: optional EIP-7702 auth + fee + each work delegation.
+      const coalesceOptions: CoalesceSignDigestOptions = { minCalls };
+      if (args.prefetchRelayerVaultAssertion) {
+        const { challengeId, challenge } =
+          await this.options.delegationRepository.mintRelayerVaultChallenge();
+        coalesceOptions.challenge = challenge as `0x${string}`;
+        coalesceOptions.onBatchAssertion = (assertion) => {
+          this.options.delegationRepository.cacheRelayerVaultAssertion(
+            challengeId,
+            assertion,
+          );
+        };
+      }
+
+      // One passkey: optional EIP-7702 auth + fee + each work delegation
+      // (+ relayer vault auth when prefetchRelayerVaultAssertion).
       const signed = await withCeremonyUiReason(
         EPasskeyPromptReason.ApproveTransaction,
         () =>
@@ -354,7 +388,7 @@ export class TransactionUtils implements ITransactionUtils {
                 ]);
               return { authEntry, feeDelegation, workDelegations };
             },
-            { minCalls },
+            coalesceOptions,
           ),
       );
 
@@ -427,9 +461,24 @@ export class TransactionUtils implements ITransactionUtils {
       if (
         estimate.success &&
         estimate.requiredPaymentAmount &&
-        BigInt(estimate.requiredPaymentAmount) !== feeAtoms
+        tokenAmountFromAtomString(estimate.requiredPaymentAmount) !== feeAtoms
       ) {
-        feeAtoms = BigInt(estimate.requiredPaymentAmount);
+        feeAtoms = tokenAmountFromAtomString(estimate.requiredPaymentAmount);
+        const paymentTokenMeta = capabilities.tokens.find(
+          (token) =>
+            String(token.address).toLowerCase() ===
+            String(paymentToken).toLowerCase(),
+        );
+        const feeDecimals = paymentTokenMeta?.decimals ?? 6;
+
+        if (onFinalFeeRequired) {
+          await onFinalFeeRequired({
+            feeAtoms,
+            feeFormatted: formatUnits(feeAtoms, feeDecimals),
+            paymentToken,
+          });
+        }
+
         const nextFeeCalldata = HexStringCompat(
           encodeFunctionData({
             abi: erc20Abi,
@@ -453,11 +502,13 @@ export class TransactionUtils implements ITransactionUtils {
             ),
         );
         params = buildParams(feeDelegation, feeAtoms);
-        estimate =
-          await this.options.relayerRepository.estimate7710Transaction(
-            relayerUrl,
-            params,
-          );
+        if (!onFinalFeeRequired) {
+          estimate =
+            await this.options.relayerRepository.estimate7710Transaction(
+              relayerUrl,
+              params,
+            );
+        }
       }
 
       if (!estimate.success) {
@@ -467,7 +518,11 @@ export class TransactionUtils implements ITransactionUtils {
       }
 
       // Last passkey is done — collapse the flyout while submit/poll run.
-      await this.options.owsProvider.hideDisplay();
+      if (!retainDisplayDuringSubmit) {
+        await this.options.owsProvider.hideDisplay();
+      } else {
+        onAwaitingConfirmation?.();
+      }
 
       params = buildParams(feeDelegation, feeAtoms, estimate.context);
       const taskId = await this.options.relayerRepository.send7710Transaction(

@@ -28,10 +28,15 @@ import {
   type SignMode,
 } from "../constants/signDemo";
 import {
+  BRIDGE_SESSION_SOURCE,
+  chainIdToNumber,
+  type BridgeSpeedOption,
+} from "../constants/bridgeDemo";
+import {
   DEMO_EXECUTION_DELEGATEE,
+  DEFAULT_HOST_CHAIN_ID,
   FOCUS_USDC_ARC,
   FOCUS_USDT_BASE,
-  HOST_CHAINS,
   hostChainMeta,
   type UsdcMode,
 } from "../components/hostChains";
@@ -109,13 +114,19 @@ export function useHostTestActions({
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [account, setAccount] = useState<string | null>(null);
-  const [chainId, setChainId] = useState<string>(HOST_CHAINS[0].value);
+  const [chainId, setChainId] = useState<string>(DEFAULT_HOST_CHAIN_ID);
   const [message, setMessage] = useState("Hello from 1Shot Wallet");
   const [signMode, setSignMode] = useState<SignMode>("message");
   const [typedDataJson, setTypedDataJson] = useState(DEFAULT_TYPED_DATA_JSON);
   const [usdcMode, setUsdcMode] = useState<UsdcMode>("balance");
   const [usdcDestination, setUsdcDestination] = useState("");
   const [usdcAmount, setUsdcAmount] = useState("");
+  const [bridgeSourceChainId, setBridgeSourceChainId] = useState(
+    BRIDGE_SESSION_SOURCE,
+  );
+  const [bridgeDestinationChainId, setBridgeDestinationChainId] = useState("");
+  const [bridgeAmount, setBridgeAmount] = useState("");
+  const [bridgeSpeed, setBridgeSpeed] = useState<BridgeSpeedOption | "">("");
   const [status, setStatus] = useState("Connecting to wallet…");
   const [statusIsError, setStatusIsError] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
@@ -605,45 +616,26 @@ export function useHostTestActions({
     })();
   };
 
-  const handleAddUsdcArc = () => {
+  const handleAddAsset = (params: {
+    chainId: string;
+    assetAddress: string;
+    iconUrl?: string;
+  }) => {
     const proxy = proxyRef.current;
     if (!proxy) return;
     setBusy(true);
-    reportStatus("Requesting add Arc USDC…");
+    const iconHint = params.iconUrl ? " (with icon)" : "";
+    reportStatus(`Requesting addAsset${iconHint}…`);
     void (async () => {
       try {
         await proxy.rpc("addAsset", {
-          chainId: FOCUS_USDC_ARC.chainId,
-          assetAddress: FOCUS_USDC_ARC.assetAddress,
+          chainId: params.chainId,
+          assetAddress: params.assetAddress,
+          ...(params.iconUrl ? { iconUrl: params.iconUrl } : {}),
         });
         proxy.showWallet();
         setWalletVisible(true);
-        reportStatus("Arc USDC added to tracked assets.");
-      } catch (error) {
-        reportStatus(
-          error instanceof Error ? error.message : "addAsset failed",
-          true,
-        );
-      } finally {
-        setBusy(false);
-      }
-    })();
-  };
-
-  const handleAddUsdtBase = () => {
-    const proxy = proxyRef.current;
-    if (!proxy) return;
-    setBusy(true);
-    reportStatus("Requesting add Base USDT…");
-    void (async () => {
-      try {
-        await proxy.rpc("addAsset", {
-          chainId: FOCUS_USDT_BASE.chainId,
-          assetAddress: FOCUS_USDT_BASE.assetAddress,
-        });
-        proxy.showWallet();
-        setWalletVisible(true);
-        reportStatus("Base USDT added to tracked assets.");
+        reportStatus("Asset added to tracked assets.");
       } catch (error) {
         reportStatus(
           error instanceof Error ? error.message : "addAsset failed",
@@ -681,10 +673,27 @@ export function useHostTestActions({
     const proxy = proxyRef.current;
     if (!proxy) return;
     setBusy(true);
-    reportStatus("Opening CCTP bridge…");
+    const trimmedAmount = bridgeAmount.trim();
+    const params: Record<string, string | number> = {};
+    if (trimmedAmount) params.amount = trimmedAmount;
+    if (bridgeSourceChainId !== BRIDGE_SESSION_SOURCE) {
+      params.sourceChainId = chainIdToNumber(bridgeSourceChainId);
+    }
+    if (bridgeDestinationChainId) {
+      params.destinationChainId = chainIdToNumber(bridgeDestinationChainId);
+    }
+    if (bridgeSpeed) {
+      params.speed = bridgeSpeed;
+    }
+    const paramSummary = Object.keys(params).length
+      ? ` (${Object.entries(params)
+          .map(([key, value]) => `${key}=${value}`)
+          .join(", ")})`
+      : "";
+    reportStatus(`Opening CCTP bridge${paramSummary}…`);
     void (async () => {
       try {
-        await proxy.rpc("bridge", {});
+        await proxy.rpc("bridge", params);
         proxy.showWallet();
         setWalletVisible(true);
         reportStatus("Bridge closed.");
@@ -884,10 +893,17 @@ export function useHostTestActions({
     onFocusUsdcArc: handleFocusUsdcArc,
     onFocusUsdtBase: handleFocusUsdtBase,
     onUnfocusWallet: handleUnfocusWallet,
-    onAddUsdcArc: handleAddUsdcArc,
-    onAddUsdtBase: handleAddUsdtBase,
+    onAddAsset: handleAddAsset,
     onOnramp: handleOnramp,
     onBridge: handleBridge,
+    bridgeSourceChainId,
+    bridgeDestinationChainId,
+    bridgeAmount,
+    bridgeSpeed,
+    onBridgeSourceChange: setBridgeSourceChainId,
+    onBridgeDestinationChange: setBridgeDestinationChainId,
+    onBridgeAmountChange: setBridgeAmount,
+    onBridgeSpeedChange: setBridgeSpeed,
     sessionGrants: sessionGrants.map((g) => ({
       id: g.id,
       summary: grantSummary(g.response),

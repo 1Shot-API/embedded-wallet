@@ -7,6 +7,7 @@ import type { IChainRepository } from "../../interfaces/data/IChainRepository";
 import { SupportedChain } from "../../types/domain/SupportedChain";
 import { EChain } from "../../types/enum/EChain";
 import { EChainNetworkType } from "../../types/enum/EChainNetworkType";
+import { ChainDisplayUtils } from "../utils/ChainDisplayUtils";
 
 import arcLogo from "../../../assets/images/chains/arc-logo.png";
 import arbitrumLogo from "../../../assets/images/chains/arbitrum-logo.png";
@@ -30,6 +31,7 @@ const ALCHEMY_KEY = "jqLUTbHeN_cVsIX2W7tJk";
 
 /**
  * Public Relayer docs networks + Arc Testnet (dev relayer) + Robinhood.
+ * `weight` controls order within Mainnet/Testnet groups (higher = first).
  * @see https://1shotapi.com/docs/relayer/get-started/overview
  */
 const CATALOG: readonly SupportedChain[] = [
@@ -44,6 +46,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Arc",
     "https://explorer.arc.io",
     false,
+    100,
   ),
   new SupportedChain(
     EChain.ArcTestnet,
@@ -56,6 +59,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Arc Testnet",
     "https://testnet.arcscan.app",
     true,
+    100,
   ),
   new SupportedChain(
     EChain.Sepolia,
@@ -68,6 +72,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Sepolia",
     "https://sepolia.etherscan.io",
     true,
+    80,
   ),
   new SupportedChain(
     EChain.BaseSepolia,
@@ -80,6 +85,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Base Sepolia",
     "https://sepolia.basescan.org",
     true,
+    90,
   ),
   new SupportedChain(
     EChain.Ethereum,
@@ -92,6 +98,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Ethereum",
     "https://etherscan.io",
     true,
+    80,
   ),
   new SupportedChain(
     EChain.Linea,
@@ -152,6 +159,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Base",
     "https://basescan.org",
     true,
+    90,
   ),
   new SupportedChain(
     EChain.Polygon,
@@ -237,7 +245,7 @@ export class HardcodedChainRepository implements IChainRepository {
   private readonly listeners = new Set<() => void>();
 
   async list(): Promise<SupportedChain[]> {
-    return CATALOG.filter((chain) => {
+    const enabled = CATALOG.filter((chain) => {
       if (!chain.enabled) {
         return false;
       }
@@ -246,6 +254,7 @@ export class HardcodedChainRepository implements IChainRepository {
       }
       return this.allowedChains.has(String(chain.chainId).toLowerCase());
     });
+    return ChainDisplayUtils.sortForDisplay(enabled);
   }
 
   async get(chainId: EVMChainIdType): Promise<SupportedChain | null> {
@@ -314,5 +323,3 @@ export class HardcodedChainRepository implements IChainRepository {
     return `oneshot.walletUpgraded.${String(chainId).toLowerCase()}.${String(address).toLowerCase()}`;
   }
 }
-
-

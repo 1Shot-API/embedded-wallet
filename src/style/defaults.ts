@@ -145,8 +145,11 @@ export const DEFAULT_STYLE: IResolvedStyle = {
     cctpBridge: {
       title: "Bridge USDC",
       body: "Send USDC to another network. Circle mints on the destination — you never pay native gas.",
+      confirmTitle: "Confirm bridge",
+      confirmBody: "Review the quote, then confirm to burn USDC on the source network.",
       amountLabel: "Amount",
       amountPlaceholder: "0.0",
+      sourceChainLabel: "Source",
       destinationLabel: "Destination",
       destinationPlaceholder: "Select network",
       speedLabel: "Speed",
@@ -157,6 +160,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       getQuoteLabel: "Get quote",
       confirmLabel: "Confirm bridge",
       cancelLabel: "Cancel",
+      backLabel: "Back",
       retryLabel: "Retry",
       transferAmountLabel: "Transfer",
       forwardFeeLabel: "Forwarding fee",
@@ -211,6 +215,14 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       chainLabel: "Network",
       rejectLabel: "Keep",
       confirmLabel: "Cancel permission",
+      signingMessage: "Confirm in the signing panel…",
+      waitingMessage: "Waiting for on-chain confirmation…",
+    },
+    relayerSubmit: {
+      finalFeeNotice:
+        "The relayer fee changed after signing. Review the final fee before submitting.",
+      signingMessage: "Confirm in the signing panel…",
+      waitingMessage: "Waiting for on-chain confirmation…",
     },
     passkeyPrompt: {
       unlock: {

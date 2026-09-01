@@ -78,6 +78,10 @@ export class RelayerCredentialsClient implements IRelayerCredentialsClient {
     return cached;
   }
 
+  hasCachedAssertion(): boolean {
+    return this.cachedAssertion !== null;
+  }
+
   async assert(credentialId: CredentialId): Promise<IWebAuthnAssertionRequest> {
     const cached = this.takeAssertion();
     if (cached) {
@@ -158,7 +162,7 @@ export class RelayerCredentialsClient implements IRelayerCredentialsClient {
 }
 
 /** Re-encode OWSSigner assertion values as SimpleWebAuthn base64url fields. */
-function toRelayerAssertionRequest(
+export function toRelayerAssertionRequest(
   challengeId: ChallengeId,
   assertion: WebAuthnAssertionFields,
 ): IWebAuthnAssertionRequest {

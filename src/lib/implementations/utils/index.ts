@@ -5,6 +5,10 @@ export { SupportedChainsBlockchainProvider } from "./SupportedChainsBlockchainPr
 export { EventBus } from "./EventBus";
 export { TransactionUtils } from "./TransactionUtils";
 export { SIWEUtils } from "./SIWEUtils";
+export {
+  ChainDisplayUtils,
+  type IChainCatalogSortable,
+} from "./ChainDisplayUtils";
 export { AnalyticsBridge } from "./AnalyticsBridge";
 export {
   analyticsErrorCode,

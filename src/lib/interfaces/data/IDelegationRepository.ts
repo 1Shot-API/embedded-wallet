@@ -1,9 +1,11 @@
-import type { HexString } from "@1shotapi/ows-types";
+import type { HexString, WebAuthnAssertionFields } from "@1shotapi/ows-types";
 import type { DelegationId } from "../../types/primitives/DelegationId";
+import type { ChallengeId } from "../../types/primitives/ChallengeId";
 import type {
   IDelegationSummary,
   IStoredDelegation,
 } from "../../types/domain/StoredDelegation";
+import type { IWalletCredentialChallengeResponse } from "../../types/domain/RelayerCredentials";
 
 /**
  * Branding-owned persistence for ERC-7715 / MetaMask delegations.
@@ -23,6 +25,15 @@ export interface IDelegationRepository {
   ): Promise<IStoredDelegation | undefined>;
   listDelegations(): Promise<IDelegationSummary[]>;
   deleteDelegation(delegationId: DelegationId): Promise<void>;
+
+  /** Mint a single-use relayer challenge for batched vault auth. */
+  mintRelayerVaultChallenge(): Promise<IWalletCredentialChallengeResponse>;
+
+  /** Cache assertion from an `executeBatch` ceremony for a later vault HTTP call. */
+  cacheRelayerVaultAssertion(
+    challengeId: ChallengeId,
+    assertion: WebAuthnAssertionFields,
+  ): void;
 }
 
 export const IDelegationRepositoryType = Symbol.for("IDelegationRepository");

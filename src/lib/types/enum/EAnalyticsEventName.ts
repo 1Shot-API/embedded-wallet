@@ -34,4 +34,9 @@ export enum EAnalyticsEventName {
   DelegationCancelled = "DelegationCancelled",
   DelegationCancelFailed = "DelegationCancelFailed",
   DelegationCancelAborted = "DelegationCancelAborted",
+
+  BridgeOpened = "BridgeOpened",
+  BridgeCompleted = "BridgeCompleted",
+  BridgeFailed = "BridgeFailed",
+  BridgeCancelled = "BridgeCancelled",
 }

@@ -7,23 +7,25 @@ import type {
   IRelayerAuthorizationEntry,
   ISendTransactionResult,
 } from "../data/IOneshotRelayerRepository";
+import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
+import type { TokenAmount } from "../../types/primitives";
 
 export interface IPaymentTokenOption {
   address: EVMAccountAddress;
   symbol: string;
   name?: string;
   decimals: number;
-  balance: bigint;
+  balance: TokenAmount;
 }
 
 export interface IPaymentQuote {
   tokens: IPaymentTokenOption[];
   selectedToken: EVMAccountAddress;
-  feeAtoms: bigint;
+  feeAtoms: TokenAmount;
   feeFormatted: string;
   feeCollector: EVMAccountAddress;
   targetAddress: EVMAccountAddress;
-  minFee: bigint;
+  minFee: TokenAmount;
 }
 
 export interface ITransactionWork {
@@ -37,7 +39,7 @@ export interface ISendViaRelayerParams {
   work: ITransactionWork | ITransactionWork[];
   paymentToken: EVMAccountAddress;
   /** Fee atoms from the confirm UI quote; may be adjusted after estimate. */
-  feeAtoms: bigint;
+  feeAtoms: TokenAmount;
   authorizationList?: IRelayerAuthorizationEntry[];
 }
 
@@ -76,9 +78,9 @@ export interface ITransactionService {
     work: ITransactionWork,
     options?: {
       paymentToken?: EVMAccountAddress;
-      feeAtoms?: bigint;
+      feeAtoms?: TokenAmount;
       authorizationList?: IRelayerAuthorizationEntry[];
-    },
+    } & IRelayerSendUiCallbacks,
   ): Promise<ISendTransactionResult>;
 }
 

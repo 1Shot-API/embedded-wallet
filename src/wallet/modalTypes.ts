@@ -20,6 +20,8 @@ import type {
   ICctpBridgeModalResult,
   ICctpBridgeOpenRequest,
 } from "../circle/cctpBridgeTypes";
+import type { TokenAmount } from "../lib/types/primitives";
+import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
@@ -41,13 +43,13 @@ export interface IConfirmTransferRequest {
 export type IConfirmSendPayment = {
   /** Required when the confirm modal was opened with `useRelayer: true`. */
   paymentToken?: EVMAccountAddress;
-  feeAtoms?: bigint;
+  feeAtoms?: TokenAmount;
 };
 
 /** Relayer confirm payload after UI validation. */
 export type IRelayerConfirmSendResult = {
   paymentToken: EVMAccountAddress;
-  feeAtoms: bigint;
+  feeAtoms: TokenAmount;
 };
 
 /** Result from TX confirm when canceling or selecting payment (legacy shape). */
@@ -116,7 +118,10 @@ export type ModalRequest =
       id: string;
       kind: "sendTransaction";
       request: SendTransactionApprovalRequest & { useRelayer?: boolean };
-      execute: (payment: IConfirmSendPayment) => Promise<EVMTransactionHash>;
+      execute: (
+        payment: IConfirmSendPayment,
+        ui?: IRelayerSendUiCallbacks,
+      ) => Promise<EVMTransactionHash>;
       resolve: (hash: EVMTransactionHash) => void;
       reject: (error: unknown) => void;
     }
@@ -124,7 +129,10 @@ export type ModalRequest =
       id: string;
       kind: "confirmTransfer";
       request: IConfirmTransferRequest;
-      execute: (payment: IConfirmSendPayment) => Promise<EVMTransactionHash>;
+      execute: (
+        payment: IConfirmSendPayment,
+        ui?: IRelayerSendUiCallbacks,
+      ) => Promise<EVMTransactionHash>;
       resolve: (hash: EVMTransactionHash) => void;
       reject: (error: unknown) => void;
     }
@@ -159,7 +167,9 @@ export type ModalRequest =
       request: ICancelDelegationConfirmRequest;
       execute: (
         payment: IRelayerConfirmSendResult,
+        ui: IRelayerSendUiCallbacks,
       ) => Promise<EVMTransactionHash>;
+      onRegisterAwaitingConfirmation?: (notify: () => void) => void;
       resolve: (hash: EVMTransactionHash) => void;
       reject: (error: unknown) => void;
     }

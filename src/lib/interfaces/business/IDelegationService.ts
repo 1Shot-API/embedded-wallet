@@ -10,6 +10,8 @@ import type {
 import type { ISendTransactionResult } from "../data/IOneshotRelayerRepository";
 import type { IStoredDelegation } from "../../types/domain/StoredDelegation";
 import type { DelegationId } from "../../types/primitives/DelegationId";
+import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
+import type { TokenAmount } from "../../types/primitives";
 
 /** Phase-1 EIP-7715 permission type (ERC-20 period transfer). */
 export const ERC20_TOKEN_PERIODIC = "erc20-token-periodic" as const;
@@ -19,12 +21,14 @@ export interface ICreateExecutionPermissionParams {
   /** Final permission after grant UI attenuation. */
   permission: IExecutionPermission;
   memo: string;
+  /** Called after delegation sign succeeds (e.g. mark session unlocked). */
+  onDelegationSigned?: () => Promise<void>;
 }
 
-export interface ICancelDelegationParams {
+export interface ICancelDelegationParams extends IRelayerSendUiCallbacks {
   chainId: EVMChainId;
   paymentToken: EVMAccountAddress;
-  feeAtoms: bigint;
+  feeAtoms: TokenAmount;
   /** Vault row when canceling from the Delegations tab. */
   stored?: IStoredDelegation;
   /**

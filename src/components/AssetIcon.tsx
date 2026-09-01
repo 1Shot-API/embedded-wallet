@@ -4,11 +4,14 @@ import type {
 } from "@1shotapi/ows-types";
 import { cn } from "@/lib/utils";
 import { resolveAssetIconUrl } from "../lib/utils/tokenIcons";
+import { SafeAssetImage } from "./SafeAssetImage";
 
 export interface IAssetIconProps {
   chainId: EVMChainId;
   address: EVMAccountAddress;
   symbol: string;
+  /** Optional host / tracked override (HTTPS). */
+  iconUrl?: string;
   size?: "sm" | "lg";
   className?: string;
 }
@@ -22,33 +25,38 @@ export function AssetIcon({
   chainId,
   address,
   symbol,
+  iconUrl: iconUrlOverride,
   size = "sm",
   className,
 }: IAssetIconProps) {
-  const iconUrl = resolveAssetIconUrl(chainId, address, symbol);
+  const iconUrl = resolveAssetIconUrl(
+    chainId,
+    address,
+    symbol,
+    iconUrlOverride,
+  );
   const sizeClass = SIZE_CLASSES[size];
 
-  if (iconUrl) {
-    return (
-      <img
-        src={iconUrl}
-        alt=""
-        aria-hidden
-        className={cn("shrink-0 rounded-full object-cover", sizeClass, className)}
-      />
-    );
-  }
-
   return (
-    <div
+    <SafeAssetImage
+      src={iconUrl}
       className={cn(
-        "bg-primary text-primary-foreground flex shrink-0 items-center justify-center rounded-full font-semibold tracking-tight",
+        "shrink-0 rounded-full object-cover",
         sizeClass,
         className,
       )}
-      aria-hidden
-    >
-      <span>$</span>
-    </div>
+      fallback={
+        <div
+          className={cn(
+            "bg-primary text-primary-foreground flex shrink-0 items-center justify-center rounded-full font-semibold tracking-tight",
+            sizeClass,
+            className,
+          )}
+          aria-hidden
+        >
+          <span>$</span>
+        </div>
+      }
+    />
   );
 }
