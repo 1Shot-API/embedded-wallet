@@ -78,6 +78,10 @@ export class RelayerCredentialsClient implements IRelayerCredentialsClient {
     return cached;
   }
 
+  hasCachedAssertion(): boolean {
+    return this.cachedAssertion !== null;
+  }
+
   async assert(credentialId: CredentialId): Promise<IWebAuthnAssertionRequest> {
     const cached = this.takeAssertion();
     if (cached) {

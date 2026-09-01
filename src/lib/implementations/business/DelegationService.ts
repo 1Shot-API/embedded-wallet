@@ -67,7 +67,7 @@ export class DelegationService implements IDelegationService {
   async createExecutionPermission(
     params: ICreateExecutionPermissionParams,
   ): Promise<IStoredDelegation> {
-    const { request, permission, memo } = params;
+    const { request, permission, memo, onDelegationSigned } = params;
     this.assertPeriodicPermission(permission);
     await this.requireRelayerChain(request.chainId);
     const period = parseErc20PeriodData(permission.data);
@@ -119,6 +119,9 @@ export class DelegationService implements IDelegationService {
             return { ...unsigned, signature } satisfies Delegation;
           }),
       );
+
+      await onDelegationSigned?.();
+      await this.options.delegationRepository.prepareRelayerVaultAssertion();
 
       const delegationHash = HexString(hashDelegation(signedDelegation));
       const context = HexString(
@@ -219,6 +222,9 @@ export class DelegationService implements IDelegationService {
       paymentToken: params.paymentToken,
       feeAtoms: params.feeAtoms,
       relayerUrl: chain.relayerUrl,
+      prefetchRelayerVaultAssertion: true,
+      retainDisplayDuringSubmit: true,
+      onAwaitingConfirmation: params.onAwaitingConfirmation,
     });
 
     let deletedDelegationId: ICancelDelegationResult["deletedDelegationId"];

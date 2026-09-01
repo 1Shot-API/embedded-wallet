@@ -215,6 +215,8 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       chainLabel: "Network",
       rejectLabel: "Keep",
       confirmLabel: "Cancel permission",
+      signingMessage: "Confirm in the signing panel…",
+      waitingMessage: "Waiting for on-chain confirmation…",
     },
     passkeyPrompt: {
       unlock: {

@@ -36,6 +36,8 @@ import {
 } from "./utils/RelayerCredentialsClient";
 import type { IRelayerCredentialsClient } from "../../interfaces/data/IRelayerCredentialsClient";
 import { loadCosePublicKey, loadCredentialId } from "../../../storage";
+import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
+import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
 
 export type { CredentialStorageBackend };
 
@@ -256,6 +258,25 @@ export class CachedRelayerVaultRepository
       } catch (error: unknown) {
         console.warn("[vault] failed to delete delegation blob on relayer", error);
       }
+    }
+  }
+
+  async prepareRelayerVaultAssertion(): Promise<void> {
+    if (this.client.hasCachedAssertion()) {
+      return;
+    }
+    const credentialId = loadCredentialId();
+    if (!credentialId) {
+      throw new Error("WebAuthn credential id missing");
+    }
+    const { challengeId, challenge } = await this.client.getChallenge();
+    const signer = await this.owsProvider.getSigner();
+    const { assertion } = await withCeremonyUiReason(
+      EPasskeyPromptReason.RelayerAuth,
+      () => signer.getPublicKey({ credentialId, challenge }),
+    );
+    if (assertion) {
+      this.client.setAssertion(challengeId, assertion);
     }
   }
 

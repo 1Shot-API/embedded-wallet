@@ -33,6 +33,9 @@ export interface IRelayerCredentialsClient {
    */
   takeAssertion(): IWebAuthnAssertionRequest | null;
 
+  /** Whether a one-shot assertion is cached (does not consume it). */
+  hasCachedAssertion(): boolean;
+
   /**
    * Consume a cached assertion when present; otherwise mint a relayer
    * challenge and complete a Signing Layer ceremony for that challenge.

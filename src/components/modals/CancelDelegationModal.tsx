@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   OwsUserRejectedError,
   type EVMTransactionHash,
@@ -29,11 +29,13 @@ function isSignDenied(error: unknown): boolean {
 export function CancelDelegationModal({
   request,
   execute,
+  onRegisterAwaitingConfirmation,
   onResolve,
   onReject,
 }: {
   request: ICancelDelegationConfirmRequest;
   execute: (payment: IRelayerConfirmSendResult) => Promise<EVMTransactionHash>;
+  onRegisterAwaitingConfirmation?: (notify: () => void) => void;
   onResolve: (hash: EVMTransactionHash) => void;
   onReject: (error: unknown) => void;
 }) {
@@ -41,9 +43,15 @@ export function CancelDelegationModal({
   const copy = style.copy.cancelDelegation;
   const [quote, setQuote] = useState<IPaymentQuote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
+  const [phase, setPhase] = useState<"confirm" | "signing" | "submitting">(
+    "confirm",
+  );
   const [error, setError] = useState<string | null>(null);
   const abortedRef = useRef(false);
+
+  useEffect(() => {
+    onRegisterAwaitingConfirmation?.(() => setPhase("submitting"));
+  }, [onRegisterAwaitingConfirmation]);
 
   const body = copy.body
     .replace("{domain}", request.domain)
@@ -124,15 +132,17 @@ export function CancelDelegationModal({
         quote={quote}
         error={quoteError}
         loading={false}
-        paused={phase === "signing"}
+        paused={phase !== "confirm"}
         onQuoteChange={(next, err) => {
           setQuote(next);
           setQuoteError(err);
         }}
       />
-      {phase === "signing" ? (
+      {phase === "signing" || phase === "submitting" ? (
         <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
-          Confirm in the signing panel…
+          {phase === "signing"
+            ? copy.signingMessage
+            : copy.waitingMessage}
         </p>
       ) : null}
       {error ? (
