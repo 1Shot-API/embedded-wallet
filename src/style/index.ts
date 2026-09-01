@@ -3,6 +3,7 @@ export type {
   IStyleFeaturesOptions,
   IResolvedStyleFeatures,
   IStyleThemeOptions,
+  IStyleThemeResolved,
   IStyleCopyOptions,
   IStyleCopyConnect,
   IStyleCopyWalletSetup,
@@ -11,6 +12,7 @@ export type {
   IStyleCopySiwe,
   IStyleCopyTypedData,
   IStyleCopySendTransaction,
+  IStyleCopyConfirmTransfer,
   IStyleCopyTransferTokens,
   IStyleCopyCctpBridge,
   IStyleCopyGrantExecutionPermission,
@@ -25,8 +27,10 @@ export type {
   IStyleCopyExportPrivateKey,
   IStyleCopyImportPrivateKey,
   IStyleCopyAdvancedOptions,
+  IStyleCopyAccount,
   IResolvedCopy,
   IResolvedStyle,
+  IConfigureParams,
 } from "./types";
 export { DEFAULT_STYLE } from "./defaults";
 export { StyleProvider, useStyle } from "./StyleProvider";
@@ -35,5 +39,4 @@ export {
   registerConfigureRpc,
   CONFIGURE_RPC_METHOD,
   configureParamsSchema,
-  type IConfigureParams,
 } from "./registerConfigure";

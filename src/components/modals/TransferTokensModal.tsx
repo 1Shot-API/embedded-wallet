@@ -277,6 +277,7 @@ export function TransferTokensModal({
             quote={quote}
             error={quoteError}
             loading={false}
+            paused={busy}
             onQuoteChange={onQuoteChange}
           />
         ) : null}

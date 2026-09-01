@@ -48,6 +48,7 @@ export function AddAssetModal({
             chainId={request.chainId}
             address={request.assetAddress}
             symbol={request.assetSymbol}
+            iconUrl={request.iconUrl}
             chainLogoUrl={chain?.logoUrl}
           />
           <div className="flex min-w-0 flex-col gap-1.5">
@@ -57,6 +58,11 @@ export function AddAssetModal({
             <span className="bg-muted text-muted-foreground w-fit rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide">
               {network}
             </span>
+            {request.iconUrl ? (
+              <span className="text-muted-foreground text-xs">
+                Host-provided icon
+              </span>
+            ) : null}
           </div>
         </div>
 

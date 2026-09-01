@@ -90,7 +90,7 @@ import type {
   IStoredDelegation,
 } from "../lib/types/domain/StoredDelegation";
 import type { DelegationId } from "../lib/types/primitives/DelegationId";
-import type { TrackedAssetId } from "../lib/types/primitives";
+import type { TrackedAssetId, TokenAmount } from "../lib/types/primitives";
 import {
   loadCachedEvmAddress,
   loadAccountsPermissionGranted,
@@ -139,12 +139,24 @@ const oneshotRelayerRepository: IOneshotRelayerRepository =
   });
 const circleRepository: ICircleRepository = new CircleRepository();
 
+const relayerCredentialsClient = new RelayerCredentialsClient({
+  configProvider,
+  owsProvider,
+});
+
+const credentialRepository = new CachedRelayerVaultRepository({
+  client: relayerCredentialsClient,
+  configProvider,
+  owsProvider,
+});
+
 const businessTransactionUtils = new BusinessTransactionUtils({
   chainRepository,
   relayerRepository: oneshotRelayerRepository,
   blockchain: blockchainProvider,
   presentationTransactionUtils: transactionUtils,
   owsProvider,
+  delegationRepository: credentialRepository,
 });
 
 const cctpUtils: ICCTPUtils = new CCTPUtils();
@@ -163,17 +175,6 @@ const bridgeService: IBridgeService = new BridgeService(
   cctpUtils,
   blockchainProvider,
 );
-
-const relayerCredentialsClient = new RelayerCredentialsClient({
-  configProvider,
-  owsProvider,
-});
-
-const credentialRepository = new CachedRelayerVaultRepository({
-  client: relayerCredentialsClient,
-  configProvider,
-  owsProvider,
-});
 
 const delegationService: IDelegationService = new DelegationService({
   chainRepository,
@@ -287,7 +288,7 @@ export type WalletContextValue = {
     value?: bigint,
     payment?: {
       paymentToken: EVMAccountAddress;
-      feeAtoms: bigint;
+      feeAtoms: TokenAmount;
     },
   ) => Promise<EVMTransactionHash>;
   openExportPrivateKey: () => Promise<void>;
@@ -496,7 +497,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       value?: bigint,
       payment?: {
         paymentToken: EVMAccountAddress;
-        feeAtoms: bigint;
+        feeAtoms: TokenAmount;
       },
     ) => {
       const { hostDomain } = await configProvider.getConfig();
@@ -582,12 +583,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             chainId: stored.chainId,
             ownerAddress: owner,
           },
-          execute: async (payment: IRelayerConfirmSendResult) => {
+          execute: async (payment: IRelayerConfirmSendResult, ui) => {
             const result = await delegationService.cancelDelegation({
               chainId: stored.chainId,
               paymentToken: payment.paymentToken,
               feeAtoms: payment.feeAtoms,
               stored,
+              ...ui,
             });
             return result.transactionHash;
           },

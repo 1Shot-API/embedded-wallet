@@ -116,4 +116,70 @@ describe("withCoalescedSignDigest", () => {
 
     assert.equal(maxInFlight, 1);
   });
+
+  it("routes coalesced flush through executeBatch when challenge is set", async () => {
+    let batchCalls = 0;
+    let signCalls = 0;
+    let capturedAssertion: unknown;
+    const challenge = "0xabc" as `0x${string}`;
+    const signer = {
+      async signDigest(digests: Array<{ digestData: string }>) {
+        signCalls += 1;
+        return digests.map(
+          (d, i): DigestSignedData => ({
+            digest: d.digestData as `0x${string}`,
+            signature: `0x${String(i).padStart(130, "0")}` as `0x${string}`,
+            scheme: "secp256k1-ecdsa-recoverable",
+            credentialId: null,
+          }),
+        );
+      },
+      async executeBatch(params: {
+        digests?: Array<{ digestData: string }>;
+        challenge?: `0x${string}`;
+      }) {
+        batchCalls += 1;
+        assert.equal(params.challenge, challenge);
+        return {
+          results: (params.digests ?? []).map(
+            (d, i): DigestSignedData => ({
+              digest: d.digestData as `0x${string}`,
+              signature: `0xbatch${String(i).padStart(128, "0")}` as `0x${string}`,
+              scheme: "secp256k1-ecdsa-recoverable",
+              credentialId: null,
+            }),
+          ),
+          assertion: {
+            authenticatorData: "0x01" as `0x${string}`,
+            clientDataJSON: "{}" as never,
+            signature: "0x02" as `0x${string}`,
+            credentialId: "cred" as never,
+          },
+        };
+      },
+    } as unknown as OWSSigner;
+
+    const [a, b] = await withCoalescedSignDigest(
+      signer,
+      ceremony,
+      () =>
+        Promise.all([
+          signer.signDigest([{ digestData: "0x01" as `0x${string}` }]),
+          signer.signDigest([{ digestData: "0x02" as `0x${string}` }]),
+        ]),
+      {
+        minCalls: 2,
+        challenge,
+        onBatchAssertion: (assertion) => {
+          capturedAssertion = assertion;
+        },
+      },
+    );
+
+    assert.equal(batchCalls, 1);
+    assert.equal(signCalls, 0);
+    assert.equal(a?.[0]?.signature.startsWith("0xbatch"), true);
+    assert.equal(b?.[0]?.signature.startsWith("0xbatch"), true);
+    assert.ok(capturedAssertion);
+  });
 });

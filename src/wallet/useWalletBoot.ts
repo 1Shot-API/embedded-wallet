@@ -56,6 +56,7 @@ import type {
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type { SupportedChain } from "../lib/types/domain";
+import type { TokenAmount } from "../lib/types/primitives";
 import {
   DelegationCancelAbortedEvent,
   DelegationCancelledEvent,
@@ -150,7 +151,7 @@ function createDeferredSigner(
 
 function requireRelayerConfirmPayment(confirmed: {
   paymentToken?: EVMAccountAddress;
-  feeAtoms?: bigint;
+  feeAtoms?: TokenAmount;
 }): IRelayerConfirmSendResult {
   if (!confirmed.paymentToken || confirmed.feeAtoms === undefined) {
     throw new OwsInvalidParamsError(
@@ -300,158 +301,172 @@ export function useWalletBoot({
           executionPermissions: {
             requestExecutionPermissions: async (requests) => {
               await ensureOnboardedForSigning();
-              const responses = [];
-              for (const request of requests) {
-                if (request.permission.type !== ERC20_TOKEN_PERIODIC) {
-                  throw new OwsInvalidParamsError(
-                    `Unsupported execution permission type: ${request.permission.type}`,
+              const wallet = await owsProvider.getWallet();
+              const display = await wallet.requestDisplay();
+              try {
+                const responses = [];
+                for (const request of requests) {
+                  if (request.permission.type !== ERC20_TOKEN_PERIODIC) {
+                    throw new OwsInvalidParamsError(
+                      `Unsupported execution permission type: ${request.permission.type}`,
+                    );
+                  }
+                  const chain = resolveChain(request.chainId);
+                  if (!chain?.useRelayer) {
+                    throw new OwsInvalidParamsError(
+                      `Chain ${request.chainId} does not support execution permissions`,
+                    );
+                  }
+                  const domain = transactionUtils.resolveHostDomain();
+                  const { hostDomain } = await configProvider.getConfig();
+                  const started = performance.now();
+                  const account = analyticsAccountAddress();
+                  const stored = await runWithAnalytics(
+                    (event) => eventBus.emitAnalytics(event),
+                    async () => {
+                      const approved =
+                        await ask<IGrantExecutionPermissionResult>(
+                          ({ id, resolve, reject }) => ({
+                            id,
+                            kind: "grantExecutionPermission",
+                            request: {
+                              request,
+                              domain,
+                              chainName: chain.label,
+                            },
+                            resolve,
+                            reject,
+                          }),
+                        );
+                      return delegationService.createExecutionPermission({
+                        request,
+                        permission: approved.permission,
+                        memo: approved.memo,
+                        onDelegationSigned: onSigningAuthenticated,
+                      });
+                    },
+                    {
+                      success: () =>
+                        new DelegationCreatedEvent(
+                          hostDomain,
+                          account,
+                          request.chainId,
+                          Math.round(performance.now() - started),
+                        ),
+                      cancelled: () =>
+                        new DelegationCreateCancelledEvent(
+                          hostDomain,
+                          account,
+                          request.chainId,
+                          Math.round(performance.now() - started),
+                        ),
+                      failed: (errorCode) =>
+                        new DelegationCreateFailedEvent(
+                          hostDomain,
+                          account,
+                          request.chainId,
+                          errorCode,
+                          Math.round(performance.now() - started),
+                        ),
+                    },
                   );
+                  responses.push(stored.permissionResponse);
                 }
-                const chain = resolveChain(request.chainId);
+                return responses;
+              } finally {
+                await display.hide();
+              }
+            },
+            revokeExecutionPermission: async (params) => {
+              await ensureOnboardedForSigning();
+              const wallet = await owsProvider.getWallet();
+              const display = await wallet.requestDisplay();
+              try {
+                const stored = await delegationService.findByPermissionContext(
+                  params.permissionContext,
+                );
+                const chainId =
+                  stored?.chainId ?? rpcHelper.getChainId();
+                const chain = resolveChain(chainId);
                 if (!chain?.useRelayer) {
                   throw new OwsInvalidParamsError(
-                    `Chain ${request.chainId} does not support execution permissions`,
+                    `Chain ${chainId} does not support canceling permissions`,
                   );
                 }
-                const domain = transactionUtils.resolveHostDomain();
+                const owner =
+                  useWalletSessionStore.getState().evmAddress ||
+                  loadCachedEvmAddress();
+                if (!owner) {
+                  throw new OwsInvalidParamsError(
+                    "Wallet address is required to cancel a permission",
+                  );
+                }
+                const domain =
+                  stored?.hostDomain ??
+                  transactionUtils.resolveHostDomain();
                 const { hostDomain } = await configProvider.getConfig();
                 const started = performance.now();
-                const account = analyticsAccountAddress();
-                const stored = await runWithAnalytics(
+                const account = analyticsAccountAddress(owner);
+                await runWithAnalytics(
                   (event) => eventBus.emitAnalytics(event),
                   async () => {
-                    const approved =
-                      await ask<IGrantExecutionPermissionResult>(
-                        ({ id, resolve, reject }) => ({
-                          id,
-                          kind: "grantExecutionPermission",
-                          request: {
-                            request,
-                            domain,
-                            chainName: chain.label,
-                          },
-                          resolve,
-                          reject,
-                        }),
-                      );
-                    return delegationService.createExecutionPermission({
-                      request,
-                      permission: approved.permission,
-                      memo: approved.memo,
-                    });
+                    const txHash = await ask<EVMTransactionHash>(
+                      ({ id, resolve, reject }) => ({
+                        id,
+                        kind: "cancelDelegation",
+                        request: {
+                          domain: String(domain),
+                          chainName: chain.label,
+                          chainId,
+                          ownerAddress: owner,
+                        },
+                        execute: async (payment: IRelayerConfirmSendResult, ui) => {
+                          const result = await delegationService.cancelDelegation({
+                            chainId,
+                            paymentToken: payment.paymentToken,
+                            feeAtoms: payment.feeAtoms,
+                            ...(stored ? { stored } : {}),
+                            permissionContext: params.permissionContext,
+                            ...ui,
+                          });
+                          return result.transactionHash;
+                        },
+                        resolve,
+                        reject,
+                      }),
+                    );
+                    return txHash;
                   },
                   {
-                    success: () =>
-                      new DelegationCreatedEvent(
+                    success: (txHash) =>
+                      new DelegationCancelledEvent(
                         hostDomain,
                         account,
-                        request.chainId,
+                        chainId,
+                        txHash,
                         Math.round(performance.now() - started),
                       ),
                     cancelled: () =>
-                      new DelegationCreateCancelledEvent(
+                      new DelegationCancelAbortedEvent(
                         hostDomain,
                         account,
-                        request.chainId,
+                        chainId,
                         Math.round(performance.now() - started),
                       ),
                     failed: (errorCode) =>
-                      new DelegationCreateFailedEvent(
+                      new DelegationCancelFailedEvent(
                         hostDomain,
                         account,
-                        request.chainId,
+                        chainId,
                         errorCode,
                         Math.round(performance.now() - started),
                       ),
                   },
                 );
-                responses.push(stored.permissionResponse);
+                return null;
+              } finally {
+                await display.hide();
               }
-              return responses;
-            },
-            revokeExecutionPermission: async (params) => {
-              await ensureOnboardedForSigning();
-              const stored = await delegationService.findByPermissionContext(
-                params.permissionContext,
-              );
-              const chainId =
-                stored?.chainId ?? rpcHelper.getChainId();
-              const chain = resolveChain(chainId);
-              if (!chain?.useRelayer) {
-                throw new OwsInvalidParamsError(
-                  `Chain ${chainId} does not support canceling permissions`,
-                );
-              }
-              const owner =
-                useWalletSessionStore.getState().evmAddress ||
-                loadCachedEvmAddress();
-              if (!owner) {
-                throw new OwsInvalidParamsError(
-                  "Wallet address is required to cancel a permission",
-                );
-              }
-              const domain =
-                stored?.hostDomain ??
-                transactionUtils.resolveHostDomain();
-              const { hostDomain } = await configProvider.getConfig();
-              const started = performance.now();
-              const account = analyticsAccountAddress(owner);
-              await runWithAnalytics(
-                (event) => eventBus.emitAnalytics(event),
-                async () => {
-                  const txHash = await ask<EVMTransactionHash>(
-                    ({ id, resolve, reject }) => ({
-                      id,
-                      kind: "cancelDelegation",
-                      request: {
-                        domain: String(domain),
-                        chainName: chain.label,
-                        chainId,
-                        ownerAddress: owner,
-                      },
-                      execute: async (payment: IRelayerConfirmSendResult) => {
-                        const result = await delegationService.cancelDelegation({
-                          chainId,
-                          paymentToken: payment.paymentToken,
-                          feeAtoms: payment.feeAtoms,
-                          ...(stored ? { stored } : {}),
-                          permissionContext: params.permissionContext,
-                        });
-                        return result.transactionHash;
-                      },
-                      resolve,
-                      reject,
-                    }),
-                  );
-                  return txHash;
-                },
-                {
-                  success: (txHash) =>
-                    new DelegationCancelledEvent(
-                      hostDomain,
-                      account,
-                      chainId,
-                      txHash,
-                      Math.round(performance.now() - started),
-                    ),
-                  cancelled: () =>
-                    new DelegationCancelAbortedEvent(
-                      hostDomain,
-                      account,
-                      chainId,
-                      Math.round(performance.now() - started),
-                    ),
-                  failed: (errorCode) =>
-                    new DelegationCancelFailedEvent(
-                      hostDomain,
-                      account,
-                      chainId,
-                      errorCode,
-                      Math.round(performance.now() - started),
-                    ),
-                },
-              );
-              return null;
             },
             getSupportedExecutionPermissions: () =>
               delegationService.getSupportedExecutionPermissions(),
@@ -650,14 +665,17 @@ export function useWalletBoot({
                 request.data,
               );
 
-              const executeSend = async (payment: {
-                paymentToken?: EVMAccountAddress;
-                feeAtoms?: bigint;
-              }) => {
+              const executeSend = async (
+                payment: {
+                  paymentToken?: EVMAccountAddress;
+                  feeAtoms?: TokenAmount;
+                },
+                ui?: import("../lib/types/domain/RelayerSendUi").IRelayerSendUiCallbacks,
+              ) => {
                 let relayerOptions:
                   | {
                       paymentToken: EVMAccountAddress;
-                      feeAtoms: bigint;
+                      feeAtoms: TokenAmount;
                     }
                   | undefined;
                 if (useRelayer) {
@@ -681,7 +699,9 @@ export function useWalletBoot({
                     data: request.data,
                     value,
                   },
-                  relayerOptions,
+                  useRelayer && relayerOptions
+                    ? { ...relayerOptions, ...ui }
+                    : undefined,
                 );
                 return result.transactionHash;
               };

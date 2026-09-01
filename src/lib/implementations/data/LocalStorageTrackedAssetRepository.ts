@@ -24,6 +24,11 @@ import {
   makeTrackedAssetId,
   type TrackedAssetId,
 } from "../../types/primitives";
+import {
+  registerTrackedAssetIconUrl,
+  unregisterTrackedAssetIconUrl,
+  syncTrackedAssetIconUrls,
+} from "../../utils/tokenIcons";
 
 type StoredBlob = {
   assets: Array<{
@@ -34,6 +39,7 @@ type StoredBlob = {
     symbol: string;
     decimals: number;
     id: string;
+    iconUrl?: string;
   }>;
 };
 
@@ -75,6 +81,7 @@ export class LocalStorageTrackedAssetRepository
   async list(owner: EVMAccountAddressType): Promise<TrackedAsset[]> {
     const storageKey = await this.resolveStorageKey();
     const assets = this.mergeWithDefaults(this.readStoredAssets(storageKey));
+    syncTrackedAssetIconUrls(assets);
     return this.ensureBalances(assets, owner, false);
   }
 
@@ -103,8 +110,24 @@ export class LocalStorageTrackedAssetRepository
     const storageKey = await this.resolveStorageKey();
     const assets = this.readStoredAssets(storageKey);
     const key = makeTrackedAssetId(asset.chainId, asset.address);
-    const found = assets.find((a) => a.id === key);
-    if (found) {
+    const foundIndex = assets.findIndex((a) => a.id === key);
+    if (foundIndex >= 0) {
+      const found = assets[foundIndex]!;
+      if (asset.iconUrl !== undefined && asset.iconUrl !== found.iconUrl) {
+        const updated = TrackedAsset.fromNew(
+          found.withIconUrl(asset.iconUrl),
+          found.balance,
+        );
+        assets[foundIndex] = updated;
+        this.writeAssets(storageKey, assets);
+        if (asset.iconUrl) {
+          registerTrackedAssetIconUrl(key, asset.iconUrl);
+        } else {
+          unregisterTrackedAssetIconUrl(key);
+        }
+        const [withBalance] = await this.ensureBalances([updated], owner, false);
+        return withBalance!;
+      }
       const [withBalance] = await this.ensureBalances([found], owner, false);
       return withBalance!;
     }
@@ -112,6 +135,9 @@ export class LocalStorageTrackedAssetRepository
     const tracked = TrackedAsset.fromNew(asset);
     assets.push(tracked);
     this.writeAssets(storageKey, assets);
+    if (tracked.iconUrl) {
+      registerTrackedAssetIconUrl(key, tracked.iconUrl);
+    }
     const [withBalance] = await this.ensureBalances([tracked], owner, false);
     return withBalance!;
   }
@@ -130,6 +156,7 @@ export class LocalStorageTrackedAssetRepository
     );
     this.writeAssets(storageKey, next);
     this.balanceCache.delete(key);
+    unregisterTrackedAssetIconUrl(key);
   }
 
   async getBalances(
@@ -143,6 +170,7 @@ export class LocalStorageTrackedAssetRepository
     }
     const storageKey = await this.resolveStorageKey();
     const assets = this.mergeWithDefaults(this.readStoredAssets(storageKey));
+    syncTrackedAssetIconUrls(assets);
     const targets = id ? assets.filter((asset) => asset.id === id) : assets;
     return this.ensureBalances(targets, owner, true);
   }
@@ -242,6 +270,10 @@ export class LocalStorageTrackedAssetRepository
             : row.type === EAssetType.Erc1155
               ? EAssetType.Erc1155
               : EAssetType.Erc20;
+        const iconUrl =
+          typeof row.iconUrl === "string" && row.iconUrl.length > 0
+            ? row.iconUrl
+            : undefined;
         assets.push(
           new TrackedAsset(
             chainId,
@@ -252,6 +284,7 @@ export class LocalStorageTrackedAssetRepository
             row.decimals,
             makeTrackedAssetId(chainId, address),
             null,
+            iconUrl,
           ),
         );
       }
@@ -275,6 +308,7 @@ export class LocalStorageTrackedAssetRepository
         symbol: asset.symbol,
         decimals: asset.decimals,
         id: asset.id,
+        ...(asset.iconUrl ? { iconUrl: asset.iconUrl } : {}),
       })),
     };
     this.storage.setItem(storageKey, JSON.stringify(blob));

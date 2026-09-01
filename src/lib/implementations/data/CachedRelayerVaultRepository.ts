@@ -13,6 +13,7 @@ import {
   type ICredentialRepository,
   type IExecutionPermissionResponse,
   type StoredCredential,
+  type WebAuthnAssertionFields,
 } from "@1shotapi/ows-types";
 import {
   createMemoryStorageBackend,
@@ -31,11 +32,16 @@ import {
   DelegationId,
   type DelegationId as DelegationIdType,
 } from "../../types/primitives/DelegationId";
+import type { ChallengeId } from "../../types/primitives/ChallengeId";
+import type { IWalletCredentialChallengeResponse } from "../../types/domain/RelayerCredentials";
 import {
   RelayerCredentialsError,
+  toRelayerAssertionRequest,
 } from "./utils/RelayerCredentialsClient";
 import type { IRelayerCredentialsClient } from "../../interfaces/data/IRelayerCredentialsClient";
 import { loadCosePublicKey, loadCredentialId } from "../../../storage";
+import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
+import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
 
 export type { CredentialStorageBackend };
 
@@ -78,7 +84,8 @@ export interface ICachedRelayerVaultRepositoryDeps {
  *
  * Relayer auth uses a Signing Layer ceremony via
  * {@link IRelayerCredentialsClient.assert} (optionally consuming an assertion
- * cached from unlock). Encrypt/decrypt remain separate signer ceremonies.
+ * cached from `executeBatch`). Vault encrypt + auth share one batch ceremony
+ * on upload; decrypt remains a separate signer ceremony on recover.
  */
 export class CachedRelayerVaultRepository
   implements ICredentialRepository, IDelegationRepository
@@ -259,6 +266,17 @@ export class CachedRelayerVaultRepository
     }
   }
 
+  async mintRelayerVaultChallenge(): Promise<IWalletCredentialChallengeResponse> {
+    return this.client.getChallenge();
+  }
+
+  cacheRelayerVaultAssertion(
+    challengeId: ChallengeId,
+    assertion: WebAuthnAssertionFields,
+  ): void {
+    this.client.setAssertion(challengeId, assertion);
+  }
+
   // --- Shared vault ops ------------------------------------------------------
 
   /**
@@ -375,16 +393,27 @@ export class CachedRelayerVaultRepository
     previousBlobId: string | undefined,
   ): Promise<void> {
     const signer = await this.owsProvider.getSigner();
-    const [ciphertext] = await signer.encryptAES256([JSON.stringify(wrapper)]);
+    const { challengeId, challenge } = await this.client.getChallenge();
+    const batchResult = await withCeremonyUiReason(
+      EPasskeyPromptReason.Encrypt,
+      () =>
+        signer.executeBatch({
+          challenge,
+          plaintexts: [JSON.stringify(wrapper)],
+        }),
+    );
+    if (!batchResult.assertion) {
+      throw new Error("executeBatch: relayer auth assertion missing");
+    }
+    const ciphertext = batchResult.ciphertexts?.[0];
     if (!ciphertext) {
-      throw new Error("encryptAES256 returned no ciphertext");
+      throw new Error("executeBatch: encrypt ciphertext missing");
     }
 
-    if (previousBlobId) {
-      await this.deleteRelayerBlob(previousBlobId);
-    }
-
-    const assertion = await this.assert();
+    const assertion = toRelayerAssertionRequest(
+      challengeId,
+      batchResult.assertion,
+    );
     const { id } = await this.client.storeCredential({
       ...assertion,
       ciphertext: String(ciphertext),
@@ -393,6 +422,10 @@ export class CachedRelayerVaultRepository
     const next = this.readBlob();
     next.blobIds[logicalId] = id;
     this.writeBlob(next);
+
+    if (previousBlobId) {
+      await this.deleteRelayerBlob(previousBlobId);
+    }
   }
 
   private async assert() {
