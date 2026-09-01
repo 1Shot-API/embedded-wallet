@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type {
   EVMAccountAddress,
   EVMChainId,
@@ -26,7 +25,6 @@ export function AssetIdentityMark({
   chainLogoUrl,
   className,
 }: IAssetIdentityMarkProps) {
-  const [imageFailed, setImageFailed] = useState(false);
   const iconUrl = resolveAssetIconUrl(
     chainId,
     address,
@@ -37,23 +35,19 @@ export function AssetIdentityMark({
 
   return (
     <div className={cn("relative size-16 shrink-0", className)} aria-hidden>
-      {iconUrl && !imageFailed ? (
-        <SafeAssetImage
-          src={iconUrl}
-          className="size-16 rounded-full object-cover"
-          onLoadError={() => setImageFailed(true)}
-        />
-      ) : (
-        <div className="bg-muted text-foreground flex size-16 items-center justify-center rounded-full text-2xl font-semibold">
-          {letter}
-        </div>
-      )}
-      {chainLogoUrl ? (
-        <SafeAssetImage
-          src={chainLogoUrl}
-          className="border-background absolute -right-0.5 -bottom-0.5 size-6 rounded-full border-2 object-cover"
-        />
-      ) : null}
+      <SafeAssetImage
+        src={iconUrl}
+        className="size-16 rounded-full object-cover"
+        fallback={
+          <div className="bg-muted text-foreground flex size-16 items-center justify-center rounded-full text-2xl font-semibold">
+            {letter}
+          </div>
+        }
+      />
+      <SafeAssetImage
+        src={chainLogoUrl}
+        className="border-background absolute -right-0.5 -bottom-0.5 size-6 rounded-full border-2 object-cover"
+      />
     </div>
   );
 }

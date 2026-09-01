@@ -51,7 +51,7 @@ export interface ITransactionUtils {
     feeAtoms: TokenAmount;
     authorizationList?: IRelayerAuthorizationEntry[];
     relayerUrl: string;
-    /** Cache relayer vault assertion after the coalesced sign ceremony. */
+    /** Batch relayer vault auth into the coalesced sign ceremony via executeBatch. */
     prefetchRelayerVaultAssertion?: boolean;
     /** Keep the flyout open through submit/poll (in-wallet cancel flows). */
     retainDisplayDuringSubmit?: boolean;

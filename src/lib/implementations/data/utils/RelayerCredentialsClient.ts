@@ -162,7 +162,7 @@ export class RelayerCredentialsClient implements IRelayerCredentialsClient {
 }
 
 /** Re-encode OWSSigner assertion values as SimpleWebAuthn base64url fields. */
-function toRelayerAssertionRequest(
+export function toRelayerAssertionRequest(
   challengeId: ChallengeId,
   assertion: WebAuthnAssertionFields,
 ): IWebAuthnAssertionRequest {

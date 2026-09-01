@@ -434,7 +434,7 @@ export function CCTPBridge({
   const insufficient =
     requiredUsdc !== null &&
     balance !== null &&
-    usdcAmountFromAtoms(balance) < requiredUsdc;
+    balance < usdcAmountToAtoms(requiredUsdc);
 
   const isSetupScreen = phase === "form" || phase === "quoting";
   const isConfirmScreen =
