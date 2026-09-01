@@ -1,27 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  OwsUserRejectedError,
-  type EVMTransactionHash,
-} from "@1shotapi/ows-types";
-import type { IPaymentQuote } from "../../lib/interfaces/business";
 import type {
   ICancelDelegationConfirmRequest,
   IRelayerConfirmSendResult,
 } from "../../wallet/modalTypes";
+import type { IRelayerSendUiCallbacks } from "../../lib/types/domain/RelayerSendUi";
+import type { EVMTransactionHash } from "@1shotapi/ows-types";
 import { useStyle } from "../../style/StyleProvider";
 import { Modal } from "../Modal";
-import { PaymentFeePicker } from "../PaymentFeePicker";
-
-function isSignDenied(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  return (
-    error.name === "OwsSignDeniedError" ||
-    error.message.includes("signDenied") ||
-    error.message.includes("SignDenied") ||
-    error.message.includes("NotAllowed") ||
-    error.message.includes("not allowed")
-  );
-}
+import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
+import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
 
 /**
  * On-chain cancel / revoke confirm — collects relayer fee then runs execute.
@@ -34,78 +20,59 @@ export function CancelDelegationModal({
   onReject,
 }: {
   request: ICancelDelegationConfirmRequest;
-  execute: (payment: IRelayerConfirmSendResult) => Promise<EVMTransactionHash>;
+  execute: (
+    payment: IRelayerConfirmSendResult,
+    ui: IRelayerSendUiCallbacks,
+  ) => Promise<EVMTransactionHash>;
   onRegisterAwaitingConfirmation?: (notify: () => void) => void;
   onResolve: (hash: EVMTransactionHash) => void;
   onReject: (error: unknown) => void;
 }) {
   const { style } = useStyle();
   const copy = style.copy.cancelDelegation;
-  const [quote, setQuote] = useState<IPaymentQuote | null>(null);
-  const [quoteError, setQuoteError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"confirm" | "signing" | "submitting">(
-    "confirm",
-  );
-  const [error, setError] = useState<string | null>(null);
-  const abortedRef = useRef(false);
+  const relayerCopy = style.copy.relayerSubmit;
 
-  useEffect(() => {
-    onRegisterAwaitingConfirmation?.(() => setPhase("submitting"));
-  }, [onRegisterAwaitingConfirmation]);
+  const submit = useRelayerConfirmSubmit({
+    execute,
+    onRegisterAwaitingConfirmation,
+    onResolve,
+    onReject,
+    rejectMessage: "User rejected canceling the permission",
+    retainDisplayDuringSubmit: true,
+    signingMessage: relayerCopy.signingMessage,
+    waitingMessage: relayerCopy.waitingMessage,
+    finalFeeNotice: relayerCopy.finalFeeNotice,
+  });
 
   const body = copy.body
     .replace("{domain}", request.domain)
     .replace("{chainName}", request.chainName);
 
-  const canConfirm = quote !== null && quoteError === null;
-
-  const cancel = () => {
-    abortedRef.current = true;
-    onReject(new OwsUserRejectedError("User rejected canceling the permission"));
-  };
-
-  const startCancel = () => {
-    if (!quote) return;
-    abortedRef.current = false;
-    setError(null);
-    setPhase("signing");
-    const payment: IRelayerConfirmSendResult = {
-      paymentToken: quote.selectedToken,
-      feeAtoms: quote.feeAtoms,
-    };
-    void (async () => {
-      const hash = await execute(payment);
-      if (abortedRef.current) return;
-      onResolve(hash);
-    })().catch((err: unknown) => {
-      if (abortedRef.current) return;
-      if (isSignDenied(err)) {
-        setPhase("confirm");
-        return;
-      }
-      setError(err instanceof Error ? err.message : String(err));
-      setPhase("confirm");
-    });
-  };
-
   return (
     <Modal
       title={copy.title}
-      onBackdropDismiss={phase === "confirm" ? cancel : undefined}
+      onBackdropDismiss={
+        submit.phase === "confirm" || submit.phase === "finalFee"
+          ? submit.cancel
+          : undefined
+      }
       actions={
-        phase === "confirm"
+        submit.phase === "confirm" || submit.phase === "finalFee"
           ? [
               {
                 label: copy.rejectLabel,
                 variant: "secondary",
-                onClick: cancel,
+                onClick: submit.cancel,
               },
               {
                 label: copy.confirmLabel,
                 variant: "primary",
                 autoFocus: true,
-                disabled: !canConfirm,
-                onClick: startCancel,
+                disabled: !submit.canConfirm,
+                onClick:
+                  submit.phase === "finalFee"
+                    ? submit.confirmFinalFee
+                    : submit.startSubmit,
               },
             ]
           : undefined
@@ -126,28 +93,11 @@ export function CancelDelegationModal({
           <dd className="text-foreground m-0">{request.chainName}</dd>
         </div>
       </dl>
-      <PaymentFeePicker
+      <RelayerConfirmModalChrome
         chainId={request.chainId}
         ownerAddress={request.ownerAddress}
-        quote={quote}
-        error={quoteError}
-        loading={false}
-        paused={phase !== "confirm"}
-        onQuoteChange={(next, err) => {
-          setQuote(next);
-          setQuoteError(err);
-        }}
+        submit={submit}
       />
-      {phase === "signing" || phase === "submitting" ? (
-        <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
-          {phase === "signing"
-            ? copy.signingMessage
-            : copy.waitingMessage}
-        </p>
-      ) : null}
-      {error ? (
-        <p className="text-destructive mt-3 m-0 text-[0.9rem]">{error}</p>
-      ) : null}
     </Modal>
   );
 }

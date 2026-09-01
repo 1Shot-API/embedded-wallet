@@ -10,6 +10,7 @@ import type {
 import type { ISendTransactionResult } from "../data/IOneshotRelayerRepository";
 import type { IStoredDelegation } from "../../types/domain/StoredDelegation";
 import type { DelegationId } from "../../types/primitives/DelegationId";
+import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
 import type { TokenAmount } from "../../types/primitives";
 
 /** Phase-1 EIP-7715 permission type (ERC-20 period transfer). */
@@ -24,7 +25,7 @@ export interface ICreateExecutionPermissionParams {
   onDelegationSigned?: () => Promise<void>;
 }
 
-export interface ICancelDelegationParams {
+export interface ICancelDelegationParams extends IRelayerSendUiCallbacks {
   chainId: EVMChainId;
   paymentToken: EVMAccountAddress;
   feeAtoms: TokenAmount;
@@ -35,8 +36,6 @@ export interface ICancelDelegationParams {
    * the host. Used when `stored` is omitted; also drives hash lookup.
    */
   permissionContext?: HexString;
-  /** Called after passkey ceremonies, before relayer submit/poll. */
-  onAwaitingConfirmation?: () => void;
 }
 
 export interface ICancelDelegationResult extends ISendTransactionResult {

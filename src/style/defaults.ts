@@ -218,6 +218,12 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       signingMessage: "Confirm in the signing panel…",
       waitingMessage: "Waiting for on-chain confirmation…",
     },
+    relayerSubmit: {
+      finalFeeNotice:
+        "The relayer fee changed after signing. Review the final fee before submitting.",
+      signingMessage: "Confirm in the signing panel…",
+      waitingMessage: "Waiting for on-chain confirmation…",
+    },
     passkeyPrompt: {
       unlock: {
         title: "Unlock with passkey",

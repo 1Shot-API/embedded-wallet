@@ -29,6 +29,7 @@ import {
 import { makeTrackedAssetId } from "../../lib/types/primitives";
 import {
   usdcAmountFromAtoms,
+  usdcAmountFromTokenAmount,
   usdcAmountToAtoms,
 } from "../../lib/types/primitives/USDCAmount";
 import { analyticsErrorCode } from "../../lib/implementations/utils";
@@ -427,7 +428,10 @@ export function CCTPBridge({
     if (!same) {
       return burn;
     }
-    const fee = usdcAmountFromAtoms(paymentQuote.feeAtoms);
+    const fee = usdcAmountFromTokenAmount(
+      paymentQuote.feeAtoms,
+      sourceUsdc.decimals,
+    );
     return usdcAmountFromAtoms(usdcAmountToAtoms(burn) + usdcAmountToAtoms(fee));
   }, [irisQuote, paymentQuote, sourceUsdc]);
 

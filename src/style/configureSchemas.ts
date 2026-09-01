@@ -221,6 +221,13 @@ export const styleCopyCancelDelegationSchema = z.strictObject({
   waitingMessage: z.string(),
 });
 
+/** Shared relayer TX confirm phases (estimate → sign → final fee → submit). */
+export const styleCopyRelayerSubmitSchema = z.strictObject({
+  finalFeeNotice: z.string(),
+  signingMessage: z.string(),
+  waitingMessage: z.string(),
+});
+
 export const styleCopyPasskeyPromptEntrySchema = z.strictObject({
   title: z.string(),
   body: z.string(),
@@ -398,6 +405,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   cctpBridge: styleCopyCctpBridgeSchema,
   grantExecutionPermission: styleCopyGrantExecutionPermissionSchema,
   cancelDelegation: styleCopyCancelDelegationSchema,
+  relayerSubmit: styleCopyRelayerSubmitSchema,
   passkeyPrompt: styleCopyPasskeyPromptSchema,
   credentialOffer: styleCopyCredentialOfferSchema,
   credentialPresentation: styleCopyCredentialPresentationSchema,
@@ -441,6 +449,7 @@ export const styleCopyPatchSchema = z.strictObject({
   grantExecutionPermission:
     styleCopyGrantExecutionPermissionSchema.partial().optional(),
   cancelDelegation: styleCopyCancelDelegationSchema.partial().optional(),
+  relayerSubmit: styleCopyRelayerSubmitSchema.partial().optional(),
   passkeyPrompt: passkeyPromptPatchSchema.optional(),
   credentialOffer: styleCopyCredentialOfferSchema.partial().optional(),
   credentialPresentation:
@@ -498,6 +507,9 @@ export type IStyleCopyGrantExecutionPermission = z.infer<
 >;
 export type IStyleCopyCancelDelegation = z.infer<
   typeof styleCopyCancelDelegationSchema
+>;
+export type IStyleCopyRelayerSubmit = z.infer<
+  typeof styleCopyRelayerSubmitSchema
 >;
 export type IStyleCopyPasskeyPromptEntry = z.infer<
   typeof styleCopyPasskeyPromptEntrySchema

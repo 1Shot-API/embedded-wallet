@@ -7,6 +7,7 @@ import type {
   IRelayerAuthorizationEntry,
   ISendTransactionResult,
 } from "../data/IOneshotRelayerRepository";
+import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
 import type { TokenAmount } from "../../types/primitives";
 
 export interface IPaymentTokenOption {
@@ -79,7 +80,7 @@ export interface ITransactionService {
       paymentToken?: EVMAccountAddress;
       feeAtoms?: TokenAmount;
       authorizationList?: IRelayerAuthorizationEntry[];
-    },
+    } & IRelayerSendUiCallbacks,
   ): Promise<ISendTransactionResult>;
 }
 

@@ -224,6 +224,7 @@ export class DelegationService implements IDelegationService {
       prefetchRelayerVaultAssertion: true,
       retainDisplayDuringSubmit: true,
       onAwaitingConfirmation: params.onAwaitingConfirmation,
+      onFinalFeeRequired: params.onFinalFeeRequired,
     });
 
     let deletedDelegationId: ICancelDelegationResult["deletedDelegationId"];

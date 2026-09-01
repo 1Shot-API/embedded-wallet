@@ -21,6 +21,7 @@ export type {
   IStyleCopyCctpBridge,
   IStyleCopyGrantExecutionPermission,
   IStyleCopyCancelDelegation,
+  IStyleCopyRelayerSubmit,
   IStyleCopyPasskeyPromptEntry,
   IStyleCopyPasskeyPrompt,
   IStyleCopyCredentialOffer,

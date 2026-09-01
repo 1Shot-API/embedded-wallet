@@ -42,6 +42,7 @@ import type { ITransactionUtils } from "../../../interfaces/business/utils/ITran
 import type { ITransactionUtils as IPresentationTransactionUtils } from "../../../interfaces/utils/ITransactionUtils";
 import type { IOWSProvider } from "../../../interfaces/utils/IOWSProvider";
 import { EPasskeyPromptReason } from "../../../types/enum/EPasskeyPromptReason";
+import type { IFinalRelayerFee } from "../../../types/domain/RelayerSendUi";
 import {
   makeTokenAmount,
   tokenAmountFromAtomString,
@@ -255,8 +256,16 @@ export class TransactionUtils implements ITransactionUtils {
     prefetchRelayerVaultAssertion?: boolean;
     retainDisplayDuringSubmit?: boolean;
     onAwaitingConfirmation?: () => void;
+    onFinalFeeRequired?: (fee: IFinalRelayerFee) => Promise<void>;
   }): Promise<ISendTransactionResult> {
-    const { chainId, paymentToken, relayerUrl } = args;
+    const {
+      chainId,
+      paymentToken,
+      relayerUrl,
+      onAwaitingConfirmation,
+      onFinalFeeRequired,
+      retainDisplayDuringSubmit,
+    } = args;
     const workItems = Array.isArray(args.work) ? args.work : [args.work];
     if (workItems.length === 0) {
       throw new Error("sendViaRelayer requires at least one work item");
@@ -455,6 +464,21 @@ export class TransactionUtils implements ITransactionUtils {
         tokenAmountFromAtomString(estimate.requiredPaymentAmount) !== feeAtoms
       ) {
         feeAtoms = tokenAmountFromAtomString(estimate.requiredPaymentAmount);
+        const paymentTokenMeta = capabilities.tokens.find(
+          (token) =>
+            String(token.address).toLowerCase() ===
+            String(paymentToken).toLowerCase(),
+        );
+        const feeDecimals = paymentTokenMeta?.decimals ?? 6;
+
+        if (onFinalFeeRequired) {
+          await onFinalFeeRequired({
+            feeAtoms,
+            feeFormatted: formatUnits(feeAtoms, feeDecimals),
+            paymentToken,
+          });
+        }
+
         const nextFeeCalldata = HexStringCompat(
           encodeFunctionData({
             abi: erc20Abi,
@@ -478,11 +502,13 @@ export class TransactionUtils implements ITransactionUtils {
             ),
         );
         params = buildParams(feeDelegation, feeAtoms);
-        estimate =
-          await this.options.relayerRepository.estimate7710Transaction(
-            relayerUrl,
-            params,
-          );
+        if (!onFinalFeeRequired) {
+          estimate =
+            await this.options.relayerRepository.estimate7710Transaction(
+              relayerUrl,
+              params,
+            );
+        }
       }
 
       if (!estimate.success) {
@@ -492,10 +518,10 @@ export class TransactionUtils implements ITransactionUtils {
       }
 
       // Last passkey is done — collapse the flyout while submit/poll run.
-      if (!args.retainDisplayDuringSubmit) {
+      if (!retainDisplayDuringSubmit) {
         await this.options.owsProvider.hideDisplay();
       } else {
-        args.onAwaitingConfirmation?.();
+        onAwaitingConfirmation?.();
       }
 
       params = buildParams(feeDelegation, feeAtoms, estimate.context);

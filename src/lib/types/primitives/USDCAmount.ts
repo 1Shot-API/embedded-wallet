@@ -1,5 +1,6 @@
 import { type Brand, make } from "ts-brand";
 import { formatUnits, parseUnits } from "viem";
+import type { TokenAmount } from "./TokenAmount";
 
 /** Atomic USDC at 6 decimals (`1_000_000` = $1). */
 export type USDCAmount = Brand<number, "USDCAmount">;
@@ -36,6 +37,19 @@ export function usdcAmountFromAtoms(atoms: bigint): USDCAmount {
     throw new Error("USDCAmount exceeds Number.MAX_SAFE_INTEGER");
   }
   return USDCAmount(Number(atoms));
+}
+
+/** Convert generic token atoms to USDC when the token is known to be USDC. */
+export function usdcAmountFromTokenAmount(
+  atoms: TokenAmount,
+  decimals: number,
+): USDCAmount {
+  if (decimals !== USDC_DECIMALS) {
+    throw new Error(
+      `Cannot convert TokenAmount to USDCAmount: expected ${USDC_DECIMALS} decimals, got ${decimals}`,
+    );
+  }
+  return usdcAmountFromAtoms(atoms);
 }
 
 export function usdcAmountToAtoms(amount: USDCAmount): bigint {

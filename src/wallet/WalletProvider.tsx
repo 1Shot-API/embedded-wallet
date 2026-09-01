@@ -573,7 +573,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (!owner) {
         throw new Error("Wallet address is required to cancel a permission");
       }
-      let notifyAwaitingConfirmation = () => {};
       const transactionHash = await pushModal<EVMTransactionHash>(
         ({ id, resolve, reject }) => ({
           id,
@@ -584,16 +583,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             chainId: stored.chainId,
             ownerAddress: owner,
           },
-          onRegisterAwaitingConfirmation: (notify) => {
-            notifyAwaitingConfirmation = notify;
-          },
-          execute: async (payment: IRelayerConfirmSendResult) => {
+          execute: async (payment: IRelayerConfirmSendResult, ui) => {
             const result = await delegationService.cancelDelegation({
               chainId: stored.chainId,
               paymentToken: payment.paymentToken,
               feeAtoms: payment.feeAtoms,
               stored,
-              onAwaitingConfirmation: () => notifyAwaitingConfirmation(),
+              ...ui,
             });
             return result.transactionHash;
           },

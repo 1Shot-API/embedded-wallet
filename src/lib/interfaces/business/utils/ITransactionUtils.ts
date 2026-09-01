@@ -4,6 +4,7 @@ import type {
   IRelayerAuthorizationEntry,
   ISendTransactionResult,
 } from "../../data/IOneshotRelayerRepository";
+import type { IRelayerSendUiCallbacks } from "../../../types/domain/RelayerSendUi";
 import type { TokenAmount } from "../../../types/primitives";
 import type {
   IPaymentQuote,
@@ -53,11 +54,7 @@ export interface ITransactionUtils {
     relayerUrl: string;
     /** Batch relayer vault auth into the coalesced sign ceremony via executeBatch. */
     prefetchRelayerVaultAssertion?: boolean;
-    /** Keep the flyout open through submit/poll (in-wallet cancel flows). */
-    retainDisplayDuringSubmit?: boolean;
-    /** After passkey ceremonies, before relayer submit/poll. */
-    onAwaitingConfirmation?: () => void;
-  }): Promise<ISendTransactionResult>;
+  } & IRelayerSendUiCallbacks): Promise<ISendTransactionResult>;
 }
 
 export const ITransactionUtilsType = Symbol.for("business.ITransactionUtils");
