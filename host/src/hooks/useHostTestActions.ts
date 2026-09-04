@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { OWSProxy } from "@1shotapi/ows-provider";
 import {
+  ConversionUtils,
   EVMAccountAddress,
   EVMChainId,
   HexString,
@@ -34,6 +35,9 @@ import {
 } from "../constants/bridgeDemo";
 import {
   DEMO_EXECUTION_DELEGATEE,
+  DEMO_LIFI_DIAMOND_BASE,
+  DEMO_LIFI_QUOTE_SIGNER,
+  DEMO_WETH_BASE,
   DEFAULT_HOST_CHAIN_ID,
   FOCUS_USDC_ARC,
   FOCUS_USDT_BASE,
@@ -44,8 +48,10 @@ import { mergeConfigurePayload } from "../styleForm";
 
 const USDC_DECIMALS = 6;
 
-/** One USDC in atoms (6 decimals), as hex for EIP-7715 periodAmount. */
-const ONE_USDC_ATOMS_HEX = HexString(`0x${(1_000_000).toString(16)}`);
+/** Ten USDC in atoms (6 decimals), as hex for EIP-7715 periodAmount. */
+const TEN_USDC_ATOMS_HEX = HexString(`0x${(10_000_000).toString(16)}`);
+
+const BASE_CHAIN_ID = "0x2105";
 
 type SessionGrant = {
   id: string;
@@ -540,14 +546,15 @@ export function useHostTestActions({
     options: Record<string, unknown>,
     applyOptions?: { replace?: boolean },
   ) => {
-    lastStyleRef.current = applyOptions?.replace
+    const merged = applyOptions?.replace
       ? options
       : mergeConfigurePayload(lastStyleRef.current, options);
+    lastStyleRef.current = merged;
     const proxy = proxyRef.current;
     if (!proxy) {
       throw new Error("Wallet not connected");
     }
-    await proxy.rpc("configure", options);
+    await proxy.rpc("configure", merged);
   };
 
   const handleFocusUsdcArc = () => {
@@ -744,7 +751,7 @@ export function useHostTestActions({
                 isAdjustmentAllowed: true,
                 data: {
                   tokenAddress: meta.usdc,
-                  periodAmount: ONE_USDC_ATOMS_HEX,
+                  periodAmount: TEN_USDC_ATOMS_HEX,
                   periodDuration: 86_400,
                 },
               },
@@ -769,6 +776,92 @@ export function useHostTestActions({
           error instanceof Error
             ? error.message
             : "requestExecutionPermissions failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleRequestLiFiDelegation = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    setDelegationsOutput(null);
+    reportStatus("Requesting LiFi EIP-7715 permissions (approve + swap)…");
+    void (async () => {
+      try {
+        proxy.showWallet();
+        setWalletVisible(true);
+        const account = await resolveAndStoreAccount(proxy);
+        const activeChain = await refreshChainFromWallet(proxy);
+        if (String(activeChain).toLowerCase() !== BASE_CHAIN_ID) {
+          throw new Error(
+            "LiFi playground grants require Base (0x2105). Switch chain first.",
+          );
+        }
+        const meta = hostChainMeta(String(activeChain));
+        if (!meta) {
+          throw new Error(`No USDC fixture for chain ${activeChain}.`);
+        }
+        const outputRecipient = ConversionUtils.addressToBytes32Hex(account);
+        const outputAssetId =
+          ConversionUtils.addressToBytes32Hex(DEMO_WETH_BASE);
+        const responses = await proxy.ethereum.request({
+          method: "wallet_requestExecutionPermissions",
+          params: [
+            {
+              chainId: activeChain,
+              from: account,
+              to: EVMAccountAddress(DEMO_EXECUTION_DELEGATEE),
+              permission: {
+                type: "lifi-swap-approve",
+                isAdjustmentAllowed: true,
+                data: {
+                  tokenAddress: meta.usdc,
+                  spender: DEMO_LIFI_DIAMOND_BASE,
+                },
+              },
+            },
+            {
+              chainId: activeChain,
+              from: account,
+              to: EVMAccountAddress(DEMO_EXECUTION_DELEGATEE),
+              permission: {
+                type: "lifi-swap-periodic",
+                isAdjustmentAllowed: true,
+                data: {
+                  lifiDiamond: DEMO_LIFI_DIAMOND_BASE,
+                  tokenAddress: meta.usdc,
+                  outputAssetId,
+                  outputRecipient,
+                  destinationChainId: "8453",
+                  quoteSigner: DEMO_LIFI_QUOTE_SIGNER,
+                  periodAmount: TEN_USDC_ATOMS_HEX,
+                  periodDuration: 86_400,
+                  slippageBps: 50,
+                },
+              },
+            },
+          ],
+        });
+        const next: SessionGrant[] = responses.map((response) => {
+          grantSeqRef.current += 1;
+          return {
+            id: `grant-${grantSeqRef.current}`,
+            response,
+          };
+        });
+        setSessionGrants((prev) => [...next, ...prev]);
+        reportStatus(
+          `${next.length} LiFi permissions granted (approve + swap; kept in memory).`,
+        );
+      } catch (error) {
+        reportStatus(
+          error instanceof Error
+            ? error.message
+            : "LiFi requestExecutionPermissions failed",
           true,
         );
       } finally {
@@ -917,6 +1010,7 @@ export function useHostTestActions({
     })),
     delegationsOutput,
     onRequestDelegation: handleRequestDelegation,
+    onRequestLiFiDelegation: handleRequestLiFiDelegation,
     onCancelDelegation: handleCancelDelegation,
     onGetSupportedPermissions: handleGetSupportedPermissions,
     onGetGrantedPermissions: handleGetGrantedPermissions,

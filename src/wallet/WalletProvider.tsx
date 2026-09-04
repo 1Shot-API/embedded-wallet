@@ -40,6 +40,7 @@ import {
   BusinessTransactionUtils,
   CCTPUtils,
   DelegationService,
+  LiFiUtils,
   TransactionService,
 } from "../lib/implementations/business";
 import {
@@ -72,6 +73,7 @@ import type {
   ITransactionService,
 } from "../lib/interfaces/business";
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
+import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
 import type {
   ICircleProvider,
   IConfigProvider,
@@ -160,6 +162,7 @@ const businessTransactionUtils = new BusinessTransactionUtils({
 });
 
 const cctpUtils: ICCTPUtils = new CCTPUtils();
+const liFiUtils: ILiFiUtils = new LiFiUtils();
 
 const transactionService: ITransactionService = new TransactionService({
   chainRepository,
@@ -176,14 +179,15 @@ const bridgeService: IBridgeService = new BridgeService(
   blockchainProvider,
 );
 
-const delegationService: IDelegationService = new DelegationService({
+const delegationService: IDelegationService = new DelegationService(
   chainRepository,
-  delegationRepository: credentialRepository,
-  blockchain: blockchainProvider,
-  transactionUtils: businessTransactionUtils,
-  presentationTransactionUtils: transactionUtils,
+  credentialRepository,
+  blockchainProvider,
+  businessTransactionUtils,
+  transactionUtils,
   owsProvider,
-});
+  liFiUtils,
+);
 
 const walletStorage: AccountConnectStorage = {
   loadCachedEvmAddress,
@@ -215,6 +219,7 @@ export type WalletContextValue = {
   transactionService: ITransactionService;
   bridgeService: IBridgeService;
   delegationService: IDelegationService;
+  liFiUtils: ILiFiUtils;
   eventBus: IEventBus;
 
   chains: SupportedChain[];
@@ -466,6 +471,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     delegationService,
     transactionUtils,
     cctpUtils,
+    liFiUtils,
     credentialRepository,
     walletStorage,
     eventBus,
@@ -705,6 +711,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       transactionService,
       bridgeService,
       delegationService,
+      liFiUtils,
       eventBus,
       chains,
       resolveChain,

@@ -107,9 +107,15 @@ export class RelayerCredentialsClient implements IRelayerCredentialsClient {
   }
 
   async storeCredential(
-    body: IWebAuthnAssertionRequest & { ciphertext: string },
-  ): Promise<{ id: string }> {
-    return this.postJson<{ id: string }>("/wallet/credentials", body);
+    body: IWebAuthnAssertionRequest & {
+      ciphertext?: string;
+      ciphertexts?: string[];
+    },
+  ): Promise<{ id: string; ids: string[] }> {
+    return this.postJson<{ id: string; ids: string[] }>(
+      "/wallet/credentials",
+      body,
+    );
   }
 
   async recoverCredentials(

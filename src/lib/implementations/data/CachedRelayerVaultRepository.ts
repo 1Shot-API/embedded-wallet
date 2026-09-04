@@ -205,25 +205,44 @@ export class CachedRelayerVaultRepository
   // --- IDelegationRepository -------------------------------------------------
 
   async storeDelegation(delegation: IStoredDelegation): Promise<void> {
+    await this.storeDelegations([delegation]);
+  }
+
+  async storeDelegations(delegations: IStoredDelegation[]): Promise<void> {
+    if (delegations.length === 0) return;
     await this.ensureStorageKey();
-    const id = delegation.delegationId;
     const blob = this.readBlob();
-    const previousBlobId = blob.blobIds[id];
-    blob.delegations[id] = delegation;
+    const uploads: Array<{
+      logicalId: string;
+      wrapper: VaultRemoteBlob;
+      previousBlobId: string | undefined;
+    }> = [];
+
+    for (const delegation of delegations) {
+      const id = delegation.delegationId;
+      const previousBlobId = blob.blobIds[id];
+      blob.delegations[id] = delegation;
+      uploads.push({
+        logicalId: id,
+        previousBlobId,
+        wrapper: {
+          type: "delegation",
+          timestamp: UnixTimestamp(Math.floor(Date.now() / 1000)),
+          hostDomain: delegation.hostDomain,
+          memo: delegation.memo,
+          data: delegation,
+        },
+      });
+    }
     this.writeBlob(blob);
 
-    const wrapper: VaultRemoteBlob = {
-      type: "delegation",
-      timestamp: UnixTimestamp(Math.floor(Date.now() / 1000)),
-      hostDomain: delegation.hostDomain,
-      memo: delegation.memo,
-      data: delegation,
-    };
-
     try {
-      await this.uploadWrapper(id, wrapper, previousBlobId);
+      await this.uploadWrappers(uploads);
     } catch (error: unknown) {
-      console.warn("[vault] local delegation store ok; relayer upload failed", error);
+      console.warn(
+        "[vault] local delegation store ok; relayer upload failed",
+        error,
+      );
     }
   }
 
@@ -392,6 +411,17 @@ export class CachedRelayerVaultRepository
     wrapper: VaultRemoteBlob,
     previousBlobId: string | undefined,
   ): Promise<void> {
+    await this.uploadWrappers([{ logicalId, wrapper, previousBlobId }]);
+  }
+
+  private async uploadWrappers(
+    items: Array<{
+      logicalId: string;
+      wrapper: VaultRemoteBlob;
+      previousBlobId: string | undefined;
+    }>,
+  ): Promise<void> {
+    if (items.length === 0) return;
     const signer = await this.owsProvider.getSigner();
     const { challengeId, challenge } = await this.client.getChallenge();
     const batchResult = await withCeremonyUiReason(
@@ -399,32 +429,39 @@ export class CachedRelayerVaultRepository
       () =>
         signer.executeBatch({
           challenge,
-          plaintexts: [JSON.stringify(wrapper)],
+          plaintexts: items.map((item) => JSON.stringify(item.wrapper)),
         }),
     );
     if (!batchResult.assertion) {
       throw new Error("executeBatch: relayer auth assertion missing");
     }
-    const ciphertext = batchResult.ciphertexts?.[0];
-    if (!ciphertext) {
-      throw new Error("executeBatch: encrypt ciphertext missing");
+    const ciphertexts = batchResult.ciphertexts;
+    if (!ciphertexts || ciphertexts.length !== items.length) {
+      throw new Error("executeBatch: encrypt ciphertext count mismatch");
     }
 
     const assertion = toRelayerAssertionRequest(
       challengeId,
       batchResult.assertion,
     );
-    const { id } = await this.client.storeCredential({
+    const { ids } = await this.client.storeCredential({
       ...assertion,
-      ciphertext: String(ciphertext),
+      ciphertexts: ciphertexts.map((c) => String(c)),
     });
+    if (ids.length !== items.length) {
+      throw new Error("storeCredential: blob id count mismatch");
+    }
 
     const next = this.readBlob();
-    next.blobIds[logicalId] = id;
+    for (let i = 0; i < items.length; i++) {
+      next.blobIds[items[i]!.logicalId] = ids[i]!;
+    }
     this.writeBlob(next);
 
-    if (previousBlobId) {
-      await this.deleteRelayerBlob(previousBlobId);
+    for (const item of items) {
+      if (item.previousBlobId) {
+        await this.deleteRelayerBlob(item.previousBlobId);
+      }
     }
   }
 
@@ -473,7 +510,7 @@ export class CachedRelayerVaultRepository
   ): IDelegationSummary[] {
     return [...delegations].map((d) => {
       const data = d.permissionResponse.permission.data;
-      const tokenRaw = data.tokenAddress ?? data.token;
+      const tokenRaw = data.tokenAddress ?? data.token ?? data.inputToken;
       const amountRaw = data.periodAmount ?? data.amount;
       const durationRaw = data.periodDuration ?? data.period ?? data.duration;
       const duration =
@@ -481,6 +518,21 @@ export class CachedRelayerVaultRepository
           ? durationRaw
           : typeof durationRaw === "string" && durationRaw.trim() !== ""
             ? Number(durationRaw)
+            : undefined;
+      const destRaw = data.destinationChainId;
+      const destinationChainId =
+        typeof destRaw === "number"
+          ? String(destRaw)
+          : typeof destRaw === "string" && destRaw.trim() !== ""
+            ? destRaw
+            : undefined;
+      const spenderRaw = data.spender ?? data.lifiDiamond;
+      const slippageRaw = data.slippageBps;
+      const slippageBps =
+        typeof slippageRaw === "number"
+          ? slippageRaw
+          : typeof slippageRaw === "string" && slippageRaw.trim() !== ""
+            ? Number(slippageRaw)
             : undefined;
       return {
         delegationId: d.delegationId,
@@ -501,6 +553,15 @@ export class CachedRelayerVaultRepository
         Number.isFinite(duration) &&
         duration > 0
           ? { periodDuration: duration }
+          : {}),
+        ...(destinationChainId ? { destinationChainId } : {}),
+        ...(typeof spenderRaw === "string"
+          ? { spender: EVMAccountAddress(this.asHex(spenderRaw)) }
+          : {}),
+        ...(typeof slippageBps === "number" &&
+        Number.isFinite(slippageBps) &&
+        slippageBps >= 0
+          ? { slippageBps }
           : {}),
       };
     });
