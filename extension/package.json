@@ -23,8 +23,8 @@
     "@1shotapi/ows-types": "^0.5.1"
   },
   "devDependencies": {
-    "@types/chrome": "^0.0.287",
+    "@types/chrome": "^0.2.7",
     "typescript": "~5.8.0",
-    "wxt": "^0.21.3"
+    "wxt": "^0.21.4"
   }
 }
