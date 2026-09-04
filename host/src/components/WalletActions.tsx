@@ -91,6 +91,7 @@ export interface IWalletActionsProps {
   }>;
   delegationsOutput: string | null;
   onRequestDelegation: () => void;
+  onRequestLiFiDelegation: () => void;
   onCancelDelegation: (id: string) => void;
   onGetSupportedPermissions: () => void;
   onGetGrantedPermissions: () => void;
@@ -144,6 +145,7 @@ export function WalletActions({
   sessionGrants,
   delegationsOutput,
   onRequestDelegation,
+  onRequestLiFiDelegation,
   onCancelDelegation,
   onGetSupportedPermissions,
   onGetGrantedPermissions,
@@ -653,7 +655,8 @@ export function WalletActions({
         <Label>Delegations (EIP-7715)</Label>
         <p className="text-muted-foreground text-xs">
           Request a periodic USDC spending permission for the current chain
-          (session key held in memory only). Relayer-enabled chains only.
+          (session key held in memory only). Relayer-enabled chains only. LiFi
+          approve + swap batch requires Base.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -663,6 +666,14 @@ export function WalletActions({
             onClick={onRequestDelegation}
           >
             Request permission
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready || busy || chainId.toLowerCase() !== "0x2105"}
+            onClick={onRequestLiFiDelegation}
+          >
+            Request LiFi (Base)
           </Button>
           <Button
             type="button"

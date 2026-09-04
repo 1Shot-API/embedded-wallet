@@ -18,8 +18,8 @@ export function DesignPanel({
   previewMountRef,
 }: IDesignPanelProps) {
   return (
-    <div className="grid h-[calc(100svh-3.5rem)] grid-cols-1 lg:grid-cols-[minmax(22rem,26rem)_1fr]">
-      <aside className="border-border bg-background overflow-y-auto border-r">
+    <div className="grid h-[calc(100svh-3.5rem)] min-h-0 grid-cols-1 lg:grid-cols-[minmax(22rem,26rem)_1fr]">
+      <aside className="border-border bg-background min-h-0 overflow-y-auto border-r">
         <div className="border-border border-b px-5 py-4">
           <h2 className="font-heading text-lg font-bold tracking-tight">
             Configure
@@ -34,10 +34,10 @@ export function DesignPanel({
       </aside>
 
       <section
-        className="relative flex min-h-[28rem] flex-col bg-[#f8fafc] p-6"
+        className="relative flex min-h-0 flex-1 flex-col bg-[#f8fafc] p-6"
         aria-label="Wallet preview"
       >
-        <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
           <div>
             <h2 className="font-heading text-lg font-bold tracking-tight">
               Preview
@@ -52,8 +52,8 @@ export function DesignPanel({
           </span>
         </div>
 
-        <div className="relative flex flex-1 items-center justify-center overflow-auto rounded-2xl border-2 border-dashed border-slate-300/80 bg-white shadow-sm">
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-9 items-center gap-1.5 border-b border-slate-100 bg-slate-50/90 px-3">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 border-dashed border-slate-300/80 bg-white shadow-sm">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-9 shrink-0 items-center gap-1.5 border-b border-slate-100 bg-slate-50/90 px-3">
             <span className="size-2.5 rounded-full bg-red-300" />
             <span className="size-2.5 rounded-full bg-amber-300" />
             <span className="size-2.5 rounded-full bg-emerald-300" />
@@ -62,9 +62,9 @@ export function DesignPanel({
             </span>
           </div>
 
-          <div className="flex min-h-[36rem] w-full items-center justify-center px-6 pt-12 pb-8">
+          <div className="grid min-h-0 flex-1 place-items-center overflow-auto px-6 pt-12 pb-6">
             <div
-              className="relative h-[600px] w-[360px] shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md"
+              className="relative aspect-[360/600] max-h-full w-auto max-w-[min(360px,100%)] shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md [height:min(600px,100%)]"
               aria-label="Wallet inline mount"
             >
               <div ref={previewMountRef} className="absolute inset-0" />

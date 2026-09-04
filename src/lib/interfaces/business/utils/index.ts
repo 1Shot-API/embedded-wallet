@@ -9,3 +9,5 @@ export type {
   IEncodeDepositForBurnWithHookParams,
 } from "./ICCTPUtils";
 export { ICCTPUtilsType } from "./ICCTPUtils";
+export type { ILiFiSwapTerms, ILiFiUtils } from "./ILiFiUtils";
+export { ILiFiUtilsType } from "./ILiFiUtils";
