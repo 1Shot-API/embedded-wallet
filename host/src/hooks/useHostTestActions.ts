@@ -35,6 +35,7 @@ import {
   hostChainMeta,
   type UsdcMode,
 } from "../components/hostChains";
+import { mergeConfigurePayload } from "../styleForm";
 
 const USDC_DECIMALS = 6;
 
@@ -524,8 +525,13 @@ export function useHostTestActions({
     reportStatus("Wallet panel shown. Use Hide Wallet or the wallet menu to close.");
   };
 
-  const handleApplyStyle = async (options: Record<string, unknown>) => {
-    lastStyleRef.current = options;
+  const handleApplyStyle = async (
+    options: Record<string, unknown>,
+    applyOptions?: { replace?: boolean },
+  ) => {
+    lastStyleRef.current = applyOptions?.replace
+      ? options
+      : mergeConfigurePayload(lastStyleRef.current, options);
     const proxy = proxyRef.current;
     if (!proxy) {
       throw new Error("Wallet not connected");
