@@ -561,10 +561,82 @@ function put(
   if (trimmed) target[key] = trimmed;
 }
 
-/** Build a `configure` RPC payload from the flat form (omit empty theme/copy keys). */
-export function buildConfigurePayload(
-  form: IStyleFormState,
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+function mergeRecordObjects(
+  base: Record<string, unknown> | undefined,
+  patch: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!patch) {
+    return base;
+  }
+  if (!base) {
+    return patch;
+  }
+  const result: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    const existing = result[key];
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value) &&
+      typeof existing === "object" &&
+      existing !== null &&
+      !Array.isArray(existing)
+    ) {
+      result[key] = mergeRecordObjects(
+        existing as Record<string, unknown>,
+        value as Record<string, unknown>,
+      );
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+/** Deep-merge partial configure payloads for reconnect bookkeeping. */
+export function mergeConfigurePayload(
+  accumulated: Record<string, unknown> | null,
+  patch: Record<string, unknown>,
 ): Record<string, unknown> {
+  if (!accumulated) {
+    return patch;
+  }
+  const result: Record<string, unknown> = { ...accumulated, ...patch };
+  if (patch.theme !== undefined || accumulated.theme !== undefined) {
+    result.theme = mergeRecordObjects(
+      asRecord(accumulated.theme),
+      asRecord(patch.theme),
+    );
+  }
+  if (patch.copy !== undefined || accumulated.copy !== undefined) {
+    result.copy = mergeRecordObjects(
+      asRecord(accumulated.copy),
+      asRecord(patch.copy),
+    );
+  }
+  if (patch.features !== undefined || accumulated.features !== undefined) {
+    result.features = mergeRecordObjects(
+      asRecord(accumulated.features),
+      asRecord(patch.features),
+    );
+  }
+  if (patch.dark !== undefined) {
+    result.dark = patch.dark;
+  }
+  if (patch.destinationUrl !== undefined) {
+    result.destinationUrl = patch.destinationUrl;
+  }
+  return result;
+}
+
+function buildThemeObject(form: IStyleFormState): Record<string, string> {
   const theme: Record<string, string> = {};
   put(theme, "primary", form.primary);
   put(theme, "primaryForeground", form.primaryForeground);
@@ -577,11 +649,29 @@ export function buildConfigurePayload(
   put(theme, "accentForeground", form.accentForeground);
   put(theme, "radius", form.radius);
   put(theme, "fontSans", form.fontSans);
+  return theme;
+}
 
+function buildFeaturesObject(form: IStyleFormState): Record<string, unknown> {
+  return {
+    hideCloseBox: form.hideCloseBox,
+    disableCredentials: form.disableCredentials,
+    disableDelegations: form.disableDelegations,
+    allowedChains: [...form.allowedChainIds],
+  };
+}
+
+function buildBasicIdentityCopy(form: IStyleFormState): Record<string, unknown> {
   const copy: Record<string, unknown> = {};
   put(copy as Record<string, string>, "productName", form.productName);
   put(copy as Record<string, string>, "tagline", form.tagline);
   put(copy as Record<string, string>, "logoUrl", form.logoUrl);
+  return copy;
+}
+
+/** Nested modal/tab copy only (excludes productName, tagline, logoUrl). */
+function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown> {
+  const copy: Record<string, unknown> = {};
 
   const connect: Record<string, string> = {};
   put(connect, "title", form.connectTitle);
@@ -835,17 +925,98 @@ export function buildConfigurePayload(
     copy.advancedOptions = advancedOptions;
   }
 
+  return copy;
+}
+
+function destinationUrlFromForm(form: IStyleFormState): string | null {
+  const destinationUrl = form.destinationUrl.trim();
+  return destinationUrl.length > 0 ? destinationUrl : null;
+}
+
+/** Feature toggles and allowed chains only. */
+export function buildFeaturesConfigurePayload(
+  form: IStyleFormState,
+): Record<string, unknown> {
+  return { features: buildFeaturesObject(form) };
+}
+
+/** Basic tab identity, webhook URL, and features (no theme or modal copy). */
+export function buildBasicConfigurePayload(
+  form: IStyleFormState,
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    features: buildFeaturesObject(form),
+    destinationUrl: destinationUrlFromForm(form),
+  };
+  const identityCopy = buildBasicIdentityCopy(form);
+  if (Object.keys(identityCopy).length > 0) {
+    payload.copy = identityCopy;
+  }
+  return payload;
+}
+
+/** Style tab colors, radius, font, and dark mode. */
+export function buildThemeConfigurePayload(
+  form: IStyleFormState,
+): Record<string, unknown> {
+  const theme = buildThemeObject(form);
+  const payload: Record<string, unknown> = { dark: form.dark };
+  if (Object.keys(theme).length > 0) {
+    payload.theme = theme;
+  }
+  return payload;
+}
+
+/** Text tab modal copy only (excludes productName, tagline, logoUrl). */
+export function buildCopyConfigurePayload(
+  form: IStyleFormState,
+): Record<string, unknown> {
+  const copy = buildNestedCopyFromForm(form);
+  if (Object.keys(copy).length === 0) {
+    return {};
+  }
+  return { copy };
+}
+
+export type ConfigurePayloadSection =
+  | "features"
+  | "basic"
+  | "theme"
+  | "copy"
+  | "all";
+
+/** Build a section-scoped or full `configure` RPC payload. */
+export function buildConfigurePayloadForSection(
+  form: IStyleFormState,
+  section: ConfigurePayloadSection,
+): Record<string, unknown> {
+  switch (section) {
+    case "features":
+      return buildFeaturesConfigurePayload(form);
+    case "basic":
+      return buildBasicConfigurePayload(form);
+    case "theme":
+      return buildThemeConfigurePayload(form);
+    case "copy":
+      return buildCopyConfigurePayload(form);
+    case "all":
+      return buildConfigurePayload(form);
+  }
+}
+
+/** Build a full `configure` RPC payload from the flat form (omit empty theme/copy keys). */
+export function buildConfigurePayload(
+  form: IStyleFormState,
+): Record<string, unknown> {
+  const theme = buildThemeObject(form);
+  const identityCopy = buildBasicIdentityCopy(form);
+  const nestedCopy = buildNestedCopyFromForm(form);
+  const copy = { ...identityCopy, ...nestedCopy };
+
   const payload: Record<string, unknown> = { dark: form.dark };
   if (Object.keys(theme).length > 0) payload.theme = theme;
   if (Object.keys(copy).length > 0) payload.copy = copy;
-  payload.features = {
-    hideCloseBox: form.hideCloseBox,
-    disableCredentials: form.disableCredentials,
-    disableDelegations: form.disableDelegations,
-    allowedChains: [...form.allowedChainIds],
-  };
-  const destinationUrl = form.destinationUrl.trim();
-  // Always send so Apply can clear a previously configured URL.
-  payload.destinationUrl = destinationUrl.length > 0 ? destinationUrl : null;
+  payload.features = buildFeaturesObject(form);
+  payload.destinationUrl = destinationUrlFromForm(form);
   return payload;
 }
