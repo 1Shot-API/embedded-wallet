@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { OWSProxy } from "@1shotapi/ows-provider";
 import {
+  ChainUtils,
   ConversionUtils,
   EVMAccountAddress,
   EVMChainId,
   HexString,
   type EVMTransactionHash,
   type IExecutionPermissionResponse,
+  type OWSChainId,
 } from "@1shotapi/ows-types";
 import {
   createPublicClient,
@@ -70,8 +72,15 @@ function grantSummary(response: IExecutionPermissionResponse): string {
   return `${permissionType} · ${chain} · to ${to}`;
 }
 
-function normalizeChainIdHex(value: string): EVMChainId {
-  return EVMChainId(`0x${BigInt(value).toString(16)}`);
+/** Normalize EIP-1193 / session chain ids (EVM hex/decimal or Bitcoin sentinels). */
+function normalizeHostChainId(value: string): OWSChainId {
+  if (ChainUtils.isBitcoinChainId(value)) {
+    return ChainUtils.asBitcoinChainId(value);
+  }
+  if (ChainUtils.isSolanaChainId(value)) {
+    return ChainUtils.asSolanaChainId(value);
+  }
+  return ChainUtils.asEVMChainId(`0x${BigInt(value).toString(16)}`);
 }
 
 async function resolveAccount(
@@ -159,10 +168,10 @@ export function useHostTestActions({
   }, []);
 
   const refreshChainFromWallet = useCallback(
-    async (proxy: OWSProxy): Promise<EVMChainId> => {
-      const next = normalizeChainIdHex(
-        await proxy.ethereum.request({ method: "eth_chainId" }),
-      );
+    async (proxy: OWSProxy): Promise<OWSChainId> => {
+      // Session chain (EVM or Bitcoin) — `eth_chainId` cannot represent Bitcoin.
+      const result = (await proxy.rpc("getChainId")) as { chainId?: unknown };
+      const next = normalizeHostChainId(String(result?.chainId ?? ""));
       setChainId(String(next));
       return next;
     },
@@ -176,7 +185,7 @@ export function useHostTestActions({
 
     const onChainChanged = (next: unknown) => {
       try {
-        setChainId(String(normalizeChainIdHex(String(next))));
+        setChainId(normalizeHostChainId(String(next)));
       } catch (error) {
         console.error("[oneshot-wallet-host] chainChanged failed", error);
       }
@@ -731,6 +740,11 @@ export function useHostTestActions({
         setWalletVisible(true);
         const account = await resolveAndStoreAccount(proxy);
         const activeChain = await refreshChainFromWallet(proxy);
+        if (!ChainUtils.isEVMChainId(activeChain)) {
+          throw new Error(
+            `EIP-7715 grants require an EVM chain (got ${activeChain}). Switch to a listed chain.`,
+          );
+        }
         const meta = hostChainMeta(String(activeChain));
         if (!meta) {
           throw new Error(
@@ -794,6 +808,11 @@ export function useHostTestActions({
         setWalletVisible(true);
         const account = await resolveAndStoreAccount(proxy);
         const activeChain = await refreshChainFromWallet(proxy);
+        if (!ChainUtils.isEVMChainId(activeChain)) {
+          throw new Error(
+            "LiFi playground grants require Base (0x2105). Switch chain first.",
+          );
+        }
         if (String(activeChain).toLowerCase() !== BASE_CHAIN_ID) {
           throw new Error(
             "LiFi playground grants require Base (0x2105). Switch chain first.",

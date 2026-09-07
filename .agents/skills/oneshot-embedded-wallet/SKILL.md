@@ -206,7 +206,23 @@ await proxy.rpc("switchChain", { chainId: "0x2105" });
 |--------|--------|----------|
 | `switchChain` | `{ chainId: \`0x…\` \| \`"Bitcoin"\` \| \`"BitcoinTestnet"\` }` | Bitcoin: session-only. EVM: same as `wallet_switchEthereumChain` via RpcHelper |
 
-Returns `{ ok: true, chainId }`.
+Returns `{ ok: true, chainId }`. Bitcoin switches also emit EIP-1193
+`chainChanged` with the Bitcoin sentinel so hosts stay in sync.
+
+## Custom RPC — `getChainId`
+
+Read the Branding Layer **session** chain id (EVM hex or Bitcoin sentinel).
+Prefer this over EIP-1193 `eth_chainId` when the host catalog includes Bitcoin —
+`eth_chainId` only reflects the last EVM RpcHelper chain.
+
+```ts
+const { chainId } = await proxy.rpc("getChainId");
+// "0x2105" | "Bitcoin" | "BitcoinTestnet" | …
+```
+
+| Method | Params | Behavior |
+|--------|--------|----------|
+| `getChainId` | none | Returns `{ chainId }` from the wallet session store |
 
 ## Custom RPC — `focusWallet` / `unfocusWallet`
 
@@ -323,16 +339,14 @@ Product analytics: `BridgeOpened`, `BridgeCompleted`, `BridgeFailed`, `BridgeCan
 | `proxy.ethereum.on` / `removeListener` | Branding→Host EIP-1193 notifications (`chainChanged`, `accountsChanged` via `ows:eip1193`) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, `bridge`, …) |
+| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `switchChain`, `getChainId`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, `bridge`, …) |
 | `proxy.analytics.on(listener)` / `.on(name, listener)` / `.off(listener)` | Branding→Host product analytics (`ows:analytics`) |
-| `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, …) |
 
 Subscribe so in-wallet chain/account changes update host UI without polling:
 
 ```typescript
 proxy.ethereum.on("chainChanged", (chainId) => {
-  // hex chain id string
+  // EVM hex (`0x…`) or Bitcoin sentinel (`Bitcoin` / `BitcoinTestnet`)
 });
 proxy.ethereum.on("accountsChanged", (accounts) => {
   // EVM address array

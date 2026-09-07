@@ -11,6 +11,9 @@ import { useWalletSessionStore } from "./sessionStore";
 /** Custom RPC — host: `await proxy.rpc("switchChain", { chainId })`. */
 export const SWITCH_CHAIN_RPC_METHOD = "switchChain";
 
+/** Custom RPC — host: `await proxy.rpc("getChainId")` — session OWS chain (EVM or Bitcoin). */
+export const GET_CHAIN_ID_RPC_METHOD = "getChainId";
+
 const switchChainParamsSchema = z.strictObject({
   chainId: z.string().regex(/^(0x[0-9a-fA-F]+|Bitcoin|BitcoinTestnet)$/),
 });
@@ -28,6 +31,9 @@ function toOwsChainId(raw: string): OWSChainId {
  * Host chain switch that accepts EVM hex ids and Bitcoin sentinels
  * (`Bitcoin` / `BitcoinTestnet`). Bitcoin is session-only (no EIP-1193);
  * EVM goes through {@link RpcHelper.switchChain}.
+ *
+ * Also registers {@link GET_CHAIN_ID_RPC_METHOD} so hosts can read the session
+ * chain when `eth_chainId` cannot represent Bitcoin.
  */
 export function registerSwitchChainRpc(
   wallet: OWSWallet,
@@ -46,6 +52,8 @@ export function registerSwitchChainRpc(
         if (session.focusedAssetAddress) {
           session.setFocusedAssetAddress(null);
         }
+        // EIP-1193-style notify — hosts must accept Bitcoin string ids.
+        wallet.providerEvents.emit("chainChanged", chainId);
         return {
           ok: true as const,
           chainId:
@@ -64,4 +72,8 @@ export function registerSwitchChainRpc(
     },
     switchChainParamsSchema,
   );
+
+  wallet.registerRpc(GET_CHAIN_ID_RPC_METHOD, async () => ({
+    chainId: useWalletSessionStore.getState().chainId,
+  }));
 }

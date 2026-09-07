@@ -360,6 +360,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         } catch (error: unknown) {
           console.warn("[oneshot-wallet] failed to switch after allowlist", error);
         }
+      } else {
+        walletRef.current?.providerEvents.emit("chainChanged", next.chainId);
       }
     }
   }, []);
@@ -493,11 +495,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (session.focusedAssetAddress) {
         session.setFocusedAssetAddress(null);
       }
+      walletRef.current?.providerEvents.emit("chainChanged", next);
       return;
     }
 
     if (!ChainUtils.isEVMChainId(next)) {
       useWalletSessionStore.getState().setChainId(next);
+      walletRef.current?.providerEvents.emit("chainChanged", next);
       return;
     }
 
