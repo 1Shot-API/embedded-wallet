@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { CheckIcon, CopyIcon, XIcon } from "lucide-react";
+import {
+  BITCOIN_MAINNET_CHAIN_ID,
+  ChainUtils,
+  EVMChainId,
+  type OWSChainId,
+} from "@1shotapi/ows-types";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { copyText } from "@/lib/clipboard";
@@ -14,6 +20,7 @@ import { resolveActiveAddress } from "../wallet/activeAddress";
 import { useStyle } from "../style/StyleProvider";
 import { AccountMetaChip } from "./AccountMetaChip";
 import { AssetDetails } from "./AssetDetails";
+import { BitcoinDetails } from "./BitcoinDetails";
 import { BalancesTab } from "./balances/BalancesTab";
 import { CredentialsTab } from "./credentials/CredentialsTab";
 import { DelegationsTab } from "./delegations/DelegationsTab";
@@ -44,7 +51,10 @@ function FocusedAssetPanel() {
     if (!focusedAssetAddress) return;
     let cancelled = false;
     setError(null);
-    void resolveTrackedAsset(chainId, focusedAssetAddress)
+    void resolveTrackedAsset(
+      chainId as EVMChainId,
+      focusedAssetAddress,
+    )
       .then((resolved) => {
         if (!cancelled) setAsset(resolved);
       })
@@ -82,6 +92,8 @@ export function MainPanel() {
   const {
     evmAddress,
     solanaAddress,
+    bitcoinMainnetAddress,
+    bitcoinTestnetAddress,
     chainId,
     mode,
     focusedAssetAddress,
@@ -89,6 +101,8 @@ export function MainPanel() {
     useShallow((state) => ({
       evmAddress: state.evmAddress,
       solanaAddress: state.solanaAddress,
+      bitcoinMainnetAddress: state.bitcoinMainnetAddress,
+      bitcoinTestnetAddress: state.bitcoinTestnetAddress,
       chainId: state.chainId,
       mode: state.mode,
       focusedAssetAddress: state.focusedAssetAddress,
@@ -147,6 +161,11 @@ export function MainPanel() {
     chainId,
     evmAddress,
     solanaAddress,
+    bitcoinAddress: ChainUtils.isBitcoinChainId(chainId)
+      ? chainId === BITCOIN_MAINNET_CHAIN_ID
+        ? bitcoinMainnetAddress ?? undefined
+        : bitcoinTestnetAddress ?? undefined
+      : undefined,
   });
   const hasAddress = Boolean(active.address && active.address !== "—");
   const selectedChain =
@@ -155,6 +174,7 @@ export function MainPanel() {
         String(chain.chainId).toLowerCase() === String(chainId).toLowerCase(),
     ) ?? null;
   const networkLabel = selectedChain?.label ?? String(chainId);
+  const showBitcoinShell = ChainUtils.isBitcoinChainId(chainId);
 
   const copyFeedbackLabel =
     copyState === "copied"
@@ -175,7 +195,7 @@ export function MainPanel() {
     });
   };
 
-  const onSelectNetwork = (next: string) => {
+  const onSelectNetwork = (next: OWSChainId) => {
     setNetworkModalOpen(false);
     if (
       String(next).toLowerCase() !== String(chainId).toLowerCase()
@@ -224,40 +244,44 @@ export function MainPanel() {
         />
       </section>
 
-      <Tabs
-        value={activeMainTab}
-        onValueChange={setMainTab}
-        className="gap-3"
-      >
-        <TabsList variant="line" className="w-full justify-start">
-          <TabsTrigger value="balances">
-            {style.copy.balances.tabLabel}
-          </TabsTrigger>
-          {showCredentials ? (
-            <TabsTrigger value="credentials">
-              {style.copy.credentials.tabLabel}
+      {showBitcoinShell ? (
+        <BitcoinDetails />
+      ) : (
+        <Tabs
+          value={activeMainTab}
+          onValueChange={setMainTab}
+          className="gap-3"
+        >
+          <TabsList variant="line" className="w-full justify-start">
+            <TabsTrigger value="balances">
+              {style.copy.balances.tabLabel}
             </TabsTrigger>
+            {showCredentials ? (
+              <TabsTrigger value="credentials">
+                {style.copy.credentials.tabLabel}
+              </TabsTrigger>
+            ) : null}
+            {showDelegations ? (
+              <TabsTrigger value="delegations">
+                {style.copy.delegations.tabLabel}
+              </TabsTrigger>
+            ) : null}
+          </TabsList>
+          <TabsContent value="balances">
+            <BalancesTab onView={setSelectedAsset} />
+          </TabsContent>
+          {showCredentials ? (
+            <TabsContent value="credentials">
+              <CredentialsTab />
+            </TabsContent>
           ) : null}
           {showDelegations ? (
-            <TabsTrigger value="delegations">
-              {style.copy.delegations.tabLabel}
-            </TabsTrigger>
+            <TabsContent value="delegations">
+              <DelegationsTab />
+            </TabsContent>
           ) : null}
-        </TabsList>
-        <TabsContent value="balances">
-          <BalancesTab onView={setSelectedAsset} />
-        </TabsContent>
-        {showCredentials ? (
-          <TabsContent value="credentials">
-            <CredentialsTab />
-          </TabsContent>
-        ) : null}
-        {showDelegations ? (
-          <TabsContent value="delegations">
-            <DelegationsTab />
-          </TabsContent>
-        ) : null}
-      </Tabs>
+        </Tabs>
+      )}
 
       {networkModalOpen ? (
         <SelectNetworkModal

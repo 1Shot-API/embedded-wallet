@@ -3,7 +3,7 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as configure / focusWallet / addAsset / createAccount / onramp / bridge for
+  or custom RPC such as configure / switchChain / focusWallet / addAsset / createAccount / onramp / bridge for
   theming, host-driven focus mode, tracked assets, and first-party Safari create.
 license: MIT
 metadata:
@@ -189,6 +189,24 @@ Returns `{ ok: true, productName: string }` with the resolved product name after
 Unknown keys are rejected (Zod `.strict()`).
 
 See also [README.md](../../README.md) in this repository.
+
+## Custom RPC — `switchChain`
+
+Switch the Branding Layer session chain. Accepts EVM hex ids **and** Bitcoin
+sentinels (`"Bitcoin"` mainnet, `"BitcoinTestnet"` testnet). Prefer this over
+EIP-1193 `wallet_switchEthereumChain` when the host catalog includes Bitcoin —
+EIP-1193 params are hex-only and reject non-hex ids with `Invalid params`.
+
+```ts
+await proxy.rpc("switchChain", { chainId: "Bitcoin" });
+await proxy.rpc("switchChain", { chainId: "0x2105" });
+```
+
+| Method | Params | Behavior |
+|--------|--------|----------|
+| `switchChain` | `{ chainId: \`0x…\` \| \`"Bitcoin"\` \| \`"BitcoinTestnet"\` }` | Bitcoin: session-only. EVM: same as `wallet_switchEthereumChain` via RpcHelper |
+
+Returns `{ ok: true, chainId }`.
 
 ## Custom RPC — `focusWallet` / `unfocusWallet`
 

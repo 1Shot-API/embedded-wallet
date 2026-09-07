@@ -16,6 +16,12 @@ export type {
 } from "./IBridgeService";
 export { IBridgeServiceType } from "./IBridgeService";
 export type {
+  IBitcoinSendParams,
+  IBitcoinSendResult,
+  IBitcoinService,
+} from "./IBitcoinService";
+export { IBitcoinServiceType } from "./IBitcoinService";
+export type {
   ICancelDelegationParams,
   ICancelDelegationResult,
   ICreateExecutionPermissionParams,

@@ -82,9 +82,12 @@ export class TransactionUtils implements ITransactionUtils {
   }
 
   chainLabelFor(
-    chainId: EVMChainId,
-    chains: ReadonlyArray<{ chainId: EVMChainId; label: string }>,
+    chainId: EVMChainId | string | number,
+    chains: ReadonlyArray<{ chainId: EVMChainId | string | number; label: string }>,
   ): string {
-    return chains.find((chain) => chain.chainId === chainId)?.label ?? chainId;
+    return (
+      chains.find((chain) => String(chain.chainId) === String(chainId))?.label ??
+      String(chainId)
+    );
   }
 }

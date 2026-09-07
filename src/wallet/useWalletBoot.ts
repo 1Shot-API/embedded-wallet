@@ -2,6 +2,7 @@ import { useEffect, type RefObject } from "react";
 import { OWSSigner } from "@1shotapi/ows-signer-utils";
 import { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
 import {
+  ChainUtils,
   EVMAccountAddress,
   OwsInvalidParamsError,
   OwsUserRejectedError,
@@ -85,9 +86,12 @@ import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerCreateAccountRpc } from "./registerCreateAccount";
 import type { IPasskeyRegistrationResult } from "./registerCreateAccount";
 import { registerFocusModeRpc } from "./registerFocusMode";
+import { registerSwitchChainRpc } from "./registerSwitchChain";
 import { registerOnrampRpc } from "./registerOnramp";
 import { registerBridgeRpc } from "./registerBridge";
+import { registerBitcoinProvider } from "../ows/registerBitcoinProvider";
 import { loadCachedEvmAddress, loadCredentialId } from "../storage";
+import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
 import { pushModal } from "./pushModal";
 import type {
   ActiveModal,
@@ -295,13 +299,28 @@ export function useWalletBoot({
             kind: "connect",
             resolve,
           })),
-        getChainId: () => useWalletSessionStore.getState().chainId,
+        getChainId: () => {
+          const id = useWalletSessionStore.getState().chainId;
+          if (ChainUtils.isBitcoinChainId(id)) {
+            return DEFAULT_CHAIN_ID;
+          }
+          return id;
+        },
+      });
+
+      registerBitcoinProvider(wallet, {
+        owsProvider,
+        ensureReady,
       });
 
       const catalog = chainRepository.getCatalog();
       const defaultChainId = DEFAULT_CHAIN_ID;
       const rpcHelper = new RpcHelper(
-        new Map(catalog.map((chain) => [chain.chainId, chain.rpcUrl])),
+        new Map(
+          catalog
+            .filter((chain) => ChainUtils.isEVMChainId(chain.chainId))
+            .map((chain) => [chain.chainId as typeof defaultChainId, chain.rpcUrl]),
+        ),
         wallet,
         signer,
         {
@@ -561,6 +580,7 @@ export function useWalletBoot({
       session.setChainId(rpcHelper.getChainId());
       chainEvents = rpcHelper.events;
 
+      registerSwitchChainRpc(wallet, rpcHelper);
       registerFocusModeRpc(wallet, rpcHelper);
 
       registerOnrampRpc(wallet, {
@@ -581,7 +601,13 @@ export function useWalletBoot({
           }
           return address;
         },
-        getSessionChainId: () => useWalletSessionStore.getState().chainId,
+        getSessionChainId: () => {
+          const id = useWalletSessionStore.getState().chainId;
+          if (ChainUtils.isBitcoinChainId(id)) {
+            return DEFAULT_CHAIN_ID;
+          }
+          return id as EVMChainId;
+        },
         chainRepository,
         knownAssetRepository,
         cctpUtils,
@@ -920,9 +946,12 @@ export function useWalletBoot({
       });
 
       void awaitSigner()
-        .then(() => {
+        .then((signer) => {
           if (cancelled) return;
           useWalletSessionStore.getState().setSignerReady(true);
+          // Returning sessions hydrate as unlocked with EVM/Solana cache only —
+          // backfill Bitcoin addresses from cached secp key (no ceremony).
+          hydrateBitcoinAddressesFromCachedSecp(signer);
         })
         .catch((error: unknown) => {
           if (cancelled) return;

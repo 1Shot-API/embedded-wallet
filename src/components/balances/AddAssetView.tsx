@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { EVMAccountAddress } from "@1shotapi/ows-types";
+import { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "../Modal";
@@ -34,7 +34,7 @@ export function AddAssetView({ onClose }: IAddAssetViewProps) {
     setError(null);
     try {
       await addTrackedAsset(
-        chainId,
+        chainId as EVMChainId,
         EVMAccountAddress(trimmed as `0x${string}`),
       );
       onClose();

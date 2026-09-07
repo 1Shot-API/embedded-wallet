@@ -1,12 +1,15 @@
-import type { EVMChainId, EVMTransactionHash } from "@1shotapi/ows-types";
+import type {
+  EVMTransactionHash,
+  OWSChainId,
+} from "@1shotapi/ows-types";
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { CopyableText } from "../CopyableText";
 import { Modal } from "../Modal";
 
 export interface ISentTransactionModalProps {
-  chainId: EVMChainId;
-  transactionHash: EVMTransactionHash;
+  chainId: OWSChainId;
+  transactionHash: EVMTransactionHash | string;
   onClose: () => void;
 }
 

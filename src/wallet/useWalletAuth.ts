@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, type RefObject } from "react";
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
+  BITCOIN_MAINNET_CHAIN_ID,
+  BITCOIN_TESTNET_CHAIN_ID,
   COSEPublicKey,
   CredentialId,
   OwsUserRejectedError,
@@ -31,6 +33,7 @@ import {
 import { pushModal } from "./pushModal";
 import type { WalletSetupChoice } from "./modalTypes";
 import { useWalletSessionStore } from "./sessionStore";
+import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
 import { needsFirstPartyPasskeyCreate } from "./passkeyCreateSupport";
 import { createAccountViaFirstPartyTab } from "./createAccountHandoff";
 import type { IPasskeyRegistrationResult } from "./registerCreateAccount";
@@ -86,11 +89,34 @@ export function useWalletAuth({
       signer.evm.getAccountAddress(),
       signer.solana.getAccountAddress(),
     ]);
-    useWalletSessionStore.getState().setAddresses(evm, solana);
-    saveCachedAddresses(evm, solana);
+
+    hydrateBitcoinAddressesFromCachedSecp(signer);
+
+    let btcMainnet =
+      useWalletSessionStore.getState().bitcoinMainnetAddress ?? undefined;
+    let btcTestnet =
+      useWalletSessionStore.getState().bitcoinTestnetAddress ?? undefined;
+
+    if (!btcMainnet || !btcTestnet) {
+      try {
+        [btcMainnet, btcTestnet] = await Promise.all([
+          signer.bitcoin.getAccountAddress(BITCOIN_MAINNET_CHAIN_ID),
+          signer.bitcoin.getAccountAddress(BITCOIN_TESTNET_CHAIN_ID),
+        ]);
+      } catch (e) {
+        console.warn("[oneshot-wallet] failed to derive bitcoin addresses", e);
+      }
+    }
+
+    useWalletSessionStore
+      .getState()
+      .setAddresses(evm, solana, btcMainnet, btcTestnet);
+    saveCachedAddresses(evm, solana, btcMainnet, btcTestnet);
     const pk = signer.getLastPublicKeyData?.()?.secp256k1PublicKey;
     if (pk) {
       saveCachedSecp256k1PublicKey(pk);
+      // Persist BTC addresses derived during this ceremony for returning sessions.
+      hydrateBitcoinAddressesFromCachedSecp(signer);
     }
   }, [signerRef]);
 

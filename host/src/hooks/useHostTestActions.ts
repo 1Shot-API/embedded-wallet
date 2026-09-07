@@ -234,17 +234,15 @@ export function useHostTestActions({
   const handleChainChange = (next: string) => {
     const proxy = proxyRef.current;
     if (!proxy) return;
-    const selected = EVMChainId(next as `0x${string}`);
     setBusy(true);
     clearUsdcOutputs();
     void (async () => {
       try {
-        await proxy.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: selected }],
-        });
-        setChainId(String(selected));
-        reportStatus(`Switched to ${selected}`);
+        // Custom RPC accepts EVM hex and Bitcoin `Bitcoin` / `BitcoinTestnet`
+        // (EIP-1193 is hex-only).
+        await proxy.rpc("switchChain", { chainId: next });
+        setChainId(next);
+        reportStatus(`Switched to ${next}`);
       } catch (error) {
         await refreshChainFromWallet(proxy).catch(() => undefined);
         reportStatus(

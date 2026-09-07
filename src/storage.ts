@@ -1,4 +1,8 @@
 import {
+  BITCOIN_MAINNET_CHAIN_ID,
+  BITCOIN_TESTNET_CHAIN_ID,
+  type BitcoinChainId,
+  BitcoinSegwitAccountAddress,
   COSEPublicKey,
   CredentialId,
   EVMAccountAddress,
@@ -15,6 +19,8 @@ const PASSKEY_HANDLE_KEY = "ows-passkey-handle";
 const COSE_PUBLIC_KEY_KEY = "ows-passkey-cose-public-key";
 const EVM_ADDRESS_KEY = "ows-evm-address";
 const SOLANA_ADDRESS_KEY = "ows-solana-address";
+const BITCOIN_MAINNET_ADDRESS_KEY = "ows-bitcoin-mainnet-address";
+const BITCOIN_TESTNET_ADDRESS_KEY = "ows-bitcoin-testnet-address";
 /** Cached secp256k1 public key (0x-hex) so LocalAccount builds without Unlock. */
 const SECP256K1_PUBLIC_KEY_KEY = "ows-secp256k1-public-key";
 /** EIP-1193 eth_accounts was approved at least once (MetaMask-style reconnect). */
@@ -56,15 +62,31 @@ export function reconcileCachedWalletSession(): {
   walletCreated: boolean;
   evmAddress: EVMAccountAddress | undefined;
   solanaAddress: SolanaAccountAddress | undefined;
+  bitcoinMainnetAddress: BitcoinSegwitAccountAddress | undefined;
+  bitcoinTestnetAddress: BitcoinSegwitAccountAddress | undefined;
 } {
   const evmAddress = loadCachedEvmAddress();
   const solanaAddress = loadCachedSolanaAddress();
+  const bitcoinMainnetAddress = loadCachedBitcoinAddress(BITCOIN_MAINNET_CHAIN_ID);
+  const bitcoinTestnetAddress = loadCachedBitcoinAddress(BITCOIN_TESTNET_CHAIN_ID);
   const created = isWalletCreated();
   if (created && (!isUsableEvmAddress(evmAddress) || !isUsableSolanaAddress(solanaAddress))) {
     clearWalletCreated();
-    return { walletCreated: false, evmAddress, solanaAddress };
+    return {
+      walletCreated: false,
+      evmAddress,
+      solanaAddress,
+      bitcoinMainnetAddress,
+      bitcoinTestnetAddress,
+    };
   }
-  return { walletCreated: created, evmAddress, solanaAddress };
+  return {
+    walletCreated: created,
+    evmAddress,
+    solanaAddress,
+    bitcoinMainnetAddress,
+    bitcoinTestnetAddress,
+  };
 }
 
 export function loadCredentialId(): CredentialId | undefined {
@@ -109,13 +131,46 @@ export function loadCachedSolanaAddress(): SolanaAccountAddress | undefined {
   return SolanaAccountAddress(value);
 }
 
+export function loadCachedBitcoinAddress(
+  chainId: BitcoinChainId = BITCOIN_MAINNET_CHAIN_ID,
+): BitcoinSegwitAccountAddress | undefined {
+  const key =
+    chainId === BITCOIN_MAINNET_CHAIN_ID
+      ? BITCOIN_MAINNET_ADDRESS_KEY
+      : BITCOIN_TESTNET_ADDRESS_KEY;
+  const value = localStorage.getItem(key);
+  if (!value) {
+    return undefined;
+  }
+  return BitcoinSegwitAccountAddress(value);
+}
+
+export function saveCachedBitcoinAddress(
+  chainId: BitcoinChainId,
+  address: BitcoinSegwitAccountAddress,
+): void {
+  const key =
+    chainId === BITCOIN_MAINNET_CHAIN_ID
+      ? BITCOIN_MAINNET_ADDRESS_KEY
+      : BITCOIN_TESTNET_ADDRESS_KEY;
+  localStorage.setItem(key, address);
+}
+
 export function saveCachedAddresses(
   evm: EVMAccountAddress,
   solana?: SolanaAccountAddress,
+  bitcoinMainnet?: BitcoinSegwitAccountAddress,
+  bitcoinTestnet?: BitcoinSegwitAccountAddress,
 ): void {
   localStorage.setItem(EVM_ADDRESS_KEY, evm);
   if (solana) {
     localStorage.setItem(SOLANA_ADDRESS_KEY, solana);
+  }
+  if (bitcoinMainnet) {
+    localStorage.setItem(BITCOIN_MAINNET_ADDRESS_KEY, bitcoinMainnet);
+  }
+  if (bitcoinTestnet) {
+    localStorage.setItem(BITCOIN_TESTNET_ADDRESS_KEY, bitcoinTestnet);
   }
 }
 
@@ -145,6 +200,8 @@ export function clearWalletStorage(): void {
   localStorage.removeItem(COSE_PUBLIC_KEY_KEY);
   localStorage.removeItem(EVM_ADDRESS_KEY);
   localStorage.removeItem(SOLANA_ADDRESS_KEY);
+  localStorage.removeItem(BITCOIN_MAINNET_ADDRESS_KEY);
+  localStorage.removeItem(BITCOIN_TESTNET_ADDRESS_KEY);
   localStorage.removeItem(SECP256K1_PUBLIC_KEY_KEY);
   localStorage.removeItem(ETH_ACCOUNTS_GRANTED_KEY);
   // Legacy keys from earlier passkey-public-key caching (no longer used).

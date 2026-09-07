@@ -440,6 +440,16 @@ export const styleCopyAdvancedOptionsSchema = z.strictObject({
   closeLabel: z.string(),
 });
 
+export const styleCopyBitcoinSchema = z.strictObject({
+  assetName: z.string(),
+  assetSymbol: z.string(),
+  loadingBody: z.string(),
+  loadFailedError: z.string(),
+  recipientPlaceholder: z.string(),
+  invalidAddressError: z.string(),
+  unconfirmedLabel: z.string(),
+});
+
 export const styleCopyResolvedSchema = z.strictObject({
   productName: z.string(),
   tagline: z.string(),
@@ -469,6 +479,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   exportPrivateKey: styleCopyExportPrivateKeySchema,
   importPrivateKey: styleCopyImportPrivateKeySchema,
   advancedOptions: styleCopyAdvancedOptionsSchema,
+  bitcoin: styleCopyBitcoinSchema,
 });
 
 const passkeyPromptPatchSchema = z.strictObject({
@@ -518,13 +529,16 @@ export const styleCopyPatchSchema = z.strictObject({
   exportPrivateKey: styleCopyExportPrivateKeySchema.partial().optional(),
   importPrivateKey: styleCopyImportPrivateKeySchema.partial().optional(),
   advancedOptions: styleCopyAdvancedOptionsSchema.partial().optional(),
+  bitcoin: styleCopyBitcoinSchema.partial().optional(),
 });
 
 export const styleFeaturesPatchSchema = z.strictObject({
   hideCloseBox: z.boolean().optional(),
   disableCredentials: z.boolean().optional(),
   disableDelegations: z.boolean().optional(),
-  allowedChains: z.array(z.string().regex(/^0x[0-9a-fA-F]+$/)).optional(),
+  allowedChains: z
+    .array(z.string().regex(/^(0x[0-9a-fA-F]+|Bitcoin|BitcoinTestnet)$/))
+    .optional(),
 });
 
 /**
@@ -599,6 +613,7 @@ export type IStyleCopyImportPrivateKey = z.infer<
 export type IStyleCopyAdvancedOptions = z.infer<
   typeof styleCopyAdvancedOptionsSchema
 >;
+export type IStyleCopyBitcoin = z.infer<typeof styleCopyBitcoinSchema>;
 export type IStyleCopyOptions = z.infer<typeof styleCopyPatchSchema>;
 export type IResolvedCopy = z.infer<typeof styleCopyResolvedSchema>;
 export type IStyleFeaturesOptions = z.infer<typeof styleFeaturesPatchSchema>;

@@ -1,17 +1,17 @@
-import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
+import type { EVMAccountAddress, EVMChainId, OWSChainId } from "@1shotapi/ows-types";
 import type { SupportedChain } from "../../types/domain/SupportedChain";
 
 export interface IChainRepository {
   /** Enabled catalog rows, filtered by the current `allowedChains` allowlist. */
   list(): Promise<SupportedChain[]>;
 
-  get(chainId: EVMChainId): Promise<SupportedChain | null>;
+  get(chainId: OWSChainId): Promise<SupportedChain | null>;
 
   /**
    * Restrict the Network dropdown / RpcHelper surface.
    * `null` or empty ⇒ all catalog-enabled chains.
    */
-  setAllowedChains(chainIds: EVMChainId[] | null): void;
+  setAllowedChains(chainIds: OWSChainId[] | null): void;
 
   /** Subscribe to allowlist (and thus `list()`) changes. Returns unsubscribe. */
   onAllowedChainsChanged(handler: () => void): () => void;
