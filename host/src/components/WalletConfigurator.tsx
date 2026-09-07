@@ -11,14 +11,18 @@ import {
   CATALOG_CHAIN_OPTIONS,
   DEFAULTS_PRESET,
   OCEAN_PRESET,
-  buildConfigurePayload,
+  buildConfigurePayloadForSection,
+  type ConfigurePayloadSection,
   type IStyleFormState,
 } from "../styleForm";
 
 export interface IWalletConfiguratorProps {
   /** When false, apply/presets are disabled (wallet not connected yet). */
   ready: boolean;
-  onApply: (options: Record<string, unknown>) => Promise<void>;
+  onApply: (
+    options: Record<string, unknown>,
+    applyOptions?: { replace?: boolean },
+  ) => Promise<void>;
 }
 
 /**
@@ -30,6 +34,7 @@ export function WalletConfigurator({
   onApply,
 }: IWalletConfiguratorProps) {
   const [form, setForm] = useState<IStyleFormState>(ACME_PRESET);
+  const [activeTab, setActiveTab] = useState("basic");
   const [status, setStatus] = useState<string>("");
   const [isError, setIsError] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -41,15 +46,37 @@ export function WalletConfigurator({
     setForm((current) => ({ ...current, [key]: value }));
   };
 
-  const apply = async (next?: IStyleFormState) => {
+  const apply = async (
+    next?: IStyleFormState,
+    section: ConfigurePayloadSection = activeTab === "style"
+      ? "theme"
+      : activeTab === "text"
+        ? "copy"
+        : "basic",
+    applyOptions?: { replace?: boolean },
+  ) => {
     const payloadForm = next ?? form;
     if (next) setForm(next);
     setBusy(true);
     setIsError(false);
     setStatus("Calling configure…");
     try {
-      await onApply(buildConfigurePayload(payloadForm));
-      setStatus("Configuration applied.");
+      const payload =
+        applyOptions?.replace || section === "all"
+          ? buildConfigurePayloadForSection(payloadForm, "all")
+          : buildConfigurePayloadForSection(payloadForm, section);
+      await onApply(payload, applyOptions);
+      const sectionLabel =
+        section === "all"
+          ? "full configuration"
+          : section === "basic"
+            ? "Basic tab"
+            : section === "theme"
+              ? "Style tab"
+              : section === "copy"
+                ? "Text tab"
+                : "features";
+      setStatus(`Applied ${sectionLabel}.`);
     } catch (error) {
       setIsError(true);
       setStatus(error instanceof Error ? error.message : "Configuration failed");
@@ -60,7 +87,7 @@ export function WalletConfigurator({
 
   return (
     <section className="flex flex-col gap-4" aria-label="Style configuration">
-      <Tabs defaultValue="basic">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList variant="line" className="w-full justify-start">
           <TabsTrigger value="basic">Basic</TabsTrigger>
           <TabsTrigger value="style">Style</TabsTrigger>
@@ -300,14 +327,14 @@ export function WalletConfigurator({
             void apply();
           }}
         >
-          Apply configuration
+          Apply current tab
         </Button>
         <Button
           type="button"
           variant="outline"
           disabled={!ready || busy}
           onClick={() => {
-            void apply(OCEAN_PRESET);
+            void apply(OCEAN_PRESET, "all", { replace: true });
           }}
         >
           Preset: ocean
@@ -317,7 +344,7 @@ export function WalletConfigurator({
           variant="outline"
           disabled={!ready || busy}
           onClick={() => {
-            void apply(DEFAULTS_PRESET);
+            void apply(DEFAULTS_PRESET, "all", { replace: true });
           }}
         >
           Preset: defaults

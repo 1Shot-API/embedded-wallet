@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   EVMAccountAddress,
   OwsUserRejectedError,
   type IExecutionPermission,
 } from "@1shotapi/ows-types";
-import { formatUnits, getAddress, parseUnits } from "viem";
+import { formatUnits, getAddress, hexToBigInt, parseUnits } from "viem";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,11 +31,22 @@ function readAmountAtoms(data: Record<string, unknown>): bigint | null {
   try {
     if (typeof raw === "bigint") return raw;
     if (typeof raw === "number") return BigInt(raw);
-    if (typeof raw === "string") return BigInt(raw);
+    if (typeof raw === "string") {
+      const trimmed = raw.trim();
+      if (trimmed.startsWith("0x") || trimmed.startsWith("0X")) {
+        return hexToBigInt(trimmed as `0x${string}`);
+      }
+      return BigInt(trimmed);
+    }
   } catch {
     return null;
   }
   return null;
+}
+
+function readInitialMemo(data: Record<string, unknown>): string {
+  const raw = data.justification;
+  return typeof raw === "string" ? raw : "";
 }
 
 function readDuration(data: Record<string, unknown>): string {
@@ -69,7 +80,7 @@ export function GrantExecutionPermissionModal({
   const { style } = useStyle();
   const copy = style.copy.grantExecutionPermission;
   const { account } = style.copy;
-  const { listTrackedAssets, resolveChain } = useWallet();
+  const { listTrackedAssets, resolveChain, getKnownAsset } = useWallet();
   const permission = request.request.permission;
   const adjustable = permission.isAdjustmentAllowed !== false;
   const initialToken = readTokenAddress(permission.data);
@@ -83,12 +94,12 @@ export function GrantExecutionPermissionModal({
     readDuration(permission.data),
   );
   const [startText, setStartText] = useState(readStart(permission.data));
-  const [memo, setMemo] = useState("");
-  const [initializedAmount, setInitializedAmount] = useState(false);
+  const [memo, setMemo] = useState(() => readInitialMemo(permission.data));
+  const userEditedAmount = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
-    void listTrackedAssets().then((assets) => {
+    void listTrackedAssets().then(async (assets) => {
       if (cancelled) return;
       const onChain = assets.filter(
         (a) =>
@@ -99,7 +110,7 @@ export function GrantExecutionPermissionModal({
       const options = onChain.map((a) => ({
         address: getAddress(String(a.address)),
         symbol: a.symbol,
-        decimals: a.decimals ?? 18,
+        decimals: a.decimals ?? 6,
         label: `${a.symbol} (${a.name})`,
       }));
       if (
@@ -109,16 +120,21 @@ export function GrantExecutionPermissionModal({
         )
       ) {
         try {
+          const known = await getKnownAsset(
+            request.request.chainId,
+            EVMAccountAddress(getAddress(initialToken as `0x${string}`)),
+          );
           options.unshift({
             address: getAddress(initialToken as `0x${string}`),
-            symbol: "TOKEN",
-            decimals: 18,
-            label: initialToken,
+            symbol: known?.symbol ?? "TOKEN",
+            decimals: known?.decimals ?? 6,
+            label: known ? `${known.symbol} (${known.name})` : initialToken,
           });
         } catch {
           // leave options as-is
         }
       }
+      if (cancelled) return;
       setTokenOptions(options);
       if (!tokenAddress && options[0]) {
         setTokenAddress(options[0].address);
@@ -129,6 +145,7 @@ export function GrantExecutionPermissionModal({
     };
   }, [
     initialToken,
+    getKnownAsset,
     listTrackedAssets,
     request.request.chainId,
     tokenAddress,
@@ -138,21 +155,24 @@ export function GrantExecutionPermissionModal({
     const match = tokenOptions.find(
       (o) => o.address.toLowerCase() === tokenAddress.toLowerCase(),
     );
-    return match ?? { address: tokenAddress, symbol: "TOKEN", decimals: 18, label: tokenAddress };
+    return match ?? { address: tokenAddress, symbol: "TOKEN", decimals: 6, label: tokenAddress };
   }, [tokenAddress, tokenOptions]);
 
   useEffect(() => {
-    if (initializedAmount || !tokenAddress) return;
+    userEditedAmount.current = false;
+    setMemo(readInitialMemo(permission.data));
+  }, [permission.data, request.request.chainId, request.request.to]);
+
+  useEffect(() => {
+    if (!tokenAddress || userEditedAmount.current) return;
     const atoms = readAmountAtoms(permission.data);
-    if (atoms !== null) {
-      try {
-        setAmountText(formatUnits(atoms, selected.decimals));
-      } catch {
-        setAmountText("");
-      }
+    if (atoms === null) return;
+    try {
+      setAmountText(formatUnits(atoms, selected.decimals));
+    } catch {
+      setAmountText("");
     }
-    setInitializedAmount(true);
-  }, [initializedAmount, permission.data, selected.decimals, tokenAddress]);
+  }, [permission.data, selected.decimals, tokenAddress]);
 
   const amountError = useMemo(() => {
     const trimmed = amountText.trim();
@@ -302,7 +322,10 @@ export function GrantExecutionPermissionModal({
           placeholder={copy.periodAmountPlaceholder}
           symbol={selected.symbol}
           value={amountText}
-          onChange={setAmountText}
+          onChange={(value) => {
+            userEditedAmount.current = true;
+            setAmountText(value);
+          }}
           disabled={!adjustable}
           error={amountError}
         />
