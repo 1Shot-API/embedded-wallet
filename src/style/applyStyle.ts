@@ -62,6 +62,14 @@ export function mergeStyle(
         ...current.copy.grantExecutionPermission,
         ...patch.copy?.grantExecutionPermission,
       },
+      grantLiFiSwapPermission: {
+        ...current.copy.grantLiFiSwapPermission,
+        ...patch.copy?.grantLiFiSwapPermission,
+      },
+      grantLiFiApprovePermission: {
+        ...current.copy.grantLiFiApprovePermission,
+        ...patch.copy?.grantLiFiApprovePermission,
+      },
       cancelDelegation: {
         ...current.copy.cancelDelegation,
         ...patch.copy?.cancelDelegation,
@@ -205,6 +213,12 @@ function cloneDefaultStyle(): IResolvedStyle {
       cctpBridge: { ...DEFAULT_STYLE.copy.cctpBridge },
       grantExecutionPermission: {
         ...DEFAULT_STYLE.copy.grantExecutionPermission,
+      },
+      grantLiFiSwapPermission: {
+        ...DEFAULT_STYLE.copy.grantLiFiSwapPermission,
+      },
+      grantLiFiApprovePermission: {
+        ...DEFAULT_STYLE.copy.grantLiFiApprovePermission,
       },
       cancelDelegation: { ...DEFAULT_STYLE.copy.cancelDelegation },
       relayerSubmit: { ...DEFAULT_STYLE.copy.relayerSubmit },

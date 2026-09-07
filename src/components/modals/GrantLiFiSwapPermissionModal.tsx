@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   EVMAccountAddress,
   OwsUserRejectedError,
   type IExecutionPermission,
 } from "@1shotapi/ows-types";
-import { formatUnits, getAddress, hexToBigInt, parseUnits } from "viem";
+import { formatUnits, getAddress, hexToBigInt, isHex, parseUnits } from "viem";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ERC20_TOKEN_PERIODIC } from "../../lib/interfaces/business/IDelegationService";
+import { LIFI_SWAP_PERIODIC } from "../../lib/interfaces/business/IDelegationService";
 import { EAssetType } from "../../lib/types/enum/EAssetType";
 import { useStyle } from "../../style/StyleProvider";
 import type {
@@ -20,9 +20,13 @@ import { Modal } from "../Modal";
 import { TokenAmountInput } from "../TokenAmountInput";
 import { CopyableText } from "../CopyableText";
 
-function readTokenAddress(data: Record<string, unknown>): string | null {
-  const raw = data.tokenAddress ?? data.token;
-  return typeof raw === "string" ? raw : null;
+function readString(data: Record<string, unknown>, ...keys: string[]): string {
+  for (const key of keys) {
+    const raw = data[key];
+    if (typeof raw === "string" && raw.trim() !== "") return raw;
+    if (typeof raw === "number" && Number.isFinite(raw)) return String(raw);
+  }
+  return "";
 }
 
 function readAmountAtoms(data: Record<string, unknown>): bigint | null {
@@ -44,31 +48,15 @@ function readAmountAtoms(data: Record<string, unknown>): bigint | null {
   return null;
 }
 
-function readInitialMemo(data: Record<string, unknown>): string {
-  const raw = data.justification;
-  return typeof raw === "string" ? raw : "";
-}
-
-function readDuration(data: Record<string, unknown>): string {
-  const raw = data.periodDuration ?? data.period ?? data.duration;
-  if (typeof raw === "number" || typeof raw === "string") {
-    return String(raw);
-  }
-  return "86400";
-}
-
-function readStart(data: Record<string, unknown>): string {
-  const raw = data.startDate ?? data.start;
-  if (typeof raw === "number" || typeof raw === "string") {
-    return String(raw);
-  }
-  return "";
+function truncateMiddle(value: string, head = 10, tail = 8): string {
+  if (value.length <= head + tail + 1) return value;
+  return `${value.slice(0, head)}…${value.slice(-tail)}`;
 }
 
 /**
- * Host EIP-7715 grant consent — editable period fields when adjustment allowed.
+ * Host EIP-7715 LiFi swap grant consent — periodic input budget + pinned route.
  */
-export function GrantExecutionPermissionModal({
+export function GrantLiFiSwapPermissionModal({
   request,
   onResolve,
   onReject,
@@ -78,24 +66,37 @@ export function GrantExecutionPermissionModal({
   onReject: (error: unknown) => void;
 }) {
   const { style } = useStyle();
-  const copy = style.copy.grantExecutionPermission;
+  const copy = style.copy.grantLiFiSwapPermission;
   const { account } = style.copy;
-  const { listTrackedAssets, resolveChain, getKnownAsset } = useWallet();
+  const { listTrackedAssets, resolveChain, liFiUtils, getKnownAsset } =
+    useWallet();
   const permission = request.request.permission;
   const adjustable = permission.isAdjustmentAllowed !== false;
-  const initialToken = readTokenAddress(permission.data);
+  const data = permission.data;
 
+  const initialToken = readString(data, "tokenAddress", "inputToken");
   const [tokenOptions, setTokenOptions] = useState<
     Array<{ address: string; symbol: string; decimals: number; label: string }>
   >([]);
-  const [tokenAddress, setTokenAddress] = useState(initialToken ?? "");
+  const [tokenAddress, setTokenAddress] = useState(initialToken);
   const [amountText, setAmountText] = useState("");
   const [durationText, setDurationText] = useState(
-    readDuration(permission.data),
+    readString(data, "periodDuration", "period", "duration") || "86400",
   );
-  const [startText, setStartText] = useState(readStart(permission.data));
-  const [memo, setMemo] = useState(() => readInitialMemo(permission.data));
-  const userEditedAmount = useRef(false);
+  const [startText, setStartText] = useState(
+    readString(data, "startDate", "start"),
+  );
+  const [slippageText, setSlippageText] = useState(
+    readString(data, "slippageBps") || String(liFiUtils.defaultSlippageBps),
+  );
+  const [memo, setMemo] = useState("");
+  const [initializedAmount, setInitializedAmount] = useState(false);
+
+  const lifiDiamond = readString(data, "lifiDiamond");
+  const quoteSigner = readString(data, "quoteSigner");
+  const outputAssetId = readString(data, "outputAssetId");
+  const outputRecipient = readString(data, "outputRecipient");
+  const destinationChainId = readString(data, "destinationChainId");
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +132,7 @@ export function GrantExecutionPermissionModal({
             label: known ? `${known.symbol} (${known.name})` : initialToken,
           });
         } catch {
-          // leave options as-is
+          /* leave options as-is */
         }
       }
       if (cancelled) return;
@@ -144,8 +145,8 @@ export function GrantExecutionPermissionModal({
       cancelled = true;
     };
   }, [
-    initialToken,
     getKnownAsset,
+    initialToken,
     listTrackedAssets,
     request.request.chainId,
     tokenAddress,
@@ -155,24 +156,28 @@ export function GrantExecutionPermissionModal({
     const match = tokenOptions.find(
       (o) => o.address.toLowerCase() === tokenAddress.toLowerCase(),
     );
-    return match ?? { address: tokenAddress, symbol: "TOKEN", decimals: 6, label: tokenAddress };
+    return (
+      match ?? {
+        address: tokenAddress,
+        symbol: "TOKEN",
+        decimals: 6,
+        label: tokenAddress,
+      }
+    );
   }, [tokenAddress, tokenOptions]);
 
   useEffect(() => {
-    userEditedAmount.current = false;
-    setMemo(readInitialMemo(permission.data));
-  }, [permission.data, request.request.chainId, request.request.to]);
-
-  useEffect(() => {
-    if (!tokenAddress || userEditedAmount.current) return;
-    const atoms = readAmountAtoms(permission.data);
-    if (atoms === null) return;
-    try {
-      setAmountText(formatUnits(atoms, selected.decimals));
-    } catch {
-      setAmountText("");
+    if (initializedAmount || !tokenAddress) return;
+    const atoms = readAmountAtoms(data);
+    if (atoms !== null) {
+      try {
+        setAmountText(formatUnits(atoms, selected.decimals));
+      } catch {
+        setAmountText("");
+      }
     }
-  }, [permission.data, selected.decimals, tokenAddress]);
+    setInitializedAmount(true);
+  }, [data, initializedAmount, selected.decimals, tokenAddress]);
 
   const amountError = useMemo(() => {
     const trimmed = amountText.trim();
@@ -196,12 +201,34 @@ export function GrantExecutionPermissionModal({
     return null;
   }, [copy.invalidDurationError, durationText]);
 
+  const slippageError = useMemo(() => {
+    const trimmed = slippageText.trim();
+    if (!trimmed) return null;
+    const n = Number(trimmed);
+    if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n >= 10_000) {
+      return copy.invalidSlippageError;
+    }
+    return null;
+  }, [copy.invalidSlippageError, slippageText]);
+
+  const pinsValid =
+    Boolean(lifiDiamond) &&
+    Boolean(quoteSigner) &&
+    isHex(outputAssetId) &&
+    (outputAssetId.length - 2) / 2 === 32 &&
+    isHex(outputRecipient) &&
+    (outputRecipient.length - 2) / 2 === 32 &&
+    Boolean(destinationChainId);
+
   const formReady =
     Boolean(tokenAddress) &&
     amountText.trim() !== "" &&
     amountError === null &&
     durationText.trim() !== "" &&
-    durationError === null;
+    durationError === null &&
+    slippageText.trim() !== "" &&
+    slippageError === null &&
+    pinsValid;
 
   const chainLabel =
     resolveChain(request.request.chainId)?.label ?? request.chainName;
@@ -220,21 +247,32 @@ export function GrantExecutionPermissionModal({
     if (!formReady) return;
     const periodAmount = parseUnits(amountText.trim(), selected.decimals);
     const periodDuration = Number(durationText.trim());
+    const slippageBps = Number(slippageText.trim());
     const startTrimmed = startText.trim();
-    const data: Record<string, unknown> = {
+    const nextData: Record<string, unknown> = {
+      lifiDiamond: EVMAccountAddress(
+        getAddress(lifiDiamond as `0x${string}`),
+      ),
       tokenAddress: EVMAccountAddress(
         getAddress(tokenAddress as `0x${string}`),
       ),
+      outputAssetId,
+      outputRecipient,
+      destinationChainId,
+      quoteSigner: EVMAccountAddress(
+        getAddress(quoteSigner as `0x${string}`),
+      ),
       periodAmount: `0x${periodAmount.toString(16)}`,
       periodDuration,
+      slippageBps,
     };
     if (startTrimmed) {
-      data.startDate = Number(startTrimmed);
+      nextData.startDate = Number(startTrimmed);
     }
     const nextPermission: IExecutionPermission = {
-      type: ERC20_TOKEN_PERIODIC,
+      type: LIFI_SWAP_PERIODIC,
       isAdjustmentAllowed: permission.isAdjustmentAllowed,
-      data,
+      data: nextData,
     };
     onResolve({ permission: nextPermission, memo: memo.trim() });
   };
@@ -262,6 +300,8 @@ export function GrantExecutionPermissionModal({
       ]}
     >
       <p className="text-muted-foreground m-0 text-sm">{body}</p>
+      <p className="text-muted-foreground m-0 mt-2 text-xs">{copy.quoteNote}</p>
+
       <dl className="mt-3 flex flex-col gap-2 text-sm">
         <div className="flex flex-col gap-0.5">
           <dt className="text-muted-foreground text-xs font-medium uppercase">
@@ -297,14 +337,52 @@ export function GrantExecutionPermissionModal({
             {permission.type}
           </dd>
         </div>
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-muted-foreground text-xs font-medium uppercase">
+            {copy.lifiDiamondLabel}
+          </dt>
+          <dd className="m-0 min-w-0 font-mono text-xs break-all">
+            {lifiDiamond || "—"}
+          </dd>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-muted-foreground text-xs font-medium uppercase">
+            {copy.quoteSignerLabel}
+          </dt>
+          <dd className="m-0 min-w-0 font-mono text-xs break-all">
+            {quoteSigner || "—"}
+          </dd>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-muted-foreground text-xs font-medium uppercase">
+            {copy.outputAssetLabel}
+          </dt>
+          <dd className="text-foreground m-0 font-mono text-xs">
+            {outputAssetId ? truncateMiddle(outputAssetId) : "—"}
+          </dd>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-muted-foreground text-xs font-medium uppercase">
+            {copy.outputRecipientLabel}
+          </dt>
+          <dd className="text-foreground m-0 font-mono text-xs">
+            {outputRecipient ? truncateMiddle(outputRecipient) : "—"}
+          </dd>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-muted-foreground text-xs font-medium uppercase">
+            {copy.destinationChainLabel}
+          </dt>
+          <dd className="text-foreground m-0">{destinationChainId || "—"}</dd>
+        </div>
       </dl>
 
       <div className="mt-4 flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="grant-token">{copy.tokenLabel}</Label>
+          <Label htmlFor="lifi-swap-token">{copy.tokenLabel}</Label>
           {adjustable && tokenOptions.length > 0 ? (
             <select
-              id="grant-token"
+              id="lifi-swap-token"
               className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
               value={tokenAddress}
               onChange={(event) => setTokenAddress(event.target.value)}
@@ -316,7 +394,9 @@ export function GrantExecutionPermissionModal({
               ))}
             </select>
           ) : (
-            <p className="m-0 break-all font-mono text-xs">{tokenAddress || "—"}</p>
+            <p className="m-0 break-all font-mono text-xs">
+              {tokenAddress || "—"}
+            </p>
           )}
         </div>
 
@@ -325,18 +405,15 @@ export function GrantExecutionPermissionModal({
           placeholder={copy.periodAmountPlaceholder}
           symbol={selected.symbol}
           value={amountText}
-          onChange={(value) => {
-            userEditedAmount.current = true;
-            setAmountText(value);
-          }}
+          onChange={setAmountText}
           disabled={!adjustable}
           error={amountError}
         />
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="grant-duration">{copy.periodDurationLabel}</Label>
+          <Label htmlFor="lifi-swap-duration">{copy.periodDurationLabel}</Label>
           <Input
-            id="grant-duration"
+            id="lifi-swap-duration"
             inputMode="numeric"
             disabled={!adjustable}
             placeholder={copy.periodDurationPlaceholder}
@@ -355,9 +432,27 @@ export function GrantExecutionPermissionModal({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="grant-start">{copy.startLabel}</Label>
+          <Label htmlFor="lifi-swap-slippage">{copy.slippageLabel}</Label>
           <Input
-            id="grant-start"
+            id="lifi-swap-slippage"
+            inputMode="numeric"
+            disabled={!adjustable}
+            value={slippageText}
+            onChange={(event) => setSlippageText(event.target.value)}
+            aria-invalid={Boolean(slippageError)}
+          />
+          <p className="text-muted-foreground m-0 text-xs">{copy.slippageHint}</p>
+          {slippageError ? (
+            <p className="text-destructive m-0 text-xs" role="alert">
+              {slippageError}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="lifi-swap-start">{copy.startLabel}</Label>
+          <Input
+            id="lifi-swap-start"
             inputMode="numeric"
             disabled={!adjustable}
             value={startText}
@@ -366,9 +461,9 @@ export function GrantExecutionPermissionModal({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="grant-memo">{copy.memoLabel}</Label>
+          <Label htmlFor="lifi-swap-memo">{copy.memoLabel}</Label>
           <Textarea
-            id="grant-memo"
+            id="lifi-swap-memo"
             placeholder={copy.memoPlaceholder}
             value={memo}
             onChange={(event) => setMemo(event.target.value)}

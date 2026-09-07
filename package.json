@@ -28,7 +28,7 @@
     "@1shotapi/ows-provider": "^0.4.2",
     "@1shotapi/ows-signer": "^0.4.2",
     "@1shotapi/ows-signer-utils": "^0.5.1",
-    "@1shotapi/ows-types": "^0.5.1",
+    "@1shotapi/ows-types": "^0.6.0",
     "@1shotapi/ows-wallet-utils": "^0.4.1",
     "@crcl-main/app-kit": "^1.10.0-canary-feature-onramp-kit-sdk.1784835391",
     "@fontsource-variable/geist": "^5.3.0",

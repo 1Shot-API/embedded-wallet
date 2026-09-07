@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits } from "viem";
 import { Button } from "@/components/ui/button";
+import {
+  LIFI_SWAP_APPROVE,
+  LIFI_SWAP_PERIODIC,
+} from "../../lib/interfaces/business/IDelegationService";
 import type { IDelegationSummary } from "../../lib/types/domain/StoredDelegation";
 import type { DelegationId } from "../../lib/types/primitives/DelegationId";
 import { useStyle } from "../../style/StyleProvider";
@@ -88,8 +92,44 @@ function DelegationRowSummary({ row }: { row: IDelegationSummary }) {
   const chainLabel =
     resolveChain(row.chainId)?.label ?? String(row.chainId);
 
+  const destinationLabel = (() => {
+    if (row.destinationChainId === undefined) return "destination";
+    const raw = row.destinationChainId;
+    const asHex =
+      raw.startsWith("0x") || raw.startsWith("0X")
+        ? raw
+        : /^\d+$/.test(raw)
+          ? `0x${BigInt(raw).toString(16)}`
+          : null;
+    if (asHex) {
+      const known = resolveChain(asHex as never);
+      if (known) return known.label;
+    }
+    return raw;
+  })();
+
   let detail: string;
-  if (
+  if (row.permissionType === LIFI_SWAP_APPROVE && row.tokenAddress) {
+    detail = fillTemplate(copy.approveSummary, { symbol });
+  } else if (
+    row.permissionType === LIFI_SWAP_PERIODIC &&
+    row.tokenAddress &&
+    row.periodAmount !== undefined &&
+    row.periodDuration !== undefined
+  ) {
+    let amountText: string = row.periodAmount;
+    try {
+      amountText = formatUnits(BigInt(row.periodAmount), decimals);
+    } catch {
+      /* keep hex */
+    }
+    detail = fillTemplate(copy.swapSummary, {
+      amount: amountText,
+      symbol,
+      duration: formatDuration(row.periodDuration),
+      dest: destinationLabel,
+    });
+  } else if (
     row.tokenAddress &&
     row.periodAmount !== undefined &&
     row.periodDuration !== undefined

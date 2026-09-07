@@ -349,7 +349,23 @@ include a live Analytics panel fed by `proxy.analytics.on` (filter by `name`).
   - See **`public-relayer/SKILL.md`** (Integration paths with `1shot-wallet`).
 - **Status webhooks:** optional `configure.destinationUrl` — the wallet forwards it to the relayer on send. Still no direct relayer client in the host.
 
-EIP-7715 host RPCs: `wallet_requestExecutionPermissions`, `wallet_revokeExecutionPermission` (grant consent and on-chain revoke are wallet-driven).
+EIP-7715 host RPCs: `wallet_requestExecutionPermissions`, `wallet_revokeExecutionPermission`, `wallet_getSupportedExecutionPermissions`, `wallet_getGrantedExecutionPermissions` (grant consent and on-chain revoke are wallet-driven).
+
+### Supported permission types
+
+| `permission.type` | Chains (v1) | Purpose |
+|-------------------|-------------|---------|
+| `erc20-token-periodic` | All relayer chains | Periodic ERC-20 `transfer` budget (`ScopeType.Erc20PeriodTransfer`) |
+| `lifi-swap-approve` | Base (`0x2105`) | One-time `approve(inputToken → LiFi Diamond)` onboarding |
+| `lifi-swap-periodic` | Base (`0x2105`) | Periodic LiFi swap via `LiFiSwapEnforcer` (`0x47472E8AA7012D1c23336aa28514AE94389318f5`) |
+
+**`erc20-token-periodic` / `lifi-swap-periodic` amounts:** Hosts should pass `periodAmount` (hex atoms) to prefill the grant form. Playground demos default to **10 USDC** (`0x989680`).
+
+**`lifi-swap-approve` data:** `tokenAddress`, `spender` (LiFi Diamond). Amount is not pinned — the delegate may approve `maxUint256`.
+
+**`lifi-swap-periodic` data:** `lifiDiamond`, `tokenAddress` (input ERC-20), `outputAssetId` (`bytes32` hex), `outputRecipient` (`bytes32` hex), `destinationChainId` (number or decimal string), `quoteSigner`, `periodAmount` (hex atoms), `periodDuration` (seconds). Optional: `startDate`, `slippageBps` (default `50`, must be `< 10000`). Grant response echoes attenuated fields plus `delegationHash` on `permission.data`.
+
+Hosts that need both approve and swap should send **two** items in one `wallet_requestExecutionPermissions` batch. The wallet walks consent as a wizard (**Next** on intermediate forms, **Grant** on the last), then signs every delegation in **one** passkey ceremony and encrypts/uploads all vault rows in a **second** passkey ceremony. Each permission still gets its own vault row and `context`. **Do not** encode approve + swap as one `Delegation[]` chain (that would be treated as parent/child). Quote signing at redemption stays with the host/`quoteSigner` backend — the wallet only grants and signs the delegation.
 
 ## Hard rules
 
