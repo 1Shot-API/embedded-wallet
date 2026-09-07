@@ -372,7 +372,7 @@ export function useHostTestActions({
     const proxy = proxyRef.current;
     if (!proxy) return;
     const meta = hostChainMeta(chainId);
-    if (!meta) {
+    if (!meta?.usdc) {
       reportStatus("USDC is not configured for this chain.", true);
       clearUsdcOutputs();
       return;
@@ -445,7 +445,7 @@ export function useHostTestActions({
     const proxy = proxyRef.current;
     if (!proxy) return;
     const meta = hostChainMeta(chainId);
-    if (!meta) {
+    if (!meta?.usdc) {
       reportStatus("USDC is not configured for this chain.", true);
       clearUsdcOutputs();
       return;

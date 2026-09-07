@@ -209,6 +209,8 @@ export interface IStyleFormState {
   // Text — Bitcoin
   bitcoinAssetName: string;
   bitcoinAssetSymbol: string;
+  bitcoinLoadingBody: string;
+  bitcoinLoadFailedError: string;
   bitcoinRecipientPlaceholder: string;
   bitcoinInvalidAddressError: string;
   bitcoinUnconfirmedLabel: string;
@@ -401,6 +403,8 @@ export const ACME_PRESET: IStyleFormState = {
   advancedOptionsChangeAccountLabel: "Change account",
   bitcoinAssetName: "Bitcoin",
   bitcoinAssetSymbol: "BTC",
+  bitcoinLoadingBody: "Loading…",
+  bitcoinLoadFailedError: "Failed to load Bitcoin balance",
   bitcoinRecipientPlaceholder: "bc1q… or tb1q…",
   bitcoinInvalidAddressError: "Enter a valid SegWit (bc1q / tb1q) address.",
   bitcoinUnconfirmedLabel: "(Unconfirmed)",
@@ -566,6 +570,8 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   advancedOptionsChangeAccountLabel: "",
   bitcoinAssetName: "",
   bitcoinAssetSymbol: "",
+  bitcoinLoadingBody: "",
+  bitcoinLoadFailedError: "",
   bitcoinRecipientPlaceholder: "",
   bitcoinInvalidAddressError: "",
   bitcoinUnconfirmedLabel: "",
@@ -947,6 +953,8 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   const bitcoin: Record<string, string> = {};
   put(bitcoin, "assetName", form.bitcoinAssetName);
   put(bitcoin, "assetSymbol", form.bitcoinAssetSymbol);
+  put(bitcoin, "loadingBody", form.bitcoinLoadingBody);
+  put(bitcoin, "loadFailedError", form.bitcoinLoadFailedError);
   put(bitcoin, "recipientPlaceholder", form.bitcoinRecipientPlaceholder);
   put(bitcoin, "invalidAddressError", form.bitcoinInvalidAddressError);
   put(bitcoin, "unconfirmedLabel", form.bitcoinUnconfirmedLabel);
