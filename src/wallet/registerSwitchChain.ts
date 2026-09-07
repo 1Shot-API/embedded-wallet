@@ -40,7 +40,12 @@ export function registerSwitchChainRpc(
       const chainId = toOwsChainId(raw);
 
       if (ChainUtils.isBitcoinChainId(chainId)) {
-        useWalletSessionStore.getState().setChainId(chainId);
+        const session = useWalletSessionStore.getState();
+        session.setChainId(chainId);
+        // Focused mode holds an EVM asset address — drop it on Bitcoin switch.
+        if (session.focusedAssetAddress) {
+          session.setFocusedAssetAddress(null);
+        }
         return {
           ok: true as const,
           chainId:

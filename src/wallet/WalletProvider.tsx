@@ -488,7 +488,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const switchChain = useCallback(async (next: OWSChainId) => {
     if (ChainUtils.isBitcoinChainId(next)) {
-      useWalletSessionStore.getState().setChainId(next);
+      const session = useWalletSessionStore.getState();
+      session.setChainId(next);
+      if (session.focusedAssetAddress) {
+        session.setFocusedAssetAddress(null);
+      }
       return;
     }
 

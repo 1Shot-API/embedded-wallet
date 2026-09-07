@@ -4,7 +4,6 @@ import { CheckIcon, CopyIcon, XIcon } from "lucide-react";
 import {
   BITCOIN_MAINNET_CHAIN_ID,
   ChainUtils,
-  EVMChainId,
   type OWSChainId,
 } from "@1shotapi/ows-types";
 import { Button } from "@/components/ui/button";
@@ -49,12 +48,14 @@ function FocusedAssetPanel() {
 
   useEffect(() => {
     if (!focusedAssetAddress) return;
+    if (!ChainUtils.isEVMChainId(chainId)) {
+      setAsset(null);
+      setError(null);
+      return;
+    }
     let cancelled = false;
     setError(null);
-    void resolveTrackedAsset(
-      chainId as EVMChainId,
-      focusedAssetAddress,
-    )
+    void resolveTrackedAsset(chainId, focusedAssetAddress)
       .then((resolved) => {
         if (!cancelled) setAsset(resolved);
       })
