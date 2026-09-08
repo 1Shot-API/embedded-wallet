@@ -207,6 +207,56 @@ export const styleCopyGrantExecutionPermissionSchema = z.strictObject({
   invalidAmountError: z.string(),
   invalidDurationError: z.string(),
   rejectLabel: z.string(),
+  nextLabel: z.string(),
+  grantLabel: z.string(),
+});
+
+export const styleCopyGrantLiFiSwapPermissionSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  quoteNote: z.string(),
+  hostLabel: z.string(),
+  toLabel: z.string(),
+  chainLabel: z.string(),
+  permissionTypeLabel: z.string(),
+  tokenLabel: z.string(),
+  periodAmountLabel: z.string(),
+  periodAmountPlaceholder: z.string(),
+  periodDurationLabel: z.string(),
+  periodDurationPlaceholder: z.string(),
+  periodDurationHint: z.string(),
+  startLabel: z.string(),
+  slippageLabel: z.string(),
+  slippageHint: z.string(),
+  lifiDiamondLabel: z.string(),
+  quoteSignerLabel: z.string(),
+  outputAssetLabel: z.string(),
+  outputRecipientLabel: z.string(),
+  destinationChainLabel: z.string(),
+  memoLabel: z.string(),
+  memoPlaceholder: z.string(),
+  invalidAmountError: z.string(),
+  invalidDurationError: z.string(),
+  invalidSlippageError: z.string(),
+  rejectLabel: z.string(),
+  nextLabel: z.string(),
+  grantLabel: z.string(),
+});
+
+export const styleCopyGrantLiFiApprovePermissionSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  warning: z.string(),
+  hostLabel: z.string(),
+  toLabel: z.string(),
+  chainLabel: z.string(),
+  permissionTypeLabel: z.string(),
+  tokenLabel: z.string(),
+  spenderLabel: z.string(),
+  memoLabel: z.string(),
+  memoPlaceholder: z.string(),
+  rejectLabel: z.string(),
+  nextLabel: z.string(),
   grantLabel: z.string(),
 });
 
@@ -309,6 +359,8 @@ export const styleCopyDelegationsSchema = z.strictObject({
   noMemoLabel: z.string(),
   periodSummary: z.string(),
   permissionSummary: z.string(),
+  swapSummary: z.string(),
+  approveSummary: z.string(),
 });
 
 export const styleCopyBalancesSchema = z.strictObject({
@@ -388,6 +440,16 @@ export const styleCopyAdvancedOptionsSchema = z.strictObject({
   closeLabel: z.string(),
 });
 
+export const styleCopyBitcoinSchema = z.strictObject({
+  assetName: z.string(),
+  assetSymbol: z.string(),
+  loadingBody: z.string(),
+  loadFailedError: z.string(),
+  recipientPlaceholder: z.string(),
+  invalidAddressError: z.string(),
+  unconfirmedLabel: z.string(),
+});
+
 export const styleCopyResolvedSchema = z.strictObject({
   productName: z.string(),
   tagline: z.string(),
@@ -404,6 +466,8 @@ export const styleCopyResolvedSchema = z.strictObject({
   transferTokens: styleCopyTransferTokensSchema,
   cctpBridge: styleCopyCctpBridgeSchema,
   grantExecutionPermission: styleCopyGrantExecutionPermissionSchema,
+  grantLiFiSwapPermission: styleCopyGrantLiFiSwapPermissionSchema,
+  grantLiFiApprovePermission: styleCopyGrantLiFiApprovePermissionSchema,
   cancelDelegation: styleCopyCancelDelegationSchema,
   relayerSubmit: styleCopyRelayerSubmitSchema,
   passkeyPrompt: styleCopyPasskeyPromptSchema,
@@ -415,6 +479,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   exportPrivateKey: styleCopyExportPrivateKeySchema,
   importPrivateKey: styleCopyImportPrivateKeySchema,
   advancedOptions: styleCopyAdvancedOptionsSchema,
+  bitcoin: styleCopyBitcoinSchema,
 });
 
 const passkeyPromptPatchSchema = z.strictObject({
@@ -448,6 +513,10 @@ export const styleCopyPatchSchema = z.strictObject({
   cctpBridge: styleCopyCctpBridgeSchema.partial().optional(),
   grantExecutionPermission:
     styleCopyGrantExecutionPermissionSchema.partial().optional(),
+  grantLiFiSwapPermission:
+    styleCopyGrantLiFiSwapPermissionSchema.partial().optional(),
+  grantLiFiApprovePermission:
+    styleCopyGrantLiFiApprovePermissionSchema.partial().optional(),
   cancelDelegation: styleCopyCancelDelegationSchema.partial().optional(),
   relayerSubmit: styleCopyRelayerSubmitSchema.partial().optional(),
   passkeyPrompt: passkeyPromptPatchSchema.optional(),
@@ -460,13 +529,16 @@ export const styleCopyPatchSchema = z.strictObject({
   exportPrivateKey: styleCopyExportPrivateKeySchema.partial().optional(),
   importPrivateKey: styleCopyImportPrivateKeySchema.partial().optional(),
   advancedOptions: styleCopyAdvancedOptionsSchema.partial().optional(),
+  bitcoin: styleCopyBitcoinSchema.partial().optional(),
 });
 
 export const styleFeaturesPatchSchema = z.strictObject({
   hideCloseBox: z.boolean().optional(),
   disableCredentials: z.boolean().optional(),
   disableDelegations: z.boolean().optional(),
-  allowedChains: z.array(z.string().regex(/^0x[0-9a-fA-F]+$/)).optional(),
+  allowedChains: z
+    .array(z.string().regex(/^(0x[0-9a-fA-F]+|Bitcoin|BitcoinTestnet)$/))
+    .optional(),
 });
 
 /**
@@ -505,6 +577,12 @@ export type IStyleCopyCctpBridge = z.infer<typeof styleCopyCctpBridgeSchema>;
 export type IStyleCopyGrantExecutionPermission = z.infer<
   typeof styleCopyGrantExecutionPermissionSchema
 >;
+export type IStyleCopyGrantLiFiSwapPermission = z.infer<
+  typeof styleCopyGrantLiFiSwapPermissionSchema
+>;
+export type IStyleCopyGrantLiFiApprovePermission = z.infer<
+  typeof styleCopyGrantLiFiApprovePermissionSchema
+>;
 export type IStyleCopyCancelDelegation = z.infer<
   typeof styleCopyCancelDelegationSchema
 >;
@@ -535,6 +613,7 @@ export type IStyleCopyImportPrivateKey = z.infer<
 export type IStyleCopyAdvancedOptions = z.infer<
   typeof styleCopyAdvancedOptionsSchema
 >;
+export type IStyleCopyBitcoin = z.infer<typeof styleCopyBitcoinSchema>;
 export type IStyleCopyOptions = z.infer<typeof styleCopyPatchSchema>;
 export type IResolvedCopy = z.infer<typeof styleCopyResolvedSchema>;
 export type IStyleFeaturesOptions = z.infer<typeof styleFeaturesPatchSchema>;

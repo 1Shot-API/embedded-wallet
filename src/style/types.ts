@@ -20,6 +20,8 @@ export type {
   IStyleCopyTransferTokens,
   IStyleCopyCctpBridge,
   IStyleCopyGrantExecutionPermission,
+  IStyleCopyGrantLiFiSwapPermission,
+  IStyleCopyGrantLiFiApprovePermission,
   IStyleCopyCancelDelegation,
   IStyleCopyRelayerSubmit,
   IStyleCopyPasskeyPromptEntry,

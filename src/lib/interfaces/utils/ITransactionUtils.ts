@@ -1,7 +1,7 @@
 import type {
   EVMAccountAddress,
-  EVMChainId,
   HexString,
+  OWSChainId,
 } from "@1shotapi/ows-types";
 
 export interface IDecodedErc20Transfer {
@@ -26,8 +26,11 @@ export interface ITransactionUtils {
   resolveHostDomain(): string;
 
   chainLabelFor(
-    chainId: EVMChainId,
-    chains: ReadonlyArray<{ chainId: EVMChainId; label: string }>,
+    chainId: OWSChainId,
+    chains: ReadonlyArray<{
+      chainId: OWSChainId;
+      label: string;
+    }>,
   ): string;
 }
 

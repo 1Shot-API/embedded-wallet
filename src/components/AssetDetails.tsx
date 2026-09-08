@@ -12,6 +12,10 @@ import { EAssetType } from "../lib/types/enum/EAssetType";
 import { useStyle } from "../style/StyleProvider";
 import { useWallet } from "../wallet/WalletProvider";
 import { resolveActiveAddress } from "../wallet/activeAddress";
+import {
+  BITCOIN_MAINNET_CHAIN_ID,
+  ChainUtils,
+} from "@1shotapi/ows-types";
 import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import { openOnramp } from "../circle/openOnramp";
@@ -35,10 +39,13 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   const { style } = useStyle();
   const { balances: copy } = style.copy;
   const { requestBalanceRefresh, resolveChain, getKnownAsset } = useWallet();
-  const { evmAddress, solanaAddress } = useWalletSessionStore(
+  const { evmAddress, solanaAddress, bitcoinMainnetAddress, bitcoinTestnetAddress } =
+    useWalletSessionStore(
     useShallow((state) => ({
       evmAddress: state.evmAddress,
       solanaAddress: state.solanaAddress,
+      bitcoinMainnetAddress: state.bitcoinMainnetAddress,
+      bitcoinTestnetAddress: state.bitcoinTestnetAddress,
     })),
   );
   const [receiveOpen, setReceiveOpen] = useState(false);
@@ -88,6 +95,11 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
     chainId: asset.chainId,
     evmAddress,
     solanaAddress,
+    bitcoinAddress: ChainUtils.isBitcoinChainId(asset.chainId)
+      ? asset.chainId === BITCOIN_MAINNET_CHAIN_ID
+        ? bitcoinMainnetAddress
+        : bitcoinTestnetAddress
+      : undefined,
   });
   const canSend = asset.type === EAssetType.Erc20;
   const canBuy =

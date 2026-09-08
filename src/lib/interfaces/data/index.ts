@@ -25,6 +25,8 @@ export type {
 export { IOneshotRelayerRepositoryType } from "./IOneshotRelayerRepository";
 export type { IChainRepository } from "./IChainRepository";
 export { IChainRepositoryType } from "./IChainRepository";
+export type { IBitcoinBalance, IBitcoinRpc } from "./IBitcoinRpc";
+export { IBitcoinRpcType } from "./IBitcoinRpc";
 export type {
   ICctpInFlightBurn,
   ICircleRepository,

@@ -60,6 +60,10 @@ export interface IGrantExecutionPermissionRequest {
   request: IExecutionPermissionRequest;
   domain: string;
   chainName: string;
+  /** 0-based index within the current `wallet_requestExecutionPermissions` batch. */
+  batchIndex: number;
+  /** Total permissions in the batch (always ≥ 1). */
+  batchCount: number;
 }
 
 export type IGrantExecutionPermissionResult = {
@@ -157,6 +161,20 @@ export type ModalRequest =
   | {
       id: string;
       kind: "grantExecutionPermission";
+      request: IGrantExecutionPermissionRequest;
+      resolve: (result: IGrantExecutionPermissionResult) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "grantLiFiSwapPermission";
+      request: IGrantExecutionPermissionRequest;
+      resolve: (result: IGrantExecutionPermissionResult) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "grantLiFiApprovePermission";
       request: IGrantExecutionPermissionRequest;
       resolve: (result: IGrantExecutionPermissionResult) => void;
       reject: (error: unknown) => void;

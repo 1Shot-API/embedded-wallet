@@ -62,6 +62,14 @@ export function mergeStyle(
         ...current.copy.grantExecutionPermission,
         ...patch.copy?.grantExecutionPermission,
       },
+      grantLiFiSwapPermission: {
+        ...current.copy.grantLiFiSwapPermission,
+        ...patch.copy?.grantLiFiSwapPermission,
+      },
+      grantLiFiApprovePermission: {
+        ...current.copy.grantLiFiApprovePermission,
+        ...patch.copy?.grantLiFiApprovePermission,
+      },
       cancelDelegation: {
         ...current.copy.cancelDelegation,
         ...patch.copy?.cancelDelegation,
@@ -148,6 +156,10 @@ export function mergeStyle(
         ...current.copy.advancedOptions,
         ...patch.copy?.advancedOptions,
       },
+      bitcoin: {
+        ...current.copy.bitcoin,
+        ...patch.copy?.bitcoin,
+      },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
     features: {
@@ -168,7 +180,7 @@ export function mergeStyle(
           ? current.features.allowedChains
           : patch.features.allowedChains.length === 0
             ? null
-            : [...patch.features.allowedChains],
+            : patch.features.allowedChains.map((id) => String(id)),
     },
     destinationUrl:
       patch.destinationUrl === undefined
@@ -206,6 +218,12 @@ function cloneDefaultStyle(): IResolvedStyle {
       grantExecutionPermission: {
         ...DEFAULT_STYLE.copy.grantExecutionPermission,
       },
+      grantLiFiSwapPermission: {
+        ...DEFAULT_STYLE.copy.grantLiFiSwapPermission,
+      },
+      grantLiFiApprovePermission: {
+        ...DEFAULT_STYLE.copy.grantLiFiApprovePermission,
+      },
       cancelDelegation: { ...DEFAULT_STYLE.copy.cancelDelegation },
       relayerSubmit: { ...DEFAULT_STYLE.copy.relayerSubmit },
       passkeyPrompt: {
@@ -233,6 +251,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       exportPrivateKey: { ...DEFAULT_STYLE.copy.exportPrivateKey },
       importPrivateKey: { ...DEFAULT_STYLE.copy.importPrivateKey },
       advancedOptions: { ...DEFAULT_STYLE.copy.advancedOptions },
+      bitcoin: { ...DEFAULT_STYLE.copy.bitcoin },
     },
     features: {
       hideCloseBox: DEFAULT_STYLE.features.hideCloseBox,

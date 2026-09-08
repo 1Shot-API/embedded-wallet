@@ -99,8 +99,11 @@ new RpcHelper(providers, wallet, signer, {
     getSupportedExecutionPermissions: async () => ({
       "erc20-token-periodic": {
         chainIds: [...rpcHelper.getConfiguredChainIds()],
-        ruleTypes: [],
+        ruleTypes: ["expiry"],
       },
+      // 1Shot embedded-wallet also supports LiFi on Base:
+      // "lifi-swap-approve" / "lifi-swap-periodic" with LiFiSwapEnforcer.
+      // Request them as separate batch items — never one Delegation[] chain.
     }),
     getGrantedExecutionPermissions: async () => { /* map stored grants */ },
   },

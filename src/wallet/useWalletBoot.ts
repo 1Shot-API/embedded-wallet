@@ -2,6 +2,7 @@ import { useEffect, type RefObject } from "react";
 import { OWSSigner } from "@1shotapi/ows-signer-utils";
 import { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
 import {
+  ChainUtils,
   EVMAccountAddress,
   OwsInvalidParamsError,
   OwsUserRejectedError,
@@ -34,6 +35,8 @@ import { registerConfigureRpc } from "../style/registerConfigure";
 import { wrapSignerWithCeremonyCopy } from "./wrapSignerWithCeremonyCopy";
 import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
 import {
+  analyticsErrorCode,
+  isAnalyticsCancelled,
   runWithAnalytics,
 } from "../lib/implementations/utils";
 import type {
@@ -45,7 +48,11 @@ import type {
   IDelegationService,
   ITransactionService,
 } from "../lib/interfaces/business";
-import { ERC20_TOKEN_PERIODIC } from "../lib/interfaces/business/IDelegationService";
+import {
+  ERC20_TOKEN_PERIODIC,
+  LIFI_SWAP_APPROVE,
+  LIFI_SWAP_PERIODIC,
+} from "../lib/interfaces/business/IDelegationService";
 import type {
   IConfigProvider,
   IEventBus,
@@ -54,6 +61,7 @@ import type {
   ITransactionUtils,
 } from "../lib/interfaces/utils";
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
+import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
 import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type { SupportedChain } from "../lib/types/domain";
 import type { TokenAmount } from "../lib/types/primitives";
@@ -78,9 +86,12 @@ import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerCreateAccountRpc } from "./registerCreateAccount";
 import type { IPasskeyRegistrationResult } from "./registerCreateAccount";
 import { registerFocusModeRpc } from "./registerFocusMode";
+import { registerSwitchChainRpc } from "./registerSwitchChain";
 import { registerOnrampRpc } from "./registerOnramp";
 import { registerBridgeRpc } from "./registerBridge";
+import { registerBitcoinProvider } from "../ows/registerBitcoinProvider";
 import { loadCachedEvmAddress, loadCredentialId } from "../storage";
+import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
 import { pushModal } from "./pushModal";
 import type {
   ActiveModal,
@@ -188,6 +199,7 @@ export interface IUseWalletBootParams {
   delegationService: IDelegationService;
   transactionUtils: ITransactionUtils;
   cctpUtils: ICCTPUtils;
+  liFiUtils: ILiFiUtils;
   credentialRepository: CachedRelayerVaultRepository;
   walletStorage: AccountConnectStorage;
   eventBus: IEventBus;
@@ -218,6 +230,7 @@ export function useWalletBoot({
   delegationService,
   transactionUtils,
   cctpUtils,
+  liFiUtils,
   credentialRepository,
   walletStorage,
   eventBus,
@@ -286,13 +299,28 @@ export function useWalletBoot({
             kind: "connect",
             resolve,
           })),
-        getChainId: () => useWalletSessionStore.getState().chainId,
+        getChainId: () => {
+          const id = useWalletSessionStore.getState().chainId;
+          if (ChainUtils.isBitcoinChainId(id)) {
+            return DEFAULT_CHAIN_ID;
+          }
+          return id;
+        },
+      });
+
+      registerBitcoinProvider(wallet, {
+        owsProvider,
+        ensureReady,
       });
 
       const catalog = chainRepository.getCatalog();
       const defaultChainId = DEFAULT_CHAIN_ID;
       const rpcHelper = new RpcHelper(
-        new Map(catalog.map((chain) => [chain.chainId, chain.rpcUrl])),
+        new Map(
+          catalog
+            .filter((chain) => ChainUtils.isEVMChainId(chain.chainId))
+            .map((chain) => [chain.chainId as typeof defaultChainId, chain.rpcUrl]),
+        ),
         wallet,
         signer,
         {
@@ -304,11 +332,19 @@ export function useWalletBoot({
               const wallet = await owsProvider.getWallet();
               const display = await wallet.requestDisplay();
               try {
-                const responses = [];
-                for (const request of requests) {
-                  if (request.permission.type !== ERC20_TOKEN_PERIODIC) {
+                if (requests.length === 0) {
+                  return [];
+                }
+
+                const prepared = requests.map((request) => {
+                  const permissionType = request.permission.type;
+                  const isErc20Periodic =
+                    permissionType === ERC20_TOKEN_PERIODIC;
+                  const isLiFiSwap = permissionType === LIFI_SWAP_PERIODIC;
+                  const isLiFiApprove = permissionType === LIFI_SWAP_APPROVE;
+                  if (!isErc20Periodic && !isLiFiSwap && !isLiFiApprove) {
                     throw new OwsInvalidParamsError(
-                      `Unsupported execution permission type: ${request.permission.type}`,
+                      `Unsupported execution permission type: ${permissionType}`,
                     );
                   }
                   const chain = resolveChain(request.chainId);
@@ -317,62 +353,124 @@ export function useWalletBoot({
                       `Chain ${request.chainId} does not support execution permissions`,
                     );
                   }
-                  const domain = transactionUtils.resolveHostDomain();
-                  const { hostDomain } = await configProvider.getConfig();
+                  if (
+                    (isLiFiSwap || isLiFiApprove) &&
+                    liFiUtils.resolveSwapEnforcer(request.chainId) === null
+                  ) {
+                    throw new OwsInvalidParamsError(
+                      `LiFi swap permissions are not supported on chain ${request.chainId}`,
+                    );
+                  }
+                  const grantKind = isLiFiSwap
+                    ? ("grantLiFiSwapPermission" as const)
+                    : isLiFiApprove
+                      ? ("grantLiFiApprovePermission" as const)
+                      : ("grantExecutionPermission" as const);
+                  return { request, chain, grantKind };
+                });
+
+                const domain = transactionUtils.resolveHostDomain();
+                const { hostDomain } = await configProvider.getConfig();
+                const batchCount = prepared.length;
+                const approvedItems = [];
+
+                for (let batchIndex = 0; batchIndex < prepared.length; batchIndex++) {
+                  const { request, chain, grantKind } = prepared[batchIndex]!;
                   const started = performance.now();
                   const account = analyticsAccountAddress();
-                  const stored = await runWithAnalytics(
-                    (event) => eventBus.emitAnalytics(event),
-                    async () => {
-                      const approved =
-                        await ask<IGrantExecutionPermissionResult>(
-                          ({ id, resolve, reject }) => ({
-                            id,
-                            kind: "grantExecutionPermission",
-                            request: {
-                              request,
-                              domain,
-                              chainName: chain.label,
-                            },
-                            resolve,
-                            reject,
-                          }),
-                        );
-                      return delegationService.createExecutionPermission({
-                        request,
-                        permission: approved.permission,
-                        memo: approved.memo,
-                        onDelegationSigned: onSigningAuthenticated,
-                      });
-                    },
-                    {
-                      success: () =>
-                        new DelegationCreatedEvent(
-                          hostDomain,
-                          account,
-                          request.chainId,
-                          Math.round(performance.now() - started),
-                        ),
-                      cancelled: () =>
+                  try {
+                    const approved =
+                      await ask<IGrantExecutionPermissionResult>(
+                        ({ id, resolve, reject }) => ({
+                          id,
+                          kind: grantKind,
+                          request: {
+                            request,
+                            domain,
+                            chainName: chain.label,
+                            batchIndex,
+                            batchCount,
+                          },
+                          resolve,
+                          reject,
+                        }),
+                      );
+                    approvedItems.push({
+                      request,
+                      permission: approved.permission,
+                      memo: approved.memo,
+                    });
+                  } catch (error: unknown) {
+                    const durationMs = Math.round(performance.now() - started);
+                    if (isAnalyticsCancelled(error)) {
+                      eventBus.emitAnalytics(
                         new DelegationCreateCancelledEvent(
                           hostDomain,
                           account,
                           request.chainId,
-                          Math.round(performance.now() - started),
+                          durationMs,
                         ),
-                      failed: (errorCode) =>
+                      );
+                    } else {
+                      eventBus.emitAnalytics(
                         new DelegationCreateFailedEvent(
                           hostDomain,
                           account,
                           request.chainId,
-                          errorCode,
-                          Math.round(performance.now() - started),
+                          analyticsErrorCode(error),
+                          durationMs,
                         ),
-                    },
-                  );
-                  responses.push(stored.permissionResponse);
+                      );
+                    }
+                    throw error;
+                  }
                 }
-                return responses;
+
+                const signStarted = performance.now();
+                const account = analyticsAccountAddress();
+                try {
+                  const storedList =
+                    await delegationService.createExecutionPermissions({
+                      items: approvedItems,
+                      onDelegationsSigned: onSigningAuthenticated,
+                    });
+                  const durationMs = Math.round(performance.now() - signStarted);
+                  for (const stored of storedList) {
+                    eventBus.emitAnalytics(
+                      new DelegationCreatedEvent(
+                        hostDomain,
+                        account,
+                        stored.chainId,
+                        durationMs,
+                      ),
+                    );
+                  }
+                  return storedList.map((stored) => stored.permissionResponse);
+                } catch (error: unknown) {
+                  const durationMs = Math.round(performance.now() - signStarted);
+                  const chainId = approvedItems[0]!.request.chainId;
+                  if (isAnalyticsCancelled(error)) {
+                    eventBus.emitAnalytics(
+                      new DelegationCreateCancelledEvent(
+                        hostDomain,
+                        account,
+                        chainId,
+                        durationMs,
+                      ),
+                    );
+                  } else {
+                    eventBus.emitAnalytics(
+                      new DelegationCreateFailedEvent(
+                        hostDomain,
+                        account,
+                        chainId,
+                        analyticsErrorCode(error),
+                        durationMs,
+                      ),
+                    );
+                  }
+                  throw error;
+                }
               } finally {
                 await display.hide();
               }
@@ -482,6 +580,7 @@ export function useWalletBoot({
       session.setChainId(rpcHelper.getChainId());
       chainEvents = rpcHelper.events;
 
+      registerSwitchChainRpc(wallet, rpcHelper);
       registerFocusModeRpc(wallet, rpcHelper);
 
       registerOnrampRpc(wallet, {
@@ -502,7 +601,13 @@ export function useWalletBoot({
           }
           return address;
         },
-        getSessionChainId: () => useWalletSessionStore.getState().chainId,
+        getSessionChainId: () => {
+          const id = useWalletSessionStore.getState().chainId;
+          if (ChainUtils.isBitcoinChainId(id)) {
+            return DEFAULT_CHAIN_ID;
+          }
+          return id as EVMChainId;
+        },
         chainRepository,
         knownAssetRepository,
         cctpUtils,
@@ -841,9 +946,12 @@ export function useWalletBoot({
       });
 
       void awaitSigner()
-        .then(() => {
+        .then((signer) => {
           if (cancelled) return;
           useWalletSessionStore.getState().setSignerReady(true);
+          // Returning sessions hydrate as unlocked with EVM/Solana cache only —
+          // backfill Bitcoin addresses from cached secp key (no ceremony).
+          hydrateBitcoinAddressesFromCachedSecp(signer);
         })
         .catch((error: unknown) => {
           if (cancelled) return;

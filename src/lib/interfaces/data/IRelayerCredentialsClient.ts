@@ -47,8 +47,11 @@ export interface IRelayerCredentialsClient {
   ): Promise<{ credentialId: string }>;
 
   storeCredential(
-    body: IWebAuthnAssertionRequest & { ciphertext: string },
-  ): Promise<{ id: string }>;
+    body: IWebAuthnAssertionRequest & {
+      ciphertext?: string;
+      ciphertexts?: string[];
+    },
+  ): Promise<{ id: string; ids: string[] }>;
 
   recoverCredentials(
     body: IWebAuthnAssertionRequest,

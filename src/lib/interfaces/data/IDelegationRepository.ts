@@ -13,6 +13,8 @@ import type { IWalletCredentialChallengeResponse } from "../../types/domain/Rela
  */
 export interface IDelegationRepository {
   storeDelegation(delegation: IStoredDelegation): Promise<void>;
+  /** Persist multiple delegations; one encrypt + one multi-blob vault upload. */
+  storeDelegations(delegations: IStoredDelegation[]): Promise<void>;
   getDelegation(
     delegationId: DelegationId,
   ): Promise<IStoredDelegation | undefined>;

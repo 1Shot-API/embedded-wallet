@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { EVMAccountAddress } from "@1shotapi/ows-types";
+import {
+  ChainUtils,
+  EVMAccountAddress,
+} from "@1shotapi/ows-types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "../Modal";
@@ -25,6 +28,10 @@ export function AddAssetView({ onClose }: IAddAssetViewProps) {
   const [adding, setAdding] = useState(false);
 
   const onSubmit = async () => {
+    if (!ChainUtils.isEVMChainId(chainId)) {
+      setError(copy.addFailedError);
+      return;
+    }
     const trimmed = addressInput.trim();
     if (!ADDRESS_RE.test(trimmed)) {
       setError(copy.invalidAddressError);

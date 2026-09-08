@@ -30,5 +30,7 @@ export class WalletConfig {
      * Circle onramp widget origin (must match Relayer `ONRAMP_WIDGET_BASE_URL`).
      */
     public readonly onrampWidgetBaseUrl: string,
+    /** Ankr API key for Bitcoin JSON-RPC + Blockbook (mainnet). */
+    public readonly ankrBtcApiKey: string,
   ) {}
 }

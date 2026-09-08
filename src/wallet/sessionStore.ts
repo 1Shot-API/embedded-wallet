@@ -1,7 +1,10 @@
 import { create } from "zustand";
 import {
+  BITCOIN_MAINNET_CHAIN_ID,
+  type BitcoinChainId,
+  type BitcoinSegwitAccountAddress,
   EVMAccountAddress,
-  EVMChainId,
+  type OWSChainId,
   SolanaAccountAddress,
 } from "@1shotapi/ows-types";
 import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
@@ -23,7 +26,9 @@ export interface IWalletSessionState {
   walletCreated: boolean;
   evmAddress: EVMAccountAddress;
   solanaAddress: SolanaAccountAddress;
-  chainId: EVMChainId;
+  bitcoinMainnetAddress: BitcoinSegwitAccountAddress | null;
+  bitcoinTestnetAddress: BitcoinSegwitAccountAddress | null;
+  chainId: OWSChainId;
   credentialCount: number;
   /** Bumped on tracked-asset add/remove so Balances tab reloads. */
   trackedAssetCount: number;
@@ -38,14 +43,20 @@ export interface IWalletSessionState {
   setAddresses: (
     evm: EVMAccountAddress,
     solana: SolanaAccountAddress,
+    bitcoinMainnet?: BitcoinSegwitAccountAddress | null,
+    bitcoinTestnet?: BitcoinSegwitAccountAddress | null,
   ) => void;
-  setChainId: (chainId: EVMChainId) => void;
+  setBitcoinAddress: (
+    chainId: BitcoinChainId,
+    address: BitcoinSegwitAccountAddress,
+  ) => void;
+  setChainId: (chainId: OWSChainId) => void;
   setCredentialCount: (count: number) => void;
   setTrackedAssetCount: (count: number) => void;
   setMode: (mode: EWalletMode) => void;
   setFocusedAssetAddress: (address: EVMAccountAddress | null) => void;
   focusWallet: (
-    chainId: EVMChainId,
+    chainId: OWSChainId,
     assetAddress: EVMAccountAddress,
   ) => void;
   unfocusWallet: () => void;
@@ -60,6 +71,8 @@ function hydrateSessionFromCache(): {
   unlocked: boolean;
   evmAddress: EVMAccountAddress;
   solanaAddress: SolanaAccountAddress;
+  bitcoinMainnetAddress: BitcoinSegwitAccountAddress | null;
+  bitcoinTestnetAddress: BitcoinSegwitAccountAddress | null;
 } {
   if (typeof window === "undefined") {
     return {
@@ -67,6 +80,8 @@ function hydrateSessionFromCache(): {
       unlocked: false,
       evmAddress: EVMAccountAddress("0x0"),
       solanaAddress: SolanaAccountAddress("—"),
+      bitcoinMainnetAddress: null,
+      bitcoinTestnetAddress: null,
     };
   }
   const cached = reconcileCachedWalletSession();
@@ -75,6 +90,8 @@ function hydrateSessionFromCache(): {
     unlocked: cached.walletCreated,
     evmAddress: cached.evmAddress ?? EVMAccountAddress("0x0"),
     solanaAddress: cached.solanaAddress ?? SolanaAccountAddress("—"),
+    bitcoinMainnetAddress: cached.bitcoinMainnetAddress ?? null,
+    bitcoinTestnetAddress: cached.bitcoinTestnetAddress ?? null,
   };
 }
 
@@ -89,6 +106,8 @@ export const useWalletSessionStore = create<IWalletSessionState>((set) => ({
   walletCreated: hydratedSession.walletCreated,
   evmAddress: hydratedSession.evmAddress,
   solanaAddress: hydratedSession.solanaAddress,
+  bitcoinMainnetAddress: hydratedSession.bitcoinMainnetAddress,
+  bitcoinTestnetAddress: hydratedSession.bitcoinTestnetAddress,
   chainId: DEFAULT_CHAIN_ID,
   credentialCount: 0,
   trackedAssetCount: 0,
@@ -100,8 +119,24 @@ export const useWalletSessionStore = create<IWalletSessionState>((set) => ({
   setBootError: (bootError) => set({ bootError }),
   setUnlocked: (unlocked) => set({ unlocked }),
   setWalletCreated: (walletCreated) => set({ walletCreated }),
-  setAddresses: (evmAddress, solanaAddress) =>
-    set({ evmAddress, solanaAddress }),
+  setAddresses: (
+    evmAddress,
+    solanaAddress,
+    bitcoinMainnet = null,
+    bitcoinTestnet = null,
+  ) =>
+    set((state) => ({
+      evmAddress,
+      solanaAddress,
+      bitcoinMainnetAddress: bitcoinMainnet ?? state.bitcoinMainnetAddress,
+      bitcoinTestnetAddress: bitcoinTestnet ?? state.bitcoinTestnetAddress,
+    })),
+  setBitcoinAddress: (chainId, address) =>
+    set(
+      chainId === BITCOIN_MAINNET_CHAIN_ID
+        ? { bitcoinMainnetAddress: address }
+        : { bitcoinTestnetAddress: address },
+    ),
   setChainId: (chainId) => set({ chainId }),
   setCredentialCount: (credentialCount) => set({ credentialCount }),
   setTrackedAssetCount: (trackedAssetCount) => set({ trackedAssetCount }),

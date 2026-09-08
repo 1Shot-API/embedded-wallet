@@ -32,6 +32,24 @@ const ARC_TESTNET: IHostChainMeta = {
 };
 
 const HOST_CHAIN_SEED: readonly IHostChainMeta[] = [
+  {
+    value: "Bitcoin",
+    label: "Bitcoin",
+    usdc: "",
+    tokenSymbol: "BTC",
+    blockExplorerUrl: "https://mempool.space",
+    isTestnet: false,
+    weight: 85,
+  },
+  {
+    value: "BitcoinTestnet",
+    label: "Bitcoin Testnet",
+    usdc: "",
+    tokenSymbol: "tBTC",
+    blockExplorerUrl: "https://mempool.space/testnet",
+    isTestnet: true,
+    weight: 75,
+  },
   ...(EnableArcMainnet ? [ARC_MAINNET] : []),
   ARC_TESTNET,
   {
@@ -120,6 +138,18 @@ export const DEMO_ADD_ASSET_ICON_URL =
  */
 export const DEMO_EXECUTION_DELEGATEE =
   "0x1111111111111111111111111111111111111111" as const;
+
+/** Base mainnet LiFi Diamond (common production address). */
+export const DEMO_LIFI_DIAMOND_BASE =
+  "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE" as const;
+
+/** Base WETH — used as same-chain LiFi swap output in the playground. */
+export const DEMO_WETH_BASE =
+  "0x4200000000000000000000000000000000000006" as const;
+
+/** Demo quote signer for LiFi playground grants (not a production key). */
+export const DEMO_LIFI_QUOTE_SIGNER =
+  "0x2222222222222222222222222222222222222222" as const;
 
 export type UsdcMode = "balance" | "send";
 

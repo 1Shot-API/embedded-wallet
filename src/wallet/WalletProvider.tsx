@@ -17,29 +17,34 @@ import {
   type IBlockchainProvider,
 } from "@1shotapi/ows-wallet-utils";
 import {
+  ChainUtils,
   EVMAccountAddress,
+  EVMChainId,
   HexString,
   SolanaAccountAddress,
   type CredentialId,
   type CredentialSummary,
-  type EVMChainId,
   type EVMTransactionHash,
+  type OWSChainId,
   type StoredCredential,
 } from "@1shotapi/ows-types";
 import { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
 import { RelayerCredentialsClient } from "../lib/implementations/data/utils/RelayerCredentialsClient";
 import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
+import { AnkrBitcoinRpc } from "../lib/implementations/data/AnkrBitcoinRpc";
 import { CircleRepository } from "../lib/implementations/data/CircleRepository";
 import { HardcodedKnownAssetRepository } from "../lib/implementations/data/HardcodedKnownAssetRepository";
 import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
 import { BlockscoutAssetActivityRepository } from "../lib/implementations/data/BlockscoutAssetActivityRepository";
 import { OneshotRelayerRepository } from "../lib/implementations/data/OneshotRelayerRepository";
 import {
+  BitcoinService,
   BridgeService,
   BusinessTransactionUtils,
   CCTPUtils,
   DelegationService,
+  LiFiUtils,
   TransactionService,
 } from "../lib/implementations/business";
 import {
@@ -68,10 +73,12 @@ import type {
 } from "../lib/interfaces/data";
 import type {
   IBridgeService,
+  IBitcoinService,
   IDelegationService,
   ITransactionService,
 } from "../lib/interfaces/business";
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
+import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
 import type {
   ICircleProvider,
   IConfigProvider,
@@ -111,6 +118,8 @@ const configProvider: IConfigProvider = new ConfigProvider();
 const circleProvider: ICircleProvider = new CircleProvider(configProvider);
 const owsProvider: IOWSProvider = new OWSProvider();
 const chainRepository: IChainRepository = new HardcodedChainRepository();
+const bitcoinRpc = new AnkrBitcoinRpc(configProvider);
+const bitcoinService = new BitcoinService(bitcoinRpc, owsProvider);
 const blockchainProvider: IBlockchainProvider =
   new SupportedChainsBlockchainProvider(chainRepository);
 const addressUtils = new AddressUtils(blockchainProvider);
@@ -160,6 +169,7 @@ const businessTransactionUtils = new BusinessTransactionUtils({
 });
 
 const cctpUtils: ICCTPUtils = new CCTPUtils();
+const liFiUtils: ILiFiUtils = new LiFiUtils();
 
 const transactionService: ITransactionService = new TransactionService({
   chainRepository,
@@ -176,14 +186,15 @@ const bridgeService: IBridgeService = new BridgeService(
   blockchainProvider,
 );
 
-const delegationService: IDelegationService = new DelegationService({
+const delegationService: IDelegationService = new DelegationService(
   chainRepository,
-  delegationRepository: credentialRepository,
-  blockchain: blockchainProvider,
-  transactionUtils: businessTransactionUtils,
-  presentationTransactionUtils: transactionUtils,
+  credentialRepository,
+  blockchainProvider,
+  businessTransactionUtils,
+  transactionUtils,
   owsProvider,
-});
+  liFiUtils,
+);
 
 const walletStorage: AccountConnectStorage = {
   loadCachedEvmAddress,
@@ -214,11 +225,13 @@ export type WalletContextValue = {
   oneshotRelayerRepository: IOneshotRelayerRepository;
   transactionService: ITransactionService;
   bridgeService: IBridgeService;
+  bitcoinService: IBitcoinService;
   delegationService: IDelegationService;
+  liFiUtils: ILiFiUtils;
   eventBus: IEventBus;
 
   chains: SupportedChain[];
-  resolveChain: (chainId: EVMChainId) => SupportedChain | null;
+  resolveChain: (chainId: OWSChainId) => SupportedChain | null;
   signerContainerRef: RefObject<HTMLDivElement | null>;
   getSigner: () => OWSSigner | null;
   /** Resolves when the Signing Layer iframe has finished loading. */
@@ -228,7 +241,7 @@ export type WalletContextValue = {
   setUnlocked: (value: boolean) => void;
   refreshAddresses: () => Promise<void>;
   refreshCredentialCount: () => Promise<void>;
-  switchChain: (chainId: string) => Promise<void>;
+  switchChain: (chainId: OWSChainId) => Promise<void>;
   requestHide: () => Promise<void>;
   listCredentials: () => Promise<CredentialSummary[]>;
   getCredential: (
@@ -319,7 +332,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [...chainRepository.getCatalog()].filter((c) => c.enabled),
   );
 
-  const resolveChain = useCallback((chainId: EVMChainId): SupportedChain | null => {
+  const resolveChain = useCallback((chainId: OWSChainId): SupportedChain | null => {
     const key = String(chainId).toLowerCase();
     return (
       chainRepository
@@ -341,12 +354,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const next = listed[0];
       session.setChainId(next.chainId);
       const rpc = rpcHelperRef.current;
-      if (rpc) {
+      if (rpc && ChainUtils.isEVMChainId(next.chainId)) {
         try {
           await rpc.switchChain(next.chainId);
         } catch (error: unknown) {
           console.warn("[oneshot-wallet] failed to switch after allowlist", error);
         }
+      } else {
+        walletRef.current?.providerEvents.emit("chainChanged", next.chainId);
       }
     }
   }, []);
@@ -466,15 +481,35 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     delegationService,
     transactionUtils,
     cctpUtils,
+    liFiUtils,
     credentialRepository,
     walletStorage,
     eventBus,
     configProvider,
   });
 
-  const switchChain = useCallback(async (next: string) => {
+  const switchChain = useCallback(async (next: OWSChainId) => {
+    if (ChainUtils.isBitcoinChainId(next)) {
+      const session = useWalletSessionStore.getState();
+      session.setChainId(next);
+      if (session.focusedAssetAddress) {
+        session.setFocusedAssetAddress(null);
+      }
+      walletRef.current?.providerEvents.emit("chainChanged", next);
+      return;
+    }
+
+    if (!ChainUtils.isEVMChainId(next)) {
+      useWalletSessionStore.getState().setChainId(next);
+      walletRef.current?.providerEvents.emit("chainChanged", next);
+      return;
+    }
+
     const rpc = rpcHelperRef.current;
-    if (!rpc) return;
+    if (!rpc) {
+      useWalletSessionStore.getState().setChainId(next);
+      return;
+    }
     const previous = rpc.getChainId();
     try {
       await rpc.switchChain(next);
@@ -704,7 +739,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       oneshotRelayerRepository,
       transactionService,
       bridgeService,
+      bitcoinService,
       delegationService,
+      liFiUtils,
       eventBus,
       chains,
       resolveChain,

@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { OWSProxy } from "@1shotapi/ows-provider";
 import {
+  ChainUtils,
+  ConversionUtils,
   EVMAccountAddress,
   EVMChainId,
   HexString,
   type EVMTransactionHash,
   type IExecutionPermissionResponse,
+  type OWSChainId,
 } from "@1shotapi/ows-types";
 import {
   createPublicClient,
@@ -34,17 +37,23 @@ import {
 } from "../constants/bridgeDemo";
 import {
   DEMO_EXECUTION_DELEGATEE,
+  DEMO_LIFI_DIAMOND_BASE,
+  DEMO_LIFI_QUOTE_SIGNER,
+  DEMO_WETH_BASE,
   DEFAULT_HOST_CHAIN_ID,
   FOCUS_USDC_ARC,
   FOCUS_USDT_BASE,
   hostChainMeta,
   type UsdcMode,
 } from "../components/hostChains";
+import { mergeConfigurePayload } from "../styleForm";
 
 const USDC_DECIMALS = 6;
 
-/** One USDC in atoms (6 decimals), as hex for EIP-7715 periodAmount. */
-const ONE_USDC_ATOMS_HEX = HexString(`0x${(1_000_000).toString(16)}`);
+/** Ten USDC in atoms (6 decimals), as hex for EIP-7715 periodAmount. */
+const TEN_USDC_ATOMS_HEX = HexString(`0x${(10_000_000).toString(16)}`);
+
+const BASE_CHAIN_ID = "0x2105";
 
 type SessionGrant = {
   id: string;
@@ -63,8 +72,15 @@ function grantSummary(response: IExecutionPermissionResponse): string {
   return `${permissionType} · ${chain} · to ${to}`;
 }
 
-function normalizeChainIdHex(value: string): EVMChainId {
-  return EVMChainId(`0x${BigInt(value).toString(16)}`);
+/** Normalize EIP-1193 / session chain ids (EVM hex/decimal or Bitcoin sentinels). */
+function normalizeHostChainId(value: string): OWSChainId {
+  if (ChainUtils.isBitcoinChainId(value)) {
+    return ChainUtils.asBitcoinChainId(value);
+  }
+  if (ChainUtils.isSolanaChainId(value)) {
+    return ChainUtils.asSolanaChainId(value);
+  }
+  return ChainUtils.asEVMChainId(`0x${BigInt(value).toString(16)}`);
 }
 
 async function resolveAccount(
@@ -152,10 +168,10 @@ export function useHostTestActions({
   }, []);
 
   const refreshChainFromWallet = useCallback(
-    async (proxy: OWSProxy): Promise<EVMChainId> => {
-      const next = normalizeChainIdHex(
-        await proxy.ethereum.request({ method: "eth_chainId" }),
-      );
+    async (proxy: OWSProxy): Promise<OWSChainId> => {
+      // Session chain (EVM or Bitcoin) — `eth_chainId` cannot represent Bitcoin.
+      const result = (await proxy.rpc("getChainId")) as { chainId?: unknown };
+      const next = normalizeHostChainId(String(result?.chainId ?? ""));
       setChainId(String(next));
       return next;
     },
@@ -169,7 +185,7 @@ export function useHostTestActions({
 
     const onChainChanged = (next: unknown) => {
       try {
-        setChainId(String(normalizeChainIdHex(String(next))));
+        setChainId(normalizeHostChainId(String(next)));
       } catch (error) {
         console.error("[oneshot-wallet-host] chainChanged failed", error);
       }
@@ -227,17 +243,15 @@ export function useHostTestActions({
   const handleChainChange = (next: string) => {
     const proxy = proxyRef.current;
     if (!proxy) return;
-    const selected = EVMChainId(next as `0x${string}`);
     setBusy(true);
     clearUsdcOutputs();
     void (async () => {
       try {
-        await proxy.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: selected }],
-        });
-        setChainId(String(selected));
-        reportStatus(`Switched to ${selected}`);
+        // Custom RPC accepts EVM hex and Bitcoin `Bitcoin` / `BitcoinTestnet`
+        // (EIP-1193 is hex-only).
+        await proxy.rpc("switchChain", { chainId: next });
+        setChainId(next);
+        reportStatus(`Switched to ${next}`);
       } catch (error) {
         await refreshChainFromWallet(proxy).catch(() => undefined);
         reportStatus(
@@ -367,7 +381,7 @@ export function useHostTestActions({
     const proxy = proxyRef.current;
     if (!proxy) return;
     const meta = hostChainMeta(chainId);
-    if (!meta) {
+    if (!meta?.usdc) {
       reportStatus("USDC is not configured for this chain.", true);
       clearUsdcOutputs();
       return;
@@ -440,7 +454,7 @@ export function useHostTestActions({
     const proxy = proxyRef.current;
     if (!proxy) return;
     const meta = hostChainMeta(chainId);
-    if (!meta) {
+    if (!meta?.usdc) {
       reportStatus("USDC is not configured for this chain.", true);
       clearUsdcOutputs();
       return;
@@ -535,13 +549,19 @@ export function useHostTestActions({
     reportStatus("Wallet panel shown. Use Hide Wallet or the wallet menu to close.");
   };
 
-  const handleApplyStyle = async (options: Record<string, unknown>) => {
-    lastStyleRef.current = options;
+  const handleApplyStyle = async (
+    options: Record<string, unknown>,
+    applyOptions?: { replace?: boolean },
+  ) => {
+    const merged = applyOptions?.replace
+      ? options
+      : mergeConfigurePayload(lastStyleRef.current, options);
+    lastStyleRef.current = merged;
     const proxy = proxyRef.current;
     if (!proxy) {
       throw new Error("Wallet not connected");
     }
-    await proxy.rpc("configure", options);
+    await proxy.rpc("configure", merged);
   };
 
   const handleFocusUsdcArc = () => {
@@ -720,6 +740,11 @@ export function useHostTestActions({
         setWalletVisible(true);
         const account = await resolveAndStoreAccount(proxy);
         const activeChain = await refreshChainFromWallet(proxy);
+        if (!ChainUtils.isEVMChainId(activeChain)) {
+          throw new Error(
+            `EIP-7715 grants require an EVM chain (got ${activeChain}). Switch to a listed chain.`,
+          );
+        }
         const meta = hostChainMeta(String(activeChain));
         if (!meta) {
           throw new Error(
@@ -738,7 +763,7 @@ export function useHostTestActions({
                 isAdjustmentAllowed: true,
                 data: {
                   tokenAddress: meta.usdc,
-                  periodAmount: ONE_USDC_ATOMS_HEX,
+                  periodAmount: TEN_USDC_ATOMS_HEX,
                   periodDuration: 86_400,
                 },
               },
@@ -763,6 +788,97 @@ export function useHostTestActions({
           error instanceof Error
             ? error.message
             : "requestExecutionPermissions failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleRequestLiFiDelegation = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    setDelegationsOutput(null);
+    reportStatus("Requesting LiFi EIP-7715 permissions (approve + swap)…");
+    void (async () => {
+      try {
+        proxy.showWallet();
+        setWalletVisible(true);
+        const account = await resolveAndStoreAccount(proxy);
+        const activeChain = await refreshChainFromWallet(proxy);
+        if (!ChainUtils.isEVMChainId(activeChain)) {
+          throw new Error(
+            "LiFi playground grants require Base (0x2105). Switch chain first.",
+          );
+        }
+        if (String(activeChain).toLowerCase() !== BASE_CHAIN_ID) {
+          throw new Error(
+            "LiFi playground grants require Base (0x2105). Switch chain first.",
+          );
+        }
+        const meta = hostChainMeta(String(activeChain));
+        if (!meta) {
+          throw new Error(`No USDC fixture for chain ${activeChain}.`);
+        }
+        const outputRecipient = ConversionUtils.addressToBytes32Hex(account);
+        const outputAssetId =
+          ConversionUtils.addressToBytes32Hex(DEMO_WETH_BASE);
+        const responses = await proxy.ethereum.request({
+          method: "wallet_requestExecutionPermissions",
+          params: [
+            {
+              chainId: activeChain,
+              from: account,
+              to: EVMAccountAddress(DEMO_EXECUTION_DELEGATEE),
+              permission: {
+                type: "lifi-swap-approve",
+                isAdjustmentAllowed: true,
+                data: {
+                  tokenAddress: meta.usdc,
+                  spender: DEMO_LIFI_DIAMOND_BASE,
+                },
+              },
+            },
+            {
+              chainId: activeChain,
+              from: account,
+              to: EVMAccountAddress(DEMO_EXECUTION_DELEGATEE),
+              permission: {
+                type: "lifi-swap-periodic",
+                isAdjustmentAllowed: true,
+                data: {
+                  lifiDiamond: DEMO_LIFI_DIAMOND_BASE,
+                  tokenAddress: meta.usdc,
+                  outputAssetId,
+                  outputRecipient,
+                  destinationChainId: "8453",
+                  quoteSigner: DEMO_LIFI_QUOTE_SIGNER,
+                  periodAmount: TEN_USDC_ATOMS_HEX,
+                  periodDuration: 86_400,
+                  slippageBps: 50,
+                },
+              },
+            },
+          ],
+        });
+        const next: SessionGrant[] = responses.map((response) => {
+          grantSeqRef.current += 1;
+          return {
+            id: `grant-${grantSeqRef.current}`,
+            response,
+          };
+        });
+        setSessionGrants((prev) => [...next, ...prev]);
+        reportStatus(
+          `${next.length} LiFi permissions granted (approve + swap; kept in memory).`,
+        );
+      } catch (error) {
+        reportStatus(
+          error instanceof Error
+            ? error.message
+            : "LiFi requestExecutionPermissions failed",
           true,
         );
       } finally {
@@ -911,6 +1027,7 @@ export function useHostTestActions({
     })),
     delegationsOutput,
     onRequestDelegation: handleRequestDelegation,
+    onRequestLiFiDelegation: handleRequestLiFiDelegation,
     onCancelDelegation: handleCancelDelegation,
     onGetSupportedPermissions: handleGetSupportedPermissions,
     onGetGrantedPermissions: handleGetGrantedPermissions,

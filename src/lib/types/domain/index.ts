@@ -1,4 +1,5 @@
 export { AssetActivity } from "./AssetActivity";
+export { BitcoinUtxo } from "./BitcoinUtxo";
 export { KnownAsset } from "./KnownAsset";
 export { NewTrackedAsset, TrackedAsset } from "./TrackedAsset";
 export { SupportedChain } from "./SupportedChain";
