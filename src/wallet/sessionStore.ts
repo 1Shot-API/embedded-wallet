@@ -43,6 +43,7 @@ export interface IWalletSessionState {
   setAddresses: (
     evm: EVMAccountAddress,
     solana: SolanaAccountAddress,
+    /** Omit to leave unchanged; pass `null` to clear (e.g. Change Account). */
     bitcoinMainnet?: BitcoinSegwitAccountAddress | null,
     bitcoinTestnet?: BitcoinSegwitAccountAddress | null,
   ) => void;
@@ -122,14 +123,21 @@ export const useWalletSessionStore = create<IWalletSessionState>((set) => ({
   setAddresses: (
     evmAddress,
     solanaAddress,
-    bitcoinMainnet = null,
-    bitcoinTestnet = null,
+    bitcoinMainnet,
+    bitcoinTestnet,
   ) =>
     set((state) => ({
       evmAddress,
       solanaAddress,
-      bitcoinMainnetAddress: bitcoinMainnet ?? state.bitcoinMainnetAddress,
-      bitcoinTestnetAddress: bitcoinTestnet ?? state.bitcoinTestnetAddress,
+      // `undefined` = leave unchanged; `null` = clear (Change Account).
+      bitcoinMainnetAddress:
+        bitcoinMainnet === undefined
+          ? state.bitcoinMainnetAddress
+          : bitcoinMainnet,
+      bitcoinTestnetAddress:
+        bitcoinTestnet === undefined
+          ? state.bitcoinTestnetAddress
+          : bitcoinTestnet,
     })),
   setBitcoinAddress: (chainId, address) =>
     set(
