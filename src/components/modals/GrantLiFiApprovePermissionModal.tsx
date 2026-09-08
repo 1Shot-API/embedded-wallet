@@ -56,7 +56,8 @@ export function GrantLiFiApprovePermissionModal({
 
   useEffect(() => {
     setMemo("");
-  }, [data, request.request.chainId, request.request.to]);
+    setTokenAddress(initialToken);
+  }, [data, initialToken, request.request.chainId, request.request.to]);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +102,7 @@ export function GrantLiFiApprovePermissionModal({
     initialToken,
     listTrackedAssets,
     request.request.chainId,
+    request.request.to,
     tokenAddress,
   ]);
 

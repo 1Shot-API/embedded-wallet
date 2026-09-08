@@ -148,6 +148,7 @@ export function GrantExecutionPermissionModal({
     getKnownAsset,
     listTrackedAssets,
     request.request.chainId,
+    request.request.to,
     tokenAddress,
   ]);
 
@@ -163,7 +164,13 @@ export function GrantExecutionPermissionModal({
     setMemo(readInitialMemo(permission.data));
     setDurationText(readDuration(permission.data));
     setStartText(readStart(permission.data));
-  }, [permission.data, request.request.chainId, request.request.to]);
+    setTokenAddress(initialToken ?? "");
+  }, [
+    initialToken,
+    permission.data,
+    request.request.chainId,
+    request.request.to,
+  ]);
 
   useEffect(() => {
     if (!tokenAddress || userEditedAmount.current) return;
@@ -174,7 +181,13 @@ export function GrantExecutionPermissionModal({
     } catch {
       setAmountText("");
     }
-  }, [permission.data, selected.decimals, tokenAddress]);
+  }, [
+    permission.data,
+    request.request.chainId,
+    request.request.to,
+    selected.decimals,
+    tokenAddress,
+  ]);
 
   const amountError = useMemo(() => {
     const trimmed = amountText.trim();

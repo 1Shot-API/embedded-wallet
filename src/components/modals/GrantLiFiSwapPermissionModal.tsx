@@ -149,6 +149,7 @@ export function GrantLiFiSwapPermissionModal({
     initialToken,
     listTrackedAssets,
     request.request.chainId,
+    request.request.to,
     tokenAddress,
   ]);
 
@@ -169,7 +170,8 @@ export function GrantLiFiSwapPermissionModal({
   useEffect(() => {
     userEditedAmount.current = false;
     setMemo("");
-  }, [data, request.request.chainId, request.request.to]);
+    setTokenAddress(initialToken);
+  }, [data, initialToken, request.request.chainId, request.request.to]);
 
   useEffect(() => {
     if (!tokenAddress || userEditedAmount.current) return;
@@ -180,7 +182,13 @@ export function GrantLiFiSwapPermissionModal({
     } catch {
       setAmountText("");
     }
-  }, [data, selected.decimals, tokenAddress]);
+  }, [
+    data,
+    request.request.chainId,
+    request.request.to,
+    selected.decimals,
+    tokenAddress,
+  ]);
 
   const amountError = useMemo(() => {
     const trimmed = amountText.trim();
