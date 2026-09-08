@@ -160,6 +160,9 @@ export function GrantExecutionPermissionModal({
 
   useEffect(() => {
     userEditedAmount.current = false;
+    setMemo(readInitialMemo(permission.data));
+    setDurationText(readDuration(permission.data));
+    setStartText(readStart(permission.data));
   }, [permission.data, request.request.chainId, request.request.to]);
 
   useEffect(() => {

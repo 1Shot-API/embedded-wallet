@@ -168,6 +168,7 @@ export function GrantLiFiSwapPermissionModal({
 
   useEffect(() => {
     userEditedAmount.current = false;
+    setMemo("");
   }, [data, request.request.chainId, request.request.to]);
 
   useEffect(() => {

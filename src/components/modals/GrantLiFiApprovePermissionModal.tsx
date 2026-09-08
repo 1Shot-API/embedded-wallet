@@ -55,6 +55,10 @@ export function GrantLiFiApprovePermissionModal({
   const [memo, setMemo] = useState("");
 
   useEffect(() => {
+    setMemo("");
+  }, [data, request.request.chainId, request.request.to]);
+
+  useEffect(() => {
     let cancelled = false;
     void listTrackedAssets().then((assets) => {
       if (cancelled) return;
