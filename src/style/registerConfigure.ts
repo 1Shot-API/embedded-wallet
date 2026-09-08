@@ -1,4 +1,7 @@
-import { EVMChainId } from "@1shotapi/ows-types";
+import {
+  ChainUtils,
+  type OWSChainId,
+} from "@1shotapi/ows-types";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import type { IChainRepository } from "../lib/interfaces/data/IChainRepository";
 import {
@@ -22,16 +25,20 @@ export function registerConfigureRpc(
       const configureParams = params as IConfigureParams;
       const resolved = styleController.merge(configureParams);
       if (configureParams.features?.allowedChains !== undefined) {
-        const catalogIds = new Set(
+        const catalogByLower = new Map(
           chainRepository
             .getCatalog()
-            .map((chain) => String(chain.chainId).toLowerCase()),
+            .map((chain) => [String(chain.chainId).toLowerCase(), chain.chainId]),
         );
-        const valid: ReturnType<typeof EVMChainId>[] = [];
+        const valid: OWSChainId[] = [];
         for (const id of configureParams.features.allowedChains) {
-          const lower = id.toLowerCase();
-          if (catalogIds.has(lower)) {
-            valid.push(EVMChainId(lower as `0x${string}`));
+          const match = catalogByLower.get(String(id).toLowerCase());
+          if (match === undefined) continue;
+          if (
+            ChainUtils.isBitcoinChainId(match) ||
+            ChainUtils.isEVMChainId(match)
+          ) {
+            valid.push(match);
           }
         }
         chainRepository.setAllowedChains(valid.length === 0 ? null : valid);

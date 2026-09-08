@@ -1,4 +1,5 @@
 import { CheckIcon } from "lucide-react";
+import type { OWSChainId } from "@1shotapi/ows-types";
 import type { SupportedChain } from "../../lib/types/domain";
 import { ChainDisplayUtils } from "../../lib/implementations/utils/ChainDisplayUtils";
 import { useStyle } from "../../style/StyleProvider";
@@ -7,8 +8,8 @@ import { cn } from "@/lib/utils";
 
 export interface ISelectNetworkModalProps {
   chains: readonly SupportedChain[];
-  selectedChainId: string;
-  onSelect: (chainId: string) => void;
+  selectedChainId: OWSChainId;
+  onSelect: (chainId: OWSChainId) => void;
   onClose: () => void;
 }
 
@@ -33,8 +34,8 @@ function NetworkGroup({
 }: {
   title: string;
   chains: readonly SupportedChain[];
-  selectedChainId: string;
-  onSelect: (chainId: string) => void;
+  selectedChainId: OWSChainId;
+  onSelect: (chainId: OWSChainId) => void;
 }) {
   if (chains.length === 0) return null;
   return (

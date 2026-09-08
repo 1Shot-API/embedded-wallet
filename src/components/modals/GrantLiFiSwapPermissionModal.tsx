@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   EVMAccountAddress,
   OwsUserRejectedError,
@@ -90,7 +90,7 @@ export function GrantLiFiSwapPermissionModal({
     readString(data, "slippageBps") || String(liFiUtils.defaultSlippageBps),
   );
   const [memo, setMemo] = useState("");
-  const [initializedAmount, setInitializedAmount] = useState(false);
+  const userEditedAmount = useRef(false);
 
   const lifiDiamond = readString(data, "lifiDiamond");
   const quoteSigner = readString(data, "quoteSigner");
@@ -167,17 +167,19 @@ export function GrantLiFiSwapPermissionModal({
   }, [tokenAddress, tokenOptions]);
 
   useEffect(() => {
-    if (initializedAmount || !tokenAddress) return;
+    userEditedAmount.current = false;
+  }, [data, request.request.chainId, request.request.to]);
+
+  useEffect(() => {
+    if (!tokenAddress || userEditedAmount.current) return;
     const atoms = readAmountAtoms(data);
-    if (atoms !== null) {
-      try {
-        setAmountText(formatUnits(atoms, selected.decimals));
-      } catch {
-        setAmountText("");
-      }
+    if (atoms === null) return;
+    try {
+      setAmountText(formatUnits(atoms, selected.decimals));
+    } catch {
+      setAmountText("");
     }
-    setInitializedAmount(true);
-  }, [data, initializedAmount, selected.decimals, tokenAddress]);
+  }, [data, selected.decimals, tokenAddress]);
 
   const amountError = useMemo(() => {
     const trimmed = amountText.trim();
@@ -405,7 +407,10 @@ export function GrantLiFiSwapPermissionModal({
           placeholder={copy.periodAmountPlaceholder}
           symbol={selected.symbol}
           value={amountText}
-          onChange={setAmountText}
+          onChange={(value) => {
+            userEditedAmount.current = true;
+            setAmountText(value);
+          }}
           disabled={!adjustable}
           error={amountError}
         />

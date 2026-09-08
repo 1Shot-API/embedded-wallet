@@ -1,4 +1,4 @@
-import type { EVMChainId } from "@1shotapi/ows-types";
+import type { OWSChainId } from "@1shotapi/ows-types";
 import type { EChainNetworkType } from "../enum/EChainNetworkType";
 
 /**
@@ -8,7 +8,7 @@ import type { EChainNetworkType } from "../enum/EChainNetworkType";
  */
 export class SupportedChain {
   public constructor(
-    public readonly chainId: EVMChainId,
+    public readonly chainId: OWSChainId,
     public readonly networkType: EChainNetworkType,
     /** Origin for public-relayer TX JSON-RPC (no trailing slash). */
     public readonly relayerUrl: string,

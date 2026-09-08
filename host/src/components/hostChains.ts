@@ -32,6 +32,24 @@ const ARC_TESTNET: IHostChainMeta = {
 };
 
 const HOST_CHAIN_SEED: readonly IHostChainMeta[] = [
+  {
+    value: "Bitcoin",
+    label: "Bitcoin",
+    usdc: "",
+    tokenSymbol: "BTC",
+    blockExplorerUrl: "https://mempool.space",
+    isTestnet: false,
+    weight: 85,
+  },
+  {
+    value: "BitcoinTestnet",
+    label: "Bitcoin Testnet",
+    usdc: "",
+    tokenSymbol: "tBTC",
+    blockExplorerUrl: "https://mempool.space/testnet",
+    isTestnet: true,
+    weight: 75,
+  },
   ...(EnableArcMainnet ? [ARC_MAINNET] : []),
   ARC_TESTNET,
   {

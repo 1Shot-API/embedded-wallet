@@ -13,6 +13,8 @@ const DEFAULT_ASSET_ACTIVITY_LIMIT = 10;
 const DEFAULT_ASSET_ACTIVITY_MAX_OPTIMISTIC = 100;
 const DEFAULT_ONRAMP_WIDGET_BASE_URL =
   "https://onramp.arc.io/launch/onramp/v1";
+const DEFAULT_ANKR_BTC_API_KEY =
+  "979d229c5760954e62206cc809fe7801c1d6a5c1d590af7634dac7e0a4fadbf2";
 
 /**
  * Resolves {@link WalletConfig} from the Branding Layer iframe host.
@@ -35,6 +37,7 @@ export class ConfigProvider implements IConfigProvider {
       DEFAULT_ASSET_ACTIVITY_LIMIT,
       DEFAULT_ASSET_ACTIVITY_MAX_OPTIMISTIC,
       DEFAULT_ONRAMP_WIDGET_BASE_URL,
+      DEFAULT_ANKR_BTC_API_KEY,
     );
     return this.cached;
   }

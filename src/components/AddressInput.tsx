@@ -3,9 +3,11 @@ import { ScanLineIcon } from "lucide-react";
 import { AddressUtils } from "@1shotapi/ows-wallet-utils";
 import {
   EChainTechnology,
-  type BitcoinAccountAddress,
+  type BitcoinChainId,
+  type BitcoinSegwitAccountAddress,
   type EVMAccountAddress,
   type EVMChainId,
+  type OWSChainId,
   type SolanaAccountAddress,
 } from "@1shotapi/ows-types";
 import { Input } from "@/components/ui/input";
@@ -29,12 +31,12 @@ declare global {
 export type AddressInputValue =
   | EVMAccountAddress
   | SolanaAccountAddress
-  | BitcoinAccountAddress
+  | BitcoinSegwitAccountAddress
   | null;
 
 export interface IAddressInputProps<T extends EChainTechnology> {
   technology: T;
-  chainId: EVMChainId;
+  chainId: OWSChainId;
   addressUtils: AddressUtils;
   value: string;
   onChange: (value: string) => void;
@@ -115,13 +117,19 @@ export function AddressInput<T extends EChainTechnology>({
           let address: AddressInputValue = null;
           switch (technology) {
             case EChainTechnology.Evm:
-              address = await addressUtils.validateEVMAddress(trimmed, chainId);
+              address = await addressUtils.validateEVMAddress(
+                trimmed,
+                chainId as EVMChainId,
+              );
               break;
             case EChainTechnology.Solana:
               address = addressUtils.validateSolanaAddress(trimmed);
               break;
             case EChainTechnology.Bitcoin:
-              address = addressUtils.validateBitcoinAddress(trimmed);
+              address = addressUtils.validateBitcoinSegwitAddress(
+                trimmed,
+                chainId as BitcoinChainId,
+              );
               break;
           }
           if (!cancelled) {

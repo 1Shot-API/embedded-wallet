@@ -1,20 +1,18 @@
 import {
+  BITCOIN_MAINNET_CHAIN_ID,
+  ChainUtils,
   EChainTechnology,
-  type BitcoinAccountAddress,
+  type BitcoinSegwitAccountAddress,
   type EVMAccountAddress,
-  type EVMChainId,
+  type OWSChainId,
   type SolanaAccountAddress,
 } from "@1shotapi/ows-types";
 
 /**
  * Map a selected chain id to the address family shown in the shell.
- * Demo chains today are all EVM; Solana/Bitcoin branches are for future chains.
  */
-export function chainTechnologyFor(
-  chainId: EVMChainId | string,
-): EChainTechnology {
-  void chainId;
-  return EChainTechnology.Evm;
+export function chainTechnologyFor(chainId: OWSChainId): EChainTechnology {
+  return ChainUtils.technologyFor(chainId);
 }
 
 export interface IActiveAddress {
@@ -24,10 +22,10 @@ export interface IActiveAddress {
 }
 
 export function resolveActiveAddress(input: {
-  chainId: EVMChainId | string;
+  chainId: OWSChainId;
   evmAddress: EVMAccountAddress | string;
   solanaAddress: SolanaAccountAddress | string;
-  bitcoinAddress?: BitcoinAccountAddress | string;
+  bitcoinAddress?: BitcoinSegwitAccountAddress | string | null;
 }): IActiveAddress {
   const family = chainTechnologyFor(input.chainId);
   switch (family) {
@@ -40,7 +38,10 @@ export function resolveActiveAddress(input: {
     case EChainTechnology.Bitcoin:
       return {
         family,
-        label: "Bitcoin",
+        label:
+          input.chainId === BITCOIN_MAINNET_CHAIN_ID
+            ? "Bitcoin"
+            : "Bitcoin Testnet",
         address: input.bitcoinAddress || "—",
       };
     case EChainTechnology.Evm:

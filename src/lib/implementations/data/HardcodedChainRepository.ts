@@ -1,6 +1,7 @@
 import {
   type EVMAccountAddress,
   type EVMChainId as EVMChainIdType,
+  type OWSChainId,
 } from "@1shotapi/ows-types";
 import { EnableArcMainnet } from "../../features";
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
@@ -9,6 +10,7 @@ import { EChain } from "../../types/enum/EChain";
 import { EChainNetworkType } from "../../types/enum/EChainNetworkType";
 import { ChainDisplayUtils } from "../utils/ChainDisplayUtils";
 
+import bitcoinLogo from "../../../assets/images/chains/bitcoin-logo.svg";
 import arcLogo from "../../../assets/images/chains/arc-logo.png";
 import arbitrumLogo from "../../../assets/images/chains/arbitrum-logo.png";
 import binanceLogo from "../../../assets/images/chains/binance-logo.png";
@@ -26,9 +28,15 @@ import unichainLogo from "../../../assets/images/chains/unichain-logo.png";
 const PRODUCTION_RELAYER_URL = "https://relayer.1shotapi.com";
 const DEVELOPMENT_RELAYER_URL = "https://relayer.1shotapi.dev";
 
-/** Shared Alchemy key used by existing demo RPCs. */
+/** Shared Alchemy key used by existing demo EVM RPCs. */
 const ALCHEMY_KEY = "jqLUTbHeN_cVsIX2W7tJk";
 
+/**
+ * Catalog RPC URL for Bitcoin (Ankr). The API key lives in
+ * {@link WalletConfig.ankrBtcApiKey}; {@link AnkrBitcoinRpc} builds authenticated
+ * endpoints from config — this catalog value is informational only.
+ */
+const BITCOIN_RPC_URL = "https://rpc.ankr.com/btc";
 /**
  * Public Relayer docs networks + Arc Testnet (dev relayer) + Robinhood.
  * `weight` controls order within Mainnet/Testnet groups (higher = first).
@@ -86,6 +94,32 @@ const CATALOG: readonly SupportedChain[] = [
     "https://sepolia.basescan.org",
     true,
     90,
+  ),
+  new SupportedChain(
+    EChain.BitcoinTestnet,
+    EChainNetworkType.Testnet,
+    DEVELOPMENT_RELAYER_URL,
+    false,
+    bitcoinLogo,
+    true,
+    BITCOIN_RPC_URL,
+    "Bitcoin Testnet",
+    "https://mempool.space/testnet",
+    false,
+    75,
+  ),
+  new SupportedChain(
+    EChain.Bitcoin,
+    EChainNetworkType.Mainnet,
+    PRODUCTION_RELAYER_URL,
+    false,
+    bitcoinLogo,
+    true,
+    BITCOIN_RPC_URL,
+    "Bitcoin",
+    "https://mempool.space",
+    false,
+    85,
   ),
   new SupportedChain(
     EChain.Ethereum,
@@ -257,12 +291,12 @@ export class HardcodedChainRepository implements IChainRepository {
     return ChainDisplayUtils.sortForDisplay(enabled);
   }
 
-  async get(chainId: EVMChainIdType): Promise<SupportedChain | null> {
+  async get(chainId: OWSChainId): Promise<SupportedChain | null> {
     const key = String(chainId).toLowerCase();
     return CATALOG.find((chain) => String(chain.chainId).toLowerCase() === key) ?? null;
   }
 
-  setAllowedChains(chainIds: EVMChainIdType[] | null): void {
+  setAllowedChains(chainIds: OWSChainId[] | null): void {
     if (chainIds == null || chainIds.length === 0) {
       this.allowedChains = null;
     } else {

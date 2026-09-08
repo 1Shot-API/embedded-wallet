@@ -466,6 +466,15 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       changeAccountLabel: "Change account",
       closeLabel: "Close",
     },
+    bitcoin: {
+      assetName: "Bitcoin",
+      assetSymbol: "BTC",
+      loadingBody: "Loading…",
+      loadFailedError: "Failed to load Bitcoin balance",
+      recipientPlaceholder: "bc1q… or tb1q…",
+      invalidAddressError: "Enter a valid SegWit (bc1q / tb1q) address.",
+      unconfirmedLabel: "(Unconfirmed)",
+    },
   },
   dark: false,
 };

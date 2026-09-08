@@ -18,6 +18,7 @@ import {
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import {
   ConversionUtils,
+  ChainUtils,
   DomainString,
   EVMAccountAddress,
   EVMContractAddress,
@@ -279,7 +280,10 @@ export class DelegationService implements IDelegationService {
   async getSupportedExecutionPermissions(): Promise<SupportedExecutionPermissions> {
     const chains = await this.chainRepository.list();
     const relayerChainIds = chains
-      .filter((c) => c.useRelayer)
+      .filter(
+        (c): c is typeof c & { chainId: EVMChainId } =>
+          c.useRelayer && ChainUtils.isEVMChainId(c.chainId),
+      )
       .map((c) => c.chainId);
     const lifiChainIds = relayerChainIds.filter(
       (id) => this.liFiUtils.resolveSwapEnforcer(id) !== null,

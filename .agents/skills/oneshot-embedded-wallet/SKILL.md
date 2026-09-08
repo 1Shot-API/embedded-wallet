@@ -3,7 +3,7 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as configure / focusWallet / addAsset / createAccount / onramp / bridge for
+  or custom RPC such as configure / switchChain / focusWallet / addAsset / createAccount / onramp / bridge for
   theming, host-driven focus mode, tracked assets, and first-party Safari create.
 license: MIT
 metadata:
@@ -190,6 +190,40 @@ Unknown keys are rejected (Zod `.strict()`).
 
 See also [README.md](../../README.md) in this repository.
 
+## Custom RPC — `switchChain`
+
+Switch the Branding Layer session chain. Accepts EVM hex ids **and** Bitcoin
+sentinels (`"Bitcoin"` mainnet, `"BitcoinTestnet"` testnet). Prefer this over
+EIP-1193 `wallet_switchEthereumChain` when the host catalog includes Bitcoin —
+EIP-1193 params are hex-only and reject non-hex ids with `Invalid params`.
+
+```ts
+await proxy.rpc("switchChain", { chainId: "Bitcoin" });
+await proxy.rpc("switchChain", { chainId: "0x2105" });
+```
+
+| Method | Params | Behavior |
+|--------|--------|----------|
+| `switchChain` | `{ chainId: \`0x…\` \| \`"Bitcoin"\` \| \`"BitcoinTestnet"\` }` | Bitcoin: session-only. EVM: same as `wallet_switchEthereumChain` via RpcHelper |
+
+Returns `{ ok: true, chainId }`. Bitcoin switches also emit EIP-1193
+`chainChanged` with the Bitcoin sentinel so hosts stay in sync.
+
+## Custom RPC — `getChainId`
+
+Read the Branding Layer **session** chain id (EVM hex or Bitcoin sentinel).
+Prefer this over EIP-1193 `eth_chainId` when the host catalog includes Bitcoin —
+`eth_chainId` only reflects the last EVM RpcHelper chain.
+
+```ts
+const { chainId } = await proxy.rpc("getChainId");
+// "0x2105" | "Bitcoin" | "BitcoinTestnet" | …
+```
+
+| Method | Params | Behavior |
+|--------|--------|----------|
+| `getChainId` | none | Returns `{ chainId }` from the wallet session store |
+
 ## Custom RPC — `focusWallet` / `unfocusWallet`
 
 Host-controlled shell modes. Callers (not end users) switch between **General** (multi-chain tabs) and **Focused** (single chain + asset detail view).
@@ -305,16 +339,14 @@ Product analytics: `BridgeOpened`, `BridgeCompleted`, `BridgeFailed`, `BridgeCan
 | `proxy.ethereum.on` / `removeListener` | Branding→Host EIP-1193 notifications (`chainChanged`, `accountsChanged` via `ows:eip1193`) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`setStyle`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, `bridge`, …) |
+| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `switchChain`, `getChainId`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, `bridge`, …) |
 | `proxy.analytics.on(listener)` / `.on(name, listener)` / `.off(listener)` | Branding→Host product analytics (`ows:analytics`) |
-| `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, …) |
 
 Subscribe so in-wallet chain/account changes update host UI without polling:
 
 ```typescript
 proxy.ethereum.on("chainChanged", (chainId) => {
-  // hex chain id string
+  // EVM hex (`0x…`) or Bitcoin sentinel (`Bitcoin` / `BitcoinTestnet`)
 });
 proxy.ethereum.on("accountsChanged", (accounts) => {
   // EVM address array

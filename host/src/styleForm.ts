@@ -21,7 +21,7 @@ export interface IStyleFormState {
   fontSans: string;
   dark: boolean;
   /**
-   * Hex chain ids to pass as `features.allowedChains`.
+   * Chain ids to pass as `features.allowedChains` (hex `0x…`, or `Bitcoin` / `BitcoinTestnet`).
    * Empty ⇒ omit (all catalog-enabled chains).
    */
   allowedChainIds: string[];
@@ -205,6 +205,15 @@ export interface IStyleFormState {
   advancedOptionsMenuLabel: string;
   advancedOptionsBody: string;
   advancedOptionsChangeAccountLabel: string;
+
+  // Text — Bitcoin
+  bitcoinAssetName: string;
+  bitcoinAssetSymbol: string;
+  bitcoinLoadingBody: string;
+  bitcoinLoadFailedError: string;
+  bitcoinRecipientPlaceholder: string;
+  bitcoinInvalidAddressError: string;
+  bitcoinUnconfirmedLabel: string;
 }
 
 /** Catalog options for the Allowed chains configurator (matches HardcodedChainRepository). */
@@ -212,6 +221,8 @@ export const CATALOG_CHAIN_OPTIONS: ReadonlyArray<{
   chainId: string;
   label: string;
 }> = [
+  { chainId: "Bitcoin", label: "Bitcoin" },
+  { chainId: "BitcoinTestnet", label: "Bitcoin Testnet" },
   ...(EnableArcMainnet ? [{ chainId: "0x13b2", label: "Arc" }] : []),
   { chainId: "0x4cef52", label: "Arc Testnet" },
   { chainId: "0xaa36a7", label: "Sepolia" },
@@ -390,6 +401,13 @@ export const ACME_PRESET: IStyleFormState = {
   advancedOptionsBody:
     "Import or export your private key, or switch to a different passkey account.",
   advancedOptionsChangeAccountLabel: "Change account",
+  bitcoinAssetName: "Bitcoin",
+  bitcoinAssetSymbol: "BTC",
+  bitcoinLoadingBody: "Loading…",
+  bitcoinLoadFailedError: "Failed to load Bitcoin balance",
+  bitcoinRecipientPlaceholder: "bc1q… or tb1q…",
+  bitcoinInvalidAddressError: "Enter a valid SegWit (bc1q / tb1q) address.",
+  bitcoinUnconfirmedLabel: "(Unconfirmed)",
 };
 
 export const OCEAN_PRESET: IStyleFormState = {
@@ -550,6 +568,13 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   advancedOptionsMenuLabel: "",
   advancedOptionsBody: "",
   advancedOptionsChangeAccountLabel: "",
+  bitcoinAssetName: "",
+  bitcoinAssetSymbol: "",
+  bitcoinLoadingBody: "",
+  bitcoinLoadFailedError: "",
+  bitcoinRecipientPlaceholder: "",
+  bitcoinInvalidAddressError: "",
+  bitcoinUnconfirmedLabel: "",
 };
 
 function put(
@@ -923,6 +948,18 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   );
   if (Object.keys(advancedOptions).length > 0) {
     copy.advancedOptions = advancedOptions;
+  }
+
+  const bitcoin: Record<string, string> = {};
+  put(bitcoin, "assetName", form.bitcoinAssetName);
+  put(bitcoin, "assetSymbol", form.bitcoinAssetSymbol);
+  put(bitcoin, "loadingBody", form.bitcoinLoadingBody);
+  put(bitcoin, "loadFailedError", form.bitcoinLoadFailedError);
+  put(bitcoin, "recipientPlaceholder", form.bitcoinRecipientPlaceholder);
+  put(bitcoin, "invalidAddressError", form.bitcoinInvalidAddressError);
+  put(bitcoin, "unconfirmedLabel", form.bitcoinUnconfirmedLabel);
+  if (Object.keys(bitcoin).length > 0) {
+    copy.bitcoin = bitcoin;
   }
 
   return copy;

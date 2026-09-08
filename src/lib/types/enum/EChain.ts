@@ -1,9 +1,15 @@
-import { EVMChainId } from "@1shotapi/ows-types";
+import {
+  BITCOIN_MAINNET_CHAIN_ID,
+  BITCOIN_TESTNET_CHAIN_ID,
+  EVMChainId,
+} from "@1shotapi/ows-types";
 
 /**
- * Catalog EVM chain ids (hex). Prefer these over inline `EVMChainId("0x…")`.
+ * Catalog chain ids. Prefer these over inline `EVMChainId("0x…")` or Bitcoin sentinels.
  */
 export const EChain = {
+  Bitcoin: BITCOIN_MAINNET_CHAIN_ID,
+  BitcoinTestnet: BITCOIN_TESTNET_CHAIN_ID,
   Arc: EVMChainId("0x13b2"),
   ArcTestnet: EVMChainId("0x4cef52"),
   Sepolia: EVMChainId("0xaa36a7"),
