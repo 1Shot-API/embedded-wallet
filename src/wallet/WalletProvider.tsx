@@ -697,7 +697,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           resolve,
         }));
       } finally {
-        await display.hide();
+        // Change Account lands on OnboardingPanel — keep the wallet open.
+        if (choice === "changeAccount") {
+          display.release();
+        } else {
+          await display.hide();
+        }
       }
       if (choice === "export") {
         await openExportPrivateKey();
@@ -712,6 +717,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         session.setAddresses(
           EVMAccountAddress("0x0"),
           SolanaAccountAddress("—"),
+          null,
+          null,
         );
         session.setCredentialCount(0);
         session.setTrackedAssetCount(0);

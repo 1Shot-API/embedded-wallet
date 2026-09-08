@@ -85,10 +85,21 @@ export function useWalletAuth({
   const refreshAddresses = useCallback(async () => {
     const signer = signerRef.current;
     if (!signer) return;
+    const previousEvm = useWalletSessionStore.getState().evmAddress;
     const [evm, solana] = await Promise.all([
       signer.evm.getAccountAddress(),
       signer.solana.getAccountAddress(),
     ]);
+
+    // Account switch (or unlock after Change Account): drop stale BTC before
+    // hydrate/derive — session BTC is not credential-scoped.
+    if (
+      String(evm).toLowerCase() !== String(previousEvm).toLowerCase()
+    ) {
+      useWalletSessionStore
+        .getState()
+        .setAddresses(evm, solana, null, null);
+    }
 
     hydrateBitcoinAddressesFromCachedSecp(signer);
 
