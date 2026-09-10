@@ -30,7 +30,7 @@
     "@1shotapi/ows-signer-utils": "^0.6.2",
     "@1shotapi/ows-types": "^0.8.0",
     "@1shotapi/ows-wallet-utils": "^0.5.1",
-    "@crcl-main/app-kit": "^1.10.0-canary-feature-onramp-kit-sdk.1784835391",
+    "@crcl-main/app-kit": "^1.14.0-canary-feature-onramp-kit-sdk.1789055534",
     "@fontsource-variable/geist": "^5.3.0",
     "@metamask/smart-accounts-kit": "^2.0.0",
     "@reown/walletkit": "^1.5.6",
