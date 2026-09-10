@@ -20,6 +20,8 @@ export class NewTrackedAsset {
     public readonly decimals: number,
     /** Optional host- or catalog-supplied HTTPS icon URL. */
     public readonly iconUrl?: string,
+    /** Higher weight sorts above peers in Balances defaults. */
+    public readonly weight: number = 0,
   ) {}
 
   static fromKnown(known: KnownAsset): NewTrackedAsset {
@@ -31,6 +33,7 @@ export class NewTrackedAsset {
       known.symbol,
       known.decimals,
       known.iconUrl,
+      known.weight,
     );
   }
 
@@ -43,6 +46,7 @@ export class NewTrackedAsset {
       this.symbol,
       this.decimals,
       iconUrl,
+      this.weight,
     );
   }
 }
@@ -59,8 +63,9 @@ export class TrackedAsset extends NewTrackedAsset {
     public readonly id: TrackedAssetId,
     public balance: bigint | null,
     iconUrl?: string,
+    weight: number = 0,
   ) {
-    super(chainId, address, type, name, symbol, decimals, iconUrl);
+    super(chainId, address, type, name, symbol, decimals, iconUrl, weight);
   }
 
   static fromNew(
@@ -77,6 +82,7 @@ export class TrackedAsset extends NewTrackedAsset {
       makeTrackedAssetId(asset.chainId, asset.address),
       balance,
       asset.iconUrl,
+      asset.weight,
     );
   }
 
@@ -91,6 +97,7 @@ export class TrackedAsset extends NewTrackedAsset {
       this.id,
       balance,
       this.iconUrl,
+      this.weight,
     );
   }
 }

@@ -1,6 +1,13 @@
 import type { OWSChainId } from "@1shotapi/ows-types";
 import type { EChainNetworkType } from "../enum/EChainNetworkType";
 
+/** Native gas / payment currency for a catalog chain. */
+export interface INativeCurrency {
+  name: string;
+  symbol: string;
+  decimals: number;
+}
+
 /**
  * Catalog entry for a network the Branding Layer can switch to.
  * `relayerUrl` is for future TX submission only — credentials/activity use
@@ -21,6 +28,7 @@ export class SupportedChain {
     /** Base URL for tx/address explorer links (no trailing slash). */
     public readonly blockExplorerUrl: string,
     public readonly cctpBridgeDestination: boolean,
+    public readonly nativeCurrency: INativeCurrency,
     /** Higher weight sorts above peers within the same network type. */
     public readonly weight: number = 0,
   ) {}

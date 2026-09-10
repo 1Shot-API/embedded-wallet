@@ -11,6 +11,8 @@ export class KnownAsset {
     public readonly symbol: string,
     public readonly decimals: number,
     public readonly useCCTPBridge: boolean,
+    /** Higher weight sorts above peers in Balances defaults (e.g. stable > native). */
+    public readonly weight: number = 0,
     public readonly iconUrl?: string,
   ) {}
 }

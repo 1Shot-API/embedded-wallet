@@ -5,7 +5,10 @@ import {
 } from "@1shotapi/ows-types";
 import { EnableArcMainnet } from "../../features";
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
-import { SupportedChain } from "../../types/domain/SupportedChain";
+import {
+  type INativeCurrency,
+  SupportedChain,
+} from "../../types/domain/SupportedChain";
 import { EChain } from "../../types/enum/EChain";
 import { EChainNetworkType } from "../../types/enum/EChainNetworkType";
 import { ChainDisplayUtils } from "../utils/ChainDisplayUtils";
@@ -37,6 +40,49 @@ const ALCHEMY_KEY = "jqLUTbHeN_cVsIX2W7tJk";
  * endpoints from config — this catalog value is informational only.
  */
 const BITCOIN_RPC_URL = "https://rpc.ankr.com/btc";
+
+const NATIVE_ETH: INativeCurrency = {
+  name: "Ether",
+  symbol: "ETH",
+  decimals: 18,
+};
+const NATIVE_BTC: INativeCurrency = {
+  name: "Bitcoin",
+  symbol: "BTC",
+  decimals: 8,
+};
+/** Arc uses USDC as gas — no separate Native tracked row (see known assets). */
+const NATIVE_ARC_USDC: INativeCurrency = {
+  name: "USDC",
+  symbol: "USDC",
+  decimals: 6,
+};
+const NATIVE_BNB: INativeCurrency = {
+  name: "BNB",
+  symbol: "BNB",
+  decimals: 18,
+};
+const NATIVE_POL: INativeCurrency = {
+  name: "POL",
+  symbol: "POL",
+  decimals: 18,
+};
+const NATIVE_S: INativeCurrency = {
+  name: "Sonic",
+  symbol: "S",
+  decimals: 18,
+};
+const NATIVE_MON: INativeCurrency = {
+  name: "Monad",
+  symbol: "MON",
+  decimals: 18,
+};
+const NATIVE_CELO: INativeCurrency = {
+  name: "CELO",
+  symbol: "CELO",
+  decimals: 18,
+};
+
 /**
  * Public Relayer docs networks + Arc Testnet (dev relayer) + Robinhood.
  * `weight` controls order within Mainnet/Testnet groups (higher = first).
@@ -54,6 +100,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Arc",
     "https://explorer.arc.io",
     false,
+    NATIVE_ARC_USDC,
     100,
   ),
   new SupportedChain(
@@ -67,6 +114,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Arc Testnet",
     "https://testnet.arcscan.app",
     true,
+    NATIVE_ARC_USDC,
     100,
   ),
   new SupportedChain(
@@ -80,6 +128,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Sepolia",
     "https://sepolia.etherscan.io",
     true,
+    NATIVE_ETH,
     80,
   ),
   new SupportedChain(
@@ -93,6 +142,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Base Sepolia",
     "https://sepolia.basescan.org",
     true,
+    NATIVE_ETH,
     90,
   ),
   new SupportedChain(
@@ -106,6 +156,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Bitcoin Testnet",
     "https://mempool.space/testnet",
     false,
+    NATIVE_BTC,
     75,
   ),
   new SupportedChain(
@@ -119,6 +170,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Bitcoin",
     "https://mempool.space",
     false,
+    NATIVE_BTC,
     85,
   ),
   new SupportedChain(
@@ -132,6 +184,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Ethereum",
     "https://etherscan.io",
     true,
+    NATIVE_ETH,
     80,
   ),
   new SupportedChain(
@@ -145,6 +198,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Linea",
     "https://lineascan.build",
     true,
+    NATIVE_ETH,
   ),
   new SupportedChain(
     EChain.Arbitrum,
@@ -157,6 +211,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Arbitrum",
     "https://arbiscan.io",
     true,
+    NATIVE_ETH,
   ),
   new SupportedChain(
     EChain.Optimism,
@@ -169,6 +224,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Optimism",
     "https://optimistic.etherscan.io",
     true,
+    NATIVE_ETH,
   ),
   new SupportedChain(
     EChain.Bsc,
@@ -181,6 +237,7 @@ const CATALOG: readonly SupportedChain[] = [
     "BSC",
     "https://bscscan.com",
     false,
+    NATIVE_BNB,
   ),
   new SupportedChain(
     EChain.Base,
@@ -193,6 +250,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Base",
     "https://basescan.org",
     true,
+    NATIVE_ETH,
     90,
   ),
   new SupportedChain(
@@ -206,6 +264,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Polygon",
     "https://polygonscan.com",
     true,
+    NATIVE_POL,
   ),
   new SupportedChain(
     EChain.Sonic,
@@ -218,6 +277,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Sonic",
     "https://sonicscan.org",
     true,
+    NATIVE_S,
   ),
   new SupportedChain(
     EChain.Unichain,
@@ -230,6 +290,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Unichain",
     "https://uniscan.xyz",
     true,
+    NATIVE_ETH,
   ),
   new SupportedChain(
     EChain.Monad,
@@ -242,6 +303,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Monad",
     "https://monadvision.com",
     true,
+    NATIVE_MON,
   ),
   new SupportedChain(
     EChain.Celo,
@@ -254,6 +316,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Celo",
     "https://celoscan.io",
     false,
+    NATIVE_CELO,
   ),
   new SupportedChain(
     EChain.Robinhood,
@@ -266,6 +329,7 @@ const CATALOG: readonly SupportedChain[] = [
     "Robinhood",
     "https://robinhoodchain.blockscout.com",
     false,
+    NATIVE_ETH,
   ),
 ];
 
