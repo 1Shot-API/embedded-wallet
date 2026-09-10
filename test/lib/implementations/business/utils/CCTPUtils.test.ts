@@ -37,6 +37,7 @@ function chain(
     String(id),
     "https://explorer.example",
     dest,
+    { name: "Ether", symbol: "ETH", decimals: 18 },
   );
 }
 

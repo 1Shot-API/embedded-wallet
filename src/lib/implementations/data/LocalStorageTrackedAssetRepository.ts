@@ -14,8 +14,8 @@ import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
 import type { ITrackedAssetRepository } from "../../interfaces/data/ITrackedAssetRepository";
 import {
-  DEFAULT_TRACKED_USDC,
-  isDefaultTrackedUsdc,
+  DEFAULT_TRACKED_ASSETS,
+  isDefaultTrackedAsset,
 } from "./HardcodedKnownAssetRepository";
 import { NewTrackedAsset, TrackedAsset } from "../../types/domain/TrackedAsset";
 import { EAssetType } from "../../types/enum/EAssetType";
@@ -89,7 +89,7 @@ export class LocalStorageTrackedAssetRepository
     chainId: EVMChainIdType,
     address: EVMAccountAddressType,
   ): Promise<boolean> {
-    if (isDefaultTrackedUsdc(chainId, address)) {
+    if (isDefaultTrackedAsset(chainId, address)) {
       return true;
     }
     const storageKey = await this.resolveStorageKey();
@@ -101,7 +101,7 @@ export class LocalStorageTrackedAssetRepository
     asset: NewTrackedAsset,
     owner: EVMAccountAddressType,
   ): Promise<TrackedAsset> {
-    if (isDefaultTrackedUsdc(asset.chainId, asset.address)) {
+    if (isDefaultTrackedAsset(asset.chainId, asset.address)) {
       const existing = TrackedAsset.fromNew(asset);
       const [withBalance] = await this.ensureBalances([existing], owner, false);
       return withBalance!;
@@ -146,7 +146,7 @@ export class LocalStorageTrackedAssetRepository
     chainId: EVMChainIdType,
     address: EVMAccountAddressType,
   ): Promise<void> {
-    if (isDefaultTrackedUsdc(chainId, address)) {
+    if (isDefaultTrackedAsset(chainId, address)) {
       return;
     }
     const storageKey = await this.resolveStorageKey();
@@ -178,7 +178,7 @@ export class LocalStorageTrackedAssetRepository
   private mergeWithDefaults(stored: TrackedAsset[]): TrackedAsset[] {
     const seen = new Set<TrackedAssetId>();
     const merged: TrackedAsset[] = [];
-    for (const asset of DEFAULT_TRACKED_USDC) {
+    for (const asset of DEFAULT_TRACKED_ASSETS) {
       const key = makeTrackedAssetId(asset.chainId, asset.address);
       seen.add(key);
       merged.push(TrackedAsset.fromNew(asset));
@@ -223,10 +223,19 @@ export class LocalStorageTrackedAssetRepository
     asset: TrackedAsset,
     owner: EVMAccountAddressType,
   ): Promise<bigint | null> {
-    if (asset.type !== EAssetType.Erc20) {
+    if (owner === EMPTY_OWNER) {
       return null;
     }
-    if (owner === EMPTY_OWNER) {
+    if (asset.type === EAssetType.Native) {
+      try {
+        const client = this.blockchain.getPublicClient(asset.chainId);
+        return await client.getBalance({ address: owner as Address });
+      } catch (error: unknown) {
+        console.warn("[balances] getBalance failed", error);
+        return null;
+      }
+    }
+    if (asset.type !== EAssetType.Erc20) {
       return null;
     }
     try {
@@ -265,11 +274,13 @@ export class LocalStorageTrackedAssetRepository
         const chainId = EVMChainId(row.chainId as `0x${string}`);
         const address = EVMAccountAddress(row.address as `0x${string}`);
         const type =
-          row.type === EAssetType.Erc721
-            ? EAssetType.Erc721
-            : row.type === EAssetType.Erc1155
-              ? EAssetType.Erc1155
-              : EAssetType.Erc20;
+          row.type === EAssetType.Native
+            ? EAssetType.Native
+            : row.type === EAssetType.Erc721
+              ? EAssetType.Erc721
+              : row.type === EAssetType.Erc1155
+                ? EAssetType.Erc1155
+                : EAssetType.Erc20;
         const iconUrl =
           typeof row.iconUrl === "string" && row.iconUrl.length > 0
             ? row.iconUrl
@@ -297,7 +308,7 @@ export class LocalStorageTrackedAssetRepository
   private writeAssets(storageKey: string, assets: TrackedAsset[]): void {
     // Persist only user-added (non-default) rows as NewTrackedAsset fields + id.
     const userAssets = assets.filter(
-      (asset) => !isDefaultTrackedUsdc(asset.chainId, asset.address),
+      (asset) => !isDefaultTrackedAsset(asset.chainId, asset.address),
     );
     const blob: StoredBlob = {
       assets: userAssets.map((asset) => ({

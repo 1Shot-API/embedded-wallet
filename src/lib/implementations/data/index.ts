@@ -1,7 +1,7 @@
 export {
-  DEFAULT_TRACKED_USDC,
+  DEFAULT_TRACKED_ASSETS,
   HardcodedKnownAssetRepository,
-  isDefaultTrackedUsdc,
+  isDefaultTrackedAsset,
 } from "./HardcodedKnownAssetRepository";
 export { LocalStorageTrackedAssetRepository } from "./LocalStorageTrackedAssetRepository";
 export type { TrackedAssetRepositoryOptions } from "./LocalStorageTrackedAssetRepository";

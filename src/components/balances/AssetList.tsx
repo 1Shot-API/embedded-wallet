@@ -97,6 +97,7 @@ export function AssetList({
               chainId={row.original.chainId}
               address={row.original.address}
               symbol={row.original.symbol}
+              iconUrl={row.original.iconUrl}
             />
             <span className="truncate font-medium">{row.original.symbol}</span>
           </div>
@@ -112,7 +113,8 @@ export function AssetList({
             balance={row.original.balance}
             decimals={row.original.decimals}
             fallback={
-              row.original.type !== EAssetType.Erc20
+              row.original.type !== EAssetType.Erc20 &&
+              row.original.type !== EAssetType.Native
                 ? copy.balanceNonErc20
                 : undefined
             }

@@ -3,6 +3,7 @@ export { BitcoinUtxo } from "./BitcoinUtxo";
 export { KnownAsset } from "./KnownAsset";
 export { NewTrackedAsset, TrackedAsset } from "./TrackedAsset";
 export { SupportedChain } from "./SupportedChain";
+export type { INativeCurrency } from "./SupportedChain";
 export type {
   IDelegationCaveat,
   IDelegationSummary,
