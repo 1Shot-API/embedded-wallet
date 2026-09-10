@@ -19,6 +19,8 @@ type ISeedRow = {
   name: string;
   decimals: number;
   useCCTPBridge?: boolean;
+  /** Pinned default stables use 100 so they sort above native (50). */
+  weight?: number;
 };
 
 function seed(row: ISeedRow): KnownAsset {
@@ -30,6 +32,7 @@ function seed(row: ISeedRow): KnownAsset {
     row.symbol,
     row.decimals,
     row.useCCTPBridge === true,
+    row.weight ?? 0,
     iconUrlForSymbol(row.symbol),
   );
 }
@@ -50,6 +53,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "USDC",
     decimals: 6,
     useCCTPBridge: true,
+    weight: 100,
   },
   // Robinhood (4663) — official USDG (USDC is not deployed)
   {
@@ -60,6 +64,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     symbol: "USDG",
     name: "Global Dollar",
     decimals: 6,
+    weight: 100,
   },
   // Ethereum mainnet (1)
   {
@@ -219,6 +224,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "USD Coin",
     decimals: 6,
     useCCTPBridge: true,
+    weight: 100,
   },
   {
     chainId: EChain.Base,
@@ -307,6 +313,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "USD Coin",
     decimals: 6,
     useCCTPBridge: true,
+    weight: 100,
   },
   // Sepolia (11155111)
   {
@@ -318,6 +325,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "USD Coin",
     decimals: 6,
     useCCTPBridge: true,
+    weight: 100,
   },
 ];
 

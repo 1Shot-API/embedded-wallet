@@ -25,7 +25,7 @@ export class SupportedChainsBlockchainProvider implements IBlockchainProvider {
     const viemChain = defineChain({
       id: Number(BigInt(chain.chainId)),
       name: chain.label,
-      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+      nativeCurrency: chain.nativeCurrency,
       rpcUrls: {
         default: { http: [chain.rpcUrl] },
       },

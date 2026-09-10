@@ -71,6 +71,8 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
           decimals,
           assetProp.id,
           balance,
+          assetProp.iconUrl,
+          assetProp.weight,
         );
 
   useEffect(() => {
@@ -162,6 +164,7 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
             chainId={asset.chainId}
             address={asset.address}
             symbol={asset.symbol}
+            iconUrl={asset.iconUrl}
             chainLogoUrl={chain?.logoUrl}
           />
           <div className="flex flex-col gap-0.5">
@@ -175,7 +178,10 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
             balance={asset.balance}
             decimals={asset.decimals}
             fallback={
-              asset.type !== EAssetType.Erc20 ? copy.balanceNonErc20 : undefined
+              asset.type !== EAssetType.Erc20 &&
+              asset.type !== EAssetType.Native
+                ? copy.balanceNonErc20
+                : undefined
             }
             className="text-primary text-3xl font-semibold tracking-tight"
           />
