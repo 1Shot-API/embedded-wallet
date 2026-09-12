@@ -75,6 +75,9 @@ export function BitcoinDetails() {
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
   const addressRefreshAttemptedRef = useRef(false);
+  const requestIdRef = useRef(0);
+  const inFlightLoadRef = useRef(0);
+  const inFlightQuietRef = useRef(0);
 
   // Returning sessions may lack BTC addresses until secp cache / unlock fills them.
   useEffect(() => {
@@ -93,25 +96,36 @@ export function BitcoinDetails() {
         setUnconfirmedSats(makeBitcoinSatoshiDelta(0n));
         return;
       }
-      if (opts?.quiet) {
+      const quiet = opts?.quiet === true;
+      const requestId = ++requestIdRef.current;
+      if (quiet) {
+        inFlightQuietRef.current += 1;
         setRefreshing(true);
       } else {
+        inFlightLoadRef.current += 1;
         setLoading(true);
       }
       setError(null);
       try {
         const balance = await bitcoinService.getBalance(btcChainId, address);
+        if (requestId !== requestIdRef.current) return;
         setConfirmedSats(balance.confirmed);
         setUnconfirmedSats(balance.unconfirmed);
       } catch (err: unknown) {
+        if (requestId !== requestIdRef.current) return;
         setError(
           err instanceof Error ? err.message : bitcoinCopy.loadFailedError,
         );
         setConfirmedSats(null);
         setUnconfirmedSats(makeBitcoinSatoshiDelta(0n));
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (quiet) {
+          inFlightQuietRef.current = Math.max(0, inFlightQuietRef.current - 1);
+          if (inFlightQuietRef.current === 0) setRefreshing(false);
+        } else {
+          inFlightLoadRef.current = Math.max(0, inFlightLoadRef.current - 1);
+          if (inFlightLoadRef.current === 0) setLoading(false);
+        }
       }
     },
     [address, bitcoinCopy.loadFailedError, bitcoinService, btcChainId],
