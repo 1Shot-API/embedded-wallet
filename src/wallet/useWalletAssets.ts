@@ -149,14 +149,18 @@ export function useWalletAssets({
   );
 
   const requestBalanceRefresh = useCallback(
-    async (id?: TrackedAssetId) => {
+    async (id?: TrackedAssetId, chainId?: EVMChainId) => {
       eventBus.emit(new RefreshBalanceRequestedEvent(id));
-      const { evmAddress: owner, chainId } = useWalletSessionStore.getState();
+      const { evmAddress: owner, chainId: sessionChainId } =
+        useWalletSessionStore.getState();
       try {
         if (id) {
           await trackedAssetRepository.getBalances(owner, { id });
-        } else if (ChainUtils.isEVMChainId(chainId)) {
-          await trackedAssetRepository.getBalances(owner, { chainId });
+          return;
+        }
+        const scope = chainId ?? sessionChainId;
+        if (ChainUtils.isEVMChainId(scope)) {
+          await trackedAssetRepository.getBalances(owner, { chainId: scope });
         }
       } catch (error: unknown) {
         console.error("[oneshot-wallet] balance refresh failed", error);

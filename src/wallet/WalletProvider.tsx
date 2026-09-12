@@ -280,7 +280,10 @@ export type WalletContextValue = {
     chainId: EVMChainId,
     address: EVMAccountAddress,
   ) => Promise<TrackedAsset>;
-  requestBalanceRefresh: (id?: TrackedAssetId) => Promise<void>;
+  requestBalanceRefresh: (
+    id?: TrackedAssetId,
+    chainId?: EVMChainId,
+  ) => Promise<void>;
   listAssetActivity: (
     owner: EVMAccountAddress,
     asset: TrackedAsset,
