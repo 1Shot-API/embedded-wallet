@@ -78,11 +78,19 @@ export class LocalStorageTrackedAssetRepository
     return this.storageKey;
   }
 
-  async list(owner: EVMAccountAddressType): Promise<TrackedAsset[]> {
+  async list(chainId?: EVMChainIdType): Promise<TrackedAsset[]> {
     const storageKey = await this.resolveStorageKey();
-    const assets = this.mergeWithDefaults(this.readStoredAssets(storageKey));
+    const assets = this.filterByChain(
+      this.mergeWithDefaults(this.readStoredAssets(storageKey)),
+      chainId,
+    );
     syncTrackedAssetIconUrls(assets);
-    return this.ensureBalances(assets, owner, false);
+    // Cache only — no RPC. Call getBalances when balances are needed.
+    return assets.map((asset) =>
+      this.balanceCache.has(asset.id)
+        ? asset.withBalance(this.balanceCache.get(asset.id)!)
+        : asset.withBalance(null),
+    );
   }
 
   async has(
@@ -161,18 +169,38 @@ export class LocalStorageTrackedAssetRepository
 
   async getBalances(
     owner: EVMAccountAddressType,
-    id?: TrackedAssetId,
+    options: { id: TrackedAssetId } | { chainId: EVMChainIdType },
   ): Promise<TrackedAsset[]> {
-    if (id) {
-      this.balanceCache.delete(id);
-    } else {
-      this.balanceCache.clear();
-    }
     const storageKey = await this.resolveStorageKey();
-    const assets = this.mergeWithDefaults(this.readStoredAssets(storageKey));
-    syncTrackedAssetIconUrls(assets);
-    const targets = id ? assets.filter((asset) => asset.id === id) : assets;
+    const all = this.mergeWithDefaults(this.readStoredAssets(storageKey));
+    syncTrackedAssetIconUrls(all);
+
+    let targets: TrackedAsset[];
+    if ("id" in options) {
+      this.balanceCache.delete(options.id);
+      targets = all.filter((asset) => asset.id === options.id);
+    } else {
+      const chainKey = String(options.chainId).toLowerCase();
+      for (const asset of all) {
+        if (String(asset.chainId).toLowerCase() === chainKey) {
+          this.balanceCache.delete(asset.id);
+        }
+      }
+      targets = this.filterByChain(all, options.chainId);
+    }
+
     return this.ensureBalances(targets, owner, true);
+  }
+
+  private filterByChain(
+    assets: TrackedAsset[],
+    chainId?: EVMChainIdType,
+  ): TrackedAsset[] {
+    if (chainId == null) return assets;
+    const key = String(chainId).toLowerCase();
+    return assets.filter(
+      (asset) => String(asset.chainId).toLowerCase() === key,
+    );
   }
 
   private mergeWithDefaults(stored: TrackedAsset[]): TrackedAsset[] {

@@ -319,7 +319,8 @@ export function CCTPBridge({
         if (cancelled) return;
         setForwardTxHash(hash);
         setPhase("success");
-        void requestBalanceRefresh();
+        // Scope to the bridge source chain — session may be on Bitcoin/etc.
+        void requestBalanceRefresh(undefined, request.sourceChainId);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -488,13 +489,12 @@ export function CCTPBridge({
       });
       setForwardTxHash(hash);
       setPhase("success");
-      if (sourceUsdc) {
-        void requestBalanceRefresh(
-          makeTrackedAssetId(request.sourceChainId, sourceUsdc.address),
-        );
-      } else {
-        void requestBalanceRefresh();
-      }
+      void requestBalanceRefresh(
+        sourceUsdc
+          ? makeTrackedAssetId(request.sourceChainId, sourceUsdc.address)
+          : undefined,
+        request.sourceChainId,
+      );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : copy.timeoutError);
       setPhase("timeout");
@@ -525,13 +525,12 @@ export function CCTPBridge({
       if (result.forwardTxHash) {
         setForwardTxHash(result.forwardTxHash);
         setPhase("success");
-        if (sourceUsdc) {
-          void requestBalanceRefresh(
-            makeTrackedAssetId(request.sourceChainId, sourceUsdc.address),
-          );
-        } else {
-          void requestBalanceRefresh();
-        }
+        void requestBalanceRefresh(
+          sourceUsdc
+            ? makeTrackedAssetId(request.sourceChainId, sourceUsdc.address)
+            : undefined,
+          request.sourceChainId,
+        );
         return;
       }
       const stored = await bridgeService.resume(request.ownerAddress);

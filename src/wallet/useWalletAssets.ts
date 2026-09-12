@@ -4,6 +4,7 @@ import type {
   EVMAccountAddress,
   EVMChainId,
 } from "@1shotapi/ows-types";
+import { ChainUtils } from "@1shotapi/ows-types";
 import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import type {
   IAssetActivityRepository,
@@ -42,8 +43,7 @@ export function useWalletAssets({
   refreshCredentialCount,
 }: IUseWalletAssetsParams) {
   const refreshTrackedAssetCount = useCallback(async () => {
-    const owner = useWalletSessionStore.getState().evmAddress;
-    const listed = await trackedAssetRepository.list(owner);
+    const listed = await trackedAssetRepository.list();
     useWalletSessionStore.getState().setTrackedAssetCount(listed.length);
   }, [trackedAssetRepository]);
 
@@ -82,10 +82,12 @@ export function useWalletAssets({
     await refreshCredentialsFromRelayer();
   }, [refreshCredentialsFromRelayer]);
 
-  const listTrackedAssets = useCallback(async () => {
-    const owner = useWalletSessionStore.getState().evmAddress;
-    return trackedAssetRepository.list(owner);
-  }, [trackedAssetRepository]);
+  const listTrackedAssets = useCallback(
+    async (chainId?: EVMChainId) => {
+      return trackedAssetRepository.list(chainId);
+    },
+    [trackedAssetRepository],
+  );
 
   const addTrackedAsset = useCallback(
     async (chainId: EVMChainId, address: EVMAccountAddress) => {
@@ -124,7 +126,7 @@ export function useWalletAssets({
   const resolveTrackedAsset = useCallback(
     async (chainId: EVMChainId, address: EVMAccountAddress) => {
       const owner = useWalletSessionStore.getState().evmAddress;
-      const listed = await trackedAssetRepository.list(owner);
+      const listed = await trackedAssetRepository.list(chainId);
       const existing = listed.find(
         (asset) =>
           asset.chainId === chainId && asset.address === address,
@@ -147,14 +149,19 @@ export function useWalletAssets({
   );
 
   const requestBalanceRefresh = useCallback(
-    async (id?: TrackedAssetId) => {
+    async (id?: TrackedAssetId, chainId?: EVMChainId) => {
       eventBus.emit(new RefreshBalanceRequestedEvent(id));
-      const owner = useWalletSessionStore.getState().evmAddress;
+      const { evmAddress: owner, chainId: sessionChainId } =
+        useWalletSessionStore.getState();
       try {
-        await trackedAssetRepository.getBalances(owner, id);
-        useWalletSessionStore.getState().setTrackedAssetCount(
-          (await trackedAssetRepository.list(owner)).length,
-        );
+        if (id) {
+          await trackedAssetRepository.getBalances(owner, { id });
+          return;
+        }
+        const scope = chainId ?? sessionChainId;
+        if (ChainUtils.isEVMChainId(scope)) {
+          await trackedAssetRepository.getBalances(owner, { chainId: scope });
+        }
       } catch (error: unknown) {
         console.error("[oneshot-wallet] balance refresh failed", error);
         throw error;

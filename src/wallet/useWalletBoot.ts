@@ -817,8 +817,9 @@ export function useWalletBoot({
                   request.chainId,
                   transfer.tokenAddress,
                 );
-                const owner = useWalletSessionStore.getState().evmAddress;
-                const tracked = (await trackedAssetRepository.list(owner)).find(
+                const tracked = (
+                  await trackedAssetRepository.list(request.chainId)
+                ).find(
                   (asset) =>
                     asset.chainId === request.chainId &&
                     asset.address === transfer.tokenAddress,
@@ -964,8 +965,7 @@ export function useWalletBoot({
       const listed = await credentialRepository.list();
       if (cancelled) return;
       useWalletSessionStore.getState().setCredentialCount(listed.length);
-      const owner = useWalletSessionStore.getState().evmAddress;
-      const tracked = await trackedAssetRepository.list(owner);
+      const tracked = await trackedAssetRepository.list();
       if (cancelled) return;
       useWalletSessionStore.getState().setTrackedAssetCount(tracked.length);
       useWalletSessionStore.getState().setReady(true);
