@@ -31,8 +31,12 @@ import unichainLogo from "../../../assets/images/chains/unichain-logo.png";
 const PRODUCTION_RELAYER_URL = "https://relayer.1shotapi.com";
 const DEVELOPMENT_RELAYER_URL = "https://relayer.1shotapi.dev";
 
-/** Shared Alchemy key used by existing demo EVM RPCs. */
+/** Shared Alchemy key used by catalog EVM RPCs. */
 const ALCHEMY_KEY = "jqLUTbHeN_cVsIX2W7tJk";
+
+function alchemyRpc(network: string): string {
+  return `https://${network}.g.alchemy.com/v2/${ALCHEMY_KEY}`;
+}
 
 /**
  * Catalog RPC URL for Bitcoin (Ankr). The API key lives in
@@ -85,6 +89,7 @@ const NATIVE_CELO: INativeCurrency = {
 
 /**
  * Public Relayer docs networks + Arc Testnet (dev relayer) + Robinhood.
+ * EVM chains use Alchemy HTTPS RPCs; Bitcoin catalog RPC is Ankr (informational).
  * `weight` controls order within Mainnet/Testnet groups (higher = first).
  * @see https://1shotapi.com/docs/relayer/get-started/overview
  */
@@ -96,7 +101,7 @@ const CATALOG: readonly SupportedChain[] = [
     false,
     arcLogo,
     EnableArcMainnet,
-    `https://arc-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
+    alchemyRpc("arc-mainnet"),
     "Arc",
     "https://explorer.arc.io",
     false,
@@ -110,7 +115,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     arcLogo,
     true,
-    `https://arc-testnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
+    alchemyRpc("arc-testnet"),
     "Arc Testnet",
     "https://testnet.arcscan.app",
     true,
@@ -124,7 +129,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     ethereumLogo,
     true,
-    `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_KEY}`,
+    alchemyRpc("eth-sepolia"),
     "Sepolia",
     "https://sepolia.etherscan.io",
     true,
@@ -138,7 +143,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     baseLogo,
     true,
-    `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_KEY}`,
+    alchemyRpc("base-sepolia"),
     "Base Sepolia",
     "https://sepolia.basescan.org",
     true,
@@ -180,7 +185,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     ethereumLogo,
     true,
-    "https://ethereum.publicnode.com",
+    alchemyRpc("eth-mainnet"),
     "Ethereum",
     "https://etherscan.io",
     true,
@@ -194,7 +199,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     lineaLogo,
     true,
-    "https://rpc.linea.build",
+    alchemyRpc("linea-mainnet"),
     "Linea",
     "https://lineascan.build",
     true,
@@ -207,7 +212,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     arbitrumLogo,
     true,
-    "https://arb1.arbitrum.io/rpc",
+    alchemyRpc("arb-mainnet"),
     "Arbitrum",
     "https://arbiscan.io",
     true,
@@ -220,7 +225,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     optimismLogo,
     true,
-    "https://mainnet.optimism.io",
+    alchemyRpc("opt-mainnet"),
     "Optimism",
     "https://optimistic.etherscan.io",
     true,
@@ -233,7 +238,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     binanceLogo,
     true,
-    "https://bsc-dataseed.binance.org",
+    alchemyRpc("bnb-mainnet"),
     "BSC",
     "https://bscscan.com",
     false,
@@ -246,7 +251,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     baseLogo,
     true,
-    `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
+    alchemyRpc("base-mainnet"),
     "Base",
     "https://basescan.org",
     true,
@@ -260,7 +265,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     polygonLogo,
     true,
-    "https://polygon-rpc.com",
+    alchemyRpc("polygon-mainnet"),
     "Polygon",
     "https://polygonscan.com",
     true,
@@ -273,7 +278,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     sonicLogo,
     true,
-    "https://rpc.soniclabs.com",
+    alchemyRpc("sonic-mainnet"),
     "Sonic",
     "https://sonicscan.org",
     true,
@@ -286,7 +291,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     unichainLogo,
     true,
-    "https://mainnet.unichain.org",
+    alchemyRpc("unichain-mainnet"),
     "Unichain",
     "https://uniscan.xyz",
     true,
@@ -299,7 +304,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     monadLogo,
     true,
-    "https://rpc.monad.xyz",
+    alchemyRpc("monad-mainnet"),
     "Monad",
     "https://monadvision.com",
     true,
@@ -312,7 +317,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     celoLogo,
     true,
-    "https://forno.celo.org",
+    alchemyRpc("celo-mainnet"),
     "Celo",
     "https://celoscan.io",
     false,
@@ -325,7 +330,7 @@ const CATALOG: readonly SupportedChain[] = [
     true,
     robinhoodLogo,
     true,
-    `https://robinhood-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
+    alchemyRpc("robinhood-mainnet"),
     "Robinhood",
     "https://robinhoodchain.blockscout.com",
     false,

@@ -263,7 +263,7 @@ export type WalletContextValue = {
     chainId: EVMChainId;
     transactionHash: EVMTransactionHash;
   }>;
-  listTrackedAssets: () => Promise<TrackedAsset[]>;
+  listTrackedAssets: (chainId?: EVMChainId) => Promise<TrackedAsset[]>;
   addTrackedAsset: (
     chainId: EVMChainId,
     address: EVMAccountAddress,
@@ -280,7 +280,10 @@ export type WalletContextValue = {
     chainId: EVMChainId,
     address: EVMAccountAddress,
   ) => Promise<TrackedAsset>;
-  requestBalanceRefresh: (id?: TrackedAssetId) => Promise<void>;
+  requestBalanceRefresh: (
+    id?: TrackedAssetId,
+    chainId?: EVMChainId,
+  ) => Promise<void>;
   listAssetActivity: (
     owner: EVMAccountAddress,
     asset: TrackedAsset,
