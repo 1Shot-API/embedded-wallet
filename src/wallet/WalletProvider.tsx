@@ -263,7 +263,7 @@ export type WalletContextValue = {
     chainId: EVMChainId;
     transactionHash: EVMTransactionHash;
   }>;
-  listTrackedAssets: () => Promise<TrackedAsset[]>;
+  listTrackedAssets: (chainId?: EVMChainId) => Promise<TrackedAsset[]>;
   addTrackedAsset: (
     chainId: EVMChainId,
     address: EVMAccountAddress,

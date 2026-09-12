@@ -91,7 +91,7 @@ export function registerAddAssetRpc(
         }
 
         await options.trackedAssetRepository.add(toPersist, owner);
-        const listed = await options.trackedAssetRepository.list(owner);
+        const listed = await options.trackedAssetRepository.list();
         useWalletSessionStore.getState().setTrackedAssetCount(listed.length);
 
         return {

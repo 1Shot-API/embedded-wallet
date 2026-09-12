@@ -3,17 +3,24 @@ import type { TrackedAssetId } from "../../types/primitives";
 import type { NewTrackedAsset, TrackedAsset } from "../../types/domain";
 
 export interface ITrackedAssetRepository {
-  list(owner: EVMAccountAddress): Promise<TrackedAsset[]>;
+  /**
+   * Catalog + stored assets. Optional `chainId` scopes the result.
+   * Does **not** hit RPC — balances come from session cache only (else `null`).
+   */
+  list(chainId?: EVMChainId): Promise<TrackedAsset[]>;
   has(chainId: EVMChainId, address: EVMAccountAddress): Promise<boolean>;
   add(
     asset: NewTrackedAsset,
     owner: EVMAccountAddress,
   ): Promise<TrackedAsset>;
   remove(chainId: EVMChainId, address: EVMAccountAddress): Promise<void>;
-  /** Clears session balance cache (one id or all) and re-fetches. */
+  /**
+   * Network balance fetch. Pass `id` for one asset, or `chainId` for every
+   * tracked asset on that chain. One of the two is required.
+   */
   getBalances(
     owner: EVMAccountAddress,
-    id?: TrackedAssetId,
+    options: { id: TrackedAssetId } | { chainId: EVMChainId },
   ): Promise<TrackedAsset[]>;
 }
 

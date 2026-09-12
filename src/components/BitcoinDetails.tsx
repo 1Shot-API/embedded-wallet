@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { QrCodeIcon, SendIcon } from "lucide-react";
+import { QrCodeIcon, RefreshCwIcon, SendIcon } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import {
   BITCOIN_MAINNET_CHAIN_ID,
@@ -70,6 +70,7 @@ export function BitcoinDetails() {
     makeBitcoinSatoshiDelta(0n),
   );
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
@@ -85,28 +86,36 @@ export function BitcoinDetails() {
     });
   }, [address, unlocked, refreshAddresses, getSigner]);
 
-  const refresh = useCallback(async () => {
-    if (!address) {
-      setConfirmedSats(null);
-      setUnconfirmedSats(makeBitcoinSatoshiDelta(0n));
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const balance = await bitcoinService.getBalance(btcChainId, address);
-      setConfirmedSats(balance.confirmed);
-      setUnconfirmedSats(balance.unconfirmed);
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : bitcoinCopy.loadFailedError,
-      );
-      setConfirmedSats(null);
-      setUnconfirmedSats(makeBitcoinSatoshiDelta(0n));
-    } finally {
-      setLoading(false);
-    }
-  }, [address, bitcoinCopy.loadFailedError, bitcoinService, btcChainId]);
+  const refresh = useCallback(
+    async (opts?: { quiet?: boolean }) => {
+      if (!address) {
+        setConfirmedSats(null);
+        setUnconfirmedSats(makeBitcoinSatoshiDelta(0n));
+        return;
+      }
+      if (opts?.quiet) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
+      try {
+        const balance = await bitcoinService.getBalance(btcChainId, address);
+        setConfirmedSats(balance.confirmed);
+        setUnconfirmedSats(balance.unconfirmed);
+      } catch (err: unknown) {
+        setError(
+          err instanceof Error ? err.message : bitcoinCopy.loadFailedError,
+        );
+        setConfirmedSats(null);
+        setUnconfirmedSats(makeBitcoinSatoshiDelta(0n));
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [address, bitcoinCopy.loadFailedError, bitcoinService, btcChainId],
+  );
 
   useEffect(() => {
     void refresh();
@@ -125,6 +134,23 @@ export function BitcoinDetails() {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-end">
+        <Button
+          type="button"
+          size="icon-sm"
+          variant="outline"
+          aria-label={balances.refreshLabel}
+          disabled={!address || refreshing || loading}
+          onClick={() => {
+            void refresh({ quiet: true });
+          }}
+        >
+          <RefreshCwIcon
+            className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
+          />
+        </Button>
+      </div>
+
       <div className="flex flex-col items-center gap-3 py-4">
         <img
           src={logoUrl}
@@ -166,7 +192,7 @@ export function BitcoinDetails() {
           type="button"
           disabled={!canAct}
           onClick={() => {
-            void refresh();
+            void refresh({ quiet: true });
             setSendOpen(true);
           }}
         >
@@ -190,7 +216,7 @@ export function BitcoinDetails() {
           balanceSats={spendableSats}
           onClose={() => setSendOpen(false)}
           onSuccess={() => {
-            void refresh();
+            void refresh({ quiet: true });
           }}
         />
       ) : null}

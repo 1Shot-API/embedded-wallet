@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { TrackedAsset } from "../../lib/types/domain";
 import { EAssetType } from "../../lib/types/enum/EAssetType";
+import { ChainUtils } from "@1shotapi/ows-types";
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
@@ -56,16 +57,28 @@ export function AssetList({
     setLoading(true);
     setError(null);
     try {
-      const tracked = (await listTrackedAssets()).filter(
-        (asset) => asset.chainId === chainId,
-      );
+      // Metadata + cache only (no RPC) so the list can paint immediately.
+      const tracked = ChainUtils.isEVMChainId(chainId)
+        ? await listTrackedAssets(chainId)
+        : [];
       setRows(tracked);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : copy.loadFailedError);
     } finally {
       setLoading(false);
     }
-  }, [listTrackedAssets, chainId, copy.loadFailedError]);
+    // Active-chain balances in the background; BalanceDisplay stays live via events.
+    if (ChainUtils.isEVMChainId(chainId)) {
+      void requestBalanceRefresh().catch(() => {
+        /* list already painted; refresh errors stay in console */
+      });
+    }
+  }, [
+    listTrackedAssets,
+    chainId,
+    copy.loadFailedError,
+    requestBalanceRefresh,
+  ]);
 
   useEffect(() => {
     void reload();
@@ -76,7 +89,11 @@ export function AssetList({
     setError(null);
     try {
       await requestBalanceRefresh();
-      await reload();
+      setRows(
+        ChainUtils.isEVMChainId(chainId)
+          ? await listTrackedAssets(chainId)
+          : [],
+      );
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : copy.refreshFailedError,
