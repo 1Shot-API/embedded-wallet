@@ -69,7 +69,7 @@ export function AssetList({
     }
     // Active-chain balances in the background; BalanceDisplay stays live via events.
     if (ChainUtils.isEVMChainId(chainId)) {
-      void requestBalanceRefresh().catch(() => {
+      void requestBalanceRefresh(undefined, chainId).catch(() => {
         /* list already painted; refresh errors stay in console */
       });
     }
@@ -88,12 +88,12 @@ export function AssetList({
     setRefreshing(true);
     setError(null);
     try {
-      await requestBalanceRefresh();
-      setRows(
-        ChainUtils.isEVMChainId(chainId)
-          ? await listTrackedAssets(chainId)
-          : [],
-      );
+      if (!ChainUtils.isEVMChainId(chainId)) {
+        setRows([]);
+        return;
+      }
+      await requestBalanceRefresh(undefined, chainId);
+      setRows(await listTrackedAssets(chainId));
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : copy.refreshFailedError,
