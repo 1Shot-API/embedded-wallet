@@ -71,29 +71,19 @@ registerKnownAssetIconResolver(
   (chainId, address) => BY_KEY.get(makeTrackedAssetId(chainId, address))?.iconUrl,
 );
 
-/** Chain → pinned default stablecoin symbol (always shown, not removable). */
-const DEFAULT_TRACKED_STABLE_BY_CHAIN = new Map([
-  [String(EChain.ArcTestnet).toLowerCase(), "USDC"],
-  [String(EChain.Sepolia).toLowerCase(), "USDC"],
-  [String(EChain.BaseSepolia).toLowerCase(), "USDC"],
-  [String(EChain.Base).toLowerCase(), "USDC"],
-  [String(EChain.Robinhood).toLowerCase(), "USDG"],
-]);
-
+/**
+ * Pinned payment stables use {@link KnownAsset.weight} ≥ 100 in
+ * {@link RELAYER_KNOWN_ASSETS} (USDC on each supported EVM chain, USDG on
+ * Robinhood). Weight is the source of truth — no per-chain symbol allowlist.
+ */
 function isPinnedStable(asset: KnownAsset): boolean {
-  const expected = DEFAULT_TRACKED_STABLE_BY_CHAIN.get(
-    String(asset.chainId).toLowerCase(),
-  );
-  return (
-    expected != null &&
-    asset.type === EAssetType.Erc20 &&
-    asset.symbol === expected
-  );
+  return asset.type === EAssetType.Erc20 && asset.weight >= 100;
 }
 
 /**
  * Pinned Balances rows: default stables (weight 100) then natives (weight 50),
- * sorted by weight desc. Not removable.
+ * sorted by weight desc. Not removable; always merged in by
+ * {@link LocalStorageTrackedAssetRepository.mergeWithDefaults}.
  */
 export const DEFAULT_TRACKED_ASSETS: readonly NewTrackedAsset[] = [
   ...RELAYER_KNOWN_ASSETS.filter(isPinnedStable),
