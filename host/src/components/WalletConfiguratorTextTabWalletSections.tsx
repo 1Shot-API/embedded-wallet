@@ -190,6 +190,36 @@ export function WalletConfiguratorTextTabWalletSections({
             onChange={(value) => patch("transferTokensCancel", value)}
           />
           <TextField
+            id="send-native-title"
+            label="Native send title"
+            value={form.sendNativeTokenTitle}
+            onChange={(value) => patch("sendNativeTokenTitle", value)}
+          />
+          <TextField
+            id="send-native-send"
+            label="Native send"
+            value={form.sendNativeTokenSend}
+            onChange={(value) => patch("sendNativeTokenSend", value)}
+          />
+          <TextField
+            id="send-native-cancel"
+            label="Native cancel"
+            value={form.sendNativeTokenCancel}
+            onChange={(value) => patch("sendNativeTokenCancel", value)}
+          />
+          <TextField
+            id="send-native-max"
+            label="Native Max"
+            value={form.sendNativeTokenMax}
+            onChange={(value) => patch("sendNativeTokenMax", value)}
+          />
+          <TextField
+            id="send-native-fee"
+            label="Native fee label"
+            value={form.sendNativeTokenFee}
+            onChange={(value) => patch("sendNativeTokenFee", value)}
+          />
+          <TextField
             id="grant-permission-title"
             label="Grant permission title"
             value={form.grantPermissionTitle}

@@ -307,6 +307,19 @@ export type WalletContextValue = {
       feeAtoms: TokenAmount;
     },
   ) => Promise<EVMTransactionHash>;
+  /**
+   * In-wallet native Send — always eth_sendRawTransaction (never the relayer).
+   */
+  sendNativeTransfer: (
+    chainId: EVMChainId,
+    to: EVMAccountAddress,
+    value: bigint,
+  ) => Promise<EVMTransactionHash>;
+  /** Gas fee preview for native Send Max / summary. */
+  estimateNativeTransferFee: (chainId: EVMChainId) => Promise<{
+    gasPrice: bigint;
+    feeAtoms: bigint;
+  }>;
   openExportPrivateKey: () => Promise<void>;
   openImportPrivateKey: () => Promise<boolean>;
   openAdvancedOptions: (options?: { allowExport?: boolean }) => Promise<void>;
@@ -592,6 +605,71 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [ensureOnboardedForSigning, onSigningAuthenticated],
   );
 
+  const sendNativeTransfer = useCallback(
+    async (
+      chainId: EVMChainId,
+      to: EVMAccountAddress,
+      value: bigint,
+    ) => {
+      const { hostDomain } = await configProvider.getConfig();
+      const started = performance.now();
+      const accountAddress = (): EVMAccountAddress =>
+        useWalletSessionStore.getState().evmAddress ||
+        loadCachedEvmAddress() ||
+        EVMAccountAddress("0x0");
+
+      return runWithAnalytics(
+        (event) => eventBus.emitAnalytics(event),
+        async () => {
+          await ensureOnboardedForSigning();
+          const result = await transactionService.sendNativeTransfer(
+            chainId,
+            to,
+            value,
+          );
+          await onSigningAuthenticated();
+          return result.transactionHash;
+        },
+        {
+          success: (txHash) =>
+            new TransactionSubmittedEvent(
+              hostDomain,
+              accountAddress(),
+              chainId,
+              to,
+              txHash,
+              Math.round(performance.now() - started),
+              null,
+            ),
+          cancelled: () =>
+            new TransactionSubmitCancelledEvent(
+              hostDomain,
+              accountAddress(),
+              chainId,
+              Math.round(performance.now() - started),
+              to,
+            ),
+          failed: (errorCode) =>
+            new TransactionSubmitFailedEvent(
+              hostDomain,
+              accountAddress(),
+              chainId,
+              errorCode,
+              Math.round(performance.now() - started),
+              to,
+            ),
+        },
+      );
+    },
+    [ensureOnboardedForSigning, onSigningAuthenticated],
+  );
+
+  const estimateNativeTransferFee = useCallback(
+    (chainId: EVMChainId) =>
+      transactionService.estimateNativeTransferFee(chainId),
+    [],
+  );
+
   const cancelStoredDelegation = useCallback(
     async (delegationId: DelegationId) => {
       await ensureOnboardedForSigning();
@@ -780,6 +858,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       listAssetActivity,
       recordSentActivity,
       sendTransaction,
+      sendNativeTransfer,
+      estimateNativeTransferFee,
       openExportPrivateKey,
       openImportPrivateKey,
       openAdvancedOptions,
@@ -813,6 +893,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       listAssetActivity,
       recordSentActivity,
       sendTransaction,
+      sendNativeTransfer,
+      estimateNativeTransferFee,
       openExportPrivateKey,
       openImportPrivateKey,
       openAdvancedOptions,

@@ -38,7 +38,10 @@ import type {
   IPaymentTokenOption,
   ITransactionWork,
 } from "../../../interfaces/business/ITransactionService";
-import type { ITransactionUtils } from "../../../interfaces/business/utils/ITransactionUtils";
+import {
+  NATIVE_TRANSFER_GAS,
+  type ITransactionUtils,
+} from "../../../interfaces/business/utils/ITransactionUtils";
 import type { ITransactionUtils as IPresentationTransactionUtils } from "../../../interfaces/utils/ITransactionUtils";
 import type { IOWSProvider } from "../../../interfaces/utils/IOWSProvider";
 import { EPasskeyPromptReason } from "../../../types/enum/EPasskeyPromptReason";
@@ -256,6 +259,24 @@ export class TransactionUtils implements ITransactionUtils {
       feeCollector: capabilities.feeCollector,
       targetAddress: capabilities.targetAddress,
       minFee: feeAtoms,
+    };
+  }
+
+  async estimateNativeTransferFee(chainId: EVMChainId): Promise<{
+    gasPrice: bigint;
+    feeAtoms: bigint;
+  }> {
+    const client = this.options.blockchain.getPublicClient(chainId);
+    let gasPrice: bigint;
+    try {
+      const fees = await client.estimateFeesPerGas();
+      gasPrice = fees.maxFeePerGas ?? (await client.getGasPrice());
+    } catch {
+      gasPrice = await client.getGasPrice();
+    }
+    return {
+      gasPrice,
+      feeAtoms: gasPrice * NATIVE_TRANSFER_GAS,
     };
   }
 
