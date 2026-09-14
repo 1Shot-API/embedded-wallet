@@ -88,20 +88,33 @@ export class TransactionUtils implements ITransactionUtils {
     chainId: EVMChainId,
     address: EVMAccountAddress,
   ): Promise<boolean> {
-    const cached = await this.options.chainRepository.getWalletUpgraded(
-      chainId,
-      address,
-    );
-    if (cached === true) return false;
-    if (cached === false) return true;
-
-    const upgraded = await this.isCodeUpgraded(chainId, address);
-    await this.options.chainRepository.setWalletUpgraded(
-      chainId,
-      address,
-      upgraded,
-    );
-    return !upgraded;
+    // Always verify on-chain. localStorage may still record the last known
+    // status, but must not skip EIP-7702 auth: a cached `true` written after
+    // send (before confirm) or after a failed upgrade leaves the account
+    // unable to estimate on that chain.
+    try {
+      const upgraded = await this.isCodeUpgraded(chainId, address);
+      await this.options.chainRepository.setWalletUpgraded(
+        chainId,
+        address,
+        upgraded,
+      );
+      console.debug("[business/TransactionUtils] EIP-7702 upgrade check", {
+        chainId,
+        address,
+        upgraded,
+        needsUpgrade: !upgraded,
+      });
+      return !upgraded;
+    } catch (error) {
+      // Fail open: include an authorization rather than omit one when getCode
+      // is unreachable (e.g. RPC origin allowlist / transient failure).
+      console.warn(
+        "[business/TransactionUtils] getCode failed; assuming EIP-7702 upgrade required",
+        { chainId, address, error },
+      );
+      return true;
+    }
   }
 
   async signWalletUpgradeAuthorization(
@@ -283,6 +296,13 @@ export class TransactionUtils implements ITransactionUtils {
       !authorizationList?.length &&
       (await this.needsWalletUpgrade(chainId, eoa));
 
+    console.debug("[business/TransactionUtils] sendViaRelayer", {
+      chainId,
+      eoa,
+      needsUpgrade,
+      presuppliedAuth: Boolean(authorizationList?.length),
+    });
+
     await this.options.owsProvider.ensureDisplay();
     try {
       const delegationSecret = await loadOrCreateDelegationBinding();
@@ -394,6 +414,10 @@ export class TransactionUtils implements ITransactionUtils {
 
       if (signed.authEntry) {
         authorizationList = [signed.authEntry];
+      } else if (needsUpgrade) {
+        throw new Error(
+          "EIP-7702 wallet upgrade was required but no authorization was signed",
+        );
       }
       let feeDelegation = signed.feeDelegation;
       const workDelegations = signed.workDelegations;
@@ -452,6 +476,16 @@ export class TransactionUtils implements ITransactionUtils {
       };
 
       let params = buildParams(feeDelegation, feeAtoms);
+      console.debug(
+        "[business/TransactionUtils] relayer_estimate7710Transaction",
+        {
+          chainId,
+          hasAuthorizationList: Boolean(authorizationList?.length),
+          authorizationChainId: authorizationList?.[0]?.chainId,
+          authorizationNonce: authorizationList?.[0]?.nonce,
+          authorizationAddress: authorizationList?.[0]?.address,
+        },
+      );
       let estimate =
         await this.options.relayerRepository.estimate7710Transaction(
           relayerUrl,
@@ -525,20 +559,45 @@ export class TransactionUtils implements ITransactionUtils {
       }
 
       params = buildParams(feeDelegation, feeAtoms, estimate.context);
+      console.debug(
+        "[business/TransactionUtils] relayer_send7710Transaction",
+        {
+          chainId,
+          hasAuthorizationList: Boolean(authorizationList?.length),
+          authorizationChainId: authorizationList?.[0]?.chainId,
+          authorizationNonce: authorizationList?.[0]?.nonce,
+        },
+      );
       const taskId = await this.options.relayerRepository.send7710Transaction(
         relayerUrl,
         params,
       );
 
-      if (authorizationList?.length) {
-        await this.options.chainRepository.setWalletUpgraded(chainId, eoa, true);
+      try {
+        const hash = await this.pollUntilTerminal(relayerUrl, taskId);
+        // Only cache "upgraded" after the type-4 tx confirms on-chain.
+        if (authorizationList?.length) {
+          await this.options.chainRepository.setWalletUpgraded(
+            chainId,
+            eoa,
+            true,
+          );
+        }
+        return {
+          relayerTransactionId: taskId,
+          transactionHash: hash,
+        };
+      } catch (pollError) {
+        // Auth may or may not have landed; force a fresh getCode next time.
+        if (authorizationList?.length) {
+          await this.options.chainRepository.setWalletUpgraded(
+            chainId,
+            eoa,
+            false,
+          );
+        }
+        throw pollError;
       }
-
-      const hash = await this.pollUntilTerminal(relayerUrl, taskId);
-      return {
-        relayerTransactionId: taskId,
-        transactionHash: hash,
-      };
     } catch (error) {
       // ensureDisplay may have left the flyout open; hideDisplay is idempotent.
       await this.options.owsProvider.hideDisplay();
@@ -656,12 +715,14 @@ export class TransactionUtils implements ITransactionUtils {
     }
 
     const normalized = code.toLowerCase();
-    // EIP-7702 designator: 0xef0100 || address
-    if (normalized.startsWith("0xef0100") && normalized.length >= 48) {
-      const delegated = `0x${normalized.slice(8, 48)}`;
-      return delegated === impl;
+    // EIP-7702 designator only: 0xef0100 || implementation address.
+    // Do not substring-match the impl inside arbitrary bytecode — that can
+    // false-positive and skip authorization on a chain that is not upgraded.
+    if (!(normalized.startsWith("0xef0100") && normalized.length >= 48)) {
+      return false;
     }
-    return normalized.includes(impl.slice(2));
+    const delegated = `0x${normalized.slice(8, 48)}`;
+    return delegated === impl;
   }
 
   private async requireRelayerChain(chainId: EVMChainId) {
