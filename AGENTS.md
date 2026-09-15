@@ -50,7 +50,7 @@ When adding or changing UI strings or host-tunable options:
 ### Domain layers (assets example)
 
 - **Utils:** `IBlockchainProvider` / `AddressUtils` (from `@1shotapi/ows-wallet-utils`) / `SupportedChainsBlockchainProvider`, `IEventBus` / `EventBus`, `ITransactionUtils` / `TransactionUtils`, `IConfigProvider` / `ConfigProvider`, `IChainRepository` / `HardcodedChainRepository`
-- **Data:** `IKnownAssetRepository`, `ITrackedAssetRepository`, `IOneshotRelayerRepository` (`src/lib`) and their implementations
+- **Data:** `IKnownAssetRepository`, `ITrackedAssetRepository`, `IOneshotRelayerRepository`, `IEVMRepository` (`src/lib`) and their implementations
 - **Business:** services that orchestrate domain logic (add as needed)
 
 ### Injectable classes (constructor DI)
@@ -79,7 +79,7 @@ export class BridgeService {
 
 Wire at the composition root (e.g. `WalletProvider`) with positional args: `new BridgeService(chainRepository, knownAssetRepository, …)`.
 
-`IOneshotRelayerRepository.sendTransaction` owns prepare + passkey sign + broadcast (interim: `eth_sendRawTransaction`). Host EIP-1193 sends go SignHelper → branding `approveAndSignTransaction` (ConfirmTransfer / SendTransaction consent) → relayer. In-wallet Send uses `TransferTokensModal` → `WalletProvider.sendTransaction` → relayer, then `SentTransactionModal` (hash + explorer link). Host-driven sends do not show that confirmation — the host surfaces the hash itself.
+`IEVMRepository.broadcastRawTransaction` owns prepare + passkey sign + `eth_sendRawTransaction` for non-relayer / native sends. Host EIP-1193 sends go SignHelper → branding `approveAndSignTransaction` (ConfirmTransfer / SendTransaction consent) → `TransactionService` (relayer or EVM). In-wallet ERC-20 Send uses `TransferTokensModal` → `WalletProvider.sendTransaction` → relayer when `useRelayer`, else raw EVM; native Send always uses `IEVMRepository`. Host-driven sends do not show `SentTransactionModal` — the host surfaces the hash itself.
 
 ## Branded types
 
