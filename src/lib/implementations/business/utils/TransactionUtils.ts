@@ -598,13 +598,9 @@ export class TransactionUtils implements ITransactionUtils {
             ),
         );
         params = buildParams(feeDelegation, feeAtoms);
-        if (!onFinalFeeRequired) {
-          estimate =
-            await this.options.relayerRepository.estimate7710Transaction(
-              relayerUrl,
-              params,
-            );
-        }
+        // Keep estimate₁ context + requiredPaymentAmount. A second estimate would
+        // mint a new quote while leaving feeAtoms at required₁ — payment/context
+        // mismatch under rising gas. Match the UI fee-bump path (no re-estimate).
       }
 
       if (!estimate.success) {
