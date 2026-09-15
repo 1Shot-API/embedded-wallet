@@ -144,6 +144,28 @@ export const styleCopyTransferTokensSchema = z.strictObject({
   doneLabel: z.string(),
 });
 
+export const styleCopySendNativeTokenSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  amountLabel: z.string(),
+  amountPlaceholder: z.string(),
+  maxLabel: z.string(),
+  recipientLabel: z.string(),
+  recipientPlaceholder: z.string(),
+  scanQrLabel: z.string(),
+  feeLabel: z.string(),
+  feeEstimatingLabel: z.string(),
+  feeEstimateFailedError: z.string(),
+  youSendLabel: z.string(),
+  theyReceiveLabel: z.string(),
+  cancelLabel: z.string(),
+  sendLabel: z.string(),
+  invalidAmountError: z.string(),
+  insufficientBalanceError: z.string(),
+  invalidAddressError: z.string(),
+  sendFailedError: z.string(),
+});
+
 export const styleCopyCctpBridgeSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
@@ -464,6 +486,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   sendTransaction: styleCopySendTransactionSchema,
   confirmTransfer: styleCopyConfirmTransferSchema,
   transferTokens: styleCopyTransferTokensSchema,
+  sendNativeToken: styleCopySendNativeTokenSchema,
   cctpBridge: styleCopyCctpBridgeSchema,
   grantExecutionPermission: styleCopyGrantExecutionPermissionSchema,
   grantLiFiSwapPermission: styleCopyGrantLiFiSwapPermissionSchema,
@@ -510,6 +533,7 @@ export const styleCopyPatchSchema = z.strictObject({
   sendTransaction: styleCopySendTransactionSchema.partial().optional(),
   confirmTransfer: styleCopyConfirmTransferSchema.partial().optional(),
   transferTokens: styleCopyTransferTokensSchema.partial().optional(),
+  sendNativeToken: styleCopySendNativeTokenSchema.partial().optional(),
   cctpBridge: styleCopyCctpBridgeSchema.partial().optional(),
   grantExecutionPermission:
     styleCopyGrantExecutionPermissionSchema.partial().optional(),
@@ -572,6 +596,9 @@ export type IStyleCopyConfirmTransfer = z.infer<
 >;
 export type IStyleCopyTransferTokens = z.infer<
   typeof styleCopyTransferTokensSchema
+>;
+export type IStyleCopySendNativeToken = z.infer<
+  typeof styleCopySendNativeTokenSchema
 >;
 export type IStyleCopyCctpBridge = z.infer<typeof styleCopyCctpBridgeSchema>;
 export type IStyleCopyGrantExecutionPermission = z.infer<

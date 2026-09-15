@@ -390,6 +390,11 @@ export class HardcodedChainRepository implements IChainRepository {
     return CATALOG;
   }
 
+  /**
+   * Cached EIP-7702 upgrade hint (`oneshot.walletUpgraded.{chainId}.{addr}`).
+   * Per-chain. {@link TransactionUtils.needsWalletUpgrade} always re-checks
+   * `getCode` and does not skip auth based on a cached `true`.
+   */
   async getWalletUpgraded(
     chainId: EVMChainIdType,
     address: EVMAccountAddress,

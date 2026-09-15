@@ -20,8 +20,12 @@ export interface IChainRepository {
   getCatalog(): readonly SupportedChain[];
 
   /**
-   * Cached EIP-7702 upgrade status for an account on a chain.
-   * `null` ⇒ no localStorage entry (caller should `getCode` and cache).
+   * Cached EIP-7702 upgrade status for an account on a chain
+   * (`oneshot.walletUpgraded.{chainId}.{address}`). Per-chain — never global.
+   * `null` ⇒ no localStorage entry.
+   *
+   * Callers that decide whether to sign an authorization must still verify
+   * with `getCode`; this cache is a hint / last-known value only.
    */
   getWalletUpgraded(
     chainId: EVMChainId,

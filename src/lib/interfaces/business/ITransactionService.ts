@@ -82,6 +82,22 @@ export interface ITransactionService {
       authorizationList?: IRelayerAuthorizationEntry[];
     } & IRelayerSendUiCallbacks,
   ): Promise<ISendTransactionResult>;
+
+  /**
+   * Plain native value transfer via eth_sendRawTransaction — never the
+   * public relayer, even when the chain has `useRelayer: true`.
+   */
+  sendNativeTransfer(
+    chainId: EVMChainId,
+    to: EVMAccountAddress,
+    value: bigint,
+  ): Promise<ISendTransactionResult>;
+
+  /** Fee preview for native Send Max / summary UI. */
+  estimateNativeTransferFee(chainId: EVMChainId): Promise<{
+    gasPrice: bigint;
+    feeAtoms: bigint;
+  }>;
 }
 
 export const ITransactionServiceType = Symbol.for("ITransactionService");

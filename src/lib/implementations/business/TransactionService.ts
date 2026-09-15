@@ -2,6 +2,7 @@ import type {
   EVMAccountAddress,
   EVMChainId,
 } from "@1shotapi/ows-types";
+import { HexString } from "@1shotapi/ows-types";
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
 import type {
   IOneshotRelayerRepository,
@@ -16,6 +17,8 @@ import type {
 import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
 import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
 import type { TokenAmount } from "../../types/primitives";
+
+const EMPTY_CALLDATA = HexString("0x");
 
 export type TransactionServiceOptions = {
   chainRepository: IChainRepository;
@@ -98,5 +101,32 @@ export class TransactionService implements ITransactionService {
       onAwaitingConfirmation: options.onAwaitingConfirmation,
       retainDisplayDuringSubmit: options.retainDisplayDuringSubmit,
     });
+  }
+
+  async sendNativeTransfer(
+    chainId: EVMChainId,
+    to: EVMAccountAddress,
+    value: bigint,
+  ): Promise<ISendTransactionResult> {
+    const chain = await this.options.chainRepository.get(chainId);
+    if (!chain) {
+      throw new Error(`Unsupported chain: ${chainId}`);
+    }
+    if (value < 0n) {
+      throw new Error("Native transfer value must be non-negative");
+    }
+    return this.options.relayerRepository.broadcastRawTransaction(
+      chainId,
+      to,
+      EMPTY_CALLDATA,
+      value,
+    );
+  }
+
+  estimateNativeTransferFee(chainId: EVMChainId): Promise<{
+    gasPrice: bigint;
+    feeAtoms: bigint;
+  }> {
+    return this.options.transactionUtils.estimateNativeTransferFee(chainId);
   }
 }
