@@ -2,6 +2,8 @@ export type { ITransactionUtils } from "./ITransactionUtils";
 export {
   ITransactionUtilsType,
   NATIVE_TRANSFER_GAS,
+  NATIVE_FEE_HEADROOM_BPS,
+  withNativeFeeHeadroom,
   maxNativeSendable,
 } from "./ITransactionUtils";
 export type {

@@ -40,6 +40,8 @@ import type {
 } from "../../../interfaces/business/ITransactionService";
 import {
   NATIVE_TRANSFER_GAS,
+  maxNativeSendable,
+  withNativeFeeHeadroom,
   type ITransactionUtils,
 } from "../../../interfaces/business/utils/ITransactionUtils";
 import type { ITransactionUtils as IPresentationTransactionUtils } from "../../../interfaces/utils/ITransactionUtils";
@@ -264,19 +266,58 @@ export class TransactionUtils implements ITransactionUtils {
 
   async estimateNativeTransferFee(chainId: EVMChainId): Promise<{
     gasPrice: bigint;
+    maxPriorityFeePerGas: bigint;
     feeAtoms: bigint;
   }> {
     const client = this.options.blockchain.getPublicClient(chainId);
-    let gasPrice: bigint;
+    let maxFeePerGas: bigint;
+    let maxPriorityFeePerGas = 0n;
     try {
       const fees = await client.estimateFeesPerGas();
-      gasPrice = fees.maxFeePerGas ?? (await client.getGasPrice());
+      maxFeePerGas = fees.maxFeePerGas ?? (await client.getGasPrice());
+      maxPriorityFeePerGas = fees.maxPriorityFeePerGas ?? 0n;
     } catch {
-      gasPrice = await client.getGasPrice();
+      maxFeePerGas = await client.getGasPrice();
     }
+    // Pin Max / balance checks to a buffered cap so a later prepare that
+    // re-quotes fees (or base-fee bumps while pending) does not exceed the
+    // reserved budget. Actual ETH paid is still baseFee + tip ≤ maxFeePerGas.
+    const gasPrice = withNativeFeeHeadroom(maxFeePerGas);
     return {
       gasPrice,
+      maxPriorityFeePerGas,
       feeAtoms: gasPrice * NATIVE_TRANSFER_GAS,
+    };
+  }
+
+  async planNativeTransfer(
+    chainId: EVMChainId,
+    value: bigint,
+  ): Promise<{
+    value: bigint;
+    gas: bigint;
+    maxFeePerGas: bigint;
+    maxPriorityFeePerGas: bigint;
+  }> {
+    if (value < 0n) {
+      throw new Error("Native transfer value must be non-negative");
+    }
+    const estimate = await this.estimateNativeTransferFee(chainId);
+    const account = await this.getViemAccount();
+    const client = this.options.blockchain.getPublicClient(chainId);
+    const balance = await client.getBalance({ address: account.address });
+    const maxSendable = maxNativeSendable(balance, estimate.feeAtoms);
+    if (maxSendable <= 0n) {
+      throw new Error("Insufficient balance for network fee");
+    }
+    // Clamp when fees moved up since Max / form validation — same pattern as
+    // MetaMask refreshing Max against the fee used on the submitted tx.
+    const sendValue = value > maxSendable ? maxSendable : value;
+    return {
+      value: sendValue,
+      gas: NATIVE_TRANSFER_GAS,
+      maxFeePerGas: estimate.gasPrice,
+      maxPriorityFeePerGas: estimate.maxPriorityFeePerGas,
     };
   }
 

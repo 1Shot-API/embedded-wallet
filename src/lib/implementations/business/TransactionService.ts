@@ -4,6 +4,7 @@ import type {
 } from "@1shotapi/ows-types";
 import { HexString } from "@1shotapi/ows-types";
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
+import type { IEVMRepository } from "../../interfaces/data/IEVMRepository";
 import type {
   IOneshotRelayerRepository,
   IRelayerAuthorizationEntry,
@@ -23,6 +24,7 @@ const EMPTY_CALLDATA = HexString("0x");
 export type TransactionServiceOptions = {
   chainRepository: IChainRepository;
   relayerRepository: IOneshotRelayerRepository;
+  evmRepository: IEVMRepository;
   /** Shared EIP-7702 / ExactCalldata / relayer submit helpers. */
   transactionUtils: ITransactionUtils;
 };
@@ -76,7 +78,7 @@ export class TransactionService implements ITransactionService {
     }
 
     if (!chain.useRelayer) {
-      return this.options.relayerRepository.broadcastRawTransaction(
+      return this.options.evmRepository.broadcastRawTransaction(
         chainId,
         work.to,
         work.data,
@@ -112,19 +114,26 @@ export class TransactionService implements ITransactionService {
     if (!chain) {
       throw new Error(`Unsupported chain: ${chainId}`);
     }
-    if (value < 0n) {
-      throw new Error("Native transfer value must be non-negative");
-    }
-    return this.options.relayerRepository.broadcastRawTransaction(
+    const planned = await this.options.transactionUtils.planNativeTransfer(
+      chainId,
+      value,
+    );
+    return this.options.evmRepository.broadcastRawTransaction(
       chainId,
       to,
       EMPTY_CALLDATA,
-      value,
+      planned.value,
+      {
+        gas: planned.gas,
+        maxFeePerGas: planned.maxFeePerGas,
+        maxPriorityFeePerGas: planned.maxPriorityFeePerGas,
+      },
     );
   }
 
   estimateNativeTransferFee(chainId: EVMChainId): Promise<{
     gasPrice: bigint;
+    maxPriorityFeePerGas: bigint;
     feeAtoms: bigint;
   }> {
     return this.options.transactionUtils.estimateNativeTransferFee(chainId);

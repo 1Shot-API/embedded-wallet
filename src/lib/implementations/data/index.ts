@@ -8,7 +8,7 @@ export type { TrackedAssetRepositoryOptions } from "./LocalStorageTrackedAssetRe
 export { BlockscoutAssetActivityRepository } from "./BlockscoutAssetActivityRepository";
 export type { AssetActivityRepositoryOptions } from "./BlockscoutAssetActivityRepository";
 export { OneshotRelayerRepository } from "./OneshotRelayerRepository";
-export type { OneshotRelayerRepositoryOptions } from "./OneshotRelayerRepository";
+export { EVMRepository } from "./EVMRepository";
 export {
   DEFAULT_CHAIN_ID,
   HardcodedChainRepository,

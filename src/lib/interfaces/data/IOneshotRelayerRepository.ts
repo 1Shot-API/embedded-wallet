@@ -89,9 +89,10 @@ export interface IRelayerStatusResult {
 }
 
 /**
- * Data client for the public 1Shot relayer JSON-RPC + interim raw broadcast.
+ * Data client for the public 1Shot relayer JSON-RPC.
  * Orchestration lives in business {@link import("../business/utils/ITransactionUtils").ITransactionUtils}
  * / {@link import("../business/ITransactionService").ITransactionService}.
+ * Raw eth_sendRawTransaction lives on {@link import("./IEVMRepository").IEVMRepository}.
  */
 export interface IOneshotRelayerRepository {
   getCapabilities(
@@ -119,14 +120,6 @@ export interface IOneshotRelayerRepository {
     relayerUrl: string,
     taskId: RelayerTransactionId,
   ): Promise<IRelayerStatusResult>;
-
-  /** Non-relayer path: prepare + sign + eth_sendRawTransaction. */
-  broadcastRawTransaction(
-    chainId: EVMChainId,
-    to: EVMAccountAddress,
-    data: HexString,
-    value?: bigint,
-  ): Promise<ISendTransactionResult>;
 }
 
 export const IOneshotRelayerRepositoryType = Symbol.for(

@@ -1,10 +1,7 @@
-import { prepareEvmTransaction } from "@1shotapi/ows-signer-utils";
-import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import {
   EVMAccountAddress,
   EVMTransactionHash,
   HexString,
-  OwsInvalidParamsError,
   RelayerTransactionId,
   type EVMChainId,
 } from "@1shotapi/ows-types";
@@ -15,17 +12,7 @@ import type {
   IRelayerEstimateResult,
   IRelayerFeeData,
   IRelayerStatusResult,
-  ISendTransactionResult,
 } from "../../interfaces/data/IOneshotRelayerRepository";
-import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
-
-const ZERO_VALUE = HexString("0x0");
-const EMPTY_DATA = HexString("0x");
-
-export type OneshotRelayerRepositoryOptions = {
-  blockchain: IBlockchainProvider;
-  owsProvider: IOWSProvider;
-};
 
 type JsonRpcSuccess<T> = { jsonrpc: "2.0"; id: unknown; result: T };
 type JsonRpcFailure = {
@@ -34,13 +21,9 @@ type JsonRpcFailure = {
   error: { code: number; message: string; data?: unknown };
 };
 
-/**
- * Public relayer JSON-RPC client + interim eth_sendRawTransaction broadcast.
- */
+/** Public relayer JSON-RPC client (capabilities, fees, 7710 send/estimate/status). */
 export class OneshotRelayerRepository implements IOneshotRelayerRepository {
   private readonly capabilitiesCache = new Map<string, IRelayerCapabilities>();
-
-  constructor(private readonly options: OneshotRelayerRepositoryOptions) {}
 
   async getCapabilities(
     relayerUrl: string,
@@ -208,62 +191,6 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
         : undefined,
       message: result.message,
       memo: result.memo,
-    };
-  }
-
-  async broadcastRawTransaction(
-    chainId: EVMChainId,
-    to: ReturnType<typeof EVMAccountAddress>,
-    data: HexString,
-    value?: bigint,
-  ): Promise<ISendTransactionResult> {
-    const [signer, chainRpc] = await Promise.all([
-      this.options.owsProvider.getSigner(),
-      this.options.owsProvider.getRpcHelper(),
-    ]);
-    const active = chainRpc.getChainId();
-    if (active !== chainId) {
-      throw new OwsInvalidParamsError(
-        `sendTransaction chainId ${chainId} does not match active chain ${active}`,
-      );
-    }
-
-    const from =
-      signer.getCachedAddress?.() ?? (await signer.evm.getAccountAddress());
-    const valueHex =
-      value === undefined || value === 0n
-        ? ZERO_VALUE
-        : HexString(`0x${value.toString(16)}` as `0x${string}`);
-    const txData = data || EMPTY_DATA;
-
-    const prepared = await prepareEvmTransaction(chainRpc, from, {
-      from,
-      to,
-      data: txData,
-      value: valueHex,
-      chainId,
-    });
-    const [signed] = await signer.evm.signTransaction([prepared]);
-    if (!signed) {
-      throw new OwsInvalidParamsError("signTransaction returned no signature");
-    }
-
-    const client = this.options.blockchain.getPublicClient(chainId);
-    const hash = await client.request({
-      method: "eth_sendRawTransaction",
-      params: [signed],
-    });
-    if (typeof hash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(hash)) {
-      throw new OwsInvalidParamsError(
-        "eth_sendRawTransaction returned an invalid transaction hash",
-      );
-    }
-
-    return {
-      relayerTransactionId: RelayerTransactionId(
-        `interim-${hash.slice(2, 18)}`,
-      ),
-      transactionHash: EVMTransactionHash(hash as `0x${string}`),
     };
   }
 

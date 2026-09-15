@@ -58,16 +58,47 @@ export interface ITransactionUtils {
 
   /**
    * EIP-1559 `maxFeePerGas` (fallback `getGasPrice`) × 21000 for a plain
-   * native transfer. Used by in-wallet native Send for fee preview / Max.
+   * native transfer, plus {@link NATIVE_FEE_HEADROOM_BPS} headroom so Max /
+   * balance checks survive fee movement before inclusion.
    */
   estimateNativeTransferFee(chainId: EVMChainId): Promise<{
     gasPrice: bigint;
+    maxPriorityFeePerGas: bigint;
     feeAtoms: bigint;
+  }>;
+
+  /**
+   * Fresh fee quote + clamp `value` to `balance − bufferedFee`, returning
+   * gas params to pin on the signed tx (same quote Max reserved against).
+   */
+  planNativeTransfer(
+    chainId: EVMChainId,
+    value: bigint,
+  ): Promise<{
+    value: bigint;
+    gas: bigint;
+    maxFeePerGas: bigint;
+    maxPriorityFeePerGas: bigint;
   }>;
 }
 
 /** Fixed gas units for a simple EVM native value transfer. */
 export const NATIVE_TRANSFER_GAS = 21000n;
+
+/**
+ * Extra reserve on top of viem's fee estimate (basis points).
+ * Viem already multiplies base fee by ~1.2; wallets still leave additional
+ * headroom because base fee can rise ~12.5% per block while a tx sits in the
+ * mempool — exact 100% drains are not reliable under EIP-1559.
+ */
+export const NATIVE_FEE_HEADROOM_BPS = 2500n; // 25%
+
+const BPS_DENOMINATOR = 10000n;
+
+/** Apply {@link NATIVE_FEE_HEADROOM_BPS} to a per-gas price. */
+export function withNativeFeeHeadroom(gasPrice: bigint): bigint {
+  return gasPrice + (gasPrice * NATIVE_FEE_HEADROOM_BPS) / BPS_DENOMINATOR;
+}
 
 /** Largest sendable amount that still leaves room for {@link feeAtoms}. */
 export function maxNativeSendable(balance: bigint, feeAtoms: bigint): bigint {
