@@ -23,6 +23,8 @@ export type {
   ERelayerTaskStatus,
 } from "./IOneshotRelayerRepository";
 export { IOneshotRelayerRepositoryType } from "./IOneshotRelayerRepository";
+export type { IEVMRepository, IEvmGasOverrides } from "./IEVMRepository";
+export { IEVMRepositoryType } from "./IEVMRepository";
 export type { IChainRepository } from "./IChainRepository";
 export { IChainRepositoryType } from "./IChainRepository";
 export type { IBitcoinBalance, IBitcoinRpc } from "./IBitcoinRpc";

@@ -96,6 +96,7 @@ export interface ITransactionService {
   /** Fee preview for native Send Max / summary UI. */
   estimateNativeTransferFee(chainId: EVMChainId): Promise<{
     gasPrice: bigint;
+    maxPriorityFeePerGas: bigint;
     feeAtoms: bigint;
   }>;
 }

@@ -39,6 +39,8 @@ export type { ITransactionUtils as IBusinessTransactionUtils } from "./utils/ITr
 export {
   ITransactionUtilsType as IBusinessTransactionUtilsType,
   NATIVE_TRANSFER_GAS,
+  NATIVE_FEE_HEADROOM_BPS,
+  withNativeFeeHeadroom,
   maxNativeSendable,
 } from "./utils/ITransactionUtils";
 export type {

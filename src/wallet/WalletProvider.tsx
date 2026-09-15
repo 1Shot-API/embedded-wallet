@@ -38,6 +38,7 @@ import { HardcodedKnownAssetRepository } from "../lib/implementations/data/Hardc
 import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
 import { BlockscoutAssetActivityRepository } from "../lib/implementations/data/BlockscoutAssetActivityRepository";
 import { OneshotRelayerRepository } from "../lib/implementations/data/OneshotRelayerRepository";
+import { EVMRepository } from "../lib/implementations/data/EVMRepository";
 import {
   BitcoinService,
   BridgeService,
@@ -66,6 +67,7 @@ import type {
   IAssetActivityRepository,
   IChainRepository,
   ICircleRepository,
+  IEVMRepository,
   IKnownAssetRepository,
   IOneshotRelayerRepository,
   IRecordSentActivityParams,
@@ -142,10 +144,11 @@ const trackedAssetRepository: ITrackedAssetRepository =
 const assetActivityRepository: IAssetActivityRepository =
   new BlockscoutAssetActivityRepository(eventBus, configProvider);
 const oneshotRelayerRepository: IOneshotRelayerRepository =
-  new OneshotRelayerRepository({
-    blockchain: blockchainProvider,
-    owsProvider,
-  });
+  new OneshotRelayerRepository();
+const evmRepository: IEVMRepository = new EVMRepository(
+  blockchainProvider,
+  owsProvider,
+);
 const circleRepository: ICircleRepository = new CircleRepository();
 
 const relayerCredentialsClient = new RelayerCredentialsClient({
@@ -174,6 +177,7 @@ const liFiUtils: ILiFiUtils = new LiFiUtils();
 const transactionService: ITransactionService = new TransactionService({
   chainRepository,
   relayerRepository: oneshotRelayerRepository,
+  evmRepository,
   transactionUtils: businessTransactionUtils,
 });
 
@@ -223,6 +227,7 @@ export type WalletContextValue = {
   trackedAssetRepository: ITrackedAssetRepository;
   assetActivityRepository: IAssetActivityRepository;
   oneshotRelayerRepository: IOneshotRelayerRepository;
+  evmRepository: IEVMRepository;
   transactionService: ITransactionService;
   bridgeService: IBridgeService;
   bitcoinService: IBitcoinService;
@@ -318,6 +323,7 @@ export type WalletContextValue = {
   /** Gas fee preview for native Send Max / summary. */
   estimateNativeTransferFee: (chainId: EVMChainId) => Promise<{
     gasPrice: bigint;
+    maxPriorityFeePerGas: bigint;
     feeAtoms: bigint;
   }>;
   openExportPrivateKey: () => Promise<void>;
@@ -825,6 +831,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       trackedAssetRepository,
       assetActivityRepository,
       oneshotRelayerRepository,
+      evmRepository,
       transactionService,
       bridgeService,
       bitcoinService,
