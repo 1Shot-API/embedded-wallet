@@ -14,6 +14,7 @@ export type {
   IStyleCopySendTransaction,
   IStyleCopyConfirmTransfer,
   IStyleCopyTransferTokens,
+  IStyleCopySendNativeToken,
   IStyleCopyCctpBridge,
   IStyleCopyGrantExecutionPermission,
   IStyleCopyCancelDelegation,

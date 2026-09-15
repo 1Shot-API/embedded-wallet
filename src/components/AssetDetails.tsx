@@ -25,6 +25,7 @@ import { AssetIdentityMark } from "./AssetIdentityMark";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { TransactionHistory } from "./TransactionHistory";
 import { ReceiveModal } from "./modals/ReceiveModal";
+import { SendNativeTokenModal } from "./modals/SendNativeTokenModal";
 import { TransferTokensModal } from "./modals/TransferTokensModal";
 
 export interface IAssetDetailsProps {
@@ -103,7 +104,8 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
         : bitcoinTestnetAddress
       : undefined,
   });
-  const canSend = asset.type === EAssetType.Erc20;
+  const canSend =
+    asset.type === EAssetType.Erc20 || asset.type === EAssetType.Native;
   const canBuy =
     Boolean(evmAddress) && String(evmAddress).toLowerCase() !== "0x0";
 
@@ -238,7 +240,16 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
           onClose={() => setReceiveOpen(false)}
         />
       ) : null}
-      {sendOpen ? (
+      {sendOpen && asset.type === EAssetType.Native ? (
+        <SendNativeTokenModal
+          asset={asset}
+          onClose={() => setSendOpen(false)}
+          onSuccess={() => {
+            void requestBalanceRefresh(asset.id);
+          }}
+        />
+      ) : null}
+      {sendOpen && asset.type === EAssetType.Erc20 ? (
         <TransferTokensModal
           asset={asset}
           onClose={() => setSendOpen(false)}

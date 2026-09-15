@@ -76,6 +76,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "USD Coin",
     decimals: 6,
     useCCTPBridge: true,
+    weight: 100,
   },
   {
     chainId: EChain.Ethereum,
@@ -114,6 +115,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "USD Coin",
     decimals: 6,
     useCCTPBridge: true,
+    weight: 100,
   },
   {
     chainId: EChain.Optimism,
@@ -133,6 +135,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     symbol: "USDC",
     name: "USD Coin",
     decimals: 18,
+    weight: 100,
   },
   {
     chainId: EChain.Bsc,
@@ -153,6 +156,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "USD Coin",
     decimals: 6,
     useCCTPBridge: true,
+    weight: 100,
   },
   {
     chainId: EChain.Unichain,
@@ -173,6 +177,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "USD Coin",
     decimals: 6,
     useCCTPBridge: true,
+    weight: 100,
   },
   {
     chainId: EChain.Polygon,
@@ -193,6 +198,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "USD Coin",
     decimals: 6,
     useCCTPBridge: true,
+    weight: 100,
   },
   // Monad (143)
   {
@@ -204,6 +210,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "USD Coin",
     decimals: 6,
     useCCTPBridge: true,
+    weight: 100,
   },
   {
     chainId: EChain.Monad,
@@ -245,6 +252,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "USD Coin",
     decimals: 6,
     useCCTPBridge: true,
+    weight: 100,
   },
   {
     chainId: EChain.Arbitrum,
@@ -264,6 +272,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     symbol: "USDC",
     name: "USD Coin",
     decimals: 6,
+    weight: 100,
   },
   {
     chainId: EChain.Celo,
@@ -284,6 +293,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "USD Coin",
     decimals: 6,
     useCCTPBridge: true,
+    weight: 100,
   },
   {
     chainId: EChain.Linea,

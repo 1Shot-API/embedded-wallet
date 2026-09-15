@@ -170,6 +170,13 @@ export interface IStyleFormState {
   transferTokensViewExplorer: string;
   transferTokensDone: string;
 
+  // Text — Native token send
+  sendNativeTokenTitle: string;
+  sendNativeTokenSend: string;
+  sendNativeTokenCancel: string;
+  sendNativeTokenMax: string;
+  sendNativeTokenFee: string;
+
   // Text — EIP-7715 grant / cancel
   grantPermissionTitle: string;
   grantPermissionGrant: string;
@@ -373,6 +380,11 @@ export const ACME_PRESET: IStyleFormState = {
   transferTokensSentTitle: "Transaction sent",
   transferTokensViewExplorer: "View on explorer",
   transferTokensDone: "Done",
+  sendNativeTokenTitle: "Send",
+  sendNativeTokenSend: "Send",
+  sendNativeTokenCancel: "Cancel",
+  sendNativeTokenMax: "Max",
+  sendNativeTokenFee: "Estimated network fee",
   grantPermissionTitle: "Grant spending permission",
   grantPermissionGrant: "Grant",
   grantPermissionReject: "Reject",
@@ -546,6 +558,11 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   transferTokensSentTitle: "Transaction sent",
   transferTokensViewExplorer: "View on explorer",
   transferTokensDone: "Done",
+  sendNativeTokenTitle: "Send",
+  sendNativeTokenSend: "Send",
+  sendNativeTokenCancel: "Cancel",
+  sendNativeTokenMax: "Max",
+  sendNativeTokenFee: "Estimated network fee",
   grantPermissionTitle: "Grant spending permission",
   grantPermissionGrant: "Grant",
   grantPermissionReject: "Reject",
@@ -788,6 +805,16 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(transferTokens, "doneLabel", form.transferTokensDone);
   if (Object.keys(transferTokens).length > 0) {
     copy.transferTokens = transferTokens;
+  }
+
+  const sendNativeToken: Record<string, string> = {};
+  put(sendNativeToken, "title", form.sendNativeTokenTitle);
+  put(sendNativeToken, "sendLabel", form.sendNativeTokenSend);
+  put(sendNativeToken, "cancelLabel", form.sendNativeTokenCancel);
+  put(sendNativeToken, "maxLabel", form.sendNativeTokenMax);
+  put(sendNativeToken, "feeLabel", form.sendNativeTokenFee);
+  if (Object.keys(sendNativeToken).length > 0) {
+    copy.sendNativeToken = sendNativeToken;
   }
 
   const grantExecutionPermission: Record<string, string> = {};

@@ -1,5 +1,9 @@
 export type { ITransactionUtils } from "./ITransactionUtils";
-export { ITransactionUtilsType } from "./ITransactionUtils";
+export {
+  ITransactionUtilsType,
+  NATIVE_TRANSFER_GAS,
+  maxNativeSendable,
+} from "./ITransactionUtils";
 export type {
   IBuildCctpRelayerWorkParams,
   ICctpBurnFees,

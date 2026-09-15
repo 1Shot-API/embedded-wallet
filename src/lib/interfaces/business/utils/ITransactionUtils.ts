@@ -55,6 +55,24 @@ export interface ITransactionUtils {
     /** Batch relayer vault auth into the coalesced sign ceremony via executeBatch. */
     prefetchRelayerVaultAssertion?: boolean;
   } & IRelayerSendUiCallbacks): Promise<ISendTransactionResult>;
+
+  /**
+   * EIP-1559 `maxFeePerGas` (fallback `getGasPrice`) × 21000 for a plain
+   * native transfer. Used by in-wallet native Send for fee preview / Max.
+   */
+  estimateNativeTransferFee(chainId: EVMChainId): Promise<{
+    gasPrice: bigint;
+    feeAtoms: bigint;
+  }>;
+}
+
+/** Fixed gas units for a simple EVM native value transfer. */
+export const NATIVE_TRANSFER_GAS = 21000n;
+
+/** Largest sendable amount that still leaves room for {@link feeAtoms}. */
+export function maxNativeSendable(balance: bigint, feeAtoms: bigint): bigint {
+  if (balance <= feeAtoms) return 0n;
+  return balance - feeAtoms;
 }
 
 export const ITransactionUtilsType = Symbol.for("business.ITransactionUtils");

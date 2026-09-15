@@ -36,7 +36,11 @@ export {
 } from "./IDelegationService";
 export type { ExecutionPermissionType } from "./IDelegationService";
 export type { ITransactionUtils as IBusinessTransactionUtils } from "./utils/ITransactionUtils";
-export { ITransactionUtilsType as IBusinessTransactionUtilsType } from "./utils/ITransactionUtils";
+export {
+  ITransactionUtilsType as IBusinessTransactionUtilsType,
+  NATIVE_TRANSFER_GAS,
+  maxNativeSendable,
+} from "./utils/ITransactionUtils";
 export type {
   IBuildCctpRelayerWorkParams,
   ICctpBurnFees,
