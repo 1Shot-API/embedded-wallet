@@ -65,8 +65,11 @@ describe("CCTPUtils", () => {
       assert.equal(route.networkType, EChainNetworkType.Testnet);
     });
 
-    it("returns null for Arc mainnet (not a CCTP wallet source)", () => {
-      assert.equal(cctp.getRoute(EChain.Arc), null);
+    it("maps Arc mainnet to Arc domain 26", () => {
+      const route = cctp.requireRoute(EChain.Arc);
+      assert.equal(route.domain, ECircleDomainId.Arc);
+      assert.equal(route.networkType, EChainNetworkType.Mainnet);
+      assert.equal(route.irisBaseUrl, cctp.irisApiMainnet);
     });
 
     it("maps Fast to finality 1000 and Slow to 2000", () => {

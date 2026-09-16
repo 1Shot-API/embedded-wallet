@@ -39,10 +39,22 @@ function seed(row: ISeedRow): KnownAsset {
 
 /**
  * Static snapshot from `relayer_getCapabilities` (prod + dev), including
- * Arc Testnet USDC and Robinhood USDG.
+ * Arc mainnet / Arc Testnet USDC and Robinhood USDG.
  * @see https://www.1shotapi.com/docs/relayer/get-started/overview
  */
 const SEED_ROWS: readonly ISeedRow[] = [
+  // Arc mainnet (5042) — USDC is gas; same pinned ERC-20 as testnet
+  {
+    chainId: EChain.Arc,
+    address: EVMAccountAddress(
+      "0x3600000000000000000000000000000000000000",
+    ),
+    symbol: "USDC",
+    name: "USDC",
+    decimals: 6,
+    useCCTPBridge: true,
+    weight: 100,
+  },
   // Arc Testnet (5042002) — native USDC
   {
     chainId: EChain.ArcTestnet,
