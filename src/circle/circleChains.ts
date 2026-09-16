@@ -1,18 +1,18 @@
-/** Map EVM decimal chain id → Circle onramp chain label (`Blockchain` enum). */
+/** Map EVM decimal chain id → Circle onramp network id (`assets.chains`). */
 const CIRCLE_CHAIN_BY_DECIMAL: ReadonlyMap<number, string> = new Map([
-  [1, "Ethereum"],
-  [10, "Optimism"],
-  [137, "Polygon"],
-  [8453, "Base"],
-  [42161, "Arbitrum"],
-  [43114, "Avalanche"],
-  [59144, "Linea"],
-  [130, "Unichain"],
-  [5042, "Arc"],
+  [1, "ethereum"],
+  [10, "optimism"],
+  [137, "polygon"],
+  [8453, "base"],
+  [42161, "arbitrum"],
+  [43114, "avalanche"],
+  [59144, "linea"],
+  [130, "unichain"],
+  [5042, "arc"],
 ]);
 
 /**
- * Convert a hex (`0x…`) or decimal chain id to Circle's display chain label.
+ * Convert a hex (`0x…`) or decimal chain id to Circle's onramp network id.
  * Returns null when unsupported (widget shows full catalog).
  */
 export function circleChainLabelFromChainId(

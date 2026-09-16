@@ -304,7 +304,7 @@ await proxy.rpc("onramp", {
 |--------|--------|----------|
 | `onramp` | `{ chainId?: number, amount?: string }` | Shows wallet, mounts Circle AppKit onramp; session minted via Relayer `POST /wallet/onramp` |
 
-Returns `{ ok: true }` when the user closes the onramp view. The Relayer holds the Circle kit key; the browser only receives a single-use session. Inline iframe requires Circle CSP allowlisting of the wallet origin; for local/ngrok testing the branding layer honors `localStorage.setItem("circlePopup", "true")` and uses AppKit `openWindow` instead.
+Returns `{ ok: true }` when the user closes the onramp view. The Relayer holds the Circle kit key; the browser only receives a single-use session. When Branding is nested in a Host iframe, Buy prefers AppKit `openWindow`; top-level Branding uses `mountIframe`. Override with `localStorage.setItem("circlePopup", "true"|"false")`.
 
 ## Custom RPC — `bridge`
 
