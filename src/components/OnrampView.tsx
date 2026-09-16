@@ -17,8 +17,9 @@ export type IOnrampViewProps = IOnrampOpenRequest & {
 
 /**
  * Full-screen Circle AppKit onramp inside the Branding Layer shell.
- * Default: inline iframe. With `localStorage.circlePopup === "true"`: popup
+ * Nested in a Host iframe (or `localStorage.circlePopup === "true"`): popup
  * window (session is prefetched; open must be a sync click — Circle requirement).
+ * Top-level Branding with no override: inline iframe.
  */
 export function OnrampView({
   destinationAddress,
@@ -217,8 +218,9 @@ export function OnrampView({
         ) : null}
         {usePopup && popupReady && !popupOpened && !error ? (
           <p className="text-muted-foreground m-0 text-sm">
-            Circle opens in a popup (local/ngrok CSP bypass). Click Open onramp
-            — browsers block popups after an async delay.
+            Circle opens in a popup (required when the wallet is host-iframed, or
+            for local/ngrok CSP bypass). Click Open onramp — browsers block
+            popups after an async delay.
           </p>
         ) : null}
         {usePopup && popupOpened && !error ? (
@@ -269,7 +271,7 @@ function buildSessionBody(request: {
       : undefined;
 
   return {
-    userId: address,
+    appUserId: address,
     destinationAddress: address,
     ...(assets ? { assets } : {}),
     ...(request.amount ? { amount: request.amount } : {}),

@@ -51,12 +51,14 @@ cp .env.example .env  # set NGROK_AUTHTOKEN (and optional NGROK_DOMAIN)
 
 Fiat onramp uses Circle AppKit (`Buy` in Asset Details, or host RPC `onramp`).
 Sessions are minted by the Relayer (`POST /wallet/onramp`); the kit key never
-ships in this SPA. Inline iframe onramp requires your wallet domain to be
-registered with Circle for CSP — see Circle’s beta docs. For local/ngrok
-testing before CSP allowlisting, force the popup flow:
+ships in this SPA. When the Branding Layer is nested in a Host iframe, Buy uses
+AppKit `openWindow` (popup) automatically — Transak’s frame-ancestors cannot
+authorize arbitrary host origins. Top-level Branding uses an inline iframe.
+Override either way for local/ngrok CSP testing:
 
 ```js
-localStorage.setItem("circlePopup", "true")
+localStorage.setItem("circlePopup", "true")  // force popup
+localStorage.setItem("circlePopup", "false") // force iframe
 ```
 
 ## Develop
