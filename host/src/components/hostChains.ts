@@ -101,8 +101,11 @@ export const HOST_CHAINS: readonly IHostChainMeta[] = [
   ...HOST_CHAIN_SEED.filter((c) => c.isTestnet).sort(compareHostChains),
 ];
 
-/** Default session chain (Arc Testnet). */
+/** Default session chain (Arc mainnet when enabled, else Arc Testnet). */
 export const DEFAULT_HOST_CHAIN_ID =
+  (EnableArcMainnet
+    ? HOST_CHAINS.find((chain) => chain.label === "Arc")?.value
+    : undefined) ??
   HOST_CHAINS.find((chain) => chain.label === "Arc Testnet")?.value ??
   HOST_CHAINS.find((chain) => chain.isTestnet)?.value ??
   HOST_CHAINS[0]?.value ??

@@ -3,6 +3,7 @@
  * Keep in sync when the wallet catalog changes.
  */
 export const SUPPORTED_EIP155_CHAIN_IDS: readonly number[] = [
+  0x13b2, // Arc
   0x4cef52, // Arc Testnet
   0xaa36a7, // Sepolia
   0x14a34, // Base Sepolia

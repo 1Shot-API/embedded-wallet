@@ -8,6 +8,7 @@ const CIRCLE_CHAIN_BY_DECIMAL: ReadonlyMap<number, string> = new Map([
   [43114, "Avalanche"],
   [59144, "Linea"],
   [130, "Unichain"],
+  [5042, "Arc"],
 ]);
 
 /**

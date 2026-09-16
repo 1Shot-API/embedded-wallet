@@ -103,6 +103,7 @@ function route(
 }
 
 const ROUTES: readonly ICctpRoute[] = [
+  route(EChain.Arc, ECircleDomainId.Arc, EChainNetworkType.Mainnet),
   route(EChain.ArcTestnet, ECircleDomainId.Arc, EChainNetworkType.Testnet),
   route(EChain.Sepolia, ECircleDomainId.Ethereum, EChainNetworkType.Testnet),
   route(EChain.BaseSepolia, ECircleDomainId.Base, EChainNetworkType.Testnet),
