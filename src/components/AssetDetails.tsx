@@ -54,6 +54,7 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   const [buyBusy, setBuyBusy] = useState(false);
   const [bridgeBusy, setBridgeBusy] = useState(false);
   const [canBridge, setCanBridge] = useState(false);
+  const [canBuyAsset, setCanBuyAsset] = useState(false);
 
   const { balance, decimals } = useLiveTrackedBalance(
     assetProp.id,
@@ -74,6 +75,7 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
           balance,
           assetProp.iconUrl,
           assetProp.weight,
+          assetProp.canBuy,
         );
 
   useEffect(() => {
@@ -85,6 +87,7 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
     void getKnownAsset(assetProp.chainId, assetProp.address).then((known) => {
       if (!cancelled) {
         setCanBridge(known?.useCCTPBridge === true);
+        setCanBuyAsset(known?.canBuy === true);
       }
     });
     return () => {
@@ -106,8 +109,9 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   });
   const canSend =
     asset.type === EAssetType.Erc20 || asset.type === EAssetType.Native;
-  const canBuy =
+  const hasEvmWallet =
     Boolean(evmAddress) && String(evmAddress).toLowerCase() !== "0x0";
+  const showBuy = EnableArcMainnet && canBuyAsset;
 
   const openSend = useCallback(() => {
     void requestBalanceRefresh(asset.id);
@@ -115,7 +119,7 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   }, [asset.id, requestBalanceRefresh]);
 
   const openBuy = useCallback(() => {
-    if (!evmAddress || buyBusy) return;
+    if (!evmAddress || buyBusy || !canBuyAsset) return;
     setBuyBusy(true);
     void openOnramp({
       destinationAddress: evmAddress,
@@ -128,7 +132,7 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
       .finally(() => {
         setBuyBusy(false);
       });
-  }, [asset.chainId, asset.symbol, buyBusy, evmAddress]);
+  }, [asset.chainId, asset.symbol, buyBusy, canBuyAsset, evmAddress]);
 
   const openBridge = useCallback(() => {
     if (!evmAddress || bridgeBusy || !canBridge) return;
@@ -193,11 +197,11 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
           className="flex items-start justify-center gap-6"
           aria-label="Asset actions"
         >
-          {EnableArcMainnet ? (
+          {showBuy ? (
             <ActionButton
               label="Buy"
               variant="outline"
-              disabled={!canBuy || buyBusy}
+              disabled={!hasEvmWallet || buyBusy}
               onClick={openBuy}
             >
               <PlusIcon className="size-5" />
@@ -222,7 +226,7 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
             <ActionButton
               label={copy.bridgeLabel}
               variant="outline"
-              disabled={!canBuy || bridgeBusy}
+              disabled={!hasEvmWallet || bridgeBusy}
               onClick={openBridge}
             >
               <ArrowLeftRightIcon className="size-5" />

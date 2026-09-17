@@ -11,6 +11,8 @@ export class KnownAsset {
     public readonly symbol: string,
     public readonly decimals: number,
     public readonly useCCTPBridge: boolean,
+    /** When true, Asset Details shows Circle onramp Buy. */
+    public readonly canBuy: boolean = false,
     /** Higher weight sorts above peers in Balances defaults (e.g. stable > native). */
     public readonly weight: number = 0,
     public readonly iconUrl?: string,
