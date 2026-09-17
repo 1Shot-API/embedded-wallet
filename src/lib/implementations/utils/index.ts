@@ -15,3 +15,4 @@ export {
   isAnalyticsCancelled,
   runWithAnalytics,
 } from "./runWithAnalytics";
+export { registerSmartAccountsEnvironments } from "./registerSmartAccountsEnvironments";
