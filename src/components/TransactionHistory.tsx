@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { formatUnits } from "viem";
 import {
   ArrowDownLeftIcon,
   ArrowUpRightIcon,
@@ -8,6 +7,7 @@ import type { EVMAccountAddress } from "@1shotapi/ows-types";
 import type { AssetActivity, TrackedAsset } from "../lib/types/domain";
 import { EAssetActivityKind } from "../lib/types/enum/EAssetActivityKind";
 import { EAssetActivityStatus } from "../lib/types/enum/EAssetActivityStatus";
+import { FormatUtils } from "../lib/implementations/utils/FormatUtils";
 import { useWallet } from "../wallet/WalletProvider";
 import { useTransactionHistoryUpdated } from "../wallet/useWalletEvent";
 
@@ -45,7 +45,10 @@ function formatWhen(timestampMs: number): string {
 function formatSignedAmount(activity: AssetActivity, symbol: string): string {
   let amount: string;
   try {
-    amount = formatUnits(activity.amount, activity.decimals);
+    amount = FormatUtils.formatDisplayTokenAmount(
+      activity.amount,
+      activity.decimals,
+    );
   } catch {
     amount = activity.amount.toString();
   }
