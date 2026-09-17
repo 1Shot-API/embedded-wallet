@@ -3,7 +3,6 @@ import {
   type EVMChainId as EVMChainIdType,
   type OWSChainId,
 } from "@1shotapi/ows-types";
-import { EnableArcMainnet } from "../../features";
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
 import {
   type INativeCurrency,
@@ -100,7 +99,7 @@ const CATALOG: readonly SupportedChain[] = [
     PRODUCTION_RELAYER_URL,
     true,
     arcLogo,
-    EnableArcMainnet,
+    true,
     alchemyRpc("arc-mainnet"),
     "Arc",
     "https://explorer.arc.io",
@@ -339,9 +338,7 @@ const CATALOG: readonly SupportedChain[] = [
 ];
 
 /** Default chain for a fresh session. */
-export const DEFAULT_CHAIN_ID = EnableArcMainnet
-  ? EChain.Arc
-  : EChain.ArcTestnet;
+export const DEFAULT_CHAIN_ID = EChain.Arc;
 
 export class HardcodedChainRepository implements IChainRepository {
   private allowedChains: Set<string> | null = null;

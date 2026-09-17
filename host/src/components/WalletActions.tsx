@@ -22,7 +22,6 @@ import {
   isBridgeAmountValid,
   type BridgeSpeedOption,
 } from "@/constants/bridgeDemo";
-import { EnableArcMainnet } from "@/features";
 import { ChainSelector, type IChainSelectorOption } from "./ChainSelector";
 import {
   DEMO_ADD_ASSET_ICON_URL,
@@ -525,23 +524,12 @@ export function WalletActions({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>{EnableArcMainnet ? "Onramp / Bridge" : "Bridge"}</Label>
+        <Label>Onramp / Bridge</Label>
         <p className="text-muted-foreground text-xs">
-          {EnableArcMainnet ? (
-            <>
-              Open Circle fiat onramp via <code>onramp</code>, or gasless CCTP
-              USDC bridge via <code>bridge</code>. Pre-fill source, destination,
-              amount, and speed — when amount, destination, and speed are all
-              set, the wallet skips setup and shows the confirmation quote.
-            </>
-          ) : (
-            <>
-              Open gasless CCTP USDC bridge via <code>bridge</code>. Pre-fill
-              source, destination, amount, and speed — when amount, destination,
-              and speed are all set, the wallet skips setup and shows the
-              confirmation quote.
-            </>
-          )}
+          Open Circle fiat onramp via <code>onramp</code>, or gasless CCTP USDC
+          bridge via <code>bridge</code>. Pre-fill source, destination, amount,
+          and speed — when amount, destination, and speed are all set, the
+          wallet skips setup and shows the confirmation quote.
         </p>
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-2">
@@ -628,16 +616,14 @@ export function WalletActions({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {EnableArcMainnet ? (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!ready || busy}
-              onClick={onOnramp}
-            >
-              Onramp
-            </Button>
-          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready || busy}
+            onClick={onOnramp}
+          >
+            Onramp
+          </Button>
           <Button
             type="button"
             variant="outline"

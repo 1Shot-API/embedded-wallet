@@ -44,6 +44,7 @@ function buildNativeKnownAssets(): KnownAsset[] {
         chain.nativeCurrency.symbol,
         chain.nativeCurrency.decimals,
         false,
+        false,
         NATIVE_WEIGHT,
         chain.logoUrl,
       ),

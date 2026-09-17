@@ -22,6 +22,8 @@ export class NewTrackedAsset {
     public readonly iconUrl?: string,
     /** Higher weight sorts above peers in Balances defaults. */
     public readonly weight: number = 0,
+    /** When true, Asset Details shows Circle onramp Buy. */
+    public readonly canBuy: boolean = false,
   ) {}
 
   static fromKnown(known: KnownAsset): NewTrackedAsset {
@@ -34,6 +36,7 @@ export class NewTrackedAsset {
       known.decimals,
       known.iconUrl,
       known.weight,
+      known.canBuy,
     );
   }
 
@@ -47,6 +50,7 @@ export class NewTrackedAsset {
       this.decimals,
       iconUrl,
       this.weight,
+      this.canBuy,
     );
   }
 }
@@ -64,8 +68,9 @@ export class TrackedAsset extends NewTrackedAsset {
     public balance: bigint | null,
     iconUrl?: string,
     weight: number = 0,
+    canBuy: boolean = false,
   ) {
-    super(chainId, address, type, name, symbol, decimals, iconUrl, weight);
+    super(chainId, address, type, name, symbol, decimals, iconUrl, weight, canBuy);
   }
 
   static fromNew(
@@ -83,6 +88,7 @@ export class TrackedAsset extends NewTrackedAsset {
       balance,
       asset.iconUrl,
       asset.weight,
+      asset.canBuy,
     );
   }
 
@@ -98,6 +104,7 @@ export class TrackedAsset extends NewTrackedAsset {
       balance,
       this.iconUrl,
       this.weight,
+      this.canBuy,
     );
   }
 }

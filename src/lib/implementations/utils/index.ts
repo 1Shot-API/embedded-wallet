@@ -9,6 +9,10 @@ export {
   ChainDisplayUtils,
   type IChainCatalogSortable,
 } from "./ChainDisplayUtils";
+export {
+  FormatUtils,
+  DISPLAY_TOKEN_FRACTION_DIGITS,
+} from "./FormatUtils";
 export { AnalyticsBridge } from "./AnalyticsBridge";
 export {
   analyticsErrorCode,
