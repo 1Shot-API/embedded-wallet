@@ -20,7 +20,6 @@ import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import { openOnramp } from "../circle/openOnramp";
 import { openCctpBridge } from "../circle/openCctpBridge";
-import { EnableArcMainnet } from "../lib/features";
 import { AssetIdentityMark } from "./AssetIdentityMark";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { TransactionHistory } from "./TransactionHistory";
@@ -111,7 +110,7 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
     asset.type === EAssetType.Erc20 || asset.type === EAssetType.Native;
   const hasEvmWallet =
     Boolean(evmAddress) && String(evmAddress).toLowerCase() !== "0x0";
-  const showBuy = EnableArcMainnet && canBuyAsset;
+  const showBuy = canBuyAsset;
 
   const openSend = useCallback(() => {
     void requestBalanceRefresh(asset.id);
