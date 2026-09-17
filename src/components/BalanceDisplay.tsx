@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
 import type { TrackedAssetId } from "../lib/types/primitives";
+import { FormatUtils } from "../lib/implementations/utils/FormatUtils";
 import { useStyle } from "../style/StyleProvider";
 import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
-import { formatUnits } from "viem";
 
 export interface IBalanceDisplayProps {
   trackedAssetId: TrackedAssetId;
@@ -20,7 +20,7 @@ function formatBalance(
 ): string {
   if (balance === null) return unavailable;
   try {
-    return formatUnits(balance, decimals);
+    return FormatUtils.formatDisplayTokenAmount(balance, decimals);
   } catch {
     return unavailable;
   }

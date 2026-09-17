@@ -19,6 +19,8 @@ type ISeedRow = {
   name: string;
   decimals: number;
   useCCTPBridge?: boolean;
+  /** Circle onramp Buy in Asset Details (USDC only today). */
+  canBuy?: boolean;
   /** Pinned default stables use 100 so they sort above native (50). */
   weight?: number;
 };
@@ -32,6 +34,7 @@ function seed(row: ISeedRow): KnownAsset {
     row.symbol,
     row.decimals,
     row.useCCTPBridge === true,
+    row.canBuy ?? row.symbol.toUpperCase() === "USDC",
     row.weight ?? 0,
     iconUrlForSymbol(row.symbol),
   );

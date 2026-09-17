@@ -1,5 +1,3 @@
-import { EnableArcMainnet } from "../features";
-
 export interface IHostChainMeta {
   value: string;
   label: string;
@@ -50,7 +48,7 @@ const HOST_CHAIN_SEED: readonly IHostChainMeta[] = [
     isTestnet: true,
     weight: 75,
   },
-  ...(EnableArcMainnet ? [ARC_MAINNET] : []),
+  ARC_MAINNET,
   ARC_TESTNET,
   {
     value: "0xaa36a7",
@@ -101,28 +99,20 @@ export const HOST_CHAINS: readonly IHostChainMeta[] = [
   ...HOST_CHAIN_SEED.filter((c) => c.isTestnet).sort(compareHostChains),
 ];
 
-/** Default session chain (Arc mainnet when enabled, else Arc Testnet). */
+/** Default session chain (Arc mainnet). */
 export const DEFAULT_HOST_CHAIN_ID =
-  (EnableArcMainnet
-    ? HOST_CHAINS.find((chain) => chain.label === "Arc")?.value
-    : undefined) ??
+  HOST_CHAINS.find((chain) => chain.label === "Arc")?.value ??
   HOST_CHAINS.find((chain) => chain.label === "Arc Testnet")?.value ??
   HOST_CHAINS.find((chain) => chain.isTestnet)?.value ??
   HOST_CHAINS[0]?.value ??
-  "0x4cef52";
+  "0x13b2";
 
-/** Focus demo: Arc USDC (mainnet when enabled, else testnet). */
-export const FOCUS_USDC_ARC = EnableArcMainnet
-  ? ({
-      chainId: "0x13b2",
-      assetAddress: "0x3600000000000000000000000000000000000000",
-      label: "USDC (Arc)",
-    } as const)
-  : ({
-      chainId: "0x4cef52",
-      assetAddress: "0x3600000000000000000000000000000000000000",
-      label: "USDC (Arc)",
-    } as const);
+/** Focus demo: Arc mainnet USDC. */
+export const FOCUS_USDC_ARC = {
+  chainId: "0x13b2",
+  assetAddress: "0x3600000000000000000000000000000000000000",
+  label: "USDC (Arc)",
+} as const;
 
 /** Focus demo: Base mainnet USDT. */
 export const FOCUS_USDT_BASE = {
