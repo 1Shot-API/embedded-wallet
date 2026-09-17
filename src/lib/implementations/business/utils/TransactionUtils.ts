@@ -62,6 +62,8 @@ import {
   loadCachedSecp256k1PublicKey,
 } from "../../../../storage";
 import { styleController } from "../../../../style/styleController";
+// Ensure Arc mainnet Smart Accounts env is registered before any kit lookups.
+import "../../utils/registerSmartAccountsEnvironments";
 
 const STATELESS_DELEGATOR_IMPL =
   "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B" as const;
