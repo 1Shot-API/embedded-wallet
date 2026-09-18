@@ -498,6 +498,16 @@ export function SendTransactionModal({
         <RelayerConfirmModalChrome
           chainId={request.chainId}
           ownerAddress={request.address}
+          work={{
+            to: request.to!,
+            data: request.data,
+            value:
+              request.value &&
+              String(request.value) !== "0x0" &&
+              String(request.value) !== "0x"
+                ? BigInt(String(request.value))
+                : undefined,
+          }}
           submit={relayerSubmit}
         />
       ) : legacyPhase === "signing" ? (
@@ -660,6 +670,7 @@ export function ConfirmTransferModal({
         <RelayerConfirmModalChrome
           chainId={request.chainId}
           ownerAddress={request.ownerAddress}
+          work={request.work}
           submit={submit}
         />
       ) : legacyPhase === "signing" ? (

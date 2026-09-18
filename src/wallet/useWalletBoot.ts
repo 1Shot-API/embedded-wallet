@@ -499,6 +499,11 @@ export function useWalletBoot({
                     "Wallet address is required to cancel a permission",
                   );
                 }
+                const cancelWork = await delegationService.buildCancelWork({
+                  chainId,
+                  ...(stored ? { stored } : {}),
+                  permissionContext: params.permissionContext,
+                });
                 const domain =
                   stored?.hostDomain ??
                   transactionUtils.resolveHostDomain();
@@ -517,6 +522,7 @@ export function useWalletBoot({
                           chainName: chain.label,
                           chainId,
                           ownerAddress: owner,
+                          work: cancelWork,
                         },
                         execute: async (payment: IRelayerConfirmSendResult, ui) => {
                           const result = await delegationService.cancelDelegation({
@@ -812,6 +818,16 @@ export function useWalletBoot({
               };
 
               let hash: EVMTransactionHash;
+              const valueRaw = String(request.value);
+              const workValue =
+                valueRaw && valueRaw !== "0x0" && valueRaw !== "0x"
+                  ? BigInt(valueRaw)
+                  : undefined;
+              const sendWork = {
+                to: request.to!,
+                data: request.data,
+                value: workValue,
+              };
               if (transfer) {
                 const known = await knownAssetRepository.getKnownAsset(
                   request.chainId,
@@ -849,6 +865,7 @@ export function useWalletBoot({
                       chainId: request.chainId,
                       ownerAddress: request.address,
                       useRelayer,
+                      work: sendWork,
                     },
                     execute: executeSend,
                     resolve,

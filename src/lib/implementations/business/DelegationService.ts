@@ -41,11 +41,13 @@ import type { LocalAccount } from "viem/accounts";
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
 import type { IDelegationRepository } from "../../interfaces/data/IDelegationRepository";
 import type {
+  IBuildCancelWorkParams,
   ICancelDelegationParams,
   ICancelDelegationResult,
   ICreateExecutionPermissionsParams,
   IDelegationService,
 } from "../../interfaces/business/IDelegationService";
+import type { ITransactionWork } from "../../interfaces/business/ITransactionService";
 import {
   ERC20_TOKEN_PERIODIC,
   LIFI_SWAP_APPROVE,
@@ -218,11 +220,47 @@ export class DelegationService implements IDelegationService {
     }
   }
 
+  async buildCancelWork(
+    params: IBuildCancelWorkParams,
+  ): Promise<ITransactionWork> {
+    const resolved = await this.resolveCancelDelegation(params);
+    return resolved.work;
+  }
+
   async cancelDelegation(
     params: ICancelDelegationParams,
   ): Promise<ICancelDelegationResult> {
     const chain = await this.requireRelayerChain(params.chainId);
+    const { stored, work } = await this.resolveCancelDelegation(params);
 
+    const result = await this.transactionUtils.sendViaRelayer({
+      chainId: params.chainId,
+      work,
+      paymentToken: params.paymentToken,
+      feeAtoms: params.feeAtoms,
+      relayerUrl: chain.relayerUrl,
+      prefetchRelayerVaultAssertion: true,
+      retainDisplayDuringSubmit: true,
+      onAwaitingConfirmation: params.onAwaitingConfirmation,
+      onFinalFeeRequired: params.onFinalFeeRequired,
+    });
+
+    let deletedDelegationId: ICancelDelegationResult["deletedDelegationId"];
+    if (stored) {
+      await this.delegationRepository.deleteDelegation(
+        stored.delegationId,
+      );
+      deletedDelegationId = stored.delegationId;
+    }
+
+    return { ...result, deletedDelegationId };
+  }
+
+  private async resolveCancelDelegation(params: {
+    chainId: EVMChainId;
+    stored?: IStoredDelegation;
+    permissionContext?: HexString;
+  }): Promise<{ stored?: IStoredDelegation; work: ITransactionWork }> {
     let stored = params.stored;
     let mmDelegation: Delegation;
 
@@ -250,31 +288,14 @@ export class DelegationService implements IDelegationService {
       delegation: mmDelegation,
     }) as Hex;
 
-    const result = await this.transactionUtils.sendViaRelayer({
-      chainId: params.chainId,
+    return {
+      stored,
       work: {
         to: EVMAccountAddress(getAddress(environment.DelegationManager)),
         data: HexString(disableCalldata),
         value: 0n,
       },
-      paymentToken: params.paymentToken,
-      feeAtoms: params.feeAtoms,
-      relayerUrl: chain.relayerUrl,
-      prefetchRelayerVaultAssertion: true,
-      retainDisplayDuringSubmit: true,
-      onAwaitingConfirmation: params.onAwaitingConfirmation,
-      onFinalFeeRequired: params.onFinalFeeRequired,
-    });
-
-    let deletedDelegationId: ICancelDelegationResult["deletedDelegationId"];
-    if (stored) {
-      await this.delegationRepository.deleteDelegation(
-        stored.delegationId,
-      );
-      deletedDelegationId = stored.delegationId;
-    }
-
-    return { ...result, deletedDelegationId };
+    };
   }
 
   async getSupportedExecutionPermissions(): Promise<SupportedExecutionPermissions> {
