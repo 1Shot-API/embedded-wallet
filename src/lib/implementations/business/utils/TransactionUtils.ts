@@ -773,8 +773,11 @@ export class TransactionUtils implements ITransactionUtils {
         throw pollError;
       }
     } catch (error) {
-      // ensureDisplay may have left the flyout open; hideDisplay is idempotent.
-      await this.options.owsProvider.hideDisplay();
+      // Host-initiated sends collapse the flyout on failure; in-wallet flows
+      // (TransferTokensModal, cancel) keep the open display.
+      if (!retainDisplayDuringSubmit) {
+        await this.options.owsProvider.hideDisplay();
+      }
       throw error;
     }
   }

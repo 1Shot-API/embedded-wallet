@@ -572,7 +572,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           const result = await transactionService.sendTransaction(
             chainId,
             { to, data, value },
-            payment,
+            {
+              ...payment,
+              // Flyout is already open for in-wallet Send — do not requestHide
+              // after passkey (host eth_sendTransaction defaults to hide).
+              retainDisplayDuringSubmit: true,
+            },
           );
           await onSigningAuthenticated();
           return result.transactionHash;
