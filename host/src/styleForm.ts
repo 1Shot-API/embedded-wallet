@@ -160,6 +160,18 @@ export interface IStyleFormState {
   confirmTransferConfirm: string;
   confirmTransferReject: string;
 
+  // Text — Circle onramp (Buy)
+  onrampTitle: string;
+  onrampBody: string;
+  onrampDestinationLabel: string;
+  onrampCloseLabel: string;
+  onrampOpenLabel: string;
+  onrampReopenLabel: string;
+  onrampLoadingLabel: string;
+  onrampPreparingLabel: string;
+  onrampPopupReadyBody: string;
+  onrampPopupOpenedBody: string;
+
   // Text — Transfer tokens (in-wallet send)
   transferTokensTitle: string;
   transferTokensSend: string;
@@ -372,6 +384,19 @@ export const ACME_PRESET: IStyleFormState = {
     "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
   confirmTransferConfirm: "Confirm",
   confirmTransferReject: "Reject",
+  onrampTitle: "Onramp with Circle",
+  onrampBody:
+    "Purchase {token} on {network} with Circle Onramp. Pay with card or bank transfer—you receive {token} 1-to-1.",
+  onrampDestinationLabel: "To",
+  onrampCloseLabel: "Close",
+  onrampOpenLabel: "Start now",
+  onrampReopenLabel: "Reopen onramp",
+  onrampLoadingLabel: "Loading onramp…",
+  onrampPreparingLabel: "Preparing onramp…",
+  onrampPopupReadyBody:
+    "Tap Start now to continue in a new window. Your browser may block the window if you wait too long after this screen appears.",
+  onrampPopupOpenedBody:
+    "Complete your purchase in the Circle window, then close this screen.",
   transferTokensTitle: "Send",
   transferTokensSend: "Send",
   transferTokensCancel: "Cancel",
@@ -550,6 +575,19 @@ export const DEFAULTS_PRESET: IStyleFormState = {
     "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
   confirmTransferConfirm: "Confirm",
   confirmTransferReject: "Reject",
+  onrampTitle: "Onramp with Circle",
+  onrampBody:
+    "Purchase {token} on {network} with Circle Onramp. Pay with card or bank transfer—you receive {token} 1-to-1.",
+  onrampDestinationLabel: "To",
+  onrampCloseLabel: "Close",
+  onrampOpenLabel: "Start now",
+  onrampReopenLabel: "Reopen onramp",
+  onrampLoadingLabel: "Loading onramp…",
+  onrampPreparingLabel: "Preparing onramp…",
+  onrampPopupReadyBody:
+    "Tap Start now to continue in a new window. Your browser may block the window if you wait too long after this screen appears.",
+  onrampPopupOpenedBody:
+    "Complete your purchase in the Circle window, then close this screen.",
   transferTokensTitle: "Send",
   transferTokensSend: "Send",
   transferTokensCancel: "Cancel",
@@ -792,6 +830,21 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(confirmTransfer, "rejectLabel", form.confirmTransferReject);
   if (Object.keys(confirmTransfer).length > 0) {
     copy.confirmTransfer = confirmTransfer;
+  }
+
+  const onramp: Record<string, string> = {};
+  put(onramp, "title", form.onrampTitle);
+  put(onramp, "body", form.onrampBody);
+  put(onramp, "destinationLabel", form.onrampDestinationLabel);
+  put(onramp, "closeLabel", form.onrampCloseLabel);
+  put(onramp, "openLabel", form.onrampOpenLabel);
+  put(onramp, "reopenLabel", form.onrampReopenLabel);
+  put(onramp, "loadingLabel", form.onrampLoadingLabel);
+  put(onramp, "preparingLabel", form.onrampPreparingLabel);
+  put(onramp, "popupReadyBody", form.onrampPopupReadyBody);
+  put(onramp, "popupOpenedBody", form.onrampPopupOpenedBody);
+  if (Object.keys(onramp).length > 0) {
+    copy.onramp = onramp;
   }
 
   const transferTokens: Record<string, string> = {};

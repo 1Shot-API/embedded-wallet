@@ -174,6 +174,8 @@ export function ModalHost() {
           chainId={activeModal.request.chainId}
           amount={activeModal.request.amount}
           tokenSymbol={activeModal.request.tokenSymbol}
+          tokenAddress={activeModal.request.tokenAddress}
+          iconUrl={activeModal.request.iconUrl}
           onClose={() => activeModal.resolve()}
         />
       );

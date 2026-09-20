@@ -120,6 +120,19 @@ export const styleCopyConfirmTransferSchema = z.strictObject({
   confirmLabel: z.string(),
 });
 
+export const styleCopyOnrampSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  destinationLabel: z.string(),
+  closeLabel: z.string(),
+  openLabel: z.string(),
+  reopenLabel: z.string(),
+  loadingLabel: z.string(),
+  preparingLabel: z.string(),
+  popupReadyBody: z.string(),
+  popupOpenedBody: z.string(),
+});
+
 export const styleCopyTransferTokensSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
@@ -485,6 +498,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   typedData: styleCopyTypedDataSchema,
   sendTransaction: styleCopySendTransactionSchema,
   confirmTransfer: styleCopyConfirmTransferSchema,
+  onramp: styleCopyOnrampSchema,
   transferTokens: styleCopyTransferTokensSchema,
   sendNativeToken: styleCopySendNativeTokenSchema,
   cctpBridge: styleCopyCctpBridgeSchema,
@@ -532,6 +546,7 @@ export const styleCopyPatchSchema = z.strictObject({
   typedData: styleCopyTypedDataSchema.partial().optional(),
   sendTransaction: styleCopySendTransactionSchema.partial().optional(),
   confirmTransfer: styleCopyConfirmTransferSchema.partial().optional(),
+  onramp: styleCopyOnrampSchema.partial().optional(),
   transferTokens: styleCopyTransferTokensSchema.partial().optional(),
   sendNativeToken: styleCopySendNativeTokenSchema.partial().optional(),
   cctpBridge: styleCopyCctpBridgeSchema.partial().optional(),
@@ -594,6 +609,7 @@ export type IStyleCopySendTransaction = z.infer<
 export type IStyleCopyConfirmTransfer = z.infer<
   typeof styleCopyConfirmTransferSchema
 >;
+export type IStyleCopyOnramp = z.infer<typeof styleCopyOnrampSchema>;
 export type IStyleCopyTransferTokens = z.infer<
   typeof styleCopyTransferTokensSchema
 >;

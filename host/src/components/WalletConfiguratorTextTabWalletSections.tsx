@@ -172,6 +172,54 @@ export function WalletConfiguratorTextTabWalletSections({
             onChange={(value) => patch("confirmTransferReject", value)}
           />
           <TextField
+            id="onramp-title"
+            label="Onramp title"
+            value={form.onrampTitle}
+            onChange={(value) => patch("onrampTitle", value)}
+          />
+          <BodyField
+            id="onramp-body"
+            label="Onramp body ({token}, {network})"
+            value={form.onrampBody}
+            onChange={(value) => patch("onrampBody", value)}
+          />
+          <TextField
+            id="onramp-destination-label"
+            label="Onramp destination label"
+            value={form.onrampDestinationLabel}
+            onChange={(value) => patch("onrampDestinationLabel", value)}
+          />
+          <TextField
+            id="onramp-close"
+            label="Onramp close"
+            value={form.onrampCloseLabel}
+            onChange={(value) => patch("onrampCloseLabel", value)}
+          />
+          <TextField
+            id="onramp-open"
+            label="Onramp open"
+            value={form.onrampOpenLabel}
+            onChange={(value) => patch("onrampOpenLabel", value)}
+          />
+          <TextField
+            id="onramp-reopen"
+            label="Onramp reopen"
+            value={form.onrampReopenLabel}
+            onChange={(value) => patch("onrampReopenLabel", value)}
+          />
+          <BodyField
+            id="onramp-popup-ready"
+            label="Onramp popup ready hint"
+            value={form.onrampPopupReadyBody}
+            onChange={(value) => patch("onrampPopupReadyBody", value)}
+          />
+          <BodyField
+            id="onramp-popup-opened"
+            label="Onramp popup opened hint"
+            value={form.onrampPopupOpenedBody}
+            onChange={(value) => patch("onrampPopupOpenedBody", value)}
+          />
+          <TextField
             id="transfer-tokens-title"
             label="Transfer modal title"
             value={form.transferTokensTitle}

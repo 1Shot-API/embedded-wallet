@@ -119,6 +119,20 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       rejectLabel: "Reject",
       confirmLabel: "Confirm",
     },
+    onramp: {
+      title: "Onramp with Circle",
+      body: "Purchase {token} on {network} with Circle Onramp. Pay with card or bank transfer—you receive {token} 1-to-1.",
+      destinationLabel: "To",
+      closeLabel: "Close",
+      openLabel: "Start now",
+      reopenLabel: "Reopen onramp",
+      loadingLabel: "Loading onramp…",
+      preparingLabel: "Preparing onramp…",
+      popupReadyBody:
+        "Tap Start now to continue in a new window. Your browser may block the window if you wait too long after this screen appears.",
+      popupOpenedBody:
+        "Complete your purchase in the Circle window, then close this screen.",
+    },
     transferTokens: {
       title: "Send",
       body: "Enter the recipient and amount to send.",
