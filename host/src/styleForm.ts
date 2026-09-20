@@ -82,13 +82,16 @@ export interface IStyleFormState {
   // Text — SIWE (EIP-4361)
   siweTitle: string;
   siweBody: string;
-  siweEstimatedChangesLabel: string;
-  siweNoChangesLabel: string;
   siweNetworkLabel: string;
-  siweRequestFromLabel: string;
   siweSigningInWithLabel: string;
   siweMessageLabel: string;
   siweUriLabel: string;
+  siweVersionLabel: string;
+  siweNonceLabel: string;
+  siweIssuedAtLabel: string;
+  siweExpirationTimeLabel: string;
+  siweNotBeforeLabel: string;
+  siweResourcesLabel: string;
   siweRejectLabel: string;
   siweSignLabel: string;
   siweSigningHint: string;
@@ -315,16 +318,19 @@ export const ACME_PRESET: IStyleFormState = {
   typedReject: "Reject",
   siweTitle: "Sign-in request",
   siweBody:
-    "A site wants you to sign in by proving you own this account. This will not spend tokens or change on-chain balances.",
-  siweEstimatedChangesLabel: "Estimated changes",
-  siweNoChangesLabel: "No changes",
+    "{domain} is requesting to sign in with your Ethereum account. This will not spend tokens or change on-chain balances.",
   siweNetworkLabel: "Network",
-  siweRequestFromLabel: "Request from",
   siweSigningInWithLabel: "Signing in with",
   siweMessageLabel: "Message",
   siweUriLabel: "URI",
+  siweVersionLabel: "Version",
+  siweNonceLabel: "Nonce",
+  siweIssuedAtLabel: "Issued at",
+  siweExpirationTimeLabel: "Expiration time",
+  siweNotBeforeLabel: "Not before",
+  siweResourcesLabel: "Resources",
   siweRejectLabel: "Cancel",
-  siweSignLabel: "Confirm",
+  siweSignLabel: "Sign in",
   siweSigningHint: "Confirm in the signing panel…",
   txTitle: "Approve transaction",
   txSignLabel: "Sign",
@@ -513,16 +519,19 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   txSignLabel: "Sign",
   siweTitle: "Sign-in request",
   siweBody:
-    "A site wants you to sign in by proving you own this account. This will not spend tokens or change on-chain balances.",
-  siweEstimatedChangesLabel: "Estimated changes",
-  siweNoChangesLabel: "No changes",
+    "{domain} is requesting to sign in with your Ethereum account. This will not spend tokens or change on-chain balances.",
   siweNetworkLabel: "Network",
-  siweRequestFromLabel: "Request from",
   siweSigningInWithLabel: "Signing in with",
   siweMessageLabel: "Message",
   siweUriLabel: "URI",
+  siweVersionLabel: "Version",
+  siweNonceLabel: "Nonce",
+  siweIssuedAtLabel: "Issued at",
+  siweExpirationTimeLabel: "Expiration time",
+  siweNotBeforeLabel: "Not before",
+  siweResourcesLabel: "Resources",
   siweRejectLabel: "Cancel",
-  siweSignLabel: "Confirm",
+  siweSignLabel: "Sign in",
   siweSigningHint: "Confirm in the signing panel…",
   credOfferTitle: "Accept credential offer?",
   credOfferBody: "",
@@ -803,13 +812,16 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   const siwe: Record<string, string> = {};
   put(siwe, "title", form.siweTitle);
   put(siwe, "body", form.siweBody);
-  put(siwe, "estimatedChangesLabel", form.siweEstimatedChangesLabel);
-  put(siwe, "noChangesLabel", form.siweNoChangesLabel);
   put(siwe, "networkLabel", form.siweNetworkLabel);
-  put(siwe, "requestFromLabel", form.siweRequestFromLabel);
   put(siwe, "signingInWithLabel", form.siweSigningInWithLabel);
   put(siwe, "messageLabel", form.siweMessageLabel);
   put(siwe, "uriLabel", form.siweUriLabel);
+  put(siwe, "versionLabel", form.siweVersionLabel);
+  put(siwe, "nonceLabel", form.siweNonceLabel);
+  put(siwe, "issuedAtLabel", form.siweIssuedAtLabel);
+  put(siwe, "expirationTimeLabel", form.siweExpirationTimeLabel);
+  put(siwe, "notBeforeLabel", form.siweNotBeforeLabel);
+  put(siwe, "resourcesLabel", form.siweResourcesLabel);
   put(siwe, "rejectLabel", form.siweRejectLabel);
   put(siwe, "signLabel", form.siweSignLabel);
   put(siwe, "signingHint", form.siweSigningHint);

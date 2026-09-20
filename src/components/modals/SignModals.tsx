@@ -5,7 +5,6 @@ import type {
 } from "@1shotapi/ows-signer-utils";
 import {
   ConversionUtils,
-  EVMChainId,
   HexString,
   OwsUserRejectedError,
   type EVMSignatureHex,
@@ -24,6 +23,11 @@ import { useWallet } from "../../wallet/WalletProvider";
 import { Modal } from "../Modal";
 import { AssetIdentityMark } from "../AssetIdentityMark";
 import { CopyableText } from "../CopyableText";
+import { SafeAssetImage } from "../SafeAssetImage";
+import {
+  isSiweUriRedundant,
+  resolveSiweEvmChainId,
+} from "../../lib/utils/siweDisplay";
 import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
 import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
 
@@ -144,7 +148,15 @@ export function SiweModal({
 
   const accountAddress =
     fields.address?.trim() || String(request.address);
-  const networkLabel = resolveSiweNetworkLabel(fields.chainId, resolveChain);
+  const body = siwe.body.replaceAll("{domain}", fields.domain);
+  const evmChainId = resolveSiweEvmChainId(fields.chainId);
+  const chain = evmChainId ? resolveChain(evmChainId) : null;
+  const networkDisplay =
+    (chain?.label ?? fields.chainId.trim()) || "Unknown network";
+  const showUri =
+    Boolean(fields.uri?.trim()) &&
+    !isSiweUriRedundant(fields.uri, fields.domain);
+  const statement = fields.statement?.trim();
 
   const cancel = () => {
     signGenerationRef.current += 1;
@@ -205,43 +217,116 @@ export function SiweModal({
           : undefined
       }
     >
-      <p className="text-muted-foreground mb-4 m-0 text-[0.9rem]">{siwe.body}</p>
-
-      <div className="border-border mb-4 rounded-md border px-3 py-2">
-        <p className="text-muted-foreground m-0 text-[0.8rem] font-medium">
-          {siwe.estimatedChangesLabel}
+      <div className="text-foreground flex flex-col gap-4">
+        <p className="text-muted-foreground m-0 text-sm leading-relaxed text-pretty">
+          {body}
         </p>
-        <p className="m-0 mt-1 text-[0.9rem]">{siwe.noChangesLabel}</p>
-      </div>
 
-      <SiweDetailRow label={siwe.networkLabel} value={networkLabel} />
-      <SiweDetailRow label={siwe.requestFromLabel} value={fields.domain} />
-      <div className="mb-4">
-        <FieldLabel>{siwe.signingInWithLabel}</FieldLabel>
-        <CopyableText
-          text={accountAddress}
-          truncate
-          copyLabel={accountCopy.copyAddressLabel}
-          copiedLabel={accountCopy.addressCopiedLabel}
-          copyFailedLabel={accountCopy.addressCopyFailedLabel}
-        />
-      </div>
+        <div
+          className={`flex items-center gap-3 ${fields.domain.trim() ? "justify-between" : "justify-start"}`}
+        >
+          <div className="flex shrink-0 items-center gap-2">
+            <NetworkIdentityMark
+              label={networkDisplay}
+              logoUrl={chain?.logoUrl}
+              size="sm"
+            />
+            <span
+              className="bg-muted text-muted-foreground rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide"
+              title={siwe.networkLabel}
+            >
+              {networkDisplay}
+            </span>
+          </div>
+          {fields.domain.trim() ? (
+            <span
+              className="border-border text-foreground min-w-0 max-w-[55%] truncate rounded-full border px-2.5 py-1 text-sm font-medium"
+              title={fields.domain}
+            >
+              {fields.domain}
+            </span>
+          ) : null}
+        </div>
 
-      <div className="border-border mb-1 rounded-md border px-3 py-3">
-        <FieldLabel>{siwe.messageLabel}</FieldLabel>
-        <p className="m-0 mb-3 whitespace-pre-wrap text-[0.9rem]">
-          {fields.statement?.trim() || siwe.body}
-        </p>
-        {fields.uri ? (
-          <>
-            <FieldLabel>{siwe.uriLabel}</FieldLabel>
-            <p className="m-0 break-all font-mono text-[0.8rem]">{fields.uri}</p>
-          </>
-        ) : null}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            {siwe.signingInWithLabel}
+          </span>
+          <CopyableText
+            text={accountAddress}
+            truncate
+            copyLabel={accountCopy.copyAddressLabel}
+            copiedLabel={accountCopy.addressCopiedLabel}
+            copyFailedLabel={accountCopy.addressCopyFailedLabel}
+          />
+        </div>
+
+        <div className="border-border rounded-md border px-3 py-2.5">
+          {statement ? (
+            <div className="mb-2 last:mb-0">
+              <SiweSectionLabel>{siwe.messageLabel}</SiweSectionLabel>
+              <p className="text-foreground m-0 whitespace-pre-wrap text-sm leading-snug">
+                {statement}
+              </p>
+            </div>
+          ) : null}
+          <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
+            {showUri ? (
+              <SiweMetadataRow label={siwe.uriLabel} value={fields.uri} compact />
+            ) : null}
+            {fields.version ? (
+              <SiweMetadataRow
+                label={siwe.versionLabel}
+                value={fields.version}
+                compact
+              />
+            ) : null}
+            {fields.nonce ? (
+              <SiweMetadataRow
+                label={siwe.nonceLabel}
+                value={fields.nonce}
+                compact
+              />
+            ) : null}
+            {fields.issuedAt ? (
+              <SiweMetadataRow
+                label={siwe.issuedAtLabel}
+                value={fields.issuedAt}
+                compact
+              />
+            ) : null}
+            {fields.expirationTime ? (
+              <SiweMetadataRow
+                label={siwe.expirationTimeLabel}
+                value={fields.expirationTime}
+                compact
+              />
+            ) : null}
+            {fields.notBefore ? (
+              <SiweMetadataRow
+                label={siwe.notBeforeLabel}
+                value={fields.notBefore}
+                compact
+              />
+            ) : null}
+          </div>
+          {fields.resources && fields.resources.length > 0 ? (
+            <div className="mt-2 first:mt-0">
+              <SiweSectionLabel>{siwe.resourcesLabel}</SiweSectionLabel>
+              <ul className="text-foreground m-0 list-disc pl-5 text-sm leading-relaxed">
+                {fields.resources.map((resource) => (
+                  <li key={resource} className="break-all">
+                    {resource}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {phase === "signing" ? (
-        <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
+        <p className="text-muted-foreground mt-4 m-0 text-sm">
           {siwe.signingHint}
         </p>
       ) : null}
@@ -249,39 +334,60 @@ export function SiweModal({
   );
 }
 
-function SiweDetailRow({ label, value }: { label: string; value: string }) {
+function SiweSectionLabel({ children }: { children: string }) {
   return (
-    <div className="mb-3">
-      <FieldLabel>{label}</FieldLabel>
-      <p className="m-0 break-all text-[0.9rem]">{value}</p>
+    <span className="text-muted-foreground mb-1.5 block text-xs font-medium tracking-wide uppercase">
+      {children}
+    </span>
+  );
+}
+
+function SiweMetadataRow({
+  label,
+  value,
+  compact = false,
+}: {
+  label: string;
+  value: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={compact ? "min-w-0" : "mt-3 first:mt-0"}>
+      <SiweSectionLabel>{label}</SiweSectionLabel>
+      <p className="text-foreground m-0 break-all text-sm leading-snug">
+        {value}
+      </p>
     </div>
   );
 }
 
-function resolveSiweNetworkLabel(
-  chainIdRaw: string,
-  resolveChain: (
-    chainId: EVMChainId,
-  ) => { label: string } | null,
-): string {
-  const normalized = normalizeChainIdHex(chainIdRaw);
-  if (normalized) {
-    const match = resolveChain(EVMChainId(normalized as `0x${string}`));
-    if (match) return match.label;
-  }
-  return chainIdRaw.trim() || "Unknown network";
-}
-
-function normalizeChainIdHex(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  if (/^0x[0-9a-fA-F]+$/.test(trimmed)) {
-    return `0x${BigInt(trimmed).toString(16)}`;
-  }
-  if (/^\d+$/.test(trimmed)) {
-    return `0x${BigInt(trimmed).toString(16)}`;
-  }
-  return null;
+function NetworkIdentityMark({
+  label,
+  logoUrl,
+  size = "md",
+}: {
+  label: string;
+  logoUrl?: string;
+  size?: "sm" | "md";
+}) {
+  const letter = (label.trim()[0] ?? "?").toUpperCase();
+  const box = size === "sm" ? "size-12" : "size-16";
+  const text = size === "sm" ? "text-xl" : "text-2xl";
+  return (
+    <div className={`relative shrink-0 ${box}`} aria-hidden>
+      <SafeAssetImage
+        src={logoUrl}
+        className={`${box} rounded-full object-cover`}
+        fallback={
+          <div
+            className={`bg-muted text-foreground flex ${box} items-center justify-center rounded-full font-semibold ${text}`}
+          >
+            {letter}
+          </div>
+        }
+      />
+    </div>
+  );
 }
 
 export function TypedDataModal({
