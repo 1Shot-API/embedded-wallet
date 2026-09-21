@@ -121,6 +121,16 @@ await proxy.rpc("configure", options);
 | `copy.typedData.signingHint` | string | Hint shown while signing |
 | `copy.typedData.rejectLabel` | string | Reject button |
 | `copy.typedData.signLabel` | string | Sign button |
+| `copy.grantExecutionPermission.title` | string | ERC-20 periodic grant modal title |
+| `copy.grantExecutionPermission.permissionKindLabel` | string | Summary card eyebrow |
+| `copy.grantExecutionPermission.amountLabel` | string | Summary amount row |
+| `copy.grantExecutionPermission.transferWindowLabel` | string | Summary cadence row |
+| `copy.grantExecutionPermission.toLabel` | string | Delegate summary row |
+| `copy.grantExecutionPermission.viewOnExplorerLabel` | string | Delegate explorer link a11y |
+| `copy.grantExecutionPermission.justificationLabel` | string | Host justification in terms card |
+| `copy.grantExecutionPermission.advancedLabel` | string | Toggle for Unix start field |
+| `copy.grantExecutionPermission.grantLabel` | string | Grant button |
+| `copy.grantExecutionPermission.rejectLabel` | string | Reject button |
 | `copy.credentialOffer.title` | string | offer modal title |
 | `copy.credentialOffer.body` | string | supports `{issuerName}` `{issuerId}` |
 | `copy.credentialOffer.offeredHeading` | string | offered list heading |

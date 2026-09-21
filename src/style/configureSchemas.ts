@@ -233,6 +233,12 @@ export const styleCopyCctpBridgeSchema = z.strictObject({
 export const styleCopyGrantExecutionPermissionSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
+  permissionKindLabel: z.string(),
+  amountLabel: z.string(),
+  transferWindowLabel: z.string(),
+  justificationLabel: z.string(),
+  viewOnExplorerLabel: z.string(),
+  advancedLabel: z.string(),
   hostLabel: z.string(),
   toLabel: z.string(),
   chainLabel: z.string(),

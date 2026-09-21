@@ -200,6 +200,12 @@ export interface IStyleFormState {
 
   // Text — EIP-7715 grant / cancel
   grantPermissionTitle: string;
+  grantPermissionKindLabel: string;
+  grantPermissionAmountLabel: string;
+  grantPermissionTransferWindowLabel: string;
+  grantPermissionJustificationLabel: string;
+  grantPermissionViewOnExplorerLabel: string;
+  grantPermissionAdvancedLabel: string;
   grantPermissionGrant: string;
   grantPermissionReject: string;
   cancelDelegationTitle: string;
@@ -430,7 +436,13 @@ export const ACME_PRESET: IStyleFormState = {
   sendNativeTokenCancel: "Cancel",
   sendNativeTokenMax: "Max",
   sendNativeTokenFee: "Estimated network fee",
-  grantPermissionTitle: "Grant spending permission",
+  grantPermissionTitle: "Permission Request",
+  grantPermissionKindLabel: "Periodic Spending Permission",
+  grantPermissionAmountLabel: "Periodic Budget",
+  grantPermissionTransferWindowLabel: "Budget Refresh Period",
+  grantPermissionJustificationLabel: "Justification",
+  grantPermissionViewOnExplorerLabel: "View on explorer",
+  grantPermissionAdvancedLabel: "Advanced",
   grantPermissionGrant: "Grant",
   grantPermissionReject: "Reject",
   cancelDelegationTitle: "Cancel permission",
@@ -623,7 +635,13 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   sendNativeTokenCancel: "Cancel",
   sendNativeTokenMax: "Max",
   sendNativeTokenFee: "Estimated network fee",
-  grantPermissionTitle: "Grant spending permission",
+  grantPermissionTitle: "Permission Request",
+  grantPermissionKindLabel: "Periodic Spending Permission",
+  grantPermissionAmountLabel: "Periodic Budget",
+  grantPermissionTransferWindowLabel: "Budget Refresh Period",
+  grantPermissionJustificationLabel: "Justification",
+  grantPermissionViewOnExplorerLabel: "View on explorer",
+  grantPermissionAdvancedLabel: "Advanced",
   grantPermissionGrant: "Grant",
   grantPermissionReject: "Reject",
   cancelDelegationTitle: "Cancel permission",
@@ -905,6 +923,32 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
 
   const grantExecutionPermission: Record<string, string> = {};
   put(grantExecutionPermission, "title", form.grantPermissionTitle);
+  put(
+    grantExecutionPermission,
+    "permissionKindLabel",
+    form.grantPermissionKindLabel,
+  );
+  put(grantExecutionPermission, "amountLabel", form.grantPermissionAmountLabel);
+  put(
+    grantExecutionPermission,
+    "transferWindowLabel",
+    form.grantPermissionTransferWindowLabel,
+  );
+  put(
+    grantExecutionPermission,
+    "justificationLabel",
+    form.grantPermissionJustificationLabel,
+  );
+  put(
+    grantExecutionPermission,
+    "viewOnExplorerLabel",
+    form.grantPermissionViewOnExplorerLabel,
+  );
+  put(
+    grantExecutionPermission,
+    "advancedLabel",
+    form.grantPermissionAdvancedLabel,
+  );
   put(grantExecutionPermission, "grantLabel", form.grantPermissionGrant);
   put(grantExecutionPermission, "rejectLabel", form.grantPermissionReject);
   if (Object.keys(grantExecutionPermission).length > 0) {

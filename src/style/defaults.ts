@@ -230,10 +230,16 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       doneLabel: "Done",
     },
     grantExecutionPermission: {
-      title: "Grant spending permission",
+      title: "Permission Request",
       body: "{domain} wants a periodic ERC-20 spending permission for {to} on {chainName}.",
+      permissionKindLabel: "Periodic Spending Permission",
+      amountLabel: "Periodic Budget",
+      transferWindowLabel: "Budget Refresh Period",
+      justificationLabel: "Justification",
+      viewOnExplorerLabel: "View on explorer",
+      advancedLabel: "Advanced",
       hostLabel: "App",
-      toLabel: "Delegate",
+      toLabel: "Delegate Account",
       chainLabel: "Network",
       permissionTypeLabel: "Permission",
       tokenLabel: "Token",
@@ -242,7 +248,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       periodDurationLabel: "Period duration (seconds)",
       periodDurationPlaceholder: "86400",
       periodDurationHint: "How often the allowance resets (e.g. 86400 = 1 day).",
-      startLabel: "Start (Unix seconds, optional)",
+      startLabel: "Start Time",
       memoLabel: "Memo",
       memoPlaceholder: "Note for your records",
       invalidAmountError: "Enter a valid period amount.",
@@ -252,7 +258,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       grantLabel: "Grant",
     },
     grantLiFiSwapPermission: {
-      title: "Grant LiFi swap permission",
+      title: "Permission Request",
       body: "{domain} wants a periodic LiFi swap permission for {to} on {chainName}.",
       quoteNote:
         "Each swap still requires a signed quote from the quote signer within these terms.",
@@ -284,7 +290,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       grantLabel: "Grant",
     },
     grantLiFiApprovePermission: {
-      title: "Grant LiFi approve permission",
+      title: "Permission Request",
       body: "{domain} wants permission for {to} to approve the LiFi Diamond to spend a token on {chainName}.",
       warning:
         "This lets the delegate call approve for the spender. The approved amount is not capped by this permission.",

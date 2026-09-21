@@ -274,6 +274,26 @@ export function WalletConfiguratorTextTabWalletSections({
             onChange={(value) => patch("grantPermissionTitle", value)}
           />
           <TextField
+            id="grant-permission-kind"
+            label="Grant permission kind (eyebrow)"
+            value={form.grantPermissionKindLabel}
+            onChange={(value) => patch("grantPermissionKindLabel", value)}
+          />
+          <TextField
+            id="grant-permission-amount-label"
+            label="Grant amount row label"
+            value={form.grantPermissionAmountLabel}
+            onChange={(value) => patch("grantPermissionAmountLabel", value)}
+          />
+          <TextField
+            id="grant-permission-window-label"
+            label="Grant transfer window label"
+            value={form.grantPermissionTransferWindowLabel}
+            onChange={(value) =>
+              patch("grantPermissionTransferWindowLabel", value)
+            }
+          />
+          <TextField
             id="grant-permission-grant"
             label="Grant permission confirm"
             value={form.grantPermissionGrant}

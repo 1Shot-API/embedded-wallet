@@ -1,24 +1,29 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ExternalLinkIcon } from "lucide-react";
 import {
   EVMAccountAddress,
   OwsUserRejectedError,
   type IExecutionPermission,
 } from "@1shotapi/ows-types";
-import { formatUnits, getAddress, hexToBigInt, parseUnits } from "viem";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { formatUnits, getAddress, hexToBigInt } from "viem";
 import { ERC20_TOKEN_PERIODIC } from "../../lib/interfaces/business/IDelegationService";
 import { EAssetType } from "../../lib/types/enum/EAssetType";
+import {
+  formatUnixSecondsLabel,
+  humanizePeriodDuration,
+  parsePeriodDurationSeconds,
+} from "../../lib/utils/delegationDisplay";
+import { faviconUrl, truncateAddress } from "../../lib/utils/identityDisplay";
+import { resolveAssetIconUrl } from "../../lib/utils/tokenIcons";
 import { useStyle } from "../../style/StyleProvider";
 import type {
   IGrantExecutionPermissionRequest,
   IGrantExecutionPermissionResult,
 } from "../../wallet/modalTypes";
 import { useWallet } from "../../wallet/WalletProvider";
+import { ConsentSummaryRow } from "../ConsentSummaryRow";
 import { Modal } from "../Modal";
-import { TokenAmountInput } from "../TokenAmountInput";
-import { CopyableText } from "../CopyableText";
+import { SafeAssetImage } from "../SafeAssetImage";
 
 function readTokenAddress(data: Record<string, unknown>): string | null {
   const raw = data.tokenAddress ?? data.token;
@@ -44,9 +49,16 @@ function readAmountAtoms(data: Record<string, unknown>): bigint | null {
   return null;
 }
 
-function readInitialMemo(data: Record<string, unknown>): string {
-  const raw = data.justification;
-  return typeof raw === "string" ? raw : "";
+function readHostMemoOrJustification(data: Record<string, unknown>): string {
+  const memo = data.memo;
+  if (typeof memo === "string" && memo.trim()) {
+    return memo.trim();
+  }
+  const justification = data.justification;
+  if (typeof justification === "string" && justification.trim()) {
+    return justification.trim();
+  }
+  return "";
 }
 
 function readDuration(data: Record<string, unknown>): string {
@@ -54,7 +66,7 @@ function readDuration(data: Record<string, unknown>): string {
   if (typeof raw === "number" || typeof raw === "string") {
     return String(raw);
   }
-  return "86400";
+  return "";
 }
 
 function readStart(data: Record<string, unknown>): string {
@@ -66,7 +78,7 @@ function readStart(data: Record<string, unknown>): string {
 }
 
 /**
- * Host EIP-7715 grant consent — editable period fields when adjustment allowed.
+ * Host EIP-7715 grant consent — read-only terms; user grants or rejects as proposed.
  */
 export function GrantExecutionPermissionModal({
   request,
@@ -79,179 +91,128 @@ export function GrantExecutionPermissionModal({
 }) {
   const { style } = useStyle();
   const copy = style.copy.grantExecutionPermission;
-  const { account } = style.copy;
   const { listTrackedAssets, resolveChain, getKnownAsset } = useWallet();
   const permission = request.request.permission;
-  const adjustable = permission.isAdjustmentAllowed !== false;
-  const initialToken = readTokenAddress(permission.data);
+  const permissionData = permission.data as Record<string, unknown>;
+  const tokenAddress = readTokenAddress(permissionData);
+  const hostMessage = readHostMemoOrJustification(permissionData);
 
-  const [tokenOptions, setTokenOptions] = useState<
-    Array<{ address: string; symbol: string; decimals: number; label: string }>
-  >([]);
-  const [tokenAddress, setTokenAddress] = useState(initialToken ?? "");
-  const [amountText, setAmountText] = useState("");
-  const [durationText, setDurationText] = useState(
-    readDuration(permission.data),
-  );
-  const [startText, setStartText] = useState(readStart(permission.data));
-  const [memo, setMemo] = useState(() => readInitialMemo(permission.data));
-  const userEditedAmount = useRef(false);
+  const [tokenSymbol, setTokenSymbol] = useState("TOKEN");
+  const [tokenDecimals, setTokenDecimals] = useState(6);
+  const [tokenIconUrl, setTokenIconUrl] = useState<string | undefined>();
 
   useEffect(() => {
+    if (!tokenAddress) return;
     let cancelled = false;
-    void listTrackedAssets().then(async (assets) => {
+    const chainId = request.request.chainId;
+    const checksummed = getAddress(tokenAddress as `0x${string}`);
+
+    void (async () => {
+      const assets = await listTrackedAssets();
       if (cancelled) return;
-      const onChain = assets.filter(
+      const tracked = assets.find(
         (a) =>
           a.type === EAssetType.Erc20 &&
-          String(a.chainId).toLowerCase() ===
-            String(request.request.chainId).toLowerCase(),
+          String(a.chainId).toLowerCase() === String(chainId).toLowerCase() &&
+          getAddress(String(a.address)).toLowerCase() === checksummed.toLowerCase(),
       );
-      const options = onChain.map((a) => ({
-        address: getAddress(String(a.address)),
-        symbol: a.symbol,
-        decimals: a.decimals ?? 6,
-        label: `${a.symbol} (${a.name})`,
-      }));
-      if (
-        initialToken &&
-        !options.some(
-          (o) => o.address.toLowerCase() === initialToken.toLowerCase(),
-        )
-      ) {
-        try {
-          const known = await getKnownAsset(
-            request.request.chainId,
-            EVMAccountAddress(getAddress(initialToken as `0x${string}`)),
+      if (tracked) {
+        setTokenSymbol(tracked.symbol);
+        setTokenDecimals(tracked.decimals ?? 6);
+        setTokenIconUrl(
+          resolveAssetIconUrl(
+            chainId,
+            EVMAccountAddress(checksummed),
+            tracked.symbol,
+            tracked.iconUrl,
+          ),
+        );
+        return;
+      }
+      try {
+        const known = await getKnownAsset(
+          chainId,
+          EVMAccountAddress(checksummed),
+        );
+        if (cancelled) return;
+        if (known) {
+          setTokenSymbol(known.symbol);
+          setTokenDecimals(known.decimals ?? 6);
+          setTokenIconUrl(
+            resolveAssetIconUrl(
+              chainId,
+              EVMAccountAddress(checksummed),
+              known.symbol,
+              known.iconUrl,
+            ),
           );
-          options.unshift({
-            address: getAddress(initialToken as `0x${string}`),
-            symbol: known?.symbol ?? "TOKEN",
-            decimals: known?.decimals ?? 6,
-            label: known ? `${known.symbol} (${known.name})` : initialToken,
-          });
-        } catch {
-          // leave options as-is
+        } else {
+          setTokenIconUrl(undefined);
         }
+      } catch {
+        setTokenIconUrl(undefined);
       }
-      if (cancelled) return;
-      setTokenOptions(options);
-      if (!tokenAddress && options[0]) {
-        setTokenAddress(options[0].address);
-      }
-    });
+    })();
+
     return () => {
       cancelled = true;
     };
   }, [
-    initialToken,
     getKnownAsset,
     listTrackedAssets,
     request.request.chainId,
-    request.request.to,
     tokenAddress,
   ]);
 
-  const selected = useMemo(() => {
-    const match = tokenOptions.find(
-      (o) => o.address.toLowerCase() === tokenAddress.toLowerCase(),
-    );
-    return match ?? { address: tokenAddress, symbol: "TOKEN", decimals: 6, label: tokenAddress };
-  }, [tokenAddress, tokenOptions]);
+  const amountAtoms = readAmountAtoms(permissionData);
+  const durationSeconds = parsePeriodDurationSeconds(
+    readDuration(permissionData),
+  );
+  const startDisplay = formatUnixSecondsLabel(
+    readStart(permissionData) || undefined,
+  );
 
-  useEffect(() => {
-    userEditedAmount.current = false;
-    setMemo(readInitialMemo(permission.data));
-    setDurationText(readDuration(permission.data));
-    setStartText(readStart(permission.data));
-    setTokenAddress(initialToken ?? "");
-  }, [
-    initialToken,
-    permission.data,
-    request.request.chainId,
-    request.request.to,
-  ]);
-
-  useEffect(() => {
-    if (!tokenAddress || userEditedAmount.current) return;
-    const atoms = readAmountAtoms(permission.data);
-    if (atoms === null) return;
+  const summaryAmount = useMemo(() => {
+    if (amountAtoms === null || amountAtoms <= 0n) return null;
     try {
-      setAmountText(formatUnits(atoms, selected.decimals));
+      const amount = formatUnits(amountAtoms, tokenDecimals);
+      return `${amount} ${tokenSymbol}`;
     } catch {
-      setAmountText("");
-    }
-  }, [
-    permission.data,
-    request.request.chainId,
-    request.request.to,
-    selected.decimals,
-    tokenAddress,
-  ]);
-
-  const amountError = useMemo(() => {
-    const trimmed = amountText.trim();
-    if (!trimmed) return null;
-    try {
-      const parsed = parseUnits(trimmed, selected.decimals);
-      if (parsed <= 0n) return copy.invalidAmountError;
       return null;
-    } catch {
-      return copy.invalidAmountError;
     }
-  }, [amountText, copy.invalidAmountError, selected.decimals]);
+  }, [amountAtoms, tokenDecimals, tokenSymbol]);
 
-  const durationError = useMemo(() => {
-    const trimmed = durationText.trim();
-    if (!trimmed) return null;
-    const n = Number(trimmed);
-    if (!Number.isFinite(n) || n < 1 || !Number.isInteger(n)) {
-      return copy.invalidDurationError;
-    }
-    return null;
-  }, [copy.invalidDurationError, durationText]);
+  const summaryWindow =
+    durationSeconds === null
+      ? "—"
+      : humanizePeriodDuration(durationSeconds);
 
-  const formReady =
+  const termsValid =
     Boolean(tokenAddress) &&
-    amountText.trim() !== "" &&
-    amountError === null &&
-    durationText.trim() !== "" &&
-    durationError === null;
+    amountAtoms !== null &&
+    amountAtoms > 0n &&
+    durationSeconds !== null;
 
-  const chainLabel =
-    resolveChain(request.request.chainId)?.label ?? request.chainName;
-
-  const body = copy.body
-    .replace("{domain}", request.domain)
-    .replace("{to}", request.request.to)
-    .replace("{chainName}", chainLabel)
-    .replace("{permissionType}", permission.type);
+  const chain = resolveChain(request.request.chainId);
+  const chainLabel = chain?.label ?? request.chainName;
+  const delegateAddress = String(request.request.to);
+  const delegateExplorerUrl = chain?.addressExplorerUrl(delegateAddress);
 
   const reject = () => {
     onReject(new OwsUserRejectedError("User rejected the permission request"));
   };
 
   const grant = () => {
-    if (!formReady) return;
-    const periodAmount = parseUnits(amountText.trim(), selected.decimals);
-    const periodDuration = Number(durationText.trim());
-    const startTrimmed = startText.trim();
-    const data: Record<string, unknown> = {
-      tokenAddress: EVMAccountAddress(
-        getAddress(tokenAddress as `0x${string}`),
-      ),
-      periodAmount: `0x${periodAmount.toString(16)}`,
-      periodDuration,
-    };
-    if (startTrimmed) {
-      data.startDate = Number(startTrimmed);
-    }
+    if (!termsValid) return;
     const nextPermission: IExecutionPermission = {
       type: ERC20_TOKEN_PERIODIC,
       isAdjustmentAllowed: permission.isAdjustmentAllowed,
-      data,
+      data: permissionData,
     };
-    onResolve({ permission: nextPermission, memo: memo.trim() });
+    onResolve({
+      permission: nextPermission,
+      memo: hostMessage,
+    });
   };
 
   return (
@@ -271,125 +232,81 @@ export function GrantExecutionPermissionModal({
               : copy.grantLabel,
           variant: "primary",
           autoFocus: true,
-          disabled: !formReady,
+          disabled: !termsValid,
           onClick: grant,
         },
       ]}
     >
-      <p className="text-muted-foreground m-0 text-sm">{body}</p>
-      <dl className="mt-3 flex flex-col gap-2 text-sm">
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-muted-foreground text-xs font-medium uppercase">
-            {copy.hostLabel}
-          </dt>
-          <dd className="text-foreground m-0">{request.domain}</dd>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-muted-foreground text-xs font-medium uppercase">
-            {copy.toLabel}
-          </dt>
-          <dd className="m-0 min-w-0">
-            <CopyableText
-              text={request.request.to}
-              truncate
-              copyLabel={account.copyAddressLabel}
-              copiedLabel={account.addressCopiedLabel}
-              copyFailedLabel={account.addressCopyFailedLabel}
-            />
-          </dd>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-muted-foreground text-xs font-medium uppercase">
-            {copy.chainLabel}
-          </dt>
-          <dd className="text-foreground m-0">{chainLabel}</dd>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-muted-foreground text-xs font-medium uppercase">
-            {copy.permissionTypeLabel}
-          </dt>
-          <dd className="text-foreground m-0 font-mono text-xs">
-            {permission.type}
-          </dd>
-        </div>
-      </dl>
-
-      <div className="mt-4 flex flex-col gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="grant-token">{copy.tokenLabel}</Label>
-          {adjustable && tokenOptions.length > 0 ? (
-            <select
-              id="grant-token"
-              className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-              value={tokenAddress}
-              onChange={(event) => setTokenAddress(event.target.value)}
-            >
-              {tokenOptions.map((option) => (
-                <option key={option.address} value={option.address}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <p className="m-0 break-all font-mono text-xs">{tokenAddress || "—"}</p>
-          )}
-        </div>
-
-        <TokenAmountInput
-          label={copy.periodAmountLabel}
-          placeholder={copy.periodAmountPlaceholder}
-          symbol={selected.symbol}
-          value={amountText}
-          onChange={(value) => {
-            userEditedAmount.current = true;
-            setAmountText(value);
-          }}
-          disabled={!adjustable}
-          error={amountError}
-        />
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="grant-duration">{copy.periodDurationLabel}</Label>
-          <Input
-            id="grant-duration"
-            inputMode="numeric"
-            disabled={!adjustable}
-            placeholder={copy.periodDurationPlaceholder}
-            value={durationText}
-            onChange={(event) => setDurationText(event.target.value)}
-            aria-invalid={Boolean(durationError)}
+      <div className="border-border flex flex-col gap-2.5 rounded-md border px-3 py-2.5">
+        <p className="text-primary m-0 text-[0.65rem] font-semibold tracking-wide uppercase">
+          {copy.permissionKindLabel}
+        </p>
+        <div className="flex min-w-0 items-center gap-2">
+          <SafeAssetImage
+            src={faviconUrl(request.domain)}
+            className="size-4 shrink-0 rounded-sm"
           />
-          <p className="text-muted-foreground m-0 text-xs">
-            {copy.periodDurationHint}
+          <span className="truncate text-sm font-semibold" title={request.domain}>
+            {request.domain}
+          </span>
+        </div>
+        {hostMessage ? (
+          <p className="text-muted-foreground m-0 text-sm leading-snug text-pretty">
+            {hostMessage}
           </p>
-          {durationError ? (
-            <p className="text-destructive m-0 text-xs" role="alert">
-              {durationError}
-            </p>
+        ) : null}
+        <dl className="border-border m-0 flex flex-col gap-2.5 border-t pt-2.5">
+          <ConsentSummaryRow label={copy.amountLabel}>
+            {tokenIconUrl ? (
+              <SafeAssetImage
+                src={tokenIconUrl}
+                className="size-5 shrink-0 rounded-full object-cover"
+              />
+            ) : null}
+            <span className="truncate text-sm font-medium">
+              {summaryAmount ?? "—"}
+            </span>
+          </ConsentSummaryRow>
+          <ConsentSummaryRow label={copy.transferWindowLabel}>
+            <span className="truncate text-sm font-medium">{summaryWindow}</span>
+          </ConsentSummaryRow>
+          {startDisplay ? (
+            <ConsentSummaryRow label={copy.startLabel}>
+              <span className="truncate text-sm font-medium">{startDisplay}</span>
+            </ConsentSummaryRow>
           ) : null}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="grant-start">{copy.startLabel}</Label>
-          <Input
-            id="grant-start"
-            inputMode="numeric"
-            disabled={!adjustable}
-            value={startText}
-            onChange={(event) => setStartText(event.target.value)}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="grant-memo">{copy.memoLabel}</Label>
-          <Textarea
-            id="grant-memo"
-            placeholder={copy.memoPlaceholder}
-            value={memo}
-            onChange={(event) => setMemo(event.target.value)}
-            rows={2}
-          />
-        </div>
+          <ConsentSummaryRow label={copy.toLabel}>
+            {delegateExplorerUrl ? (
+              <a
+                href={delegateExplorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary flex min-w-0 items-center gap-1 font-mono text-sm underline underline-offset-2"
+                title={delegateAddress}
+                aria-label={`${copy.viewOnExplorerLabel}: ${delegateAddress}`}
+              >
+                <span className="truncate">
+                  {truncateAddress(delegateAddress)}
+                </span>
+                <ExternalLinkIcon className="size-3.5 shrink-0" aria-hidden />
+              </a>
+            ) : (
+              <span
+                className="truncate font-mono text-sm"
+                title={delegateAddress}
+              >
+                {truncateAddress(delegateAddress)}
+              </span>
+            )}
+          </ConsentSummaryRow>
+          <ConsentSummaryRow label={copy.chainLabel}>
+            <SafeAssetImage
+              src={chain?.logoUrl}
+              className="size-5 shrink-0 rounded-full object-cover"
+            />
+            <span className="truncate text-sm font-medium">{chainLabel}</span>
+          </ConsentSummaryRow>
+        </dl>
       </div>
     </Modal>
   );

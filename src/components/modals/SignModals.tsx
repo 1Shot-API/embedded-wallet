@@ -10,7 +10,7 @@ import {
   type EVMSignatureHex,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ExternalLinkIcon } from "lucide-react";
 import type { TypedDataDefinition } from "viem";
 import type { ISiweFields } from "../../lib/types/domain/SiweFields";
@@ -41,6 +41,7 @@ import {
   faviconUrl,
   truncateAddress,
 } from "../../lib/utils/identityDisplay";
+import { ConsentSummaryRow } from "../ConsentSummaryRow";
 import { Eip712FieldTree } from "../Eip712FieldTree";
 import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
 import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
@@ -507,7 +508,7 @@ export function TypedDataModal({
         </p>
 
         <dl className="border-border m-0 flex flex-col gap-2.5 rounded-md border px-3 py-2.5">
-          <TypedDataSummaryRow label={copy.networkLabel}>
+          <ConsentSummaryRow label={copy.networkLabel}>
             <SafeAssetImage
               src={chain?.logoUrl}
               className="size-5 shrink-0 rounded-full object-cover"
@@ -515,19 +516,19 @@ export function TypedDataModal({
             <span className="truncate text-sm font-medium">
               {networkDisplay}
             </span>
-          </TypedDataSummaryRow>
+          </ConsentSummaryRow>
 
-          <TypedDataSummaryRow label={copy.accountLabel}>
+          <ConsentSummaryRow label={copy.accountLabel}>
             <span
               className="truncate font-mono text-sm"
               title={String(request.address)}
             >
               {truncateAddress(String(request.address))}
             </span>
-          </TypedDataSummaryRow>
+          </ConsentSummaryRow>
 
           {hostDomain.trim() ? (
-            <TypedDataSummaryRow label={copy.requestFromLabel}>
+            <ConsentSummaryRow label={copy.requestFromLabel}>
               <SafeAssetImage
                 src={faviconUrl(hostDomain)}
                 className="size-4 shrink-0 rounded-sm"
@@ -535,11 +536,11 @@ export function TypedDataModal({
               <span className="truncate text-sm font-medium" title={hostDomain}>
                 {hostDomain}
               </span>
-            </TypedDataSummaryRow>
+            </ConsentSummaryRow>
           ) : null}
 
           {verifyingContract ? (
-            <TypedDataSummaryRow label={copy.interactingWithLabel}>
+            <ConsentSummaryRow label={copy.interactingWithLabel}>
               {contractExplorerUrl ? (
                 <a
                   href={contractExplorerUrl}
@@ -561,7 +562,7 @@ export function TypedDataModal({
                   {truncateAddress(verifyingContract)}
                 </span>
               )}
-            </TypedDataSummaryRow>
+            </ConsentSummaryRow>
           ) : null}
         </dl>
 
@@ -594,25 +595,6 @@ export function TypedDataModal({
         </p>
       ) : null}
     </Modal>
-  );
-}
-
-function TypedDataSummaryRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="text-muted-foreground shrink-0 text-xs font-medium tracking-wide uppercase">
-        {label}
-      </dt>
-      <dd className="m-0 flex min-w-0 items-center justify-end gap-2">
-        {children}
-      </dd>
-    </div>
   );
 }
 
