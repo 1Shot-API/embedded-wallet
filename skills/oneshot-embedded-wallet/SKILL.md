@@ -111,10 +111,14 @@ await proxy.rpc("configure", options);
 | `copy.personalSign.rejectLabel` | string | Reject button |
 | `copy.personalSign.signLabel` | string | Sign button |
 | `copy.typedData.title` | string | EIP-712 modal title |
-| `copy.typedData.accountLabel` | string | Account field label |
+| `copy.typedData.body` | string | Intro paragraph |
+| `copy.typedData.networkLabel` | string | Network summary row label |
+| `copy.typedData.requestFromLabel` | string | Requesting domain row label |
+| `copy.typedData.accountLabel` | string | Signing account row label |
+| `copy.typedData.interactingWithLabel` | string | Verifying contract row label |
 | `copy.typedData.primaryTypeLabel` | string | Primary type label |
-| `copy.typedData.domainLabel` | string | Domain label |
-| `copy.typedData.messageLabel` | string | Message label |
+| `copy.typedData.messageSectionLabel` | string | Message card heading |
+| `copy.typedData.signingHint` | string | Hint shown while signing |
 | `copy.typedData.rejectLabel` | string | Reject button |
 | `copy.typedData.signLabel` | string | Sign button |
 | `copy.credentialOffer.title` | string | offer modal title |

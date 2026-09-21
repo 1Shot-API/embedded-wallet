@@ -74,10 +74,18 @@ export interface IStyleFormState {
   signLabel: string;
   signReject: string;
 
-  // Text — Typed data
+  // Text — Typed data (EIP-712)
   typedTitle: string;
+  typedBody: string;
+  typedNetworkLabel: string;
+  typedRequestFromLabel: string;
+  typedAccountLabel: string;
+  typedInteractingWithLabel: string;
+  typedPrimaryTypeLabel: string;
+  typedMessageSectionLabel: string;
   typedSignLabel: string;
   typedReject: string;
+  typedSigningHint: string;
 
   // Text — SIWE (EIP-4361)
   siweTitle: string;
@@ -313,9 +321,17 @@ export const ACME_PRESET: IStyleFormState = {
   signTitle: "Approve signature",
   signLabel: "Sign",
   signReject: "Reject",
-  typedTitle: "Approve typed data",
+  typedTitle: "Signature request",
+  typedBody: "Review request details before you confirm.",
+  typedNetworkLabel: "Network",
+  typedRequestFromLabel: "Request from",
+  typedAccountLabel: "Account",
+  typedInteractingWithLabel: "Interacting with",
+  typedPrimaryTypeLabel: "Primary type",
+  typedMessageSectionLabel: "Message",
   typedSignLabel: "Sign",
   typedReject: "Reject",
+  typedSigningHint: "Confirm in the signing panel…",
   siweTitle: "Sign-in request",
   siweBody:
     "{domain} is requesting to sign in with your Ethereum account. This will not spend tokens or change on-chain balances.",
@@ -513,8 +529,7 @@ export const DEFAULTS_PRESET: IStyleFormState = {
     "Accept the Terms of Service and Privacy Policy to continue.",
   signTitle: "Sign message",
   signLabel: "Sign",
-  typedTitle: "Sign typed data",
-  typedSignLabel: "Sign",
+  typedTitle: "Signature request",
   txTitle: "Send transaction",
   txSignLabel: "Sign",
   siweTitle: "Sign-in request",
@@ -805,8 +820,16 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
 
   const typedData: Record<string, string> = {};
   put(typedData, "title", form.typedTitle);
+  put(typedData, "body", form.typedBody);
+  put(typedData, "networkLabel", form.typedNetworkLabel);
+  put(typedData, "requestFromLabel", form.typedRequestFromLabel);
+  put(typedData, "accountLabel", form.typedAccountLabel);
+  put(typedData, "interactingWithLabel", form.typedInteractingWithLabel);
+  put(typedData, "primaryTypeLabel", form.typedPrimaryTypeLabel);
+  put(typedData, "messageSectionLabel", form.typedMessageSectionLabel);
   put(typedData, "signLabel", form.typedSignLabel);
   put(typedData, "rejectLabel", form.typedReject);
+  put(typedData, "signingHint", form.typedSigningHint);
   if (Object.keys(typedData).length > 0) copy.typedData = typedData;
 
   const siwe: Record<string, string> = {};

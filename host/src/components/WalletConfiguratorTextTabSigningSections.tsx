@@ -219,6 +219,12 @@ export function WalletConfiguratorTextTabSigningSections({
             value={form.typedTitle}
             onChange={(value) => patch("typedTitle", value)}
           />
+          <BodyField
+            id="typed-body"
+            label="Body"
+            value={form.typedBody}
+            onChange={(value) => patch("typedBody", value)}
+          />
           <TextField
             id="typed-sign"
             label="Sign"
@@ -230,6 +236,12 @@ export function WalletConfiguratorTextTabSigningSections({
             label="Reject"
             value={form.typedReject}
             onChange={(value) => patch("typedReject", value)}
+          />
+          <TextField
+            id="typed-signing-hint"
+            label="Signing hint"
+            value={form.typedSigningHint}
+            onChange={(value) => patch("typedSigningHint", value)}
           />
         </AccordionContent>
       </AccordionItem>

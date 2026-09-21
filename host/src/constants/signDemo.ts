@@ -4,7 +4,7 @@ export const DEFAULT_EIP712_TYPED_DATA = {
   domain: {
     name: "Ether Mail",
     version: "1",
-    chainId: 421614,
+    chainId: 84532,
     verifyingContract: "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
   },
   types: {

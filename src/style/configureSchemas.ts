@@ -92,12 +92,16 @@ export const styleCopySiweSchema = z.strictObject({
 
 export const styleCopyTypedDataSchema = z.strictObject({
   title: z.string(),
+  body: z.string(),
+  networkLabel: z.string(),
+  requestFromLabel: z.string(),
   accountLabel: z.string(),
+  interactingWithLabel: z.string(),
   primaryTypeLabel: z.string(),
-  domainLabel: z.string(),
-  messageLabel: z.string(),
+  messageSectionLabel: z.string(),
   rejectLabel: z.string(),
   signLabel: z.string(),
+  signingHint: z.string(),
 });
 
 export const styleCopySendTransactionSchema = z.strictObject({
