@@ -572,7 +572,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           const result = await transactionService.sendTransaction(
             chainId,
             { to, data, value },
-            payment,
+            {
+              ...payment,
+              // Flyout is already open for in-wallet Send — do not requestHide
+              // after passkey (host eth_sendTransaction defaults to hide).
+              retainDisplayDuringSubmit: true,
+            },
           );
           await onSigningAuthenticated();
           return result.transactionHash;
@@ -695,6 +700,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (!owner) {
         throw new Error("Wallet address is required to cancel a permission");
       }
+      const cancelWork = await delegationService.buildCancelWork({
+        chainId: stored.chainId,
+        stored,
+      });
       const transactionHash = await pushModal<EVMTransactionHash>(
         ({ id, resolve, reject }) => ({
           id,
@@ -704,6 +713,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             chainName: chain.label,
             chainId: stored.chainId,
             ownerAddress: owner,
+            work: cancelWork,
           },
           execute: async (payment: IRelayerConfirmSendResult, ui) => {
             const result = await delegationService.cancelDelegation({

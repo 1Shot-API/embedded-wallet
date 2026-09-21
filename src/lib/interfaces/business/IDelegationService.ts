@@ -12,6 +12,7 @@ import type { IStoredDelegation } from "../../types/domain/StoredDelegation";
 import type { DelegationId } from "../../types/primitives/DelegationId";
 import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
 import type { TokenAmount } from "../../types/primitives";
+import type { ITransactionWork } from "./ITransactionService";
 
 /** Phase-1 EIP-7715 permission type (ERC-20 period transfer). */
 export const ERC20_TOKEN_PERIODIC = "erc20-token-periodic" as const;
@@ -56,6 +57,12 @@ export interface ICancelDelegationParams extends IRelayerSendUiCallbacks {
   permissionContext?: HexString;
 }
 
+export type IBuildCancelWorkParams = {
+  chainId: EVMChainId;
+  stored?: IStoredDelegation;
+  permissionContext?: HexString;
+};
+
 export interface ICancelDelegationResult extends ISendTransactionResult {
   /** Set when a known vault entry was deleted after on-chain cancel. */
   deletedDelegationId?: DelegationId;
@@ -71,6 +78,9 @@ export interface IDelegationService {
   createExecutionPermissions(
     params: ICreateExecutionPermissionsParams,
   ): Promise<IStoredDelegation[]>;
+
+  /** ExactCalldata work for unsigned fee estimate before cancel confirm. */
+  buildCancelWork(params: IBuildCancelWorkParams): Promise<ITransactionWork>;
 
   cancelDelegation(
     params: ICancelDelegationParams,

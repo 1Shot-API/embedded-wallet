@@ -1,4 +1,4 @@
-import type { AppKit } from "@crcl-main/app-kit";
+import type { AppKit } from "@circle-fin/app-kit";
 
 /**
  * Utility-level Circle AppKit lifecycle. Lazily constructs a single AppKit and

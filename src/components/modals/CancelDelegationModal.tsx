@@ -96,6 +96,7 @@ export function CancelDelegationModal({
       <RelayerConfirmModalChrome
         chainId={request.chainId}
         ownerAddress={request.ownerAddress}
+        work={request.work}
         submit={submit}
       />
     </Modal>

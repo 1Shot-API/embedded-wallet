@@ -354,6 +354,8 @@ export function CCTPBridge({
           owner: request.ownerAddress,
         });
         setIrisQuote(next);
+        setPaymentQuote(next.paymentQuote);
+        setPaymentError(null);
         if (!opts.silent) {
           setPhase("quoted");
         }
@@ -793,6 +795,7 @@ export function CCTPBridge({
           <PaymentFeePicker
             chainId={request.sourceChainId}
             ownerAddress={request.ownerAddress}
+            work={irisQuote.relayerWork}
             quote={paymentQuote}
             error={paymentError}
             loading={false}
