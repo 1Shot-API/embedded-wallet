@@ -111,12 +111,26 @@ await proxy.rpc("configure", options);
 | `copy.personalSign.rejectLabel` | string | Reject button |
 | `copy.personalSign.signLabel` | string | Sign button |
 | `copy.typedData.title` | string | EIP-712 modal title |
-| `copy.typedData.accountLabel` | string | Account field label |
+| `copy.typedData.body` | string | Intro paragraph |
+| `copy.typedData.networkLabel` | string | Network summary row label |
+| `copy.typedData.requestFromLabel` | string | Requesting domain row label |
+| `copy.typedData.accountLabel` | string | Signing account row label |
+| `copy.typedData.interactingWithLabel` | string | Verifying contract row label |
 | `copy.typedData.primaryTypeLabel` | string | Primary type label |
-| `copy.typedData.domainLabel` | string | Domain label |
-| `copy.typedData.messageLabel` | string | Message label |
+| `copy.typedData.messageSectionLabel` | string | Message card heading |
+| `copy.typedData.signingHint` | string | Hint shown while signing |
 | `copy.typedData.rejectLabel` | string | Reject button |
 | `copy.typedData.signLabel` | string | Sign button |
+| `copy.grantExecutionPermission.title` | string | ERC-20 periodic grant modal title |
+| `copy.grantExecutionPermission.permissionKindLabel` | string | Summary card eyebrow |
+| `copy.grantExecutionPermission.amountLabel` | string | Summary amount row |
+| `copy.grantExecutionPermission.transferWindowLabel` | string | Summary cadence row |
+| `copy.grantExecutionPermission.toLabel` | string | Delegate summary row |
+| `copy.grantExecutionPermission.viewOnExplorerLabel` | string | Delegate explorer link a11y |
+| `copy.grantExecutionPermission.justificationLabel` | string | Host justification in terms card |
+| `copy.grantExecutionPermission.advancedLabel` | string | Toggle for Unix start field |
+| `copy.grantExecutionPermission.grantLabel` | string | Grant button |
+| `copy.grantExecutionPermission.rejectLabel` | string | Reject button |
 | `copy.credentialOffer.title` | string | offer modal title |
 | `copy.credentialOffer.body` | string | supports `{issuerName}` `{issuerId}` |
 | `copy.credentialOffer.offeredHeading` | string | offered list heading |
@@ -389,8 +403,8 @@ EIP-7715 host RPCs: `wallet_requestExecutionPermissions`, `wallet_revokeExecutio
 | `permission.type` | Chains (v1) | Purpose |
 |-------------------|-------------|---------|
 | `erc20-token-periodic` | All relayer chains | Periodic ERC-20 `transfer` budget (`ScopeType.Erc20PeriodTransfer`) |
-| `lifi-swap-approve` | Base (`0x2105`) | One-time `approve(inputToken → LiFi Diamond)` onboarding |
-| `lifi-swap-periodic` | Base (`0x2105`) | Periodic LiFi swap via `LiFiSwapEnforcer` (`0x47472E8AA7012D1c23336aa28514AE94389318f5`) |
+| `lifi-swap-approve` | Arc (`0x13b2`), Base (`0x2105`), Ethereum (`0x1`) | One-time `approve(inputToken → LiFi Diamond)` onboarding |
+| `lifi-swap-periodic` | Arc, Base, Ethereum mainnet | Periodic LiFi swap via `LiFiSwapEnforcer` proxy (`0x29fcBBa852439616c4D614A2fa6411E42b760153`) |
 
 **`erc20-token-periodic` / `lifi-swap-periodic` amounts:** Hosts should pass `periodAmount` (hex atoms) to prefill the grant form. Playground demos default to **10 USDC** (`0x989680`).
 

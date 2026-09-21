@@ -22,6 +22,7 @@ import type {
 } from "../circle/cctpBridgeTypes";
 import type { TokenAmount } from "../lib/types/primitives";
 import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
+import type { ITransactionWork } from "../lib/interfaces/business/ITransactionService";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
@@ -37,6 +38,8 @@ export interface IConfirmTransferRequest {
   chainId: EVMChainId;
   ownerAddress: EVMAccountAddress;
   useRelayer: boolean;
+  /** ExactCalldata work for unsigned fee estimate (host send payload). */
+  work: ITransactionWork;
 }
 
 /** Relayer payment selection from TX confirm UI (before execute). */
@@ -55,15 +58,22 @@ export type IRelayerConfirmSendResult = {
 /** Result from TX confirm when canceling or selecting payment (legacy shape). */
 export type IConfirmSendResult = false | IConfirmSendPayment;
 
-/** Host EIP-7715 grant consent — attenuated permission + memo for vault. */
-export interface IGrantExecutionPermissionRequest {
+export type GrantPermissionModalKind =
+  | "grantExecutionPermission"
+  | "grantLiFiSwapPermission"
+  | "grantLiFiApprovePermission";
+
+/** One permission in a grant consent batch. */
+export interface IGrantExecutionPermissionsBatchItem {
   request: IExecutionPermissionRequest;
-  domain: string;
   chainName: string;
-  /** 0-based index within the current `wallet_requestExecutionPermissions` batch. */
-  batchIndex: number;
-  /** Total permissions in the batch (always ≥ 1). */
-  batchCount: number;
+  grantKind: GrantPermissionModalKind;
+}
+
+/** Host EIP-7715 grant consent — single or compound permission requests. */
+export interface IGrantExecutionPermissionsBatchRequest {
+  domain: string;
+  items: IGrantExecutionPermissionsBatchItem[];
 }
 
 export type IGrantExecutionPermissionResult = {
@@ -77,6 +87,8 @@ export interface ICancelDelegationConfirmRequest {
   chainName: string;
   chainId: EVMChainId;
   ownerAddress: EVMAccountAddress;
+  /** ExactCalldata work for unsigned fee estimate. */
+  work: ITransactionWork;
 }
 
 export type ModalRequest =
@@ -160,23 +172,9 @@ export type ModalRequest =
     }
   | {
       id: string;
-      kind: "grantExecutionPermission";
-      request: IGrantExecutionPermissionRequest;
-      resolve: (result: IGrantExecutionPermissionResult) => void;
-      reject: (error: unknown) => void;
-    }
-  | {
-      id: string;
-      kind: "grantLiFiSwapPermission";
-      request: IGrantExecutionPermissionRequest;
-      resolve: (result: IGrantExecutionPermissionResult) => void;
-      reject: (error: unknown) => void;
-    }
-  | {
-      id: string;
-      kind: "grantLiFiApprovePermission";
-      request: IGrantExecutionPermissionRequest;
-      resolve: (result: IGrantExecutionPermissionResult) => void;
+      kind: "grantExecutionPermissions";
+      request: IGrantExecutionPermissionsBatchRequest;
+      resolve: (results: IGrantExecutionPermissionResult[]) => void;
       reject: (error: unknown) => void;
     }
   | {

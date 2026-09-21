@@ -29,21 +29,6 @@ Production deliverable: a static **nginx** Docker image (no server-side runtime)
 
 ## Setup
 
-Circle’s private AppKit canary requires Cloudsmith auth. The repo includes `.npmrc`;
-export your token before installing:
-
-```bash
-# Linux / macOS
-export CLOUDSMITH_TOKEN=<your-cloudsmith-token>
-```
-
-```powershell
-# Windows PowerShell
-$env:CLOUDSMITH_TOKEN = "<your-cloudsmith-token>"
-```
-
-CI Docker builds expect GitHub Actions secret `CLOUDSMITH_TOKEN`.
-
 ```bash
 npm install
 cp .env.example .env  # set NGROK_AUTHTOKEN (and optional NGROK_DOMAIN)

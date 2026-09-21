@@ -219,6 +219,12 @@ export function WalletConfiguratorTextTabSigningSections({
             value={form.typedTitle}
             onChange={(value) => patch("typedTitle", value)}
           />
+          <BodyField
+            id="typed-body"
+            label="Body"
+            value={form.typedBody}
+            onChange={(value) => patch("typedBody", value)}
+          />
           <TextField
             id="typed-sign"
             label="Sign"
@@ -230,6 +236,12 @@ export function WalletConfiguratorTextTabSigningSections({
             label="Reject"
             value={form.typedReject}
             onChange={(value) => patch("typedReject", value)}
+          />
+          <TextField
+            id="typed-signing-hint"
+            label="Signing hint"
+            value={form.typedSigningHint}
+            onChange={(value) => patch("typedSigningHint", value)}
           />
         </AccordionContent>
       </AccordionItem>
@@ -243,35 +255,17 @@ export function WalletConfiguratorTextTabSigningSections({
             value={form.siweTitle}
             onChange={(value) => patch("siweTitle", value)}
           />
-          <TextField
+          <BodyField
             id="siwe-body"
-            label="Body"
+            label="Body ({domain})"
             value={form.siweBody}
             onChange={(value) => patch("siweBody", value)}
-          />
-          <TextField
-            id="siwe-estimated-changes"
-            label="Estimated changes label"
-            value={form.siweEstimatedChangesLabel}
-            onChange={(value) => patch("siweEstimatedChangesLabel", value)}
-          />
-          <TextField
-            id="siwe-no-changes"
-            label="No changes label"
-            value={form.siweNoChangesLabel}
-            onChange={(value) => patch("siweNoChangesLabel", value)}
           />
           <TextField
             id="siwe-network"
             label="Network label"
             value={form.siweNetworkLabel}
             onChange={(value) => patch("siweNetworkLabel", value)}
-          />
-          <TextField
-            id="siwe-request-from"
-            label="Request from label"
-            value={form.siweRequestFromLabel}
-            onChange={(value) => patch("siweRequestFromLabel", value)}
           />
           <TextField
             id="siwe-signing-in-with"
@@ -292,6 +286,42 @@ export function WalletConfiguratorTextTabSigningSections({
             onChange={(value) => patch("siweUriLabel", value)}
           />
           <TextField
+            id="siwe-version"
+            label="Version label"
+            value={form.siweVersionLabel}
+            onChange={(value) => patch("siweVersionLabel", value)}
+          />
+          <TextField
+            id="siwe-nonce"
+            label="Nonce label"
+            value={form.siweNonceLabel}
+            onChange={(value) => patch("siweNonceLabel", value)}
+          />
+          <TextField
+            id="siwe-issued-at"
+            label="Issued at label"
+            value={form.siweIssuedAtLabel}
+            onChange={(value) => patch("siweIssuedAtLabel", value)}
+          />
+          <TextField
+            id="siwe-expiration"
+            label="Expiration time label"
+            value={form.siweExpirationTimeLabel}
+            onChange={(value) => patch("siweExpirationTimeLabel", value)}
+          />
+          <TextField
+            id="siwe-not-before"
+            label="Not before label"
+            value={form.siweNotBeforeLabel}
+            onChange={(value) => patch("siweNotBeforeLabel", value)}
+          />
+          <TextField
+            id="siwe-resources"
+            label="Resources label"
+            value={form.siweResourcesLabel}
+            onChange={(value) => patch("siweResourcesLabel", value)}
+          />
+          <TextField
             id="siwe-reject"
             label="Reject"
             value={form.siweRejectLabel}
@@ -299,7 +329,7 @@ export function WalletConfiguratorTextTabSigningSections({
           />
           <TextField
             id="siwe-sign"
-            label="Confirm"
+            label="Sign in"
             value={form.siweSignLabel}
             onChange={(value) => patch("siweSignLabel", value)}
           />

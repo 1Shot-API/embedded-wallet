@@ -8,7 +8,7 @@ import type { ECctpTransferSpeed } from "../../types/enum/ECctpTransferSpeed";
 import type { KnownAsset } from "../../types/domain/KnownAsset";
 import type { SupportedChain } from "../../types/domain/SupportedChain";
 import type { ICctpInFlightBurn } from "../data/ICircleRepository";
-import type { IPaymentQuote } from "./ITransactionService";
+import type { IPaymentQuote, ITransactionWork } from "./ITransactionService";
 import type { TokenAmount } from "../../types/primitives";
 
 export interface ICctpQuoteParams {
@@ -35,6 +35,8 @@ export interface ICctpBridgeQuote {
   netReceivedAtoms: bigint;
   paymentQuote: IPaymentQuote;
   burnCalldata: HexString;
+  /** Approve (if needed) + burn ExactCalldata for fee estimate / submit. */
+  relayerWork: ITransactionWork[];
 }
 
 export interface ICctpBridgePayment {

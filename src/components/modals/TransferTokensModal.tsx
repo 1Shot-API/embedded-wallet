@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   encodeFunctionData,
   erc20Abi,
@@ -13,7 +13,7 @@ import {
 } from "@1shotapi/ows-types";
 import type { TrackedAsset } from "../../lib/types/domain";
 import { EAssetType } from "../../lib/types/enum/EAssetType";
-import type { IPaymentQuote } from "../../lib/interfaces/business";
+import type { IPaymentQuote, ITransactionWork } from "../../lib/interfaces/business";
 import { useStyle } from "../../style/StyleProvider";
 import { chainTechnologyFor } from "../../wallet/activeAddress";
 import { useLiveTrackedBalance } from "../../wallet/useLiveTrackedBalance";
@@ -111,6 +111,46 @@ export function TransferTokensModal({
     [amount, balance, decimals, copy],
   );
 
+  const relayerWork = useMemo((): ITransactionWork | null => {
+    if (
+      !useRelayer ||
+      asset.type !== EAssetType.Erc20 ||
+      !recipient ||
+      !amount.trim() ||
+      amountError
+    ) {
+      return null;
+    }
+    let parsed: bigint;
+    try {
+      parsed = parseUnits(amount.trim(), decimals);
+    } catch {
+      return null;
+    }
+    if (parsed <= 0n) {
+      return null;
+    }
+    return {
+      to: asset.address,
+      data: HexString(
+        encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "transfer",
+          args: [recipient as EVMAccountAddress, parsed],
+        }) as Hex,
+      ),
+      value: 0n,
+    };
+  }, [
+    amount,
+    amountError,
+    asset.address,
+    asset.type,
+    decimals,
+    recipient,
+    useRelayer,
+  ]);
+
   const onQuoteChange = useCallback(
     (next: IPaymentQuote | null, error: string | null) => {
       setQuote(next);
@@ -118,6 +158,12 @@ export function TransferTokensModal({
     },
     [],
   );
+
+  // Drop stale quotes whenever ExactCalldata work changes (or becomes incomplete).
+  useEffect(() => {
+    setQuote(null);
+    setQuoteError(null);
+  }, [relayerWork]);
 
   const canSubmit = useMemo(() => {
     if (busy || asset.type !== EAssetType.Erc20) {
@@ -270,10 +316,11 @@ export function TransferTokensModal({
           invalidAddressError={copy.invalidAddressError}
           disabled={busy}
         />
-        {useRelayer && evmAddress ? (
+        {useRelayer && evmAddress && relayerWork ? (
           <PaymentFeePicker
             chainId={asset.chainId}
             ownerAddress={evmAddress}
+            work={relayerWork}
             quote={quote}
             error={quoteError}
             loading={false}

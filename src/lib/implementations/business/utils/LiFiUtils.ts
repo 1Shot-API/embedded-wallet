@@ -19,15 +19,26 @@ const TERMS_LENGTH = 284;
 const DEFAULT_SLIPPAGE_BPS = 50;
 
 /**
- * LiFiSwapEnforcer deployments keyed by source chain.
- * @see https://github.com/1Shot-API/delegation-framework/tree/deployment/Base/scripts/lifi-swap
+ * LiFiSwapEnforcer v3 TransparentUpgradeableProxy (caveat enforcer for new grants).
+ * Same CREATE2 address on Arc, Base, and Ethereum mainnet.
+ * @see delegation-framework documents/Deployments.md (v3 upgradeable, 2026-09-18)
  */
-const ENFORCER_BY_CHAIN: ReadonlyMap<string, EVMContractAddress> = new Map([
-  [
-    String(EChain.Base).toLowerCase(),
-    EVMContractAddress("0x47472E8AA7012D1c23336aa28514AE94389318f5"),
-  ],
-]);
+export const LIFI_SWAP_ENFORCER_PROXY = EVMContractAddress(
+  "0x29fcBBa852439616c4D614A2fa6411E42b760153",
+);
+
+const LIFI_SWAP_ENFORCER_CHAINS = [
+  EChain.Arc,
+  EChain.Base,
+  EChain.Ethereum,
+] as const;
+
+const ENFORCER_BY_CHAIN: ReadonlyMap<string, EVMContractAddress> = new Map(
+  LIFI_SWAP_ENFORCER_CHAINS.map((chainId) => [
+    String(chainId).toLowerCase(),
+    LIFI_SWAP_ENFORCER_PROXY,
+  ]),
+);
 
 /**
  * LiFiSwapEnforcer deployments and terms encoding.

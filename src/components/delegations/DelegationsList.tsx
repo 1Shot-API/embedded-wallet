@@ -9,17 +9,13 @@ import type { IDelegationSummary } from "../../lib/types/domain/StoredDelegation
 import type { DelegationId } from "../../lib/types/primitives/DelegationId";
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
+import { faviconUrl, truncateAddress } from "../../lib/utils/identityDisplay";
 
 function fillTemplate(
   template: string,
   vars: Record<string, string>,
 ): string {
   return template.replace(/\{(\w+)\}/g, (_, key: string) => vars[key] ?? "");
-}
-
-function truncateAddress(address: string): string {
-  if (address.length <= 13) return address;
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
 function formatDuration(seconds: number): string {
@@ -36,10 +32,6 @@ function formatDuration(seconds: number): string {
     return minutes === 1 ? "1 minute" : `${minutes} minutes`;
   }
   return seconds === 1 ? "1 second" : `${seconds} seconds`;
-}
-
-function faviconUrl(domain: string): string {
-  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=32`;
 }
 
 interface IDelegationGroup {

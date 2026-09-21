@@ -75,13 +75,16 @@ export const styleCopyPersonalSignSchema = z.strictObject({
 export const styleCopySiweSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
-  estimatedChangesLabel: z.string(),
-  noChangesLabel: z.string(),
   networkLabel: z.string(),
-  requestFromLabel: z.string(),
   signingInWithLabel: z.string(),
   messageLabel: z.string(),
   uriLabel: z.string(),
+  versionLabel: z.string(),
+  nonceLabel: z.string(),
+  issuedAtLabel: z.string(),
+  expirationTimeLabel: z.string(),
+  notBeforeLabel: z.string(),
+  resourcesLabel: z.string(),
   rejectLabel: z.string(),
   signLabel: z.string(),
   signingHint: z.string(),
@@ -89,12 +92,16 @@ export const styleCopySiweSchema = z.strictObject({
 
 export const styleCopyTypedDataSchema = z.strictObject({
   title: z.string(),
+  body: z.string(),
+  networkLabel: z.string(),
+  requestFromLabel: z.string(),
   accountLabel: z.string(),
+  interactingWithLabel: z.string(),
   primaryTypeLabel: z.string(),
-  domainLabel: z.string(),
-  messageLabel: z.string(),
+  messageSectionLabel: z.string(),
   rejectLabel: z.string(),
   signLabel: z.string(),
+  signingHint: z.string(),
 });
 
 export const styleCopySendTransactionSchema = z.strictObject({
@@ -118,6 +125,19 @@ export const styleCopyConfirmTransferSchema = z.strictObject({
   chainLabel: z.string(),
   rejectLabel: z.string(),
   confirmLabel: z.string(),
+});
+
+export const styleCopyOnrampSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  destinationLabel: z.string(),
+  closeLabel: z.string(),
+  openLabel: z.string(),
+  reopenLabel: z.string(),
+  loadingLabel: z.string(),
+  preparingLabel: z.string(),
+  popupReadyBody: z.string(),
+  popupOpenedBody: z.string(),
 });
 
 export const styleCopyTransferTokensSchema = z.strictObject({
@@ -213,6 +233,12 @@ export const styleCopyCctpBridgeSchema = z.strictObject({
 export const styleCopyGrantExecutionPermissionSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
+  permissionKindLabel: z.string(),
+  amountLabel: z.string(),
+  transferWindowLabel: z.string(),
+  justificationLabel: z.string(),
+  viewOnExplorerLabel: z.string(),
+  advancedLabel: z.string(),
   hostLabel: z.string(),
   toLabel: z.string(),
   chainLabel: z.string(),
@@ -224,6 +250,7 @@ export const styleCopyGrantExecutionPermissionSchema = z.strictObject({
   periodDurationPlaceholder: z.string(),
   periodDurationHint: z.string(),
   startLabel: z.string(),
+  endLabel: z.string(),
   memoLabel: z.string(),
   memoPlaceholder: z.string(),
   invalidAmountError: z.string(),
@@ -237,6 +264,11 @@ export const styleCopyGrantLiFiSwapPermissionSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
   quoteNote: z.string(),
+  permissionKindLabel: z.string(),
+  amountLabel: z.string(),
+  transferWindowLabel: z.string(),
+  endLabel: z.string(),
+  viewOnExplorerLabel: z.string(),
   hostLabel: z.string(),
   toLabel: z.string(),
   chainLabel: z.string(),
@@ -269,6 +301,8 @@ export const styleCopyGrantLiFiApprovePermissionSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
   warning: z.string(),
+  permissionKindLabel: z.string(),
+  viewOnExplorerLabel: z.string(),
   hostLabel: z.string(),
   toLabel: z.string(),
   chainLabel: z.string(),
@@ -485,6 +519,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   typedData: styleCopyTypedDataSchema,
   sendTransaction: styleCopySendTransactionSchema,
   confirmTransfer: styleCopyConfirmTransferSchema,
+  onramp: styleCopyOnrampSchema,
   transferTokens: styleCopyTransferTokensSchema,
   sendNativeToken: styleCopySendNativeTokenSchema,
   cctpBridge: styleCopyCctpBridgeSchema,
@@ -532,6 +567,7 @@ export const styleCopyPatchSchema = z.strictObject({
   typedData: styleCopyTypedDataSchema.partial().optional(),
   sendTransaction: styleCopySendTransactionSchema.partial().optional(),
   confirmTransfer: styleCopyConfirmTransferSchema.partial().optional(),
+  onramp: styleCopyOnrampSchema.partial().optional(),
   transferTokens: styleCopyTransferTokensSchema.partial().optional(),
   sendNativeToken: styleCopySendNativeTokenSchema.partial().optional(),
   cctpBridge: styleCopyCctpBridgeSchema.partial().optional(),
@@ -594,6 +630,7 @@ export type IStyleCopySendTransaction = z.infer<
 export type IStyleCopyConfirmTransfer = z.infer<
   typeof styleCopyConfirmTransferSchema
 >;
+export type IStyleCopyOnramp = z.infer<typeof styleCopyOnrampSchema>;
 export type IStyleCopyTransferTokens = z.infer<
   typeof styleCopyTransferTokensSchema
 >;

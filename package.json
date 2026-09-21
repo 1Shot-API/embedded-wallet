@@ -20,7 +20,7 @@
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --tsconfig tsconfig.test.json --test \"test/**/*.test.ts\"",
     "preview": "vite preview",
-    "dockerize": "docker build --secret id=cloudsmith_token,env=CLOUDSMITH_TOKEN -t oneshot-wallet .",
+    "dockerize": "docker build -t oneshot-wallet .",
     "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
@@ -30,7 +30,7 @@
     "@1shotapi/ows-signer-utils": "^0.6.2",
     "@1shotapi/ows-types": "^0.8.0",
     "@1shotapi/ows-wallet-utils": "^0.5.1",
-    "@crcl-main/app-kit": "^1.14.0-canary-feature-onramp-kit-sdk.1789055534",
+    "@circle-fin/app-kit": "^1.15.2",
     "@fontsource-variable/geist": "^5.3.0",
     "@metamask/smart-accounts-kit": "^2.0.0",
     "@reown/walletkit": "^1.5.6",

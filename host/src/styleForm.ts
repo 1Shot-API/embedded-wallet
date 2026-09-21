@@ -74,21 +74,32 @@ export interface IStyleFormState {
   signLabel: string;
   signReject: string;
 
-  // Text — Typed data
+  // Text — Typed data (EIP-712)
   typedTitle: string;
+  typedBody: string;
+  typedNetworkLabel: string;
+  typedRequestFromLabel: string;
+  typedAccountLabel: string;
+  typedInteractingWithLabel: string;
+  typedPrimaryTypeLabel: string;
+  typedMessageSectionLabel: string;
   typedSignLabel: string;
   typedReject: string;
+  typedSigningHint: string;
 
   // Text — SIWE (EIP-4361)
   siweTitle: string;
   siweBody: string;
-  siweEstimatedChangesLabel: string;
-  siweNoChangesLabel: string;
   siweNetworkLabel: string;
-  siweRequestFromLabel: string;
   siweSigningInWithLabel: string;
   siweMessageLabel: string;
   siweUriLabel: string;
+  siweVersionLabel: string;
+  siweNonceLabel: string;
+  siweIssuedAtLabel: string;
+  siweExpirationTimeLabel: string;
+  siweNotBeforeLabel: string;
+  siweResourcesLabel: string;
   siweRejectLabel: string;
   siweSignLabel: string;
   siweSigningHint: string;
@@ -160,6 +171,18 @@ export interface IStyleFormState {
   confirmTransferConfirm: string;
   confirmTransferReject: string;
 
+  // Text — Circle onramp (Buy)
+  onrampTitle: string;
+  onrampBody: string;
+  onrampDestinationLabel: string;
+  onrampCloseLabel: string;
+  onrampOpenLabel: string;
+  onrampReopenLabel: string;
+  onrampLoadingLabel: string;
+  onrampPreparingLabel: string;
+  onrampPopupReadyBody: string;
+  onrampPopupOpenedBody: string;
+
   // Text — Transfer tokens (in-wallet send)
   transferTokensTitle: string;
   transferTokensSend: string;
@@ -177,6 +200,12 @@ export interface IStyleFormState {
 
   // Text — EIP-7715 grant / cancel
   grantPermissionTitle: string;
+  grantPermissionKindLabel: string;
+  grantPermissionAmountLabel: string;
+  grantPermissionTransferWindowLabel: string;
+  grantPermissionJustificationLabel: string;
+  grantPermissionViewOnExplorerLabel: string;
+  grantPermissionAdvancedLabel: string;
   grantPermissionGrant: string;
   grantPermissionReject: string;
   cancelDelegationTitle: string;
@@ -298,21 +327,32 @@ export const ACME_PRESET: IStyleFormState = {
   signTitle: "Approve signature",
   signLabel: "Sign",
   signReject: "Reject",
-  typedTitle: "Approve typed data",
+  typedTitle: "Signature request",
+  typedBody: "Review request details before you confirm.",
+  typedNetworkLabel: "Network",
+  typedRequestFromLabel: "Request from",
+  typedAccountLabel: "Account",
+  typedInteractingWithLabel: "Interacting with",
+  typedPrimaryTypeLabel: "Primary type",
+  typedMessageSectionLabel: "Message",
   typedSignLabel: "Sign",
   typedReject: "Reject",
+  typedSigningHint: "Confirm in the signing panel…",
   siweTitle: "Sign-in request",
   siweBody:
-    "A site wants you to sign in by proving you own this account. This will not spend tokens or change on-chain balances.",
-  siweEstimatedChangesLabel: "Estimated changes",
-  siweNoChangesLabel: "No changes",
+    "{domain} is requesting to sign in with your Ethereum account. This will not spend tokens or change on-chain balances.",
   siweNetworkLabel: "Network",
-  siweRequestFromLabel: "Request from",
   siweSigningInWithLabel: "Signing in with",
   siweMessageLabel: "Message",
   siweUriLabel: "URI",
+  siweVersionLabel: "Version",
+  siweNonceLabel: "Nonce",
+  siweIssuedAtLabel: "Issued at",
+  siweExpirationTimeLabel: "Expiration time",
+  siweNotBeforeLabel: "Not before",
+  siweResourcesLabel: "Resources",
   siweRejectLabel: "Cancel",
-  siweSignLabel: "Confirm",
+  siweSignLabel: "Sign in",
   siweSigningHint: "Confirm in the signing panel…",
   txTitle: "Approve transaction",
   txSignLabel: "Sign",
@@ -372,6 +412,19 @@ export const ACME_PRESET: IStyleFormState = {
     "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
   confirmTransferConfirm: "Confirm",
   confirmTransferReject: "Reject",
+  onrampTitle: "Onramp with Circle",
+  onrampBody:
+    "Purchase {token} on {network} with Circle Onramp. Pay with card or bank transfer—you receive {token} 1-to-1.",
+  onrampDestinationLabel: "To",
+  onrampCloseLabel: "Close",
+  onrampOpenLabel: "Start now",
+  onrampReopenLabel: "Reopen onramp",
+  onrampLoadingLabel: "Loading onramp…",
+  onrampPreparingLabel: "Preparing onramp…",
+  onrampPopupReadyBody:
+    "Tap Start now to continue in a new window. Your browser may block the window if you wait too long after this screen appears.",
+  onrampPopupOpenedBody:
+    "Complete your purchase in the Circle window, then close this screen.",
   transferTokensTitle: "Send",
   transferTokensSend: "Send",
   transferTokensCancel: "Cancel",
@@ -383,7 +436,13 @@ export const ACME_PRESET: IStyleFormState = {
   sendNativeTokenCancel: "Cancel",
   sendNativeTokenMax: "Max",
   sendNativeTokenFee: "Estimated network fee",
-  grantPermissionTitle: "Grant spending permission",
+  grantPermissionTitle: "Permission Request",
+  grantPermissionKindLabel: "Periodic Spending Permission",
+  grantPermissionAmountLabel: "Periodic Budget",
+  grantPermissionTransferWindowLabel: "Budget Refresh Period",
+  grantPermissionJustificationLabel: "Justification",
+  grantPermissionViewOnExplorerLabel: "View on explorer",
+  grantPermissionAdvancedLabel: "Advanced",
   grantPermissionGrant: "Grant",
   grantPermissionReject: "Reject",
   cancelDelegationTitle: "Cancel permission",
@@ -482,22 +541,24 @@ export const DEFAULTS_PRESET: IStyleFormState = {
     "Accept the Terms of Service and Privacy Policy to continue.",
   signTitle: "Sign message",
   signLabel: "Sign",
-  typedTitle: "Sign typed data",
-  typedSignLabel: "Sign",
+  typedTitle: "Signature request",
   txTitle: "Send transaction",
   txSignLabel: "Sign",
   siweTitle: "Sign-in request",
   siweBody:
-    "A site wants you to sign in by proving you own this account. This will not spend tokens or change on-chain balances.",
-  siweEstimatedChangesLabel: "Estimated changes",
-  siweNoChangesLabel: "No changes",
+    "{domain} is requesting to sign in with your Ethereum account. This will not spend tokens or change on-chain balances.",
   siweNetworkLabel: "Network",
-  siweRequestFromLabel: "Request from",
   siweSigningInWithLabel: "Signing in with",
   siweMessageLabel: "Message",
   siweUriLabel: "URI",
+  siweVersionLabel: "Version",
+  siweNonceLabel: "Nonce",
+  siweIssuedAtLabel: "Issued at",
+  siweExpirationTimeLabel: "Expiration time",
+  siweNotBeforeLabel: "Not before",
+  siweResourcesLabel: "Resources",
   siweRejectLabel: "Cancel",
-  siweSignLabel: "Confirm",
+  siweSignLabel: "Sign in",
   siweSigningHint: "Confirm in the signing panel…",
   credOfferTitle: "Accept credential offer?",
   credOfferBody: "",
@@ -550,6 +611,19 @@ export const DEFAULTS_PRESET: IStyleFormState = {
     "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
   confirmTransferConfirm: "Confirm",
   confirmTransferReject: "Reject",
+  onrampTitle: "Onramp with Circle",
+  onrampBody:
+    "Purchase {token} on {network} with Circle Onramp. Pay with card or bank transfer—you receive {token} 1-to-1.",
+  onrampDestinationLabel: "To",
+  onrampCloseLabel: "Close",
+  onrampOpenLabel: "Start now",
+  onrampReopenLabel: "Reopen onramp",
+  onrampLoadingLabel: "Loading onramp…",
+  onrampPreparingLabel: "Preparing onramp…",
+  onrampPopupReadyBody:
+    "Tap Start now to continue in a new window. Your browser may block the window if you wait too long after this screen appears.",
+  onrampPopupOpenedBody:
+    "Complete your purchase in the Circle window, then close this screen.",
   transferTokensTitle: "Send",
   transferTokensSend: "Send",
   transferTokensCancel: "Cancel",
@@ -561,7 +635,13 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   sendNativeTokenCancel: "Cancel",
   sendNativeTokenMax: "Max",
   sendNativeTokenFee: "Estimated network fee",
-  grantPermissionTitle: "Grant spending permission",
+  grantPermissionTitle: "Permission Request",
+  grantPermissionKindLabel: "Periodic Spending Permission",
+  grantPermissionAmountLabel: "Periodic Budget",
+  grantPermissionTransferWindowLabel: "Budget Refresh Period",
+  grantPermissionJustificationLabel: "Justification",
+  grantPermissionViewOnExplorerLabel: "View on explorer",
+  grantPermissionAdvancedLabel: "Advanced",
   grantPermissionGrant: "Grant",
   grantPermissionReject: "Reject",
   cancelDelegationTitle: "Cancel permission",
@@ -758,20 +838,31 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
 
   const typedData: Record<string, string> = {};
   put(typedData, "title", form.typedTitle);
+  put(typedData, "body", form.typedBody);
+  put(typedData, "networkLabel", form.typedNetworkLabel);
+  put(typedData, "requestFromLabel", form.typedRequestFromLabel);
+  put(typedData, "accountLabel", form.typedAccountLabel);
+  put(typedData, "interactingWithLabel", form.typedInteractingWithLabel);
+  put(typedData, "primaryTypeLabel", form.typedPrimaryTypeLabel);
+  put(typedData, "messageSectionLabel", form.typedMessageSectionLabel);
   put(typedData, "signLabel", form.typedSignLabel);
   put(typedData, "rejectLabel", form.typedReject);
+  put(typedData, "signingHint", form.typedSigningHint);
   if (Object.keys(typedData).length > 0) copy.typedData = typedData;
 
   const siwe: Record<string, string> = {};
   put(siwe, "title", form.siweTitle);
   put(siwe, "body", form.siweBody);
-  put(siwe, "estimatedChangesLabel", form.siweEstimatedChangesLabel);
-  put(siwe, "noChangesLabel", form.siweNoChangesLabel);
   put(siwe, "networkLabel", form.siweNetworkLabel);
-  put(siwe, "requestFromLabel", form.siweRequestFromLabel);
   put(siwe, "signingInWithLabel", form.siweSigningInWithLabel);
   put(siwe, "messageLabel", form.siweMessageLabel);
   put(siwe, "uriLabel", form.siweUriLabel);
+  put(siwe, "versionLabel", form.siweVersionLabel);
+  put(siwe, "nonceLabel", form.siweNonceLabel);
+  put(siwe, "issuedAtLabel", form.siweIssuedAtLabel);
+  put(siwe, "expirationTimeLabel", form.siweExpirationTimeLabel);
+  put(siwe, "notBeforeLabel", form.siweNotBeforeLabel);
+  put(siwe, "resourcesLabel", form.siweResourcesLabel);
   put(siwe, "rejectLabel", form.siweRejectLabel);
   put(siwe, "signLabel", form.siweSignLabel);
   put(siwe, "signingHint", form.siweSigningHint);
@@ -792,6 +883,21 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(confirmTransfer, "rejectLabel", form.confirmTransferReject);
   if (Object.keys(confirmTransfer).length > 0) {
     copy.confirmTransfer = confirmTransfer;
+  }
+
+  const onramp: Record<string, string> = {};
+  put(onramp, "title", form.onrampTitle);
+  put(onramp, "body", form.onrampBody);
+  put(onramp, "destinationLabel", form.onrampDestinationLabel);
+  put(onramp, "closeLabel", form.onrampCloseLabel);
+  put(onramp, "openLabel", form.onrampOpenLabel);
+  put(onramp, "reopenLabel", form.onrampReopenLabel);
+  put(onramp, "loadingLabel", form.onrampLoadingLabel);
+  put(onramp, "preparingLabel", form.onrampPreparingLabel);
+  put(onramp, "popupReadyBody", form.onrampPopupReadyBody);
+  put(onramp, "popupOpenedBody", form.onrampPopupOpenedBody);
+  if (Object.keys(onramp).length > 0) {
+    copy.onramp = onramp;
   }
 
   const transferTokens: Record<string, string> = {};
@@ -817,6 +923,32 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
 
   const grantExecutionPermission: Record<string, string> = {};
   put(grantExecutionPermission, "title", form.grantPermissionTitle);
+  put(
+    grantExecutionPermission,
+    "permissionKindLabel",
+    form.grantPermissionKindLabel,
+  );
+  put(grantExecutionPermission, "amountLabel", form.grantPermissionAmountLabel);
+  put(
+    grantExecutionPermission,
+    "transferWindowLabel",
+    form.grantPermissionTransferWindowLabel,
+  );
+  put(
+    grantExecutionPermission,
+    "justificationLabel",
+    form.grantPermissionJustificationLabel,
+  );
+  put(
+    grantExecutionPermission,
+    "viewOnExplorerLabel",
+    form.grantPermissionViewOnExplorerLabel,
+  );
+  put(
+    grantExecutionPermission,
+    "advancedLabel",
+    form.grantPermissionAdvancedLabel,
+  );
   put(grantExecutionPermission, "grantLabel", form.grantPermissionGrant);
   put(grantExecutionPermission, "rejectLabel", form.grantPermissionReject);
   if (Object.keys(grantExecutionPermission).length > 0) {

@@ -1,19 +1,33 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type {
   AppKitOnrampOperations,
   OnrampSession,
   OnrampWidget,
-} from "@crcl-main/app-kit";
-import type { EVMAccountAddress } from "@1shotapi/ows-types";
+} from "@circle-fin/app-kit";
+import {
+  ChainUtils,
+  EVMAccountAddress,
+  EVMChainId,
+  type EVMAccountAddress as EVMAccountAddressType,
+} from "@1shotapi/ows-types";
+import { zeroAddress } from "viem";
 import { Modal, type ModalAction } from "./Modal";
 import { useCircle } from "../circle/CircleContext";
 import { circleChainLabelFromChainId } from "../circle/circleChains";
 import { isCirclePopupPreferred } from "../circle/circlePopup";
 import type { IOnrampOpenRequest } from "../circle/onrampTypes";
+import { useStyle } from "../style/StyleProvider";
+import { useWallet } from "../wallet/WalletProvider";
+import { useWalletSessionStore } from "../wallet/sessionStore";
+import { AssetIdentityMark } from "./AssetIdentityMark";
+import { CopyableText } from "./CopyableText";
+import circleLogoStacked from "../assets/images/platforms/circle-logo-stacked.svg";
 
 export type IOnrampViewProps = IOnrampOpenRequest & {
   onClose: () => void;
 };
+
+const PLACEHOLDER_TOKEN_ADDRESS = EVMAccountAddress(zeroAddress);
 
 /**
  * Full-screen Circle AppKit onramp inside the Branding Layer shell.
@@ -23,12 +37,20 @@ export type IOnrampViewProps = IOnrampOpenRequest & {
  */
 export function OnrampView({
   destinationAddress,
-  chainId,
+  chainId: chainIdProp,
   amount,
-  tokenSymbol,
+  tokenSymbol: tokenSymbolProp,
+  tokenAddress: tokenAddressProp,
+  iconUrl: iconUrlProp,
   onClose,
 }: IOnrampViewProps) {
   const circle = useCircle();
+  const { style } = useStyle();
+  const { resolveChain, knownAssetRepository } = useWallet();
+  const sessionChainId = useWalletSessionStore((state) => state.chainId);
+  const copy = style.copy.onramp;
+  const accountCopy = style.copy.account;
+
   const usePopup = isCirclePopupPreferred();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetRef = useRef<OnrampWidget | null>(null);
@@ -38,12 +60,70 @@ export function OnrampView({
   const [loading, setLoading] = useState(true);
   const [popupReady, setPopupReady] = useState(false);
   const [popupOpened, setPopupOpened] = useState(false);
+  const [catalogTokenAddress, setCatalogTokenAddress] = useState<
+    EVMAccountAddressType | null
+  >(null);
+  const [catalogIconUrl, setCatalogIconUrl] = useState<string | undefined>();
+
+  const effectiveEvmChainId = resolveEffectiveEvmChainId(
+    chainIdProp,
+    sessionChainId,
+  );
+  const tokenSymbol = (tokenSymbolProp?.trim() || "USDC").toUpperCase();
+  const chain = effectiveEvmChainId
+    ? resolveChain(effectiveEvmChainId)
+    : null;
+  const networkLabel = chain?.label ?? "your network";
+  const body = copy.body
+    .replaceAll("{token}", tokenSymbol)
+    .replaceAll("{network}", networkLabel);
+
+  const tokenAddress =
+    tokenAddressProp ?? catalogTokenAddress ?? PLACEHOLDER_TOKEN_ADDRESS;
+  const iconUrl = iconUrlProp ?? catalogIconUrl;
+
+  useEffect(() => {
+    if (tokenAddressProp || !effectiveEvmChainId) {
+      setCatalogTokenAddress(null);
+      setCatalogIconUrl(undefined);
+      return;
+    }
+
+    let cancelled = false;
+    void knownAssetRepository
+      .getOnrampAsset(effectiveEvmChainId, tokenSymbol)
+      .then((asset) => {
+        if (cancelled) return;
+        if (asset) {
+          setCatalogTokenAddress(asset.address);
+          setCatalogIconUrl(asset.iconUrl);
+        } else {
+          setCatalogTokenAddress(null);
+          setCatalogIconUrl(undefined);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCatalogTokenAddress(null);
+          setCatalogIconUrl(undefined);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    effectiveEvmChainId,
+    knownAssetRepository,
+    tokenAddressProp,
+    tokenSymbol,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
     const body = buildSessionBody({
       destinationAddress,
-      chainId,
+      chainId: chainIdProp ?? decimalChainIdFromEvm(effectiveEvmChainId),
       amount,
       tokenSymbol,
     });
@@ -136,7 +216,15 @@ export function OnrampView({
       widgetRef.current?.close();
       widgetRef.current = null;
     };
-  }, [amount, chainId, circle, destinationAddress, tokenSymbol, usePopup]);
+  }, [
+    amount,
+    chainIdProp,
+    circle,
+    destinationAddress,
+    effectiveEvmChainId,
+    tokenSymbol,
+    usePopup,
+  ]);
 
   const openPopup = () => {
     const onramp = onrampRef.current;
@@ -155,13 +243,16 @@ export function OnrampView({
         void (async () => {
           try {
             const url = await circle.getSessionUrl();
-            const body = buildSessionBody({
+            const sessionBody = buildSessionBody({
               destinationAddress,
-              chainId,
+              chainId: chainIdProp ?? decimalChainIdFromEvm(effectiveEvmChainId),
               amount,
               tokenSymbol,
             });
-            sessionRef.current = await onramp.fetchSession({ url, body });
+            sessionRef.current = await onramp.fetchSession({
+              url,
+              body: sessionBody,
+            });
             setLoading(false);
             setPopupReady(true);
           } catch (err: unknown) {
@@ -188,57 +279,154 @@ export function OnrampView({
     setPopupOpened(true);
   };
 
-  const actions: ModalAction[] = [];
+  const actions: ModalAction[] = [
+    { label: copy.closeLabel, onClick: onClose, variant: "secondary" },
+  ];
   if (usePopup && popupReady) {
     actions.push({
-      label: popupOpened ? "Reopen onramp" : "Open onramp",
+      label: popupOpened ? copy.reopenLabel : copy.openLabel,
       onClick: openPopup,
       variant: "primary",
+      autoFocus: true,
     });
   }
-  actions.push({ label: "Close", onClick: onClose, variant: "secondary" });
+
+  const statusMessage = (() => {
+    if (error) return null;
+    if (loading) {
+      return usePopup ? copy.preparingLabel : copy.loadingLabel;
+    }
+    if (usePopup && popupReady && !popupOpened) {
+      return copy.popupReadyBody;
+    }
+    if (usePopup && popupOpened) {
+      return copy.popupOpenedBody;
+    }
+    return null;
+  })();
 
   return (
     <Modal
-      title="Buy"
+      title={
+        <span className="inline-flex items-center gap-2.5">
+          <img
+            src={circleLogoStacked}
+            alt=""
+            className="h-8 w-auto shrink-0"
+            aria-hidden
+          />
+          <span>{copy.title}</span>
+        </span>
+      }
       onBackdropDismiss={onClose}
       contentClassName="z-50"
       actions={actions}
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="text-foreground flex min-h-0 flex-1 flex-col gap-5">
+        <p className="text-muted-foreground m-0 text-sm leading-relaxed text-pretty">
+          {renderOnrampBody(body, tokenSymbol)}
+        </p>
+
+        {effectiveEvmChainId ? (
+          <div className="flex items-center gap-4">
+            <AssetIdentityMark
+              chainId={effectiveEvmChainId}
+              address={tokenAddress}
+              symbol={tokenSymbol}
+              iconUrl={iconUrl}
+              chainLogoUrl={chain?.logoUrl}
+            />
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <span className="text-xl font-semibold tracking-tight">
+                {amount ? `${amount} ` : ""}
+                {tokenSymbol}
+              </span>
+              {chain ? (
+                <span className="bg-muted text-muted-foreground w-fit rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide">
+                  {chain.label}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            {copy.destinationLabel}
+          </span>
+          <CopyableText
+            text={String(destinationAddress)}
+            truncate
+            copyLabel={accountCopy.copyAddressLabel}
+            copiedLabel={accountCopy.addressCopiedLabel}
+            copyFailedLabel={accountCopy.addressCopyFailedLabel}
+          />
+        </div>
+
         {error ? (
           <p className="text-destructive m-0 text-sm" role="alert">
             {error}
           </p>
         ) : null}
-        {loading && !error ? (
-          <p className="text-muted-foreground m-0 text-sm">
-            {usePopup ? "Preparing onramp…" : "Loading onramp…"}
-          </p>
+        {statusMessage ? (
+          <p className="text-muted-foreground m-0 text-sm">{statusMessage}</p>
         ) : null}
-        {usePopup && popupReady && !popupOpened && !error ? (
-          <p className="text-muted-foreground m-0 text-sm">
-            Circle opens in a popup (required when the wallet is host-iframed, or
-            for local/ngrok CSP bypass). Click Open onramp — browsers block
-            popups after an async delay.
-          </p>
-        ) : null}
-        {usePopup && popupOpened && !error ? (
-          <p className="text-muted-foreground m-0 text-sm">
-            Onramp opened in a popup. Complete the purchase there, then close
-            this dialog.
-          </p>
-        ) : null}
+
         {!usePopup ? (
           <div
             ref={containerRef}
-            className="bg-background min-h-[720px] w-full flex-1"
+            className="bg-background min-h-[480px] w-full flex-1"
             aria-label="Circle onramp"
           />
         ) : null}
       </div>
     </Modal>
   );
+}
+
+function resolveEffectiveEvmChainId(
+  chainIdProp: number | undefined,
+  sessionChainId: ReturnType<typeof useWalletSessionStore.getState>["chainId"],
+): EVMChainId | null {
+  if (chainIdProp != null && Number.isFinite(chainIdProp)) {
+    return EVMChainId(`0x${chainIdProp.toString(16)}` as `0x${string}`);
+  }
+  if (ChainUtils.isEVMChainId(sessionChainId)) {
+    return sessionChainId;
+  }
+  return null;
+}
+
+function decimalChainIdFromEvm(chainId: EVMChainId | null): number | undefined {
+  if (!chainId) {
+    return undefined;
+  }
+  return Number(BigInt(chainId));
+}
+
+/** Keep “{token} 1-to-1” on one line even when hosts customize `copy.onramp.body`. */
+function renderOnrampBody(text: string, tokenSymbol: string): ReactNode {
+  const oneToOne = "1[\u2011-]to[\u2011-]1";
+  const tokenUnit = `${escapeRegExp(tokenSymbol)}\\s+${oneToOne}`;
+  const pattern = new RegExp(`(${tokenUnit}|${oneToOne})`, "gi");
+  const isNoBreakPart = new RegExp(`^(${tokenUnit}|${oneToOne})$`, "i");
+  const parts = text.split(pattern);
+  if (parts.length === 1) {
+    return text;
+  }
+  return parts.map((part, index) =>
+    isNoBreakPart.test(part) ? (
+      <span key={index} className="whitespace-nowrap">
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function buildSessionBody(request: {

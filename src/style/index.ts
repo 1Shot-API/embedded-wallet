@@ -13,6 +13,7 @@ export type {
   IStyleCopyTypedData,
   IStyleCopySendTransaction,
   IStyleCopyConfirmTransfer,
+  IStyleCopyOnramp,
   IStyleCopyTransferTokens,
   IStyleCopySendNativeToken,
   IStyleCopyCctpBridge,

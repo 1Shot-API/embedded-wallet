@@ -60,11 +60,13 @@ export interface ITransactionService {
   /**
    * Prefer USDC with balance, then USDT, else first token with balance.
    * When `preferredToken` is set, use it if present in capabilities.
-   * Returns a mock fee for confirm UI; submit uses `relayer_estimate7710Transaction`.
+   * Quotes via unsigned `relayer_estimate7710Transaction` (placeholder
+   * signatures) so confirm UI shows an accurate fee before passkey sign.
    */
   quotePayment(
     chainId: EVMChainId,
     owner: EVMAccountAddress,
+    work: ITransactionWork | ITransactionWork[],
     preferredToken?: EVMAccountAddress,
   ): Promise<IPaymentQuote>;
 

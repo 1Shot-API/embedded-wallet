@@ -54,11 +54,13 @@ export class TransactionService implements ITransactionService {
   quotePayment(
     chainId: EVMChainId,
     owner: EVMAccountAddress,
+    work: ITransactionWork | ITransactionWork[],
     preferredToken?: EVMAccountAddress,
   ): Promise<IPaymentQuote> {
     return this.options.transactionUtils.quotePayment(
       chainId,
       owner,
+      work,
       preferredToken,
     );
   }
