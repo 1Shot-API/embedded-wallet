@@ -50,6 +50,10 @@ export function mergeStyle(
         ...current.copy.confirmTransfer,
         ...patch.copy?.confirmTransfer,
       },
+      onramp: {
+        ...current.copy.onramp,
+        ...patch.copy?.onramp,
+      },
       transferTokens: {
         ...current.copy.transferTokens,
         ...patch.copy?.transferTokens,
@@ -217,6 +221,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       typedData: { ...DEFAULT_STYLE.copy.typedData },
       sendTransaction: { ...DEFAULT_STYLE.copy.sendTransaction },
       confirmTransfer: { ...DEFAULT_STYLE.copy.confirmTransfer },
+      onramp: { ...DEFAULT_STYLE.copy.onramp },
       transferTokens: { ...DEFAULT_STYLE.copy.transferTokens },
       sendNativeToken: { ...DEFAULT_STYLE.copy.sendNativeToken },
       cctpBridge: { ...DEFAULT_STYLE.copy.cctpBridge },

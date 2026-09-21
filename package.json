@@ -20,7 +20,7 @@
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --tsconfig tsconfig.test.json --test \"test/**/*.test.ts\"",
     "preview": "vite preview",
-    "dockerize": "docker build --secret id=cloudsmith_token,env=CLOUDSMITH_TOKEN -t oneshot-wallet .",
+    "dockerize": "docker build -t oneshot-wallet .",
     "doctor": "npx react-doctor@latest"
   },
   "dependencies": {

@@ -15,6 +15,7 @@ import { makeTrackedAssetId } from "@/lib/types/primitives";
 import {
   RELAYER_KNOWN_ASSETS,
   getCctpBridgeAsset as lookupCctpBridgeAsset,
+  getOnrampAsset as lookupOnrampAsset,
 } from "./relayerKnownAssets";
 import { HardcodedChainRepository } from "./HardcodedChainRepository";
 import { registerKnownAssetIconResolver } from "../../utils/tokenIcons";
@@ -123,6 +124,13 @@ export class HardcodedKnownAssetRepository implements IKnownAssetRepository {
     chainId: EVMChainIdType,
   ): Promise<KnownAsset | null> {
     return lookupCctpBridgeAsset(chainId);
+  }
+
+  async getOnrampAsset(
+    chainId: EVMChainIdType,
+    symbol?: string,
+  ): Promise<KnownAsset | null> {
+    return lookupOnrampAsset(chainId, symbol);
   }
 
   async resolveForTracking(

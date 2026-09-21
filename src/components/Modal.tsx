@@ -20,7 +20,7 @@ export type ModalAction = {
 export type ModalPresentation = "page" | "overlay";
 
 export type ModalProps = {
-  title: string;
+  title: ReactNode;
   children: ReactNode;
   actions?: ModalAction[];
   /** Escape / overlay dismiss. Omit to lock until an action. */

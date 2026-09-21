@@ -6,4 +6,6 @@ export type IOnrampOpenRequest = {
   chainId?: number;
   amount?: string;
   tokenSymbol?: string;
+  tokenAddress?: EVMAccountAddress;
+  iconUrl?: string;
 };

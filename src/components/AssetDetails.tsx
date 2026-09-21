@@ -124,6 +124,8 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
       destinationAddress: evmAddress,
       chainId: Number(BigInt(asset.chainId)),
       tokenSymbol: asset.symbol,
+      tokenAddress: asset.address,
+      iconUrl: asset.iconUrl,
     })
       .catch(() => {
         /* user closed or mint failed — OnrampView surfaces errors */

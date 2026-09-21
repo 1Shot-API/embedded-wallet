@@ -383,4 +383,21 @@ export function getCctpBridgeAsset(
   );
 }
 
+/** Circle onramp Buy asset on `chainId` (defaults to USDC). */
+export function getOnrampAsset(
+  chainId: EVMChainIdType,
+  symbol = "USDC",
+): KnownAsset | null {
+  const chainKey = String(chainId).toLowerCase();
+  const token = symbol.trim().toUpperCase();
+  return (
+    RELAYER_KNOWN_ASSETS.find(
+      (asset) =>
+        asset.canBuy &&
+        String(asset.chainId).toLowerCase() === chainKey &&
+        asset.symbol.toUpperCase() === token,
+    ) ?? null
+  );
+}
+
 registerKnownAssetIconResolver(getKnownAssetIconUrl);
