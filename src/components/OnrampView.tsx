@@ -3,7 +3,7 @@ import type {
   AppKitOnrampOperations,
   OnrampSession,
   OnrampWidget,
-} from "@crcl-main/app-kit";
+} from "@circle-fin/app-kit";
 import type { EVMAccountAddress } from "@1shotapi/ows-types";
 import { Modal, type ModalAction } from "./Modal";
 import { useCircle } from "../circle/CircleContext";
