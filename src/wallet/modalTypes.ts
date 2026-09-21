@@ -22,6 +22,7 @@ import type {
 } from "../circle/cctpBridgeTypes";
 import type { TokenAmount } from "../lib/types/primitives";
 import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
+import type { ITransactionWork } from "../lib/interfaces/business/ITransactionService";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
@@ -37,6 +38,8 @@ export interface IConfirmTransferRequest {
   chainId: EVMChainId;
   ownerAddress: EVMAccountAddress;
   useRelayer: boolean;
+  /** ExactCalldata work for unsigned fee estimate (host send payload). */
+  work: ITransactionWork;
 }
 
 /** Relayer payment selection from TX confirm UI (before execute). */
@@ -84,6 +87,8 @@ export interface ICancelDelegationConfirmRequest {
   chainName: string;
   chainId: EVMChainId;
   ownerAddress: EVMAccountAddress;
+  /** ExactCalldata work for unsigned fee estimate. */
+  work: ITransactionWork;
 }
 
 export type ModalRequest =

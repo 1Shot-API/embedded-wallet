@@ -1,7 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
 import { formatUnits } from "viem";
-import type { IPaymentQuote, IPaymentTokenOption } from "../lib/interfaces/business";
+import type {
+  IPaymentQuote,
+  IPaymentTokenOption,
+  ITransactionWork,
+} from "../lib/interfaces/business";
 import type { IFinalRelayerFee } from "../lib/types/domain/RelayerSendUi";
 import { useWallet } from "../wallet/WalletProvider";
 import { AssetIcon } from "./AssetIcon";
@@ -19,6 +23,8 @@ export type IPaymentFeePickerMode = "estimate" | "final";
 export interface IPaymentFeePickerProps {
   chainId: EVMChainId;
   ownerAddress: EVMAccountAddress;
+  /** ExactCalldata work used for unsigned `relayer_estimate7710Transaction`. */
+  work: ITransactionWork | ITransactionWork[];
   quote: IPaymentQuote | null;
   error: string | null;
   loading: boolean;
@@ -66,12 +72,13 @@ function PaymentTokenRow({
 
 /**
  * Loads payment-token options (USDC preferred) and shows a live fee quote
- * with auto-refresh. Exact fee is settled by `relayer_estimate7710Transaction`
- * at submit; use mode `final` to show the relayer-settled amount.
+ * from unsigned `relayer_estimate7710Transaction`. Use mode `final` after the
+ * signed estimate settles the amount at submit.
  */
 export function PaymentFeePicker({
   chainId,
   ownerAddress,
+  work,
   quote,
   error,
   loading,
@@ -90,15 +97,34 @@ export function PaymentFeePicker({
     onQuoteChangeRef.current = onQuoteChange;
   }, [onQuoteChange]);
 
+  const workKey = useMemo(() => {
+    const items = Array.isArray(work) ? work : [work];
+    return items
+      .map(
+        (item) =>
+          `${String(item.to)}:${String(item.data || "0x")}:${item.value ?? 0n}`,
+      )
+      .join("|");
+  }, [work]);
+
   const getNewQuote = useCallback(async (): Promise<string> => {
-    const next = await transactionService.quotePayment(
-      chainId,
-      ownerAddress,
-      preferredToken,
-    );
-    onQuoteChangeRef.current(next, null);
-    return next.feeFormatted;
-  }, [chainId, ownerAddress, preferredToken, transactionService]);
+    try {
+      const next = await transactionService.quotePayment(
+        chainId,
+        ownerAddress,
+        work,
+        preferredToken,
+      );
+      onQuoteChangeRef.current(next, null);
+      return next.feeFormatted;
+    } catch (err: unknown) {
+      onQuoteChangeRef.current(
+        null,
+        err instanceof Error ? err.message : "Failed to quote fee",
+      );
+      throw err;
+    }
+  }, [chainId, ownerAddress, preferredToken, transactionService, work]);
 
   async function onSelectToken(token: EVMAccountAddress): Promise<void> {
     setSelectBusy(true);
@@ -107,6 +133,7 @@ export function PaymentFeePicker({
       const next = await transactionService.quotePayment(
         chainId,
         ownerAddress,
+        work,
         token,
       );
       onQuoteChange(next, null);
@@ -149,7 +176,7 @@ export function PaymentFeePicker({
             <span>{feeDisplay}</span>
           ) : (
             <QuoteCountdown
-              key={preferredToken ? String(preferredToken) : "default"}
+              key={`${preferredToken ? String(preferredToken) : "default"}:${workKey}`}
               getNewQuote={getNewQuote}
               paused={paused || isLoading}
             />

@@ -32,11 +32,14 @@ export interface ITransactionUtils {
 
   /**
    * Prefer USDC with balance, then USDT, else first token with balance.
-   * Mock fee for confirm UI; submit uses `relayer_estimate7710Transaction`.
+   * Builds unsigned ExactCalldata fee+work delegations (placeholder
+   * signatures) and calls `relayer_estimate7710Transaction` so the confirm
+   * UI shows `requiredPaymentAmount` before any passkey ceremony.
    */
   quotePayment(
     chainId: EVMChainId,
     owner: EVMAccountAddress,
+    work: ITransactionWork | ITransactionWork[],
     preferredToken?: EVMAccountAddress,
   ): Promise<IPaymentQuote>;
 

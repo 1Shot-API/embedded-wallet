@@ -62,10 +62,15 @@ export class BridgeService implements IBridgeService {
       params.speed,
       params.amountAtoms,
     );
-    const paymentQuote = await this.transactionUtils.quotePayment(
+    const contracts = this.cctpUtils.getContracts(
+      sourceRoute.domain,
+      sourceRoute.networkType,
+    );
+    const allowance = await this.readAllowance(
       params.sourceChainId,
-      params.owner,
       sourceUsdc.address,
+      params.owner,
+      contracts.tokenMessengerV2,
     );
     const burnCalldata = this.cctpUtils.encodeDepositForBurnWithHook({
       totalBurn: fees.totalBurn,
@@ -75,6 +80,24 @@ export class BridgeService implements IBridgeService {
       maxFee: fees.maxFee,
       minFinalityThreshold: fees.minFinalityThreshold,
     });
+    const approveData = this.cctpUtils.encodeUsdcApprove(
+      contracts.tokenMessengerV2,
+      fees.totalBurn,
+    );
+    const relayerWork = this.cctpUtils.buildRelayerWork({
+      allowance,
+      totalBurn: fees.totalBurn,
+      usdcAddress: sourceUsdc.address,
+      tokenMessenger: contracts.tokenMessengerV2,
+      approveData,
+      burnData: burnCalldata,
+    });
+    const paymentQuote = await this.transactionUtils.quotePayment(
+      params.sourceChainId,
+      params.owner,
+      relayerWork,
+      sourceUsdc.address,
+    );
 
     return {
       sourceChainId: params.sourceChainId,
@@ -92,6 +115,7 @@ export class BridgeService implements IBridgeService {
       netReceivedAtoms: params.amountAtoms,
       paymentQuote,
       burnCalldata,
+      relayerWork,
     };
   }
 

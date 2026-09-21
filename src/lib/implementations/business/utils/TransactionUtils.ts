@@ -68,11 +68,28 @@ import "../../utils/registerSmartAccountsEnvironments";
 const STATELESS_DELEGATOR_IMPL =
   "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B" as const;
 
+/**
+ * 65-byte zero signature for `relayer_estimate7710Transaction` unsigned
+ * estimates. Valid ECDSA length so the DelegatorEstimateShim's
+ * ECDSA.tryRecover pays ecrecover precompile gas (prefer over bytes32(0)).
+ */
+export const PLACEHOLDER_DELEGATION_SIGNATURE_65_ZERO =
+  "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" as const;
+
 /** IndexedDB key for the client delegation-binding value (not localStorage). */
 const DELEGATION_BINDING_IDB_KEY = "oneshot.dbind";
 const LEGACY_DELEGATION_SECRET_KEY = "oneshot.delegationSecret";
 const POLL_MS = 1000;
 const MAX_POLL_ATTEMPTS = 180;
+
+type ExactCalldataDelegationArgs = {
+  smartAccount: Awaited<ReturnType<typeof toMetaMaskSmartAccount>>;
+  delegate: EVMAccountAddress;
+  target: EVMAccountAddress;
+  value: bigint;
+  callData: Hex;
+  chainIdNumber: number;
+};
 
 export type TransactionUtilsOptions = {
   chainRepository: IChainRepository;
@@ -219,8 +236,14 @@ export class TransactionUtils implements ITransactionUtils {
   async quotePayment(
     chainId: EVMChainId,
     owner: EVMAccountAddress,
+    work: ITransactionWork | ITransactionWork[],
     preferredToken?: EVMAccountAddress,
   ): Promise<IPaymentQuote> {
+    const workItems = Array.isArray(work) ? work : [work];
+    if (workItems.length === 0) {
+      throw new Error("quotePayment requires at least one work item");
+    }
+
     const chain = await this.requireRelayerChain(chainId);
     const capabilities = await this.options.relayerRepository.getCapabilities(
       chain.relayerUrl,
@@ -250,10 +273,99 @@ export class TransactionUtils implements ITransactionUtils {
       throw new Error("No relayer payment token with a positive balance");
     }
 
-    // Confirm UI uses a conservative mock (≥ typical $0.01 minFee). The real fee
-    // comes from relayer_estimate7710Transaction at submit — not getFeeData
-    // (whose minFee is a human decimal string, not atoms).
-    const feeAtoms = makeTokenAmount(parseUnits("0.01", selected.decimals));
+    // Seed fee ExactCalldata with typical minFee; estimate returns the real
+    // requiredPaymentAmount (often higher on Ethereum).
+    const seedFeeAtoms = makeTokenAmount(
+      parseUnits("0.01", selected.decimals),
+    );
+
+    const chainIdNumber = Number(BigInt(chainId));
+    const viemAccount = await this.getViemAccount(owner);
+    const smartAccount = await toMetaMaskSmartAccount({
+      client: client as never,
+      implementation: Implementation.Stateless7702,
+      address: owner,
+      signer: { account: viemAccount },
+    });
+
+    const feeCalldata = HexStringCompat(
+      encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "transfer",
+        args: [capabilities.feeCollector, seedFeeAtoms],
+      }),
+    );
+
+    const feeDelegation = this.createUnsignedExactCalldataDelegation({
+      smartAccount,
+      delegate: capabilities.targetAddress,
+      target: selected.address,
+      value: 0n,
+      callData: feeCalldata,
+      chainIdNumber,
+    });
+    const workDelegations = workItems.map((item) =>
+      this.createUnsignedExactCalldataDelegation({
+        smartAccount,
+        delegate: capabilities.targetAddress,
+        target: item.to,
+        value: item.value ?? 0n,
+        callData: (item.data || "0x") as Hex,
+        chainIdNumber,
+      }),
+    );
+
+    const params: IRelayer7710Params = {
+      chainId: chainIdNumber.toString(10),
+      transactions: [
+        {
+          permissionContext: [toRelayerJson(feeDelegation)],
+          executions: [
+            {
+              target: selected.address,
+              value: "0",
+              data: feeCalldata as HexString,
+            },
+          ],
+        },
+        ...workItems.map((item, index) => {
+          const value = item.value ?? 0n;
+          return {
+            permissionContext: [toRelayerJson(workDelegations[index])],
+            executions: [
+              {
+                target: item.to,
+                value: value === 0n ? "0" : `0x${value.toString(16)}`,
+                data: (item.data || "0x") as HexString,
+              },
+            ],
+          };
+        }),
+      ],
+    };
+
+    console.debug(
+      "[business/TransactionUtils] quotePayment unsigned estimate",
+      {
+        chainId,
+        paymentToken: selected.address,
+        workCount: workItems.length,
+      },
+    );
+
+    const estimate =
+      await this.options.relayerRepository.estimate7710Transaction(
+        chain.relayerUrl,
+        params,
+      );
+
+    if (!estimate.success || !estimate.requiredPaymentAmount) {
+      throw new Error(
+        estimate.error ?? "relayer_estimate7710Transaction failed",
+      );
+    }
+
+    const feeAtoms = tokenAmountFromAtomString(estimate.requiredPaymentAmount);
 
     return {
       tokens,
@@ -559,7 +671,7 @@ export class TransactionUtils implements ITransactionUtils {
       if (
         estimate.success &&
         estimate.requiredPaymentAmount &&
-        tokenAmountFromAtomString(estimate.requiredPaymentAmount) !== feeAtoms
+        tokenAmountFromAtomString(estimate.requiredPaymentAmount) > feeAtoms
       ) {
         feeAtoms = tokenAmountFromAtomString(estimate.requiredPaymentAmount);
         const paymentTokenMeta = capabilities.tokens.find(
@@ -604,6 +716,8 @@ export class TransactionUtils implements ITransactionUtils {
         // mint a new quote while leaving feeAtoms at required₁ — payment/context
         // mismatch under rising gas. Match the UI fee-bump path (no re-estimate).
       }
+      // If signed required ≤ quoted feeAtoms, keep the already-signed fee
+      // ExactCalldata (slight overpay is fine; no AdjustFee ceremony).
 
       if (!estimate.success) {
         throw new Error(
@@ -659,25 +773,23 @@ export class TransactionUtils implements ITransactionUtils {
         throw pollError;
       }
     } catch (error) {
-      // ensureDisplay may have left the flyout open; hideDisplay is idempotent.
-      await this.options.owsProvider.hideDisplay();
+      // Host-initiated sends collapse the flyout on failure; in-wallet flows
+      // (TransferTokensModal, cancel) keep the open display.
+      if (!retainDisplayDuringSubmit) {
+        await this.options.owsProvider.hideDisplay();
+      }
       throw error;
     }
   }
 
-  private async createAndSignExactCalldataDelegation(args: {
-    smartAccount: Awaited<ReturnType<typeof toMetaMaskSmartAccount>>;
-    delegate: EVMAccountAddress;
-    target: EVMAccountAddress;
-    value: bigint;
-    callData: Hex;
-    chainIdNumber: number;
-  }): Promise<unknown> {
+  private createExactCalldataDelegation(
+    args: ExactCalldataDelegationArgs,
+  ): ReturnType<typeof createDelegation> {
     const { smartAccount, delegate, target, value, callData } = args;
     const salt = randomSalt32();
     const selector = methodSelector(callData);
 
-    const delegation = createDelegation({
+    return createDelegation({
       to: getAddress(delegate),
       from: smartAccount.address,
       environment: smartAccount.environment,
@@ -690,6 +802,23 @@ export class TransactionUtils implements ITransactionUtils {
         valueLte: { maxValue: value },
       },
     });
+  }
+
+  private createUnsignedExactCalldataDelegation(
+    args: ExactCalldataDelegationArgs,
+  ): unknown {
+    const delegation = this.createExactCalldataDelegation(args);
+    return {
+      ...delegation,
+      signature: PLACEHOLDER_DELEGATION_SIGNATURE_65_ZERO,
+    };
+  }
+
+  private async createAndSignExactCalldataDelegation(
+    args: ExactCalldataDelegationArgs,
+  ): Promise<unknown> {
+    const { smartAccount } = args;
+    const delegation = this.createExactCalldataDelegation(args);
 
     // Callers must already have the flyout open (SignHelper.withDisplay for
     // eth_sendTransaction, plus sendViaRelayer.ensureDisplay for size). Do not

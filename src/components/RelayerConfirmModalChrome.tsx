@@ -1,4 +1,5 @@
 import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
+import type { ITransactionWork } from "../lib/interfaces/business";
 import { PaymentFeePicker } from "./PaymentFeePicker";
 import type { useRelayerConfirmSubmit } from "./useRelayerConfirmSubmit";
 
@@ -8,10 +9,12 @@ type RelayerSubmitState = ReturnType<typeof useRelayerConfirmSubmit>;
 export function RelayerConfirmModalChrome({
   chainId,
   ownerAddress,
+  work,
   submit,
 }: {
   chainId: EVMChainId;
   ownerAddress: EVMAccountAddress;
+  work: ITransactionWork | ITransactionWork[];
   submit: RelayerSubmitState;
 }) {
   return (
@@ -24,6 +27,7 @@ export function RelayerConfirmModalChrome({
       <PaymentFeePicker
         chainId={chainId}
         ownerAddress={ownerAddress}
+        work={work}
         quote={submit.quote}
         error={submit.quoteError}
         loading={false}

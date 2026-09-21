@@ -22,6 +22,7 @@ export type {
 } from "./IBitcoinService";
 export { IBitcoinServiceType } from "./IBitcoinService";
 export type {
+  IBuildCancelWorkParams,
   ICancelDelegationParams,
   ICancelDelegationResult,
   ICreateExecutionPermissionParams,

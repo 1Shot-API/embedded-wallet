@@ -17,6 +17,10 @@ export type IRelayerSendUiCallbacks = {
   onFinalFeeRequired?: (fee: IFinalRelayerFee) => Promise<void>;
   /** After passkey ceremonies, before relayer submit/poll. */
   onAwaitingConfirmation?: () => void;
-  /** Keep the flyout open through submit/poll (in-wallet cancel flows). */
+  /**
+   * Keep the flyout open through submit/poll and on error.
+   * Use for in-wallet flows (TransferTokensModal, cancel); omit for host
+   * eth_sendTransaction so the wallet collapses after the last passkey.
+   */
   retainDisplayDuringSubmit?: boolean;
 };
