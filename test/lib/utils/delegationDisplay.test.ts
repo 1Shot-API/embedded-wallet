@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   datetimeLocalInputToUnixSeconds,
   formatPermissionAmount,
+  formatSlippageBpsLabel,
   formatUnixSecondsLabel,
   humanizePeriodDuration,
   parsePeriodDurationSeconds,
@@ -46,6 +47,17 @@ describe("formatUnixSecondsLabel", () => {
 
   it("returns null for empty", () => {
     assert.equal(formatUnixSecondsLabel(""), null);
+  });
+});
+
+describe("formatSlippageBpsLabel", () => {
+  it("formats basis points as percent", () => {
+    assert.equal(formatSlippageBpsLabel(50), "0.5%");
+    assert.equal(formatSlippageBpsLabel(100), "1%");
+  });
+
+  it("returns null for invalid bps", () => {
+    assert.equal(formatSlippageBpsLabel(10_000), null);
   });
 });
 

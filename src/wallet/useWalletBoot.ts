@@ -371,63 +371,66 @@ export function useWalletBoot({
 
                 const domain = transactionUtils.resolveHostDomain();
                 const { hostDomain } = await configProvider.getConfig();
-                const batchCount = prepared.length;
-                const approvedItems = [];
-
-                for (let batchIndex = 0; batchIndex < prepared.length; batchIndex++) {
-                  const { request, chain, grantKind } = prepared[batchIndex]!;
-                  const started = performance.now();
-                  const account = analyticsAccountAddress();
-                  try {
-                    const approved =
-                      await ask<IGrantExecutionPermissionResult>(
-                        ({ id, resolve, reject }) => ({
-                          id,
-                          kind: grantKind,
-                          request: {
+                const signStartedBatch = performance.now();
+                const account = analyticsAccountAddress();
+                let approvedResults: IGrantExecutionPermissionResult[];
+                try {
+                  approvedResults =
+                    await ask<IGrantExecutionPermissionResult[]>(
+                      ({ id, resolve, reject }) => ({
+                        id,
+                        kind: "grantExecutionPermissions",
+                        request: {
+                          domain,
+                          items: prepared.map(({ request, chain, grantKind }) => ({
                             request,
-                            domain,
                             chainName: chain.label,
-                            batchIndex,
-                            batchCount,
-                          },
-                          resolve,
-                          reject,
-                        }),
-                      );
-                    approvedItems.push({
-                      request,
-                      permission: approved.permission,
-                      memo: approved.memo,
-                    });
-                  } catch (error: unknown) {
-                    const durationMs = Math.round(performance.now() - started);
-                    if (isAnalyticsCancelled(error)) {
-                      eventBus.emitAnalytics(
-                        new DelegationCreateCancelledEvent(
-                          hostDomain,
-                          account,
-                          request.chainId,
-                          durationMs,
-                        ),
-                      );
-                    } else {
-                      eventBus.emitAnalytics(
-                        new DelegationCreateFailedEvent(
-                          hostDomain,
-                          account,
-                          request.chainId,
-                          analyticsErrorCode(error),
-                          durationMs,
-                        ),
-                      );
-                    }
-                    throw error;
+                            grantKind,
+                          })),
+                        },
+                        resolve,
+                        reject,
+                      }),
+                    );
+                } catch (error: unknown) {
+                  const durationMs = Math.round(
+                    performance.now() - signStartedBatch,
+                  );
+                  const chainId =
+                    prepared[0]?.request.chainId ?? requests[0]!.chainId;
+                  if (isAnalyticsCancelled(error)) {
+                    eventBus.emitAnalytics(
+                      new DelegationCreateCancelledEvent(
+                        hostDomain,
+                        account,
+                        chainId,
+                        durationMs,
+                      ),
+                    );
+                  } else {
+                    eventBus.emitAnalytics(
+                      new DelegationCreateFailedEvent(
+                        hostDomain,
+                        account,
+                        chainId,
+                        analyticsErrorCode(error),
+                        durationMs,
+                      ),
+                    );
                   }
+                  throw error;
                 }
 
+                const approvedItems = prepared.map((item, index) => {
+                  const approved = approvedResults[index]!;
+                  return {
+                    request: item.request,
+                    permission: approved.permission,
+                    memo: approved.memo,
+                  };
+                });
+
                 const signStarted = performance.now();
-                const account = analyticsAccountAddress();
                 try {
                   const storedList =
                     await delegationService.createExecutionPermissions({

@@ -22,9 +22,7 @@ import { AddAssetModal } from "./modals/AddAssetModal";
 import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
 import { OnrampView } from "./OnrampView";
 import { CCTPBridge } from "./modals/CCTPBridge";
-import { GrantExecutionPermissionModal } from "./modals/GrantExecutionPermissionModal";
-import { GrantLiFiSwapPermissionModal } from "./modals/GrantLiFiSwapPermissionModal";
-import { GrantLiFiApprovePermissionModal } from "./modals/GrantLiFiApprovePermissionModal";
+import { GrantPermissionConsentModal } from "./modals/GrantPermissionConsentModal";
 import { CancelDelegationModal } from "./modals/CancelDelegationModal";
 
 export function ModalHost() {
@@ -103,25 +101,9 @@ export function ModalHost() {
           onResolve={activeModal.resolve}
         />
       );
-    case "grantExecutionPermission":
+    case "grantExecutionPermissions":
       return (
-        <GrantExecutionPermissionModal
-          request={activeModal.request}
-          onResolve={activeModal.resolve}
-          onReject={activeModal.reject}
-        />
-      );
-    case "grantLiFiSwapPermission":
-      return (
-        <GrantLiFiSwapPermissionModal
-          request={activeModal.request}
-          onResolve={activeModal.resolve}
-          onReject={activeModal.reject}
-        />
-      );
-    case "grantLiFiApprovePermission":
-      return (
-        <GrantLiFiApprovePermissionModal
+        <GrantPermissionConsentModal
           request={activeModal.request}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}

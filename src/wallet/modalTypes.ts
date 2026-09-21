@@ -55,15 +55,22 @@ export type IRelayerConfirmSendResult = {
 /** Result from TX confirm when canceling or selecting payment (legacy shape). */
 export type IConfirmSendResult = false | IConfirmSendPayment;
 
-/** Host EIP-7715 grant consent — attenuated permission + memo for vault. */
-export interface IGrantExecutionPermissionRequest {
+export type GrantPermissionModalKind =
+  | "grantExecutionPermission"
+  | "grantLiFiSwapPermission"
+  | "grantLiFiApprovePermission";
+
+/** One permission in a grant consent batch. */
+export interface IGrantExecutionPermissionsBatchItem {
   request: IExecutionPermissionRequest;
-  domain: string;
   chainName: string;
-  /** 0-based index within the current `wallet_requestExecutionPermissions` batch. */
-  batchIndex: number;
-  /** Total permissions in the batch (always ≥ 1). */
-  batchCount: number;
+  grantKind: GrantPermissionModalKind;
+}
+
+/** Host EIP-7715 grant consent — single or compound permission requests. */
+export interface IGrantExecutionPermissionsBatchRequest {
+  domain: string;
+  items: IGrantExecutionPermissionsBatchItem[];
 }
 
 export type IGrantExecutionPermissionResult = {
@@ -160,23 +167,9 @@ export type ModalRequest =
     }
   | {
       id: string;
-      kind: "grantExecutionPermission";
-      request: IGrantExecutionPermissionRequest;
-      resolve: (result: IGrantExecutionPermissionResult) => void;
-      reject: (error: unknown) => void;
-    }
-  | {
-      id: string;
-      kind: "grantLiFiSwapPermission";
-      request: IGrantExecutionPermissionRequest;
-      resolve: (result: IGrantExecutionPermissionResult) => void;
-      reject: (error: unknown) => void;
-    }
-  | {
-      id: string;
-      kind: "grantLiFiApprovePermission";
-      request: IGrantExecutionPermissionRequest;
-      resolve: (result: IGrantExecutionPermissionResult) => void;
+      kind: "grantExecutionPermissions";
+      request: IGrantExecutionPermissionsBatchRequest;
+      resolve: (results: IGrantExecutionPermissionResult[]) => void;
       reject: (error: unknown) => void;
     }
   | {

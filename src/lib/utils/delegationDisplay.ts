@@ -1,5 +1,5 @@
 import type { IExecutionPermissionRule } from "@1shotapi/ows-types";
-import { parseUnits } from "viem";
+import { hexToBigInt, parseUnits } from "viem";
 
 const SECONDS_PER_HOUR = 3600;
 const SECONDS_PER_DAY = 86_400;
@@ -172,4 +172,75 @@ export function resolvePermissionEndUnixSeconds(args: {
   }
 
   return null;
+}
+
+/** Host memo or justification from permission `data` (vault memo on grant). */
+export function readHostMemoOrJustification(
+  data: Record<string, unknown>,
+): string {
+  const memo = data.memo;
+  if (typeof memo === "string" && memo.trim()) {
+    return memo.trim();
+  }
+  const justification = data.justification;
+  if (typeof justification === "string" && justification.trim()) {
+    return justification.trim();
+  }
+  return "";
+}
+
+/** `periodAmount` / `amount` from permission data as wei atoms, or null. */
+export function readPermissionAmountAtoms(
+  data: Record<string, unknown>,
+): bigint | null {
+  const raw = data.periodAmount ?? data.amount;
+  if (raw === undefined || raw === null) return null;
+  try {
+    if (typeof raw === "bigint") return raw;
+    if (typeof raw === "number") return BigInt(raw);
+    if (typeof raw === "string") {
+      const trimmed = raw.trim();
+      if (trimmed.startsWith("0x") || trimmed.startsWith("0X")) {
+        return hexToBigInt(trimmed as `0x${string}`);
+      }
+      return BigInt(trimmed);
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export function readPermissionPeriodDurationText(
+  data: Record<string, unknown>,
+): string {
+  const raw = data.periodDuration ?? data.period ?? data.duration;
+  if (typeof raw === "number" || typeof raw === "string") {
+    return String(raw);
+  }
+  return "";
+}
+
+export function readPermissionStartText(data: Record<string, unknown>): string {
+  const raw = data.startDate ?? data.start;
+  if (typeof raw === "number" || typeof raw === "string") {
+    return String(raw);
+  }
+  return "";
+}
+
+/** Human-readable max slippage from basis points (e.g. 50 → "0.5%"). */
+export function formatSlippageBpsLabel(bps: number): string | null {
+  if (!Number.isFinite(bps) || bps < 0 || bps >= 10_000 || !Number.isInteger(bps)) {
+    return null;
+  }
+  const pct = bps / 100;
+  const formatted =
+    pct % 1 === 0 ? String(pct) : pct.toFixed(2).replace(/\.?0+$/, "");
+  return `${formatted}%`;
+}
+
+export function truncateMiddle(value: string, head = 10, tail = 8): string {
+  if (value.length <= head + tail + 1) return value;
+  return `${value.slice(0, head)}…${value.slice(-tail)}`;
 }
