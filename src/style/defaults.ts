@@ -249,6 +249,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       periodDurationPlaceholder: "86400",
       periodDurationHint: "How often the allowance resets (e.g. 86400 = 1 day).",
       startLabel: "Start Time",
+      endLabel: "End Time",
       memoLabel: "Memo",
       memoPlaceholder: "Note for your records",
       invalidAmountError: "Enter a valid period amount.",

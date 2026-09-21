@@ -250,6 +250,7 @@ export const styleCopyGrantExecutionPermissionSchema = z.strictObject({
   periodDurationPlaceholder: z.string(),
   periodDurationHint: z.string(),
   startLabel: z.string(),
+  endLabel: z.string(),
   memoLabel: z.string(),
   memoPlaceholder: z.string(),
   invalidAmountError: z.string(),

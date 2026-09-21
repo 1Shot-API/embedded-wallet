@@ -1,3 +1,4 @@
+import type { IExecutionPermissionRule } from "@1shotapi/ows-types";
 import { parseUnits } from "viem";
 
 const SECONDS_PER_HOUR = 3600;
@@ -93,4 +94,82 @@ export function datetimeLocalInputToUnixSeconds(value: string): number | null {
   const ms = Date.parse(trimmed);
   if (Number.isNaN(ms)) return null;
   return Math.floor(ms / 1000);
+}
+
+const PERMISSION_END_DATA_KEYS = [
+  "endDate",
+  "endTime",
+  "expiry",
+  "expiresAt",
+  "expiration",
+] as const;
+
+const EXPIRY_RULE_DATA_KEYS = [
+  "expiry",
+  "expiresAt",
+  "expiration",
+  "timestamp",
+  "end",
+] as const;
+
+const LIFETIME_DATA_KEYS = [
+  "lifetimeSeconds",
+  "lifetime",
+  "permissionDuration",
+  "totalDuration",
+] as const;
+
+function readUnixSecondsField(
+  record: Record<string, unknown>,
+  keys: readonly string[],
+): number | null {
+  for (const key of keys) {
+    const n = parseUnixSeconds(record[key] as string | number | undefined);
+    if (n !== null) return n;
+  }
+  return null;
+}
+
+/**
+ * Unix seconds when the permission ends, if the host specified a finite lifetime
+ * (EIP-7715 `expiry` rule and/or explicit end / start + lifetime on permission data).
+ */
+export function resolvePermissionEndUnixSeconds(args: {
+  rules?: readonly IExecutionPermissionRule[];
+  permissionData?: Record<string, unknown>;
+}): number | null {
+  const { rules, permissionData } = args;
+
+  if (permissionData) {
+    const direct = readUnixSecondsField(
+      permissionData,
+      PERMISSION_END_DATA_KEYS,
+    );
+    if (direct !== null) return direct;
+
+    const start = readUnixSecondsField(permissionData, ["startDate", "start"]);
+    const lifetimeRaw = LIFETIME_DATA_KEYS.map((k) => permissionData[k]).find(
+      (v) => typeof v === "number" || typeof v === "string",
+    );
+    if (start !== null && lifetimeRaw !== undefined) {
+      const lifetime = Number(lifetimeRaw);
+      if (
+        Number.isFinite(lifetime) &&
+        lifetime > 0 &&
+        Number.isInteger(lifetime)
+      ) {
+        return start + lifetime;
+      }
+    }
+  }
+
+  if (rules) {
+    for (const rule of rules) {
+      if (rule.type !== "expiry") continue;
+      const fromRule = readUnixSecondsField(rule.data, EXPIRY_RULE_DATA_KEYS);
+      if (fromRule !== null) return fromRule;
+    }
+  }
+
+  return null;
 }

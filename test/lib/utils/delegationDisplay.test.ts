@@ -6,6 +6,7 @@ import {
   formatUnixSecondsLabel,
   humanizePeriodDuration,
   parsePeriodDurationSeconds,
+  resolvePermissionEndUnixSeconds,
   unixSecondsToDatetimeLocalInput,
 } from "@/lib/utils/delegationDisplay.ts";
 
@@ -45,6 +46,33 @@ describe("formatUnixSecondsLabel", () => {
 
   it("returns null for empty", () => {
     assert.equal(formatUnixSecondsLabel(""), null);
+  });
+});
+
+describe("resolvePermissionEndUnixSeconds", () => {
+  it("reads expiry rule", () => {
+    assert.equal(
+      resolvePermissionEndUnixSeconds({
+        rules: [{ type: "expiry", data: { expiry: 1_700_100_000 } }],
+      }),
+      1_700_100_000,
+    );
+  });
+
+  it("computes start plus lifetime on permission data", () => {
+    assert.equal(
+      resolvePermissionEndUnixSeconds({
+        permissionData: {
+          startDate: 1_700_000_000,
+          lifetimeSeconds: 86_400,
+        },
+      }),
+      1_700_086_400,
+    );
+  });
+
+  it("returns null when no finite end is specified", () => {
+    assert.equal(resolvePermissionEndUnixSeconds({}), null);
   });
 });
 

@@ -12,6 +12,7 @@ import {
   formatUnixSecondsLabel,
   humanizePeriodDuration,
   parsePeriodDurationSeconds,
+  resolvePermissionEndUnixSeconds,
 } from "../../lib/utils/delegationDisplay";
 import { faviconUrl, truncateAddress } from "../../lib/utils/identityDisplay";
 import { resolveAssetIconUrl } from "../../lib/utils/tokenIcons";
@@ -171,6 +172,12 @@ export function GrantExecutionPermissionModal({
   const startDisplay = formatUnixSecondsLabel(
     readStart(permissionData) || undefined,
   );
+  const endDisplay = formatUnixSecondsLabel(
+    resolvePermissionEndUnixSeconds({
+      rules: request.request.rules,
+      permissionData,
+    }) ?? undefined,
+  );
 
   const summaryAmount = useMemo(() => {
     if (amountAtoms === null || amountAtoms <= 0n) return null;
@@ -273,6 +280,11 @@ export function GrantExecutionPermissionModal({
           {startDisplay ? (
             <ConsentSummaryRow label={copy.startLabel}>
               <span className="truncate text-sm font-medium">{startDisplay}</span>
+            </ConsentSummaryRow>
+          ) : null}
+          {endDisplay ? (
+            <ConsentSummaryRow label={copy.endLabel}>
+              <span className="truncate text-sm font-medium">{endDisplay}</span>
             </ConsentSummaryRow>
           ) : null}
           <ConsentSummaryRow label={copy.toLabel}>
