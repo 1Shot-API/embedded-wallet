@@ -370,8 +370,8 @@ EIP-7715 host RPCs: `wallet_requestExecutionPermissions`, `wallet_revokeExecutio
 | `permission.type` | Chains (v1) | Purpose |
 |-------------------|-------------|---------|
 | `erc20-token-periodic` | All relayer chains | Periodic ERC-20 `transfer` budget (`ScopeType.Erc20PeriodTransfer`) |
-| `lifi-swap-approve` | Base (`0x2105`) | One-time `approve(inputToken → LiFi Diamond)` onboarding |
-| `lifi-swap-periodic` | Base (`0x2105`) | Periodic LiFi swap via `LiFiSwapEnforcer` (`0x47472E8AA7012D1c23336aa28514AE94389318f5`) |
+| `lifi-swap-approve` | Arc (`0x13b2`), Base (`0x2105`), Ethereum (`0x1`) | One-time `approve(inputToken → LiFi Diamond)` onboarding |
+| `lifi-swap-periodic` | Arc, Base, Ethereum mainnet | Periodic LiFi swap via `LiFiSwapEnforcer` proxy (`0x29fcBBa852439616c4D614A2fa6411E42b760153`) |
 
 **`erc20-token-periodic` / `lifi-swap-periodic` amounts:** Hosts should pass `periodAmount` (hex atoms) to prefill the grant form. Playground demos default to **10 USDC** (`0x989680`).
 
