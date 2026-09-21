@@ -261,12 +261,13 @@ export type WalletContextValue = {
   /**
    * In-wallet cancel from the Delegations tab. Opens the same confirm modal as
    * `wallet_revokeExecutionPermission`, then deletes the vault row on success.
+   * `transactionHash` is null when the user skipped on-chain cancellation.
    */
   cancelStoredDelegation: (
     delegationId: DelegationId,
   ) => Promise<{
     chainId: EVMChainId;
-    transactionHash: EVMTransactionHash;
+    transactionHash: EVMTransactionHash | null;
   }>;
   listTrackedAssets: (chainId?: EVMChainId) => Promise<TrackedAsset[]>;
   addTrackedAsset: (
@@ -704,7 +705,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         chainId: stored.chainId,
         stored,
       });
-      const transactionHash = await pushModal<EVMTransactionHash>(
+      const transactionHash = await pushModal<EVMTransactionHash | null>(
         ({ id, resolve, reject }) => ({
           id,
           kind: "cancelDelegation",
@@ -714,6 +715,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             chainId: stored.chainId,
             ownerAddress: owner,
             work: cancelWork,
+            allowSkipOnchain: true,
           },
           execute: async (payment: IRelayerConfirmSendResult, ui) => {
             const result = await delegationService.cancelDelegation({
@@ -724,6 +726,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
               ...ui,
             });
             return result.transactionHash;
+          },
+          executeLocal: async () => {
+            await delegationService.removeStoredDelegation(stored);
           },
           resolve,
           reject,

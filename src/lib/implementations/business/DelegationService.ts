@@ -61,7 +61,7 @@ import type {
   ISignedDelegation,
   IStoredDelegation,
 } from "../../types/domain/StoredDelegation";
-import { makeDelegationId } from "../../types/primitives/DelegationId";
+import { makeDelegationId, type DelegationId } from "../../types/primitives/DelegationId";
 import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
 import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
 import { withCoalescedSignDigest } from "../../../wallet/withCoalescedSignDigest";
@@ -254,6 +254,13 @@ export class DelegationService implements IDelegationService {
     }
 
     return { ...result, deletedDelegationId };
+  }
+
+  async removeStoredDelegation(
+    stored: IStoredDelegation,
+  ): Promise<DelegationId> {
+    await this.delegationRepository.deleteDelegation(stored.delegationId);
+    return stored.delegationId;
   }
 
   private async resolveCancelDelegation(params: {
