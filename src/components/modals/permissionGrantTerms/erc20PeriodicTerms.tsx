@@ -20,6 +20,7 @@ import { useWallet } from "../../../wallet/WalletProvider";
 import { ConsentSummaryRow } from "../../ConsentSummaryRow";
 import { SafeAssetImage } from "../../SafeAssetImage";
 import { PermissionGrantTermsCard } from "../PermissionGrantConsentLayout";
+import { isAppendedCaveatValid } from "./appendedCaveatUtils";
 
 function readTokenAddress(data: Record<string, unknown>): string | null {
   const raw = data.tokenAddress ?? data.token;
@@ -35,12 +36,14 @@ export function isErc20PeriodicPermissionValid(
   const durationSeconds = parsePeriodDurationSeconds(
     readPermissionPeriodDurationText(permissionData),
   );
-  return (
+  const scopeValid =
     Boolean(tokenAddress) &&
     amountAtoms !== null &&
     amountAtoms > 0n &&
-    durationSeconds !== null
-  );
+    durationSeconds !== null;
+  if (!scopeValid) return false;
+  const appendedCaveats = executionRequest.caveats ?? [];
+  return appendedCaveats.every((caveat) => isAppendedCaveatValid(caveat));
 }
 
 export function buildErc20PeriodicGrantResult(

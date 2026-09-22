@@ -257,6 +257,7 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       rejectLabel: "Reject",
       nextLabel: "Next",
       grantLabel: "Grant",
+      appendedCaveatKindLabel: "Additional Restriction",
     },
     grantLiFiSwapPermission: {
       title: "Permission Request",

@@ -28,6 +28,7 @@ import {
   type EVMChainId,
   type IExecutionPermission,
   type IExecutionPermissionResponse,
+  type IAppendedCaveatConfiguration,
   type SupportedExecutionPermissions,
 } from "@1shotapi/ows-types";
 import {
@@ -148,6 +149,7 @@ export class DelegationService implements IDelegationService {
                     environment,
                     salt: randomSalt32(),
                     chainId: item.request.chainId,
+                    caveats: item.request.caveats,
                   });
                   const signature = await smartAccount.signDelegation({
                     delegation: unsigned,
@@ -190,6 +192,7 @@ export class DelegationService implements IDelegationService {
         const attenuatedPermission = this.buildAttenuatedPermission(
           item.permission,
           delegationHash,
+          item.request.caveats,
         );
         const permissionResponse: IExecutionPermissionResponse = {
           chainId: item.request.chainId,
@@ -392,6 +395,7 @@ export class DelegationService implements IDelegationService {
     environment: SmartAccountsEnvironment;
     salt: Hex;
     chainId: EVMChainId;
+    caveats?: IAppendedCaveatConfiguration[];
   }): Delegation {
     const { permission, requestTo, smartAccountAddress, environment, salt } =
       args;
@@ -399,6 +403,10 @@ export class DelegationService implements IDelegationService {
     if (permission.type === ERC20_TOKEN_PERIODIC) {
       const period = parseErc20PeriodData(permission.data);
       const startDate = period.startDate ?? Math.floor(Date.now() / 1000);
+      const appendedCaveats = buildAppendedCaveatBuilder(
+        environment,
+        args.caveats,
+      );
       return createDelegation({
         to: getAddress(requestTo),
         from: getAddress(smartAccountAddress),
@@ -411,6 +419,7 @@ export class DelegationService implements IDelegationService {
           periodDuration: period.periodDuration,
           startDate,
         },
+        caveats: appendedCaveats,
       });
     }
 
@@ -481,23 +490,14 @@ export class DelegationService implements IDelegationService {
   private buildAttenuatedPermission(
     permission: IExecutionPermission,
     delegationHash: HexString,
+    caveats: IAppendedCaveatConfiguration[] | undefined,
   ): IExecutionPermission {
     if (permission.type === ERC20_TOKEN_PERIODIC) {
-      const period = parseErc20PeriodData(permission.data);
-      const startDate = period.startDate ?? Math.floor(Date.now() / 1000);
-      return {
-        type: ERC20_TOKEN_PERIODIC,
-        isAdjustmentAllowed: permission.isAdjustmentAllowed,
-        data: {
-          tokenAddress: period.tokenAddress,
-          periodAmount: `0x${period.periodAmount.toString(16)}`,
-          periodDuration: period.periodDuration,
-          startDate,
-          ...(period.justification
-            ? { justification: period.justification }
-            : {}),
-        },
-      };
+      return buildErc20PeriodicAttenuatedPermission(
+        permission,
+        delegationHash,
+        caveats,
+      );
     }
 
     if (permission.type === LIFI_SWAP_PERIODIC) {
@@ -771,6 +771,94 @@ function buildApproveCaveats(
     .build();
 }
 
+/**
+ * Caveat `type` values the wallet will merge onto a top-level scope.
+ *
+ * Curated to the enforcers deployed in the MetaMask delegation environment and
+ * exposed by `@metamask/smart-accounts-kit`'s `CoreCaveatBuilder`. Any other
+ * `type` is rejected before signing so unknown enforcers never reach the kit.
+ */
+export const APPENDED_CAVEAT_TYPES = [
+  "allowedCalldata",
+  "allowedTargets",
+  "allowedMethods",
+  "valueLte",
+  "timestamp",
+  "redeemer",
+  "limitedCalls",
+  "nonce",
+  "id",
+] as const;
+
+export type AppendedCaveatType = (typeof APPENDED_CAVEAT_TYPES)[number];
+
+const APPENDED_CAVEAT_TYPE_SET: ReadonlySet<string> = new Set(
+  APPENDED_CAVEAT_TYPES,
+);
+
+/**
+ * Validate appended caveats on an EIP-7715 permission request.
+ *
+ * Rejects unknown `type` values and non-array inputs. Per-caveat config shape
+ * validation is delegated to the kit's `addCaveat` at sign time; this helper
+ * only enforces the allowlist so unknown enforcers never reach the kit.
+ *
+ * @returns The validated caveats (empty array if `undefined`).
+ * @throws if any caveat has an unknown `type` or missing `data`.
+ */
+export function validateAppendedCaveats(
+  caveats: IAppendedCaveatConfiguration[] | undefined,
+): IAppendedCaveatConfiguration[] {
+  if (caveats === undefined) return [];
+  if (!Array.isArray(caveats)) {
+    throw new Error("Appended caveats must be an array");
+  }
+  for (const caveat of caveats) {
+    if (
+      typeof caveat !== "object" ||
+      caveat === null ||
+      typeof caveat.type !== "string" ||
+      !APPENDED_CAVEAT_TYPE_SET.has(caveat.type)
+    ) {
+      throw new Error(`Unsupported appended caveat type: ${String(caveat?.type)}`);
+    }
+    if (
+      typeof caveat.data !== "object" ||
+      caveat.data === null ||
+      Array.isArray(caveat.data)
+    ) {
+      throw new Error(
+        `Appended caveat ${caveat.type} requires a config object in \`data\``,
+      );
+    }
+  }
+  return caveats;
+}
+
+/**
+ * Convert wire-format appended caveats (`{ type, data }`) into a kit
+ * `CoreCaveatBuilder` whose built caveats are merged onto the scope by
+ * `createDelegation({ scope, caveats })`. Validates the allowlist up front via
+ * {@link validateAppendedCaveats}. Returns a builder with no added caveats when
+ * `caveats` is empty/undefined, so the scope-only delegation path is unchanged.
+ */
+export function buildAppendedCaveatBuilder(
+  environment: SmartAccountsEnvironment,
+  caveats: IAppendedCaveatConfiguration[] | undefined,
+): ReturnType<typeof createCaveatBuilder> {
+  const validated = validateAppendedCaveats(caveats);
+  const builder = createCaveatBuilder(environment, {
+    allowInsecureUnrestrictedDelegation: true,
+  });
+  // `as never` is safe: validateAppendedCaveats guarantees `type` is a known
+  // CaveatType and `data` is its config object. The kit's `addCaveat` is typed
+  // per-caveat-type, so a runtime string can't satisfy it without the cast.
+  for (const { type, data } of validated) {
+    builder.addCaveat(type as never, data as never);
+  }
+  return builder;
+}
+
 function toSignedDelegation(delegation: Delegation): ISignedDelegation {
   return {
     delegate: EVMAccountAddress(getAddress(delegation.delegate)),
@@ -783,6 +871,35 @@ function toSignedDelegation(delegation: Delegation): ISignedDelegation {
     })),
     salt: HexString(delegation.salt as `0x${string}`),
     signature: HexString(delegation.signature),
+  };
+}
+
+/**
+ * Build the attenuated `IExecutionPermission` returned to the host for an
+ * `erc20-token-periodic` grant. Echoes appended caveats onto `permission.data`
+ * (under a `caveats` key) so the host can see exactly what was signed.
+ *
+ * Exported for unit testing the attenuation echo without constructing the
+ * full `DelegationService` DI graph.
+ */
+export function buildErc20PeriodicAttenuatedPermission(
+  permission: IExecutionPermission,
+  _delegationHash: HexString,
+  caveats: IAppendedCaveatConfiguration[] | undefined,
+): IExecutionPermission {
+  const period = parseErc20PeriodData(permission.data);
+  const startDate = period.startDate ?? Math.floor(Date.now() / 1000);
+  return {
+    type: ERC20_TOKEN_PERIODIC,
+    isAdjustmentAllowed: permission.isAdjustmentAllowed,
+    data: {
+      tokenAddress: period.tokenAddress,
+      periodAmount: `0x${period.periodAmount.toString(16)}`,
+      periodDuration: period.periodDuration,
+      startDate,
+      ...(period.justification ? { justification: period.justification } : {}),
+      ...(caveats && caveats.length > 0 ? { caveats } : {}),
+    },
   };
 }
 

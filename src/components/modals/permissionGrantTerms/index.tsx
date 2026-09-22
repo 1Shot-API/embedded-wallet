@@ -9,6 +9,7 @@ import type {
   IGrantExecutionPermissionResult,
 } from "../../../wallet/modalTypes";
 import { useWallet } from "../../../wallet/WalletProvider";
+import { AppendedCaveatTerms } from "./appendedCaveatTerms";
 import {
   buildErc20PeriodicGrantResult,
   Erc20PeriodicPermissionTerms,
@@ -25,13 +26,10 @@ import {
   LiFiSwapPermissionTerms,
 } from "./lifiSwapTerms";
 
-export function PermissionGrantTermsSection({
-  grantKind,
-  executionRequest,
-}: {
-  grantKind: GrantPermissionModalKind;
-  executionRequest: IExecutionPermissionRequest;
-}) {
+function renderScopeTerms(
+  grantKind: GrantPermissionModalKind,
+  executionRequest: IExecutionPermissionRequest,
+) {
   switch (grantKind) {
     case "grantExecutionPermission":
       return (
@@ -46,6 +44,28 @@ export function PermissionGrantTermsSection({
       return _exhaustive;
     }
   }
+}
+
+export function PermissionGrantTermsSection({
+  grantKind,
+  executionRequest,
+}: {
+  grantKind: GrantPermissionModalKind;
+  executionRequest: IExecutionPermissionRequest;
+}) {
+  const scopeTerms = renderScopeTerms(grantKind, executionRequest);
+  const appendedCaveats = executionRequest.caveats ?? [];
+  return (
+    <>
+      {scopeTerms}
+      {appendedCaveats.map((caveat, index) => (
+        <AppendedCaveatTerms
+          key={`${caveat.type}:${index}:${JSON.stringify(caveat.data)}`}
+          caveat={caveat}
+        />
+      ))}
+    </>
+  );
 }
 
 export function isPermissionGrantItemValid(

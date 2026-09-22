@@ -258,6 +258,7 @@ export const styleCopyGrantExecutionPermissionSchema = z.strictObject({
   rejectLabel: z.string(),
   nextLabel: z.string(),
   grantLabel: z.string(),
+  appendedCaveatKindLabel: z.string().optional(),
 });
 
 export const styleCopyGrantLiFiSwapPermissionSchema = z.strictObject({
