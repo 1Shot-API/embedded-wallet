@@ -325,6 +325,8 @@ export const styleCopyCancelDelegationSchema = z.strictObject({
   confirmLabel: z.string(),
   signingMessage: z.string(),
   waitingMessage: z.string(),
+  skipOnchainLabel: z.string(),
+  skipOnchainAcknowledgement: z.string(),
 });
 
 /** Shared relayer TX confirm phases (estimate → sign → final fee → submit). */

@@ -211,6 +211,8 @@ export interface IStyleFormState {
   cancelDelegationTitle: string;
   cancelDelegationConfirm: string;
   cancelDelegationReject: string;
+  cancelDelegationSkipOnchainLabel: string;
+  cancelDelegationSkipOnchainAcknowledgement: string;
 
   // Text — Passkey ceremony overlays
   passkeyPromptUnlockTitle: string;
@@ -448,6 +450,9 @@ export const ACME_PRESET: IStyleFormState = {
   cancelDelegationTitle: "Cancel permission",
   cancelDelegationConfirm: "Cancel permission",
   cancelDelegationReject: "Keep",
+  cancelDelegationSkipOnchainLabel: "Skip onchain cancellation",
+  cancelDelegationSkipOnchainAcknowledgement:
+    "I acknowledge that this delegation may still be used onchain by anybody that holds it, and that canceling it without submitting an onchain cancellation will only remove it from my wallet",
   passkeyPromptUnlockTitle: "Unlock with passkey",
   passkeyPromptCreateTitle: "Create passkey",
   passkeyPromptSignTitle: "Confirm with passkey",
@@ -647,6 +652,9 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   cancelDelegationTitle: "Cancel permission",
   cancelDelegationConfirm: "Cancel permission",
   cancelDelegationReject: "Keep",
+  cancelDelegationSkipOnchainLabel: "Skip onchain cancellation",
+  cancelDelegationSkipOnchainAcknowledgement:
+    "I acknowledge that this delegation may still be used onchain by anybody that holds it, and that canceling it without submitting an onchain cancellation will only remove it from my wallet",
   passkeyPromptUnlockTitle: "Unlock with passkey",
   passkeyPromptCreateTitle: "Create passkey",
   passkeyPromptSignTitle: "Confirm with passkey",
@@ -959,6 +967,12 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(cancelDelegation, "title", form.cancelDelegationTitle);
   put(cancelDelegation, "confirmLabel", form.cancelDelegationConfirm);
   put(cancelDelegation, "rejectLabel", form.cancelDelegationReject);
+  put(cancelDelegation, "skipOnchainLabel", form.cancelDelegationSkipOnchainLabel);
+  put(
+    cancelDelegation,
+    "skipOnchainAcknowledgement",
+    form.cancelDelegationSkipOnchainAcknowledgement,
+  );
   if (Object.keys(cancelDelegation).length > 0) {
     copy.cancelDelegation = cancelDelegation;
   }

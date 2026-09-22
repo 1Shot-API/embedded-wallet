@@ -323,6 +323,9 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       confirmLabel: "Cancel permission",
       signingMessage: "Confirm in the signing panel…",
       waitingMessage: "Waiting for on-chain confirmation…",
+      skipOnchainLabel: "Skip onchain cancellation",
+      skipOnchainAcknowledgement:
+        "I acknowledge that this delegation may still be used onchain by anybody that holds it, and that canceling it without submitting an onchain cancellation will only remove it from my wallet",
     },
     relayerSubmit: {
       finalFeeNotice:

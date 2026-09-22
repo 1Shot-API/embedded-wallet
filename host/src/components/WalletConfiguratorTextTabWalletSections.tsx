@@ -324,6 +324,22 @@ export function WalletConfiguratorTextTabWalletSections({
             onChange={(value) => patch("cancelDelegationReject", value)}
           />
           <TextField
+            id="cancel-delegation-skip-onchain-label"
+            label="Cancel permission skip onchain label"
+            value={form.cancelDelegationSkipOnchainLabel}
+            onChange={(value) =>
+              patch("cancelDelegationSkipOnchainLabel", value)
+            }
+          />
+          <TextField
+            id="cancel-delegation-skip-onchain-ack"
+            label="Cancel permission skip onchain acknowledgement"
+            value={form.cancelDelegationSkipOnchainAcknowledgement}
+            onChange={(value) =>
+              patch("cancelDelegationSkipOnchainAcknowledgement", value)
+            }
+          />
+          <TextField
             id="transfer-tokens-sent-title"
             label="Transfer sent title"
             value={form.transferTokensSentTitle}

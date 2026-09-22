@@ -89,6 +89,11 @@ export interface ICancelDelegationConfirmRequest {
   ownerAddress: EVMAccountAddress;
   /** ExactCalldata work for unsigned fee estimate. */
   work: ITransactionWork;
+  /**
+   * When true, the modal offers “Skip onchain cancellation” (vault delete
+   * only). Requires a stored vault row.
+   */
+  allowSkipOnchain: boolean;
 }
 
 export type ModalRequest =
@@ -185,8 +190,10 @@ export type ModalRequest =
         payment: IRelayerConfirmSendResult,
         ui: IRelayerSendUiCallbacks,
       ) => Promise<EVMTransactionHash>;
+      /** Vault-only delete when the user skips on-chain cancel. */
+      executeLocal: () => Promise<void>;
       onRegisterAwaitingConfirmation?: (notify: () => void) => void;
-      resolve: (hash: EVMTransactionHash) => void;
+      resolve: (hash: EVMTransactionHash | null) => void;
       reject: (error: unknown) => void;
     }
   | {

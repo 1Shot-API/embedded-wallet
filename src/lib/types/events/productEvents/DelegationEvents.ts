@@ -46,7 +46,7 @@ export class DelegationCancelledEvent extends OWSAnalyticsEvent {
     hostDomain: DomainString,
     public readonly accountAddress: EVMAccountAddress,
     public readonly chainId: EVMChainId,
-    public readonly txHash: EVMTransactionHash,
+    public readonly txHash: EVMTransactionHash | null,
     public readonly durationMs: number,
   ) {
     super(EAnalyticsEventName.DelegationCancelled, hostDomain);
