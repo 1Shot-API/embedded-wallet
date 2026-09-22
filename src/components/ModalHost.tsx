@@ -114,6 +114,7 @@ export function ModalHost() {
         <CancelDelegationModal
           request={activeModal.request}
           execute={activeModal.execute}
+          executeLocal={activeModal.executeLocal}
           onRegisterAwaitingConfirmation={
             activeModal.onRegisterAwaitingConfirmation
           }

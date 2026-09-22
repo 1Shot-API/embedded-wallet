@@ -516,7 +516,7 @@ export function useWalletBoot({
                 await runWithAnalytics(
                   (event) => eventBus.emitAnalytics(event),
                   async () => {
-                    const txHash = await ask<EVMTransactionHash>(
+                    const txHash = await ask<EVMTransactionHash | null>(
                       ({ id, resolve, reject }) => ({
                         id,
                         kind: "cancelDelegation",
@@ -526,6 +526,7 @@ export function useWalletBoot({
                           chainId,
                           ownerAddress: owner,
                           work: cancelWork,
+                          allowSkipOnchain: Boolean(stored),
                         },
                         execute: async (payment: IRelayerConfirmSendResult, ui) => {
                           const result = await delegationService.cancelDelegation({
@@ -537,6 +538,14 @@ export function useWalletBoot({
                             ...ui,
                           });
                           return result.transactionHash;
+                        },
+                        executeLocal: async () => {
+                          if (!stored) {
+                            throw new Error(
+                              "Skip onchain cancellation requires a stored permission",
+                            );
+                          }
+                          await delegationService.removeStoredDelegation(stored);
                         },
                         resolve,
                         reject,

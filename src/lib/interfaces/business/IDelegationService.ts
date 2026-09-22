@@ -86,6 +86,13 @@ export interface IDelegationService {
     params: ICancelDelegationParams,
   ): Promise<ICancelDelegationResult>;
 
+  /**
+   * Remove a vault row (local cache + relayer blob) without submitting
+   * on-chain `disableDelegation`. The signed delegation remains usable
+   * by anyone who still holds it.
+   */
+  removeStoredDelegation(stored: IStoredDelegation): Promise<DelegationId>;
+
   getSupportedExecutionPermissions(): Promise<SupportedExecutionPermissions>;
 
   getGrantedExecutionPermissions(): Promise<IExecutionPermissionResponse[]>;
