@@ -536,6 +536,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const previous = rpc.getChainId();
     try {
       await rpc.switchChain(next);
+      // RpcHelper no-ops when already on `next` (e.g. session was Bitcoin while
+      // the helper stayed on Arc). Sync session + notify when the event path
+      // did not run — avoid double-emit when onChainChanged already updated.
+      const session = useWalletSessionStore.getState();
+      if (
+        String(session.chainId).toLowerCase() !== String(next).toLowerCase()
+      ) {
+        session.setChainId(next);
+        walletRef.current?.providerEvents.emit("chainChanged", next);
+      }
     } catch (error: unknown) {
       useWalletSessionStore.getState().setChainId(previous);
       console.error("[oneshot-wallet] chain switch failed", error);

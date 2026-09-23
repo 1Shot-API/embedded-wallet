@@ -1,5 +1,5 @@
 import {
-  AES256CipherText,
+  AES256CipherTextEnvelope,
   DomainString,
   EVMAccountAddress,
   EVMChainId,
@@ -337,7 +337,7 @@ export class CachedRelayerVaultRepository
 
     const signer = await this.owsProvider.getSigner();
     const ciphertexts = remote.map((item) =>
-      AES256CipherText(item.ciphertext),
+      AES256CipherTextEnvelope(item.ciphertext),
     );
     const plaintexts = await signer.decryptAES256(ciphertexts);
 

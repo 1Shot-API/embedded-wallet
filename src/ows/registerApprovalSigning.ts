@@ -45,8 +45,10 @@ export type RegisterApprovalSigningOptions = {
 /**
  * Build SignHelper handlers and register them on the wallet (pre-`start()`).
  *
- * SignHelper only adapts EIP-1193 ↔ `approveAndSign*`. Setup / unlock live here
- * so branding owns the link to `OWSSigner`.
+ * SignHelper adapts EIP-1193 ↔ `approveAndSign*`. Setup (`ensureReady`) runs
+ * inside approve callbacks (while the display session is held). Unlock
+ * (`onAuthenticated`) is passed through to SignHelper so it runs after
+ * display release — post-sign address refresh must not keep the flyout open.
  */
 export function registerApprovalSigning(
   wallet: OWSWallet,
@@ -55,17 +57,16 @@ export function registerApprovalSigning(
 ): SignHelper {
   const helper = new SignHelper(signer, wallet, {
     getChainId: () => options.chainRpc.getChainId(),
+    // Runs after SignHelper releases the display session so address refresh
+    // cannot keep the flyout open after consent/passkey finishes.
+    onAuthenticated: options.onAuthenticated,
     approveAndSignPersonalMessage: async (request) => {
       await options.ensureReady?.();
-      const signature = await options.approveAndSignPersonalMessage(request);
-      await options.onAuthenticated?.();
-      return signature;
+      return options.approveAndSignPersonalMessage(request);
     },
     approveAndSignTypedData: async (request) => {
       await options.ensureReady?.();
-      const signature = await options.approveAndSignTypedData(request);
-      await options.onAuthenticated?.();
-      return signature;
+      return options.approveAndSignTypedData(request);
     },
     approveAndSignTransaction: async (request) => {
       await options.ensureReady?.();
