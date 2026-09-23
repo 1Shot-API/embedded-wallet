@@ -16,6 +16,26 @@ import {
   isErc20PeriodicPermissionValid,
 } from "./erc20PeriodicTerms";
 import {
+  buildErc20StreamingGrantResult,
+  Erc20StreamingPermissionTerms,
+  isErc20StreamingPermissionValid,
+} from "./erc20StreamingTerms";
+import {
+  buildErc20TransferGrantResult,
+  Erc20TransferPermissionTerms,
+  isErc20TransferPermissionValid,
+} from "./erc20TransferTerms";
+import {
+  buildErc721TransferGrantResult,
+  Erc721TransferPermissionTerms,
+  isErc721TransferPermissionValid,
+} from "./erc721TransferTerms";
+import {
+  buildFunctionCallGrantResult,
+  FunctionCallPermissionTerms,
+  isFunctionCallPermissionValid,
+} from "./functionCallTerms";
+import {
   buildLiFiApproveGrantResult,
   isLiFiApprovePermissionValid,
   LiFiApprovePermissionTerms,
@@ -25,6 +45,26 @@ import {
   isLiFiSwapPermissionValid,
   LiFiSwapPermissionTerms,
 } from "./lifiSwapTerms";
+import {
+  buildNativePeriodTransferGrantResult,
+  isNativePeriodTransferPermissionValid,
+  NativePeriodTransferPermissionTerms,
+} from "./nativePeriodTransferTerms";
+import {
+  buildNativeStreamingGrantResult,
+  isNativeStreamingPermissionValid,
+  NativeStreamingPermissionTerms,
+} from "./nativeStreamingTerms";
+import {
+  buildNativeTransferGrantResult,
+  isNativeTransferPermissionValid,
+  NativeTransferPermissionTerms,
+} from "./nativeTransferTerms";
+import {
+  buildOwnershipTransferGrantResult,
+  isOwnershipTransferPermissionValid,
+  OwnershipTransferPermissionTerms,
+} from "./ownershipTransferTerms";
 
 function renderScopeTerms(
   grantKind: GrantPermissionModalKind,
@@ -34,6 +74,42 @@ function renderScopeTerms(
     case "grantExecutionPermission":
       return (
         <Erc20PeriodicPermissionTerms executionRequest={executionRequest} />
+      );
+    case "grantErc20TransferPermission":
+      return (
+        <Erc20TransferPermissionTerms executionRequest={executionRequest} />
+      );
+    case "grantErc20StreamingPermission":
+      return (
+        <Erc20StreamingPermissionTerms executionRequest={executionRequest} />
+      );
+    case "grantNativeTransferPermission":
+      return (
+        <NativeTransferPermissionTerms executionRequest={executionRequest} />
+      );
+    case "grantNativeStreamingPermission":
+      return (
+        <NativeStreamingPermissionTerms executionRequest={executionRequest} />
+      );
+    case "grantNativePeriodTransferPermission":
+      return (
+        <NativePeriodTransferPermissionTerms
+          executionRequest={executionRequest}
+        />
+      );
+    case "grantErc721TransferPermission":
+      return (
+        <Erc721TransferPermissionTerms executionRequest={executionRequest} />
+      );
+    case "grantOwnershipTransferPermission":
+      return (
+        <OwnershipTransferPermissionTerms
+          executionRequest={executionRequest}
+        />
+      );
+    case "grantFunctionCallPermission":
+      return (
+        <FunctionCallPermissionTerms executionRequest={executionRequest} />
       );
     case "grantLiFiSwapPermission":
       return <LiFiSwapPermissionTerms executionRequest={executionRequest} />;
@@ -80,6 +156,22 @@ export function isPermissionGrantItemValid(
         permissionType === ERC20_TOKEN_PERIODIC &&
         isErc20PeriodicPermissionValid(executionRequest)
       );
+    case "grantErc20TransferPermission":
+      return isErc20TransferPermissionValid(executionRequest);
+    case "grantErc20StreamingPermission":
+      return isErc20StreamingPermissionValid(executionRequest);
+    case "grantNativeTransferPermission":
+      return isNativeTransferPermissionValid(executionRequest);
+    case "grantNativeStreamingPermission":
+      return isNativeStreamingPermissionValid(executionRequest);
+    case "grantNativePeriodTransferPermission":
+      return isNativePeriodTransferPermissionValid(executionRequest);
+    case "grantErc721TransferPermission":
+      return isErc721TransferPermissionValid(executionRequest);
+    case "grantOwnershipTransferPermission":
+      return isOwnershipTransferPermissionValid(executionRequest);
+    case "grantFunctionCallPermission":
+      return isFunctionCallPermissionValid(executionRequest);
     case "grantLiFiSwapPermission":
       return (
         permissionType === LIFI_SWAP_PERIODIC &&
@@ -104,6 +196,22 @@ export function buildPermissionGrantResult(
   switch (grantKind) {
     case "grantExecutionPermission":
       return buildErc20PeriodicGrantResult(executionRequest);
+    case "grantErc20TransferPermission":
+      return buildErc20TransferGrantResult(executionRequest);
+    case "grantErc20StreamingPermission":
+      return buildErc20StreamingGrantResult(executionRequest);
+    case "grantNativeTransferPermission":
+      return buildNativeTransferGrantResult(executionRequest);
+    case "grantNativeStreamingPermission":
+      return buildNativeStreamingGrantResult(executionRequest);
+    case "grantNativePeriodTransferPermission":
+      return buildNativePeriodTransferGrantResult(executionRequest);
+    case "grantErc721TransferPermission":
+      return buildErc721TransferGrantResult(executionRequest);
+    case "grantOwnershipTransferPermission":
+      return buildOwnershipTransferGrantResult(executionRequest);
+    case "grantFunctionCallPermission":
+      return buildFunctionCallGrantResult(executionRequest);
     case "grantLiFiSwapPermission":
       return buildLiFiSwapGrantResult(executionRequest);
     case "grantLiFiApprovePermission":

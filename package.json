@@ -18,7 +18,7 @@
     "build:extension": "npm run build -w @1shotapi/oneshot-wallet-extension",
     "clean": "node scripts/clean.mjs && npm run clean -w @1shotapi/oneshot-wallet-host && npm run clean -w @1shotapi/oneshot-wallet-extension",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --tsconfig tsconfig.test.json --test \"test/**/*.test.ts\"",
+    "test": "tsx --tsconfig tsconfig.test.json --test \"test/**/*.test.ts\" && node --experimental-test-module-mocks --import ./test/hooks/svgImportStub.mjs --import tsx --test test/components/modals/permissionGrantTerms/kitScopeTerms.test.tsx",
     "preview": "vite preview",
     "dockerize": "docker build -t oneshot-wallet .",
     "doctor": "npx react-doctor@latest"

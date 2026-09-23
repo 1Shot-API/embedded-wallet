@@ -60,6 +60,14 @@ export type IConfirmSendResult = false | IConfirmSendPayment;
 
 export type GrantPermissionModalKind =
   | "grantExecutionPermission"
+  | "grantErc20TransferPermission"
+  | "grantErc20StreamingPermission"
+  | "grantNativeTransferPermission"
+  | "grantNativeStreamingPermission"
+  | "grantNativePeriodTransferPermission"
+  | "grantErc721TransferPermission"
+  | "grantOwnershipTransferPermission"
+  | "grantFunctionCallPermission"
   | "grantLiFiSwapPermission"
   | "grantLiFiApprovePermission";
 

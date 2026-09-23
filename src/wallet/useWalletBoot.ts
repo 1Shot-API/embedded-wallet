@@ -49,10 +49,11 @@ import type {
   ITransactionService,
 } from "../lib/interfaces/business";
 import {
-  ERC20_TOKEN_PERIODIC,
   LIFI_SWAP_APPROVE,
   LIFI_SWAP_PERIODIC,
 } from "../lib/interfaces/business/IDelegationService";
+import { grantKindForPermissionType } from "../lib/implementations/business/kitScopePermissions";
+import type { GrantPermissionModalKind } from "./modalTypes";
 import type {
   IConfigProvider,
   IEventBus,
@@ -338,15 +339,9 @@ export function useWalletBoot({
 
                 const prepared = requests.map((request) => {
                   const permissionType = request.permission.type;
-                  const isErc20Periodic =
-                    permissionType === ERC20_TOKEN_PERIODIC;
                   const isLiFiSwap = permissionType === LIFI_SWAP_PERIODIC;
                   const isLiFiApprove = permissionType === LIFI_SWAP_APPROVE;
-                  if (!isErc20Periodic && !isLiFiSwap && !isLiFiApprove) {
-                    throw new OwsInvalidParamsError(
-                      `Unsupported execution permission type: ${permissionType}`,
-                    );
-                  }
+                  const kitGrantKind = grantKindForPermissionType(permissionType);
                   const chain = resolveChain(request.chainId);
                   if (!chain?.useRelayer) {
                     throw new OwsInvalidParamsError(
@@ -361,11 +356,18 @@ export function useWalletBoot({
                       `LiFi swap permissions are not supported on chain ${request.chainId}`,
                     );
                   }
-                  const grantKind = isLiFiSwap
-                    ? ("grantLiFiSwapPermission" as const)
-                    : isLiFiApprove
-                      ? ("grantLiFiApprovePermission" as const)
-                      : ("grantExecutionPermission" as const);
+                  let grantKind: GrantPermissionModalKind;
+                  if (isLiFiSwap) {
+                    grantKind = "grantLiFiSwapPermission";
+                  } else if (isLiFiApprove) {
+                    grantKind = "grantLiFiApprovePermission";
+                  } else if (kitGrantKind) {
+                    grantKind = kitGrantKind;
+                  } else {
+                    throw new OwsInvalidParamsError(
+                      `Unsupported execution permission type: ${permissionType}`,
+                    );
+                  }
                   return { request, chain, grantKind };
                 });
 

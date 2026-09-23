@@ -50,10 +50,23 @@ import type {
 } from "../../interfaces/business/IDelegationService";
 import type { ITransactionWork } from "../../interfaces/business/ITransactionService";
 import {
+  ERC20_STREAMING,
   ERC20_TOKEN_PERIODIC,
+  ERC20_TRANSFER_AMOUNT,
+  ERC721_TRANSFER,
+  FUNCTION_CALL,
   LIFI_SWAP_APPROVE,
   LIFI_SWAP_PERIODIC,
+  NATIVE_PERIOD_TRANSFER,
+  NATIVE_STREAMING,
+  NATIVE_TRANSFER_AMOUNT,
+  OWNERSHIP_TRANSFER,
 } from "../../interfaces/business/IDelegationService";
+import {
+  buildKitScopeAttenuatedPermission,
+  buildKitScopeConfig,
+  grantKindForPermissionType,
+} from "./kitScopePermissions";
 import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
 import type { ILiFiUtils } from "../../interfaces/business/utils/ILiFiUtils";
 import type { ITransactionUtils as IPresentationTransactionUtils } from "../../interfaces/utils/ITransactionUtils";
@@ -325,6 +338,38 @@ export class DelegationService implements IDelegationService {
         // Accepted on the wire; period scope is what phase 1 enforces on-chain.
         ruleTypes: ["expiry"],
       },
+      [ERC20_TRANSFER_AMOUNT]: {
+        chainIds: relayerChainIds,
+        ruleTypes: ["expiry"],
+      },
+      [ERC20_STREAMING]: {
+        chainIds: relayerChainIds,
+        ruleTypes: ["expiry"],
+      },
+      [NATIVE_TRANSFER_AMOUNT]: {
+        chainIds: relayerChainIds,
+        ruleTypes: ["expiry"],
+      },
+      [NATIVE_STREAMING]: {
+        chainIds: relayerChainIds,
+        ruleTypes: ["expiry"],
+      },
+      [NATIVE_PERIOD_TRANSFER]: {
+        chainIds: relayerChainIds,
+        ruleTypes: ["expiry"],
+      },
+      [ERC721_TRANSFER]: {
+        chainIds: relayerChainIds,
+        ruleTypes: ["expiry"],
+      },
+      [OWNERSHIP_TRANSFER]: {
+        chainIds: relayerChainIds,
+        ruleTypes: ["expiry"],
+      },
+      [FUNCTION_CALL]: {
+        chainIds: relayerChainIds,
+        ruleTypes: ["expiry"],
+      },
       [LIFI_SWAP_PERIODIC]: {
         chainIds: lifiChainIds,
         ruleTypes: ["expiry"],
@@ -371,7 +416,7 @@ export class DelegationService implements IDelegationService {
     permission: IExecutionPermission,
     chainId: EVMChainId,
   ): void {
-    if (permission.type === ERC20_TOKEN_PERIODIC) return;
+    if (grantKindForPermissionType(permission.type)) return;
     if (
       permission.type === LIFI_SWAP_PERIODIC ||
       permission.type === LIFI_SWAP_APPROVE
@@ -419,6 +464,22 @@ export class DelegationService implements IDelegationService {
           periodDuration: period.periodDuration,
           startDate,
         },
+        caveats: appendedCaveats,
+      });
+    }
+
+    if (grantKindForPermissionType(permission.type)) {
+      const appendedCaveats = buildAppendedCaveatBuilder(
+        environment,
+        args.caveats,
+      );
+      const scope = buildKitScopeConfig(permission);
+      return createDelegation({
+        to: getAddress(requestTo),
+        from: getAddress(smartAccountAddress),
+        environment,
+        salt,
+        scope,
         caveats: appendedCaveats,
       });
     }
@@ -498,6 +559,10 @@ export class DelegationService implements IDelegationService {
         delegationHash,
         caveats,
       );
+    }
+
+    if (grantKindForPermissionType(permission.type)) {
+      return buildKitScopeAttenuatedPermission(permission, caveats);
     }
 
     if (permission.type === LIFI_SWAP_PERIODIC) {

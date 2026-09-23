@@ -25,9 +25,10 @@ import {
 import {
   buildSiwePersonalMessage,
   buildSiweTypedData,
-  DEFAULT_TYPED_DATA_JSON,
+  defaultTypedDataJsonForChain,
   parseTypedDataJson,
   randomSiweNonce,
+  syncDemoTypedDataChainId,
   type SignMode,
 } from "../constants/signDemo";
 import {
@@ -133,7 +134,9 @@ export function useHostTestActions({
   const [chainId, setChainId] = useState<string>(DEFAULT_HOST_CHAIN_ID);
   const [message, setMessage] = useState("Hello from 1Shot Wallet");
   const [signMode, setSignMode] = useState<SignMode>("message");
-  const [typedDataJson, setTypedDataJson] = useState(DEFAULT_TYPED_DATA_JSON);
+  const [typedDataJson, setTypedDataJson] = useState(() =>
+    defaultTypedDataJsonForChain(DEFAULT_HOST_CHAIN_ID),
+  );
   const [usdcMode, setUsdcMode] = useState<UsdcMode>("balance");
   const [usdcDestination, setUsdcDestination] = useState("");
   const [usdcAmount, setUsdcAmount] = useState("");
@@ -203,6 +206,21 @@ export function useHostTestActions({
       proxy.ethereum.removeListener("accountsChanged", onAccountsChanged);
     };
   }, [ready, proxyRef]);
+
+  useEffect(() => {
+    setTypedDataJson((prev) => syncDemoTypedDataChainId(prev, chainId));
+  }, [chainId]);
+
+  const handleSignModeChange = useCallback(
+    (mode: SignMode) => {
+      setSignMode(mode);
+      if (mode === "typedData") {
+        setTypedDataJson(defaultTypedDataJsonForChain(chainId));
+        reportStatus("EIP-712 demo typed data loaded — click Sign to approve.");
+      }
+    },
+    [chainId, reportStatus],
+  );
 
   const resolveAndStoreAccount = useCallback(
     async (proxy: OWSProxy): Promise<EVMAccountAddress> => {
@@ -996,7 +1014,7 @@ export function useHostTestActions({
     onChainChange: handleChainChange,
     onRefreshChain: handleRefreshChain,
     onMessageChange: setMessage,
-    onSignModeChange: setSignMode,
+    onSignModeChange: handleSignModeChange,
     onTypedDataJsonChange: setTypedDataJson,
     onUsdcModeChange: handleUsdcModeChange,
     onUsdcDestinationChange: setUsdcDestination,

@@ -30,9 +30,17 @@ export type {
   IDelegationService,
 } from "./IDelegationService";
 export {
+  ERC20_STREAMING,
   ERC20_TOKEN_PERIODIC,
+  ERC20_TRANSFER_AMOUNT,
+  ERC721_TRANSFER,
+  FUNCTION_CALL,
   LIFI_SWAP_APPROVE,
   LIFI_SWAP_PERIODIC,
+  NATIVE_PERIOD_TRANSFER,
+  NATIVE_STREAMING,
+  NATIVE_TRANSFER_AMOUNT,
+  OWNERSHIP_TRANSFER,
   IDelegationServiceType,
 } from "./IDelegationService";
 export type { ExecutionPermissionType } from "./IDelegationService";

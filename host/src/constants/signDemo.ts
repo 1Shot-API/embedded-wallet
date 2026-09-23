@@ -1,12 +1,14 @@
 export type SignMode = "message" | "typedData";
 
-export const DEFAULT_EIP712_TYPED_DATA = {
-  domain: {
-    name: "Ether Mail",
-    version: "1",
-    chainId: 84532,
-    verifyingContract: "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
-  },
+export const DEMO_EIP712_DOMAIN_NAME = "Ether Mail";
+
+const DEMO_EIP712_DOMAIN_BASE = {
+  name: DEMO_EIP712_DOMAIN_NAME,
+  version: "1",
+  verifyingContract: "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
+} as const;
+
+const DEMO_EIP712_TYPED_DATA_BODY = {
   types: {
     Person: [
       { name: "name", type: "string" },
@@ -32,11 +34,66 @@ export const DEFAULT_EIP712_TYPED_DATA = {
   },
 } as const;
 
-export const DEFAULT_TYPED_DATA_JSON = JSON.stringify(
-  DEFAULT_EIP712_TYPED_DATA,
-  null,
-  2,
-);
+export function hostEvmChainIdDecimal(chainIdHex: string): number | null {
+  if (!chainIdHex.startsWith("0x")) {
+    return null;
+  }
+  return Number(BigInt(chainIdHex));
+}
+
+export function buildDefaultEip712TypedData(chainIdHex: string): Record<
+  string,
+  unknown
+> {
+  const chainId = hostEvmChainIdDecimal(chainIdHex);
+  if (chainId === null) {
+    throw new Error("EIP-712 demo requires an EVM chain id.");
+  }
+  return {
+    domain: { ...DEMO_EIP712_DOMAIN_BASE, chainId },
+    ...DEMO_EIP712_TYPED_DATA_BODY,
+  };
+}
+
+export function defaultTypedDataJsonForChain(chainIdHex: string): string {
+  return JSON.stringify(buildDefaultEip712TypedData(chainIdHex), null, 2);
+}
+
+export function isDemoEip712TypedData(record: Record<string, unknown>): boolean {
+  const domain = record.domain;
+  if (!domain || typeof domain !== "object" || Array.isArray(domain)) {
+    return false;
+  }
+  return (domain as Record<string, unknown>).name === DEMO_EIP712_DOMAIN_NAME;
+}
+
+/** Keep demo Ether Mail typed data `domain.chainId` in sync with the host chain. */
+export function syncDemoTypedDataChainId(
+  json: string,
+  chainIdHex: string,
+): string {
+  const chainId = hostEvmChainIdDecimal(chainIdHex);
+  if (chainId === null) {
+    return json;
+  }
+  try {
+    const parsed = parseTypedDataJson(json);
+    if (!isDemoEip712TypedData(parsed)) {
+      return json;
+    }
+    const domain = parsed.domain as Record<string, unknown>;
+    if (domain.chainId === chainId) {
+      return json;
+    }
+    return JSON.stringify(
+      { ...parsed, domain: { ...domain, chainId } },
+      null,
+      2,
+    );
+  } catch {
+    return json;
+  }
+}
 
 export interface ISiweMessageParams {
   domain: string;

@@ -317,6 +317,33 @@ export const styleCopyGrantLiFiApprovePermissionSchema = z.strictObject({
   grantLabel: z.string(),
 });
 
+export const styleCopyGrantKitScopeTermsSchema = z.strictObject({
+  erc20TransferKindLabel: z.string(),
+  erc20StreamingKindLabel: z.string(),
+  nativeTransferKindLabel: z.string(),
+  nativeStreamingKindLabel: z.string(),
+  nativePeriodTransferKindLabel: z.string(),
+  erc721TransferKindLabel: z.string(),
+  ownershipTransferKindLabel: z.string(),
+  functionCallKindLabel: z.string(),
+  tokenLabel: z.string(),
+  maxAmountLabel: z.string(),
+  streamDurationLabel: z.string(),
+  amountPerPeriodLabel: z.string(),
+  resetPeriodLabel: z.string(),
+  startsLabel: z.string(),
+  nftContractLabel: z.string(),
+  tokenIdLabel: z.string(),
+  contractLabel: z.string(),
+  newOwnerLabel: z.string(),
+  newOwnerAnyLabel: z.string(),
+  ownershipWarning: z.string(),
+  allowedContractsLabel: z.string(),
+  allowedFunctionsLabel: z.string(),
+  maxValueLabel: z.string(),
+  pinnedParametersLabel: z.string(),
+});
+
 export const styleCopyCancelDelegationSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
@@ -527,6 +554,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   sendNativeToken: styleCopySendNativeTokenSchema,
   cctpBridge: styleCopyCctpBridgeSchema,
   grantExecutionPermission: styleCopyGrantExecutionPermissionSchema,
+  grantKitScopeTerms: styleCopyGrantKitScopeTermsSchema,
   grantLiFiSwapPermission: styleCopyGrantLiFiSwapPermissionSchema,
   grantLiFiApprovePermission: styleCopyGrantLiFiApprovePermissionSchema,
   cancelDelegation: styleCopyCancelDelegationSchema,
@@ -576,6 +604,7 @@ export const styleCopyPatchSchema = z.strictObject({
   cctpBridge: styleCopyCctpBridgeSchema.partial().optional(),
   grantExecutionPermission:
     styleCopyGrantExecutionPermissionSchema.partial().optional(),
+  grantKitScopeTerms: styleCopyGrantKitScopeTermsSchema.partial().optional(),
   grantLiFiSwapPermission:
     styleCopyGrantLiFiSwapPermissionSchema.partial().optional(),
   grantLiFiApprovePermission:
@@ -643,6 +672,9 @@ export type IStyleCopySendNativeToken = z.infer<
 export type IStyleCopyCctpBridge = z.infer<typeof styleCopyCctpBridgeSchema>;
 export type IStyleCopyGrantExecutionPermission = z.infer<
   typeof styleCopyGrantExecutionPermissionSchema
+>;
+export type IStyleCopyGrantKitScopeTerms = z.infer<
+  typeof styleCopyGrantKitScopeTermsSchema
 >;
 export type IStyleCopyGrantLiFiSwapPermission = z.infer<
   typeof styleCopyGrantLiFiSwapPermissionSchema
