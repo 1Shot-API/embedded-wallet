@@ -32,6 +32,7 @@ type WalletPermission = {
 
 type DisplayHandle = {
   hide: () => Promise<void>;
+  release?: () => void;
 };
 
 /** Host Inline (extension side panel) can miss a second displayReady; don't block connect UX. */
@@ -145,9 +146,10 @@ export function registerAccountConnect(
 }
 
 async function acquireDisplay(wallet: OWSWallet): Promise<DisplayHandle> {
+  const pending = wallet.requestDisplay();
   try {
     const session = await Promise.race([
-      wallet.requestDisplay(),
+      pending,
       new Promise<null>((resolve) => {
         setTimeout(() => resolve(null), DISPLAY_ACQUIRE_TIMEOUT_MS);
       }),
@@ -156,8 +158,28 @@ async function acquireDisplay(wallet: OWSWallet): Promise<DisplayHandle> {
       return session;
     }
   } catch {
-    // Fall through to a no-op handle — panel may already be Inline-visible.
+    // Fall through — panel may already be Inline-visible.
   }
+
+  // Race lost or threw: still release a late-arriving session so host
+  // childDisplayId / branding displayDepth cannot leak into later RPCs (e.g. SIWE).
+  void pending.then(
+    (session) => {
+      try {
+        if ("release" in session && typeof session.release === "function") {
+          session.release();
+        } else {
+          void session.hide();
+        }
+      } catch {
+        // Best-effort cleanup.
+      }
+    },
+    () => {
+      // requestDisplay rejected — nothing to release.
+    },
+  );
+
   return {
     hide: async () => {},
   };

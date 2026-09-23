@@ -96,8 +96,9 @@ export class EVMRepository implements IEVMRepository {
     }
 
     return {
+      // Interim local id: 0x-prefixed hex slice of the broadcast hash.
       relayerTransactionId: RelayerTransactionId(
-        `interim-${hash.slice(2, 18)}`,
+        `0x${hash.slice(2, 18)}` as `0x${string}`,
       ),
       transactionHash: EVMTransactionHash(hash as `0x${string}`),
     };
