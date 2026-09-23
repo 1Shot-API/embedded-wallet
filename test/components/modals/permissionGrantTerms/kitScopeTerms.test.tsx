@@ -66,7 +66,7 @@ function baseRequest(
 }
 
 describe("kit scope permission terms", () => {
-  it("Erc20TransferPermissionTerms renders token address and max amount rows", () => {
+  it("Erc20TransferPermissionTerms renders token symbol and max amount rows", () => {
     const html = wrapTerms(
       <Erc20TransferPermissionTerms
         executionRequest={baseRequest({
@@ -78,7 +78,7 @@ describe("kit scope permission terms", () => {
     );
     assert.ok(html.includes("Token"));
     assert.ok(html.includes("Max Amount"));
-    assert.ok(html.toLowerCase().includes(token.slice(2).slice(0, 8)));
+    assert.ok(html.includes("TOKEN"));
   });
 
   it("OwnershipTransferPermissionTerms renders ownershipWarning copy", () => {

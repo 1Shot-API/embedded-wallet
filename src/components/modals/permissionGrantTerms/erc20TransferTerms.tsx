@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import type { IExecutionPermissionRequest } from "@1shotapi/ows-types";
-import { getAddress } from "viem";
 import { ERC20_TRANSFER_AMOUNT } from "../../../lib/interfaces/business/IDelegationService";
 import { useStyle } from "../../../style/StyleProvider";
 import { ConsentSummaryRow } from "../../ConsentSummaryRow";
@@ -57,8 +56,7 @@ export function Erc20TransferPermissionTerms({
     () => formatBigIntAmountDisplay(maxAmount, tokenDecimals, tokenSymbol),
     [maxAmount, tokenDecimals, tokenSymbol],
   );
-  const tokenLabel =
-    tokenAddress !== null ? getAddress(tokenAddress as `0x${string}`) : "—";
+  const tokenLabel = tokenSymbol;
 
   return (
     <PermissionGrantTermsCard kindLabel={copy.erc20TransferKindLabel}>

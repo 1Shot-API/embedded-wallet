@@ -10,6 +10,7 @@ import { EAssetType } from "../../../lib/types/enum/EAssetType";
 import {
   formatUnixSecondsLabel,
   humanizePeriodDuration,
+  humanizeStreamDuration,
   parsePeriodDurationSeconds,
   readHostMemoOrJustification,
   readPermissionPeriodDurationText,
@@ -103,6 +104,7 @@ export function formatStartRow(data: Record<string, unknown>): string | null {
 export function formatStreamDurationSeconds(
   maxAmount: bigint | null,
   amountPerSecond: bigint | null,
+  initialAmount: bigint | null = 0n,
 ): string | null {
   if (
     maxAmount === null ||
@@ -112,11 +114,13 @@ export function formatStreamDurationSeconds(
   ) {
     return null;
   }
-  const seconds = maxAmount / amountPerSecond;
+  const streamable = maxAmount - (initialAmount ?? 0n);
+  if (streamable <= 0n) return null;
+  const seconds = streamable / amountPerSecond;
   if (seconds <= 0n) return null;
   const n = Number(seconds);
   if (!Number.isFinite(n)) return null;
-  return humanizePeriodDuration(n);
+  return humanizeStreamDuration(n);
 }
 
 export function useErc20TokenDisplay(

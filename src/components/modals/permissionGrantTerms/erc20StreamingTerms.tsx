@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import type { IExecutionPermissionRequest } from "@1shotapi/ows-types";
-import { getAddress } from "viem";
 import { ERC20_STREAMING } from "../../../lib/interfaces/business/IDelegationService";
 import { useStyle } from "../../../style/StyleProvider";
 import { ConsentSummaryRow } from "../../ConsentSummaryRow";
@@ -47,6 +46,10 @@ export function Erc20StreamingPermissionTerms({
     tokenAddress,
   );
   const maxAmount = readBigIntFromPermissionData(permissionData, "maxAmount");
+  const initialAmount = readBigIntFromPermissionData(
+    permissionData,
+    "initialAmount",
+  );
   const amountPerSecond = readBigIntFromPermissionData(
     permissionData,
     "amountPerSecond",
@@ -56,11 +59,11 @@ export function Erc20StreamingPermissionTerms({
     [maxAmount, tokenDecimals, tokenSymbol],
   );
   const streamDuration = useMemo(
-    () => formatStreamDurationSeconds(maxAmount, amountPerSecond),
-    [amountPerSecond, maxAmount],
+    () =>
+      formatStreamDurationSeconds(maxAmount, amountPerSecond, initialAmount),
+    [amountPerSecond, initialAmount, maxAmount],
   );
-  const tokenLabel =
-    tokenAddress !== null ? getAddress(tokenAddress as `0x${string}`) : "—";
+  const tokenLabel = tokenSymbol;
 
   return (
     <PermissionGrantTermsCard kindLabel={copy.erc20StreamingKindLabel}>

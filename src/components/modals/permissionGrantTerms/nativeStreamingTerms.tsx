@@ -38,6 +38,10 @@ export function NativeStreamingPermissionTerms({
     unknown
   >;
   const maxAmount = readBigIntFromPermissionData(permissionData, "maxAmount");
+  const initialAmount = readBigIntFromPermissionData(
+    permissionData,
+    "initialAmount",
+  );
   const amountPerSecond = readBigIntFromPermissionData(
     permissionData,
     "amountPerSecond",
@@ -47,8 +51,9 @@ export function NativeStreamingPermissionTerms({
     [maxAmount],
   );
   const streamDuration = useMemo(
-    () => formatStreamDurationSeconds(maxAmount, amountPerSecond),
-    [amountPerSecond, maxAmount],
+    () =>
+      formatStreamDurationSeconds(maxAmount, amountPerSecond, initialAmount),
+    [amountPerSecond, initialAmount, maxAmount],
   );
 
   return (
