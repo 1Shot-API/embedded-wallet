@@ -900,7 +900,6 @@ export function useWalletBoot({
                 );
               }
 
-              await onSigningAuthenticated();
               return hash;
             },
             {

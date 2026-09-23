@@ -64,7 +64,16 @@ export function registerSwitchChainRpc(
       }
 
       await rpcHelper.switchChain(String(chainId));
-      useWalletSessionStore.getState().setChainId(chainId);
+      // RpcHelper no-ops when already on `chainId` (e.g. session was Bitcoin
+      // while the helper stayed on that EVM). Sync + emit only when session
+      // still differs — onChainChanged already handled a real RpcHelper change.
+      const session = useWalletSessionStore.getState();
+      if (
+        String(session.chainId).toLowerCase() !== String(chainId).toLowerCase()
+      ) {
+        session.setChainId(chainId);
+        wallet.providerEvents.emit("chainChanged", chainId);
+      }
       return {
         ok: true as const,
         chainId,
