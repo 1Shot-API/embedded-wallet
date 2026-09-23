@@ -16,7 +16,7 @@ export type RegisterApprovalSigningOptions = {
    * authenticates. Pair with {@link onAuthenticated}.
    */
   ensureReady?: () => Promise<void>;
-  /** Mark unlocked + refresh addresses after a successful message/typed-data ceremony. */
+  /** Mark unlocked + refresh addresses after a successful signing ceremony. */
   onAuthenticated?: () => void | Promise<void>;
   chainRpc: SignHelperChainRpc;
   /**
