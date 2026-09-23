@@ -165,6 +165,7 @@ const credentialRepository = new CachedRelayerVaultRepository({
 const businessTransactionUtils = new BusinessTransactionUtils({
   chainRepository,
   relayerRepository: oneshotRelayerRepository,
+  trackedAssetRepository,
   blockchain: blockchainProvider,
   presentationTransactionUtils: transactionUtils,
   owsProvider,

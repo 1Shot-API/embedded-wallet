@@ -9,6 +9,7 @@ import type {
 } from "../data/IOneshotRelayerRepository";
 import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
 import type { TokenAmount } from "../../types/primitives";
+import type { IActivationPayment } from "./utils/ITransactionUtils";
 
 export interface IPaymentTokenOption {
   address: EVMAccountAddress;
@@ -69,6 +70,33 @@ export interface ITransactionService {
     work: ITransactionWork | ITransactionWork[],
     preferredToken?: EVMAccountAddress,
   ): Promise<IPaymentQuote>;
+
+  /**
+   * Resolve USDC payment for EIP-7702 offline-permission activation among
+   * candidate chains (requested ∪ Arc). Null when none hold USDC.
+   */
+  resolveActivationPayment(
+    owner: EVMAccountAddress,
+    candidateChainIds: readonly EVMChainId[],
+  ): Promise<IActivationPayment | null>;
+
+  /** Unsigned USDC fee quote for multi/single-chain EIP-7702 activation. */
+  quoteActivation(
+    owner: EVMAccountAddress,
+    upgradeChainIds: readonly EVMChainId[],
+    payment: IActivationPayment,
+  ): Promise<IPaymentQuote>;
+
+  /**
+   * Submit EIP-7702 activation (no-op work + USDC fee) and poll to confirm.
+   */
+  activateDelegations(
+    args: {
+      upgradeChainIds: readonly EVMChainId[];
+      payment: IActivationPayment;
+      feeAtoms: TokenAmount;
+    } & IRelayerSendUiCallbacks,
+  ): Promise<ISendTransactionResult[]>;
 
   /**
    * Branch on `SupportedChain.useRelayer`:

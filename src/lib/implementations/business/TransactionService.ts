@@ -16,6 +16,7 @@ import type {
   ITransactionWork,
 } from "../../interfaces/business/ITransactionService";
 import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
+import type { IActivationPayment } from "../../interfaces/business/utils/ITransactionUtils";
 import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
 import type { TokenAmount } from "../../types/primitives";
 
@@ -63,6 +64,38 @@ export class TransactionService implements ITransactionService {
       work,
       preferredToken,
     );
+  }
+
+  resolveActivationPayment(
+    owner: EVMAccountAddress,
+    candidateChainIds: readonly EVMChainId[],
+  ): Promise<IActivationPayment | null> {
+    return this.options.transactionUtils.resolveActivationPayment(
+      owner,
+      candidateChainIds,
+    );
+  }
+
+  quoteActivation(
+    owner: EVMAccountAddress,
+    upgradeChainIds: readonly EVMChainId[],
+    payment: IActivationPayment,
+  ): Promise<IPaymentQuote> {
+    return this.options.transactionUtils.quoteActivation(
+      owner,
+      upgradeChainIds,
+      payment,
+    );
+  }
+
+  activateDelegations(
+    args: {
+      upgradeChainIds: readonly EVMChainId[];
+      payment: IActivationPayment;
+      feeAtoms: TokenAmount;
+    } & IRelayerSendUiCallbacks,
+  ): Promise<ISendTransactionResult[]> {
+    return this.options.transactionUtils.activateDelegations(args);
   }
 
   async sendTransaction(

@@ -213,6 +213,10 @@ export interface IStyleFormState {
   cancelDelegationReject: string;
   cancelDelegationSkipOnchainLabel: string;
   cancelDelegationSkipOnchainAcknowledgement: string;
+  activateOfflinePermissionsTitle: string;
+  activateOfflinePermissionsBody: string;
+  activateOfflinePermissionsConfirm: string;
+  activateOfflinePermissionsReject: string;
 
   // Text — Passkey ceremony overlays
   passkeyPromptUnlockTitle: string;
@@ -453,6 +457,11 @@ export const ACME_PRESET: IStyleFormState = {
   cancelDelegationSkipOnchainLabel: "Skip onchain cancellation",
   cancelDelegationSkipOnchainAcknowledgement:
     "I acknowledge that this delegation may still be used onchain by anybody that holds it, and that canceling it without submitting an onchain cancellation will only remove it from my wallet",
+  activateOfflinePermissionsTitle: "Activate offline permissions",
+  activateOfflinePermissionsBody:
+    "This is your first time using offline permissions. You must activate the feature on your account with a one-time transaction.",
+  activateOfflinePermissionsConfirm: "Activate",
+  activateOfflinePermissionsReject: "Cancel",
   passkeyPromptUnlockTitle: "Unlock with passkey",
   passkeyPromptCreateTitle: "Create passkey",
   passkeyPromptSignTitle: "Confirm with passkey",
@@ -655,6 +664,11 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   cancelDelegationSkipOnchainLabel: "Skip onchain cancellation",
   cancelDelegationSkipOnchainAcknowledgement:
     "I acknowledge that this delegation may still be used onchain by anybody that holds it, and that canceling it without submitting an onchain cancellation will only remove it from my wallet",
+  activateOfflinePermissionsTitle: "Activate offline permissions",
+  activateOfflinePermissionsBody:
+    "This is your first time using offline permissions. You must activate the feature on your account with a one-time transaction.",
+  activateOfflinePermissionsConfirm: "Activate",
+  activateOfflinePermissionsReject: "Cancel",
   passkeyPromptUnlockTitle: "Unlock with passkey",
   passkeyPromptCreateTitle: "Create passkey",
   passkeyPromptSignTitle: "Confirm with passkey",
@@ -975,6 +989,23 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   );
   if (Object.keys(cancelDelegation).length > 0) {
     copy.cancelDelegation = cancelDelegation;
+  }
+
+  const activateOfflinePermissions: Record<string, string> = {};
+  put(activateOfflinePermissions, "title", form.activateOfflinePermissionsTitle);
+  put(activateOfflinePermissions, "body", form.activateOfflinePermissionsBody);
+  put(
+    activateOfflinePermissions,
+    "confirmLabel",
+    form.activateOfflinePermissionsConfirm,
+  );
+  put(
+    activateOfflinePermissions,
+    "rejectLabel",
+    form.activateOfflinePermissionsReject,
+  );
+  if (Object.keys(activateOfflinePermissions).length > 0) {
+    copy.activateOfflinePermissions = activateOfflinePermissions;
   }
 
   const passkeyPrompt: Record<string, Record<string, string>> = {};

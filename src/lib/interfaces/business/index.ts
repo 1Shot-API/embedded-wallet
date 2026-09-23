@@ -36,7 +36,10 @@ export {
   IDelegationServiceType,
 } from "./IDelegationService";
 export type { ExecutionPermissionType } from "./IDelegationService";
-export type { ITransactionUtils as IBusinessTransactionUtils } from "./utils/ITransactionUtils";
+export type {
+  IActivationPayment,
+  ITransactionUtils as IBusinessTransactionUtils,
+} from "./utils/ITransactionUtils";
 export {
   ITransactionUtilsType as IBusinessTransactionUtilsType,
   NATIVE_TRANSFER_GAS,

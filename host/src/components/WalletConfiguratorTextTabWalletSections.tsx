@@ -340,6 +340,38 @@ export function WalletConfiguratorTextTabWalletSections({
             }
           />
           <TextField
+            id="activate-offline-permissions-title"
+            label="Activate offline permissions title"
+            value={form.activateOfflinePermissionsTitle}
+            onChange={(value) =>
+              patch("activateOfflinePermissionsTitle", value)
+            }
+          />
+          <TextField
+            id="activate-offline-permissions-body"
+            label="Activate offline permissions body"
+            value={form.activateOfflinePermissionsBody}
+            onChange={(value) =>
+              patch("activateOfflinePermissionsBody", value)
+            }
+          />
+          <TextField
+            id="activate-offline-permissions-confirm"
+            label="Activate offline permissions confirm"
+            value={form.activateOfflinePermissionsConfirm}
+            onChange={(value) =>
+              patch("activateOfflinePermissionsConfirm", value)
+            }
+          />
+          <TextField
+            id="activate-offline-permissions-reject"
+            label="Activate offline permissions reject"
+            value={form.activateOfflinePermissionsReject}
+            onChange={(value) =>
+              patch("activateOfflinePermissionsReject", value)
+            }
+          />
+          <TextField
             id="transfer-tokens-sent-title"
             label="Transfer sent title"
             value={form.transferTokensSentTitle}

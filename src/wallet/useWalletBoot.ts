@@ -34,6 +34,7 @@ import { registerCredentialsProvider } from "../ows/registerCredentialsProvider"
 import { registerConfigureRpc } from "../style/registerConfigure";
 import { wrapSignerWithCeremonyCopy } from "./wrapSignerWithCeremonyCopy";
 import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
+import { styleController } from "../style/styleController";
 import {
   analyticsErrorCode,
   isAnalyticsCancelled,
@@ -373,6 +374,135 @@ export function useWalletBoot({
                 const { hostDomain } = await configProvider.getConfig();
                 const signStartedBatch = performance.now();
                 const account = analyticsAccountAddress();
+
+                const owner =
+                  useWalletSessionStore.getState().evmAddress ||
+                  loadCachedEvmAddress();
+                if (!owner) {
+                  throw new OwsInvalidParamsError(
+                    "Wallet address is required to grant execution permissions",
+                  );
+                }
+
+                const requestedChainIds = [
+                  ...new Map(
+                    prepared.map(({ request }) => [
+                      String(request.chainId),
+                      request.chainId,
+                    ] as const),
+                  ).values(),
+                ];
+
+                const upgradeChecks = await Promise.all(
+                  requestedChainIds.map(async (chainId) => ({
+                    chainId,
+                    needsUpgrade: await transactionService.needsWalletUpgrade(
+                      chainId,
+                      owner,
+                    ),
+                  })),
+                );
+                const upgradeChainIds = upgradeChecks
+                  .filter((row) => row.needsUpgrade)
+                  .map((row) => row.chainId);
+
+                if (upgradeChainIds.length > 0) {
+                  const candidateChainIds = [
+                    ...new Map(
+                      [...requestedChainIds, DEFAULT_CHAIN_ID].map(
+                        (chainId) => [String(chainId), chainId] as const,
+                      ),
+                    ).values(),
+                  ];
+                  const payment =
+                    await transactionService.resolveActivationPayment(
+                      owner,
+                      candidateChainIds,
+                    );
+                  if (!payment) {
+                    throw new OwsInvalidParamsError(
+                      styleController.get().copy.activateOfflinePermissions
+                        .noUsdcError,
+                    );
+                  }
+
+                  const upgradeChains = upgradeChainIds.map((chainId) => {
+                    const preparedItem = prepared.find(
+                      (item) =>
+                        String(item.request.chainId) === String(chainId),
+                    );
+                    return {
+                      chainId,
+                      chainName:
+                        preparedItem?.chain.label ??
+                        resolveChain(chainId)?.label ??
+                        String(chainId),
+                    };
+                  });
+
+                  try {
+                    await ask<EVMTransactionHash>(
+                      ({ id, resolve, reject }) => ({
+                        id,
+                        kind: "activateOfflinePermissions",
+                        request: {
+                          domain,
+                          ownerAddress: owner,
+                          upgradeChains,
+                          payment,
+                        },
+                        execute: async (
+                          confirmPayment: IRelayerConfirmSendResult,
+                          ui,
+                        ) => {
+                          const results =
+                            await transactionService.activateDelegations({
+                              upgradeChainIds,
+                              payment,
+                              feeAtoms: confirmPayment.feeAtoms,
+                              ...ui,
+                            });
+                          const last = results[results.length - 1];
+                          if (!last) {
+                            throw new Error(
+                              "Activation returned no transaction results",
+                            );
+                          }
+                          return last.transactionHash;
+                        },
+                        resolve,
+                        reject,
+                      }),
+                    );
+                  } catch (error: unknown) {
+                    const durationMs = Math.round(
+                      performance.now() - signStartedBatch,
+                    );
+                    const chainId = upgradeChainIds[0] ?? requestedChainIds[0]!;
+                    if (isAnalyticsCancelled(error)) {
+                      eventBus.emitAnalytics(
+                        new DelegationCreateCancelledEvent(
+                          hostDomain,
+                          account,
+                          chainId,
+                          durationMs,
+                        ),
+                      );
+                    } else {
+                      eventBus.emitAnalytics(
+                        new DelegationCreateFailedEvent(
+                          hostDomain,
+                          account,
+                          chainId,
+                          analyticsErrorCode(error),
+                          durationMs,
+                        ),
+                      );
+                    }
+                    throw error;
+                  }
+                }
+
                 let approvedResults: IGrantExecutionPermissionResult[];
                 try {
                   approvedResults =
