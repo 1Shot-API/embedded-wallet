@@ -2192,11 +2192,10 @@ function orderedActivationChainIds(
   paymentChainId: EVMChainId,
 ): EVMChainId[] {
   const ordered: EVMChainId[] = [paymentChainId];
-  const seen = new Set<string>([paymentChainId]);
+  const seen = new Set<EVMChainId>([paymentChainId]);
   for (const chainId of upgradeChainIds) {
-    const key = chainId;
-    if (seen.has(key)) continue;
-    seen.add(key);
+    if (seen.has(chainId)) continue;
+    seen.add(chainId);
     ordered.push(chainId);
   }
   return ordered;

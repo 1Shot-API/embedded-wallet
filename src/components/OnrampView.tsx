@@ -388,7 +388,11 @@ function resolveEffectiveEvmChainId(
   chainIdProp: number | undefined,
   sessionChainId: ReturnType<typeof useWalletSessionStore.getState>["chainId"],
 ): EVMChainId | null {
-  if (chainIdProp != null && Number.isFinite(chainIdProp)) {
+  if (
+    chainIdProp != null &&
+    Number.isInteger(chainIdProp) &&
+    chainIdProp >= 0
+  ) {
     return ChainUtils.asEVMChainId(chainIdProp);
   }
   if (ChainUtils.isEVMChainId(sessionChainId)) {
