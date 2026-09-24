@@ -622,6 +622,7 @@ export function SendTransactionModal({
         {
           paymentToken: payment.paymentToken,
           feeAtoms: payment.feeAtoms,
+          paymentChainId: payment.paymentChainId,
         },
         ui,
       ),
@@ -773,6 +774,7 @@ export function ConfirmTransferModal({
         {
           paymentToken: payment.paymentToken,
           feeAtoms: payment.feeAtoms,
+          paymentChainId: payment.paymentChainId,
         },
         ui,
       ),

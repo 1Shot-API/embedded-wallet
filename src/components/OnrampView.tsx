@@ -7,8 +7,8 @@ import type {
 import {
   ChainUtils,
   EVMAccountAddress,
-  EVMChainId,
   type EVMAccountAddress as EVMAccountAddressType,
+  type EVMChainId,
 } from "@1shotapi/ows-types";
 import { zeroAddress } from "viem";
 import { Modal, type ModalAction } from "./Modal";
@@ -388,8 +388,12 @@ function resolveEffectiveEvmChainId(
   chainIdProp: number | undefined,
   sessionChainId: ReturnType<typeof useWalletSessionStore.getState>["chainId"],
 ): EVMChainId | null {
-  if (chainIdProp != null && Number.isFinite(chainIdProp)) {
-    return EVMChainId(`0x${chainIdProp.toString(16)}` as `0x${string}`);
+  if (
+    chainIdProp != null &&
+    Number.isInteger(chainIdProp) &&
+    chainIdProp >= 0
+  ) {
+    return ChainUtils.asEVMChainId(chainIdProp);
   }
   if (ChainUtils.isEVMChainId(sessionChainId)) {
     return sessionChainId;

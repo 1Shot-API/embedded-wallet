@@ -74,6 +74,8 @@ export interface IRelayerEstimateResult {
   gasUsed: Record<string, string>;
   requiredPaymentAmount?: string;
   context?: string;
+  /** Per-chain signed quotes for multichain send (`params[i].context`). */
+  contextByChainId?: Record<string, string>;
   error?: string;
 }
 
@@ -111,10 +113,20 @@ export interface IOneshotRelayerRepository {
     params: IRelayer7710Params,
   ): Promise<IRelayerEstimateResult>;
 
+  estimate7710TransactionMultichain(
+    relayerUrl: string,
+    params: IRelayer7710Params[],
+  ): Promise<IRelayerEstimateResult>;
+
   send7710Transaction(
     relayerUrl: string,
     params: IRelayer7710Params,
   ): Promise<RelayerTransactionId>;
+
+  send7710TransactionMultichain(
+    relayerUrl: string,
+    params: IRelayer7710Params[],
+  ): Promise<RelayerTransactionId[]>;
 
   getStatus(
     relayerUrl: string,

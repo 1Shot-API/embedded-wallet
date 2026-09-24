@@ -2,9 +2,10 @@ import { z } from "zod";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
   EVMAccountAddress,
-  EVMChainId,
+  EVMChainIdSchema,
   OwsUserRejectedError,
   type EVMAccountAddress as EVMAccountAddressType,
+  type EVMChainId,
 } from "@1shotapi/ows-types";
 import type {
   IKnownAssetRepository,
@@ -17,10 +18,7 @@ import { useWalletSessionStore } from "./sessionStore";
 export const ADD_ASSET_RPC_METHOD = "addAsset";
 
 const addAssetParamsSchema = z.strictObject({
-  chainId: z
-    .string()
-    .regex(/^0x[0-9a-fA-F]+$/)
-    .transform((value) => EVMChainId(value as `0x${string}`)),
+  chainId: EVMChainIdSchema,
   assetAddress: z
     .string()
     .regex(/^0x[0-9a-fA-F]{40}$/)

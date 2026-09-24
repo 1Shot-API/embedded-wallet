@@ -13,6 +13,8 @@ import type {
   IExecutionPermission,
   IExecutionPermissionRequest,
 } from "@1shotapi/ows-types";
+import type { IRelayerPayment } from "../lib/types/domain/RelayerPayment";
+import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 import type { ISiweFields } from "../lib/types/domain/SiweFields";
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
 import type { IOnrampOpenRequest } from "../circle/onrampTypes";
@@ -21,7 +23,6 @@ import type {
   ICctpBridgeOpenRequest,
 } from "../circle/cctpBridgeTypes";
 import type { TokenAmount } from "../lib/types/primitives";
-import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 import type { ITransactionWork } from "../lib/interfaces/business/ITransactionService";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
@@ -47,12 +48,15 @@ export type IConfirmSendPayment = {
   /** Required when the confirm modal was opened with `useRelayer: true`. */
   paymentToken?: EVMAccountAddress;
   feeAtoms?: TokenAmount;
+  paymentChainId?: EVMChainId;
 };
 
 /** Relayer confirm payload after UI validation. */
 export type IRelayerConfirmSendResult = {
   paymentToken: EVMAccountAddress;
   feeAtoms: TokenAmount;
+  /** Chain that pays the fee (may differ from the work chain). */
+  paymentChainId: EVMChainId;
 };
 
 /** Result from TX confirm when canceling or selecting payment (legacy shape). */
@@ -81,19 +85,46 @@ export type IGrantExecutionPermissionResult = {
   memo: string;
 };
 
-/** Cancel / revoke confirm (on-chain disableDelegation). */
-export interface ICancelDelegationConfirmRequest {
-  domain: string;
+/** One delegation in a cancel / revoke confirm batch. */
+export interface ICancelDelegationConfirmItem {
+  memo: string;
   chainName: string;
   chainId: EVMChainId;
-  ownerAddress: EVMAccountAddress;
-  /** ExactCalldata work for unsigned fee estimate. */
+  /** ExactCalldata work for unsigned fee estimate on this chain. */
   work: ITransactionWork;
+}
+
+/** Per-chain payment when canceling across one or more networks. */
+export type ICancelDelegationPayment = {
+  chainId: EVMChainId;
+  paymentToken: EVMAccountAddress;
+  feeAtoms: TokenAmount;
+  /** Fee payment chain — defaults to `chainId` when omitted. */
+  paymentChainId?: EVMChainId;
+};
+
+/** Cancel / revoke confirm (on-chain disableDelegation, possibly batched). */
+export interface ICancelDelegationConfirmRequest {
+  domain: string;
+  ownerAddress: EVMAccountAddress;
+  items: ICancelDelegationConfirmItem[];
   /**
    * When true, the modal offers “Skip onchain cancellation” (vault delete
-   * only). Requires a stored vault row.
+   * only). Requires stored vault rows for every item.
    */
   allowSkipOnchain: boolean;
+}
+
+/** One-time EIP-7702 activation before an EIP-7715 grant. */
+export interface IActivateOfflinePermissionsRequest {
+  domain: string;
+  ownerAddress: EVMAccountAddress;
+  /**
+   * Chains that still need EIP-7702 for this grant — requested grant chains
+   * plus the USDC payment chain (usually Arc) when either needs upgrade.
+   */
+  upgradeChains: Array<{ chainId: EVMChainId; chainName: string }>;
+  payment: IRelayerPayment;
 }
 
 export type ModalRequest =
@@ -184,16 +215,27 @@ export type ModalRequest =
     }
   | {
       id: string;
-      kind: "cancelDelegation";
-      request: ICancelDelegationConfirmRequest;
+      kind: "activateOfflinePermissions";
+      request: IActivateOfflinePermissionsRequest;
       execute: (
         payment: IRelayerConfirmSendResult,
         ui: IRelayerSendUiCallbacks,
       ) => Promise<EVMTransactionHash>;
+      resolve: (hash: EVMTransactionHash) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "cancelDelegation";
+      request: ICancelDelegationConfirmRequest;
+      execute: (
+        payments: ICancelDelegationPayment[],
+        ui: IRelayerSendUiCallbacks,
+      ) => Promise<EVMTransactionHash[]>;
       /** Vault-only delete when the user skips on-chain cancel. */
       executeLocal: () => Promise<void>;
       onRegisterAwaitingConfirmation?: (notify: () => void) => void;
-      resolve: (hash: EVMTransactionHash | null) => void;
+      resolve: (hashes: EVMTransactionHash[] | null) => void;
       reject: (error: unknown) => void;
     }
   | {

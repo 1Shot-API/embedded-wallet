@@ -23,8 +23,12 @@ export type {
 export { IBitcoinServiceType } from "./IBitcoinService";
 export type {
   IBuildCancelWorkParams,
+  ICancelDelegationChainPayment,
+  ICancelDelegationItem,
   ICancelDelegationParams,
   ICancelDelegationResult,
+  ICancelDelegationsParams,
+  ICancelDelegationsResult,
   ICreateExecutionPermissionParams,
   ICreateExecutionPermissionsParams,
   IDelegationService,
@@ -36,7 +40,9 @@ export {
   IDelegationServiceType,
 } from "./IDelegationService";
 export type { ExecutionPermissionType } from "./IDelegationService";
-export type { ITransactionUtils as IBusinessTransactionUtils } from "./utils/ITransactionUtils";
+export type {
+  ITransactionUtils as IBusinessTransactionUtils,
+} from "./utils/ITransactionUtils";
 export {
   ITransactionUtilsType as IBusinessTransactionUtilsType,
   NATIVE_TRANSFER_GAS,

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
-  EVMChainId,
+  ChainUtils,
   EVMContractAddress,
   OwsInvalidParamsError,
   OwsUserRejectedError,
@@ -43,7 +43,7 @@ export type RegisterBridgeOptions = {
 };
 
 export function evmChainIdFromDecimal(decimal: number): EVMChainIdType {
-  return EVMChainId(`0x${decimal.toString(16)}`);
+  return ChainUtils.asEVMChainId(decimal);
 }
 
 /** Host `sourceChainId` is decimal; omit → the current session chain. */

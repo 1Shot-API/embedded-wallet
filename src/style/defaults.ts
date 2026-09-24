@@ -327,6 +327,19 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       skipOnchainAcknowledgement:
         "I acknowledge that this delegation may still be used onchain by anybody that holds it, and that canceling it without submitting an onchain cancellation will only remove it from my wallet",
     },
+    activateOfflinePermissions: {
+      title: "Activate offline permissions",
+      body: "This is your first time using offline permissions. You must activate the feature on your account with a one-time transaction.",
+      chainsLabel: "Networks to activate",
+      payFromLabel: "Pay fee from",
+      feeLabel: "Activation fee",
+      insufficientBalanceError:
+        "Insufficient USDC to pay the activation fee on {chainName}.",
+      noUsdcError:
+        "Hold USDC on Arc or a requested network to activate offline permissions.",
+      rejectLabel: "Cancel",
+      confirmLabel: "Activate",
+    },
     relayerSubmit: {
       finalFeeNotice:
         "The relayer fee changed after signing. Review the final fee before submitting.",

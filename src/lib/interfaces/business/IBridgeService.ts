@@ -42,6 +42,7 @@ export interface ICctpBridgeQuote {
 export interface ICctpBridgePayment {
   paymentToken: EVMAccountAddress;
   feeAtoms: TokenAmount;
+  paymentChainId?: EVMChainId;
 }
 
 export interface ICctpBridgeResult {
