@@ -94,15 +94,6 @@ export interface ICancelDelegationConfirmItem {
   work: ITransactionWork;
 }
 
-/** Per-chain payment when canceling across one or more networks. */
-export type ICancelDelegationPayment = {
-  chainId: EVMChainId;
-  paymentToken: EVMAccountAddress;
-  feeAtoms: TokenAmount;
-  /** Fee payment chain — defaults to `chainId` when omitted. */
-  paymentChainId?: EVMChainId;
-};
-
 /** Cancel / revoke confirm (on-chain disableDelegation, possibly batched). */
 export interface ICancelDelegationConfirmRequest {
   domain: string;
@@ -229,7 +220,7 @@ export type ModalRequest =
       kind: "cancelDelegation";
       request: ICancelDelegationConfirmRequest;
       execute: (
-        payments: ICancelDelegationPayment[],
+        payment: IRelayerConfirmSendResult,
         ui: IRelayerSendUiCallbacks,
       ) => Promise<EVMTransactionHash[]>;
       /** Vault-only delete when the user skips on-chain cancel. */

@@ -685,7 +685,7 @@ export function useWalletBoot({
                           ],
                           allowSkipOnchain: Boolean(stored),
                         },
-                        execute: async (payments, ui) => {
+                        execute: async (payment, ui) => {
                           const batch =
                             await delegationService.cancelDelegations({
                               items: [
@@ -695,7 +695,9 @@ export function useWalletBoot({
                                   permissionContext: params.permissionContext,
                                 },
                               ],
-                              payments,
+                              paymentToken: payment.paymentToken,
+                              feeAtoms: payment.feeAtoms,
+                              paymentChainId: payment.paymentChainId,
                               ...ui,
                             });
                           return batch.results.map((r) => r.transactionHash);

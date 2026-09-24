@@ -91,6 +91,19 @@ export interface ITransactionService {
   ): Promise<IPaymentQuote>;
 
   /**
+   * Combined unsigned fee quote for ExactCalldata work across one or more
+   * chains (local-first payment, then Arc USDC).
+   */
+  quotePaymentMultichain(
+    owner: EVMAccountAddress,
+    workByChain: readonly {
+      chainId: EVMChainId;
+      work: ITransactionWork | ITransactionWork[];
+    }[],
+    preferredToken?: EVMAccountAddress,
+  ): Promise<IPaymentQuote>;
+
+  /**
    * Submit EIP-7702 activation (no-op work + USDC fee) and poll to confirm.
    */
   activateDelegations(

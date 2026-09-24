@@ -24,7 +24,15 @@ export interface IPaymentFeePickerProps {
   chainId: EVMChainId;
   ownerAddress: EVMAccountAddress;
   /** ExactCalldata work used for unsigned `relayer_estimate7710Transaction`. */
-  work: ITransactionWork | ITransactionWork[];
+  work?: ITransactionWork | ITransactionWork[];
+  /**
+   * Multichain ExactCalldata work — when set, quotes via
+   * `quotePaymentMultichain` (one fee across all chains). Overrides `work`.
+   */
+  workByChain?: readonly {
+    chainId: EVMChainId;
+    work: ITransactionWork | ITransactionWork[];
+  }[];
   quote: IPaymentQuote | null;
   error: string | null;
   loading: boolean;
@@ -79,6 +87,7 @@ export function PaymentFeePicker({
   chainId,
   ownerAddress,
   work,
+  workByChain,
   quote,
   error,
   loading,
@@ -98,23 +107,54 @@ export function PaymentFeePicker({
   }, [onQuoteChange]);
 
   const workKey = useMemo(() => {
-    const items = Array.isArray(work) ? work : [work];
+    if (workByChain && workByChain.length > 0) {
+      return workByChain
+        .map((group) => {
+          const items = Array.isArray(group.work) ? group.work : [group.work];
+          const body = items
+            .map(
+              (item) =>
+                `${String(item.to)}:${String(item.data || "0x")}:${item.value ?? 0n}`,
+            )
+            .join("|");
+          return `${String(group.chainId)}:${body}`;
+        })
+        .join(";");
+    }
+    const items = Array.isArray(work) ? work : work ? [work] : [];
     return items
       .map(
         (item) =>
           `${String(item.to)}:${String(item.data || "0x")}:${item.value ?? 0n}`,
       )
       .join("|");
-  }, [work]);
+  }, [work, workByChain]);
 
-  const getNewQuote = useCallback(async (): Promise<string> => {
-    try {
-      const next = await transactionService.quotePayment(
+  const fetchQuote = useCallback(
+    async (token?: EVMAccountAddress) => {
+      if (workByChain && workByChain.length > 0) {
+        return transactionService.quotePaymentMultichain(
+          ownerAddress,
+          workByChain,
+          token,
+        );
+      }
+      if (!work) {
+        throw new Error("PaymentFeePicker requires work or workByChain");
+      }
+      return transactionService.quotePayment(
         chainId,
         ownerAddress,
         work,
-        preferredToken,
+        token,
       );
+    },
+    [chainId, ownerAddress, transactionService, work, workByChain],
+  );
+
+  const getNewQuote = useCallback(async (): Promise<string> => {
+    try {
+      const next = await fetchQuote(preferredToken);
       onQuoteChangeRef.current(next, null);
       return next.feeFormatted;
     } catch (err: unknown) {
@@ -124,18 +164,13 @@ export function PaymentFeePicker({
       );
       throw err;
     }
-  }, [chainId, ownerAddress, preferredToken, transactionService, work]);
+  }, [fetchQuote, preferredToken]);
 
   async function onSelectToken(token: EVMAccountAddress): Promise<void> {
     setSelectBusy(true);
     try {
       setPreferredToken(token);
-      const next = await transactionService.quotePayment(
-        chainId,
-        ownerAddress,
-        work,
-        token,
-      );
+      const next = await fetchQuote(token);
       onQuoteChange(next, null);
     } catch (err: unknown) {
       onQuoteChange(

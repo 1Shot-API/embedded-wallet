@@ -89,6 +89,21 @@ export class TransactionService implements ITransactionService {
     );
   }
 
+  quotePaymentMultichain(
+    owner: EVMAccountAddress,
+    workByChain: readonly {
+      chainId: EVMChainId;
+      work: ITransactionWork | ITransactionWork[];
+    }[],
+    preferredToken?: EVMAccountAddress,
+  ): Promise<IPaymentQuote> {
+    return this.options.transactionUtils.quotePaymentMultichain(
+      owner,
+      workByChain,
+      preferredToken,
+    );
+  }
+
   activateDelegations(
     args: {
       upgradeChainIds: readonly EVMChainId[];
