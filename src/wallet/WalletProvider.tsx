@@ -107,7 +107,6 @@ import {
   saveCachedAddresses,
   clearWalletStorage,
 } from "../storage";
-import type { IRelayerConfirmSendResult } from "./modalTypes";
 import { pushModal } from "./pushModal";
 import { useWalletAuth } from "./useWalletAuth";
 import { useWalletAssets } from "./useWalletAssets";
@@ -261,14 +260,19 @@ export type WalletContextValue = {
   refreshDelegationsFromRelayer: () => Promise<void>;
   /**
    * In-wallet cancel from the Delegations tab. Opens the same confirm modal as
-   * `wallet_revokeExecutionPermission`, then deletes the vault row on success.
-   * `transactionHash` is null when the user skipped on-chain cancellation.
+   * `requestCancelDelegations` / `wallet_revokeExecutionPermission`, then
+   * deletes vault rows on success. `transactionHashes` is null when the user
+   * skipped on-chain cancellation.
    */
-  cancelStoredDelegation: (
-    delegationId: DelegationId,
+  cancelStoredDelegations: (
+    delegationIds: readonly DelegationId[],
   ) => Promise<{
-    chainId: EVMChainId;
-    transactionHash: EVMTransactionHash | null;
+    results: Array<{
+      chainId: EVMChainId;
+      transactionHash: EVMTransactionHash;
+    }>;
+    /** Null when the user skipped on-chain cancellation. */
+    transactionHashes: EVMTransactionHash[] | null;
   }>;
   listTrackedAssets: (chainId?: EVMChainId) => Promise<TrackedAsset[]>;
   addTrackedAsset: (
@@ -693,60 +697,103 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const cancelStoredDelegation = useCallback(
-    async (delegationId: DelegationId) => {
+  const cancelStoredDelegations = useCallback(
+    async (delegationIds: readonly DelegationId[]) => {
       await ensureOnboardedForSigning();
-      const stored = await credentialRepository.getDelegation(delegationId);
-      if (!stored) {
-        throw new Error("Permission not found in local cache.");
+      if (delegationIds.length === 0) {
+        throw new Error("Select at least one permission to cancel.");
       }
-      const chain = resolveChain(stored.chainId);
-      if (!chain?.useRelayer) {
-        throw new Error(
-          `Chain ${stored.chainId} does not support canceling permissions`,
-        );
+
+      const storedList: IStoredDelegation[] = [];
+      for (const delegationId of delegationIds) {
+        const stored = await credentialRepository.getDelegation(delegationId);
+        if (!stored) {
+          throw new Error("Permission not found in local cache.");
+        }
+        storedList.push(stored);
       }
+
+      for (const stored of storedList) {
+        const chain = resolveChain(stored.chainId);
+        if (!chain?.useRelayer) {
+          throw new Error(
+            `Chain ${stored.chainId} does not support canceling permissions`,
+          );
+        }
+      }
+
       const owner =
         useWalletSessionStore.getState().evmAddress ||
         loadCachedEvmAddress();
       if (!owner) {
         throw new Error("Wallet address is required to cancel a permission");
       }
-      const cancelWork = await delegationService.buildCancelWork({
-        chainId: stored.chainId,
-        stored,
-      });
-      const transactionHash = await pushModal<EVMTransactionHash | null>(
+
+      const items = await Promise.all(
+        storedList.map(async (stored) => {
+          const chain = resolveChain(stored.chainId)!;
+          const work = await delegationService.buildCancelWork({
+            chainId: stored.chainId,
+            stored,
+          });
+          return {
+            memo: stored.memo,
+            chainName: chain.label,
+            chainId: stored.chainId,
+            work,
+          };
+        }),
+      );
+
+      const domain = String(storedList[0]!.hostDomain);
+      const transactionHashes = await pushModal<EVMTransactionHash[] | null>(
         ({ id, resolve, reject }) => ({
           id,
           kind: "cancelDelegation",
           request: {
-            domain: String(stored.hostDomain),
-            chainName: chain.label,
-            chainId: stored.chainId,
+            domain,
             ownerAddress: owner,
-            work: cancelWork,
+            items,
             allowSkipOnchain: true,
           },
-          execute: async (payment: IRelayerConfirmSendResult, ui) => {
-            const result = await delegationService.cancelDelegation({
-              chainId: stored.chainId,
-              paymentToken: payment.paymentToken,
-              feeAtoms: payment.feeAtoms,
-              stored,
+          execute: async (payments, ui) => {
+            const batch = await delegationService.cancelDelegations({
+              items: storedList.map((stored) => ({
+                chainId: stored.chainId,
+                stored,
+              })),
+              payments,
               ...ui,
             });
-            return result.transactionHash;
+            return batch.results.map((r) => r.transactionHash);
           },
           executeLocal: async () => {
-            await delegationService.removeStoredDelegation(stored);
+            await delegationService.removeStoredDelegations(storedList);
           },
           resolve,
           reject,
         }),
       );
       await onSigningAuthenticated();
-      return { chainId: stored.chainId, transactionHash };
+      if (transactionHashes === null) {
+        return { results: [], transactionHashes: null };
+      }
+      // One hash per unique chain (cancelDelegations groups by chain).
+      const chainOrder: EVMChainId[] = [];
+      const seen = new Set<string>();
+      for (const stored of storedList) {
+        const key = BigInt(stored.chainId).toString(10);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        chainOrder.push(stored.chainId);
+      }
+      return {
+        results: transactionHashes.map((transactionHash, index) => ({
+          chainId: chainOrder[index] ?? chainOrder[0]!,
+          transactionHash,
+        })),
+        transactionHashes,
+      };
     },
     [
       ensureOnboardedForSigning,
@@ -881,7 +928,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       listDelegations,
       getDelegation,
       refreshDelegationsFromRelayer,
-      cancelStoredDelegation,
+      cancelStoredDelegations,
       listTrackedAssets,
       addTrackedAsset,
       removeTrackedAsset,
@@ -916,7 +963,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       listDelegations,
       getDelegation,
       refreshDelegationsFromRelayer,
-      cancelStoredDelegation,
+      cancelStoredDelegations,
       listTrackedAssets,
       addTrackedAsset,
       removeTrackedAsset,

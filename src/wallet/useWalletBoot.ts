@@ -91,6 +91,7 @@ import { registerSwitchChainRpc } from "./registerSwitchChain";
 import { registerOnrampRpc } from "./registerOnramp";
 import { registerBridgeRpc } from "./registerBridge";
 import { registerGetUpgradedRpc } from "./registerGetUpgraded";
+import { registerRequestCancelDelegationsRpc } from "./registerRequestCancelDelegations";
 import { registerBitcoinProvider } from "../ows/registerBitcoinProvider";
 import { loadCachedEvmAddress, loadCredentialId } from "../storage";
 import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
@@ -670,28 +671,37 @@ export function useWalletBoot({
                 await runWithAnalytics(
                   (event) => eventBus.emitAnalytics(event),
                   async () => {
-                    const txHash = await ask<EVMTransactionHash | null>(
+                    const txHashes = await ask<EVMTransactionHash[] | null>(
                       ({ id, resolve, reject }) => ({
                         id,
                         kind: "cancelDelegation",
                         request: {
                           domain: String(domain),
-                          chainName: chain.label,
-                          chainId,
                           ownerAddress: owner,
-                          work: cancelWork,
+                          items: [
+                            {
+                              memo: stored?.memo ?? "",
+                              chainName: chain.label,
+                              chainId,
+                              work: cancelWork,
+                            },
+                          ],
                           allowSkipOnchain: Boolean(stored),
                         },
-                        execute: async (payment: IRelayerConfirmSendResult, ui) => {
-                          const result = await delegationService.cancelDelegation({
-                            chainId,
-                            paymentToken: payment.paymentToken,
-                            feeAtoms: payment.feeAtoms,
-                            ...(stored ? { stored } : {}),
-                            permissionContext: params.permissionContext,
-                            ...ui,
-                          });
-                          return result.transactionHash;
+                        execute: async (payments, ui) => {
+                          const batch =
+                            await delegationService.cancelDelegations({
+                              items: [
+                                {
+                                  chainId,
+                                  ...(stored ? { stored } : {}),
+                                  permissionContext: params.permissionContext,
+                                },
+                              ],
+                              payments,
+                              ...ui,
+                            });
+                          return batch.results.map((r) => r.transactionHash);
                         },
                         executeLocal: async () => {
                           if (!stored) {
@@ -699,13 +709,15 @@ export function useWalletBoot({
                               "Skip onchain cancellation requires a stored permission",
                             );
                           }
-                          await delegationService.removeStoredDelegation(stored);
+                          await delegationService.removeStoredDelegation(
+                            stored,
+                          );
                         },
                         resolve,
                         reject,
                       }),
                     );
-                    return txHash;
+                    return txHashes?.[0] ?? null;
                   },
                   {
                     success: (txHash) =>
@@ -774,6 +786,14 @@ export function useWalletBoot({
           return address;
         },
         transactionService,
+      });
+
+      registerRequestCancelDelegationsRpc(wallet, {
+        configProvider,
+        delegationService,
+        ensureOnboardedForSigning,
+        resolveChain,
+        ask,
       });
 
       registerBridgeRpc(wallet, {

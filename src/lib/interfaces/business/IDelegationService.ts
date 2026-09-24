@@ -57,6 +57,26 @@ export interface ICancelDelegationParams extends IRelayerSendUiCallbacks {
   permissionContext?: HexString;
 }
 
+/** One row in a batch cancel (vault and/or host permissionContext). */
+export type ICancelDelegationItem = {
+  chainId: EVMChainId;
+  stored?: IStoredDelegation;
+  permissionContext?: HexString;
+};
+
+/** Per-chain USDC payment for {@link IDelegationService.cancelDelegations}. */
+export type ICancelDelegationChainPayment = {
+  chainId: EVMChainId;
+  paymentToken: EVMAccountAddress;
+  feeAtoms: TokenAmount;
+};
+
+export interface ICancelDelegationsParams extends IRelayerSendUiCallbacks {
+  items: readonly ICancelDelegationItem[];
+  /** One payment per unique chain in `items` (same key as `chainId`). */
+  payments: readonly ICancelDelegationChainPayment[];
+}
+
 export type IBuildCancelWorkParams = {
   chainId: EVMChainId;
   stored?: IStoredDelegation;
@@ -66,6 +86,10 @@ export type IBuildCancelWorkParams = {
 export interface ICancelDelegationResult extends ISendTransactionResult {
   /** Set when a known vault entry was deleted after on-chain cancel. */
   deletedDelegationId?: DelegationId;
+}
+
+export interface ICancelDelegationsResult {
+  results: Array<ICancelDelegationResult & { chainId: EVMChainId }>;
 }
 
 /**
@@ -82,6 +106,15 @@ export interface IDelegationService {
   /** ExactCalldata work for unsigned fee estimate before cancel confirm. */
   buildCancelWork(params: IBuildCancelWorkParams): Promise<ITransactionWork>;
 
+  /**
+   * Disable one or more delegations. Groups by chain and submits one
+   * `sendViaRelayer(work[])` per chain (one fee + one passkey each).
+   */
+  cancelDelegations(
+    params: ICancelDelegationsParams,
+  ): Promise<ICancelDelegationsResult>;
+
+  /** Single-delegation cancel — thin wrapper over {@link cancelDelegations}. */
   cancelDelegation(
     params: ICancelDelegationParams,
   ): Promise<ICancelDelegationResult>;
@@ -92,6 +125,13 @@ export interface IDelegationService {
    * by anyone who still holds it.
    */
   removeStoredDelegation(stored: IStoredDelegation): Promise<DelegationId>;
+
+  /**
+   * Remove multiple vault rows without on-chain `disableDelegation`.
+   */
+  removeStoredDelegations(
+    storedList: readonly IStoredDelegation[],
+  ): Promise<DelegationId[]>;
 
   getSupportedExecutionPermissions(): Promise<SupportedExecutionPermissions>;
 

@@ -82,17 +82,30 @@ export type IGrantExecutionPermissionResult = {
   memo: string;
 };
 
-/** Cancel / revoke confirm (on-chain disableDelegation). */
-export interface ICancelDelegationConfirmRequest {
-  domain: string;
+/** One delegation in a cancel / revoke confirm batch. */
+export interface ICancelDelegationConfirmItem {
+  memo: string;
   chainName: string;
   chainId: EVMChainId;
-  ownerAddress: EVMAccountAddress;
-  /** ExactCalldata work for unsigned fee estimate. */
+  /** ExactCalldata work for unsigned fee estimate on this chain. */
   work: ITransactionWork;
+}
+
+/** Per-chain payment when canceling across one or more networks. */
+export type ICancelDelegationPayment = {
+  chainId: EVMChainId;
+  paymentToken: EVMAccountAddress;
+  feeAtoms: TokenAmount;
+};
+
+/** Cancel / revoke confirm (on-chain disableDelegation, possibly batched). */
+export interface ICancelDelegationConfirmRequest {
+  domain: string;
+  ownerAddress: EVMAccountAddress;
+  items: ICancelDelegationConfirmItem[];
   /**
    * When true, the modal offers “Skip onchain cancellation” (vault delete
-   * only). Requires a stored vault row.
+   * only). Requires stored vault rows for every item.
    */
   allowSkipOnchain: boolean;
 }
@@ -211,13 +224,13 @@ export type ModalRequest =
       kind: "cancelDelegation";
       request: ICancelDelegationConfirmRequest;
       execute: (
-        payment: IRelayerConfirmSendResult,
+        payments: ICancelDelegationPayment[],
         ui: IRelayerSendUiCallbacks,
-      ) => Promise<EVMTransactionHash>;
+      ) => Promise<EVMTransactionHash[]>;
       /** Vault-only delete when the user skips on-chain cancel. */
       executeLocal: () => Promise<void>;
       onRegisterAwaitingConfirmation?: (notify: () => void) => void;
-      resolve: (hash: EVMTransactionHash | null) => void;
+      resolve: (hashes: EVMTransactionHash[] | null) => void;
       reject: (error: unknown) => void;
     }
   | {

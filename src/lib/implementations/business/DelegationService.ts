@@ -44,6 +44,8 @@ import type {
   IBuildCancelWorkParams,
   ICancelDelegationParams,
   ICancelDelegationResult,
+  ICancelDelegationsParams,
+  ICancelDelegationsResult,
   ICreateExecutionPermissionsParams,
   IDelegationService,
 } from "../../interfaces/business/IDelegationService";
@@ -227,33 +229,120 @@ export class DelegationService implements IDelegationService {
     return resolved.work;
   }
 
+  async cancelDelegations(
+    params: ICancelDelegationsParams,
+  ): Promise<ICancelDelegationsResult> {
+    if (params.items.length === 0) {
+      throw new Error("cancelDelegations requires at least one item");
+    }
+
+    const resolvedItems = await Promise.all(
+      params.items.map(async (item) => {
+        const resolved = await this.resolveCancelDelegation(item);
+        return {
+          chainId: item.chainId,
+          stored: resolved.stored,
+          work: resolved.work,
+        };
+      }),
+    );
+
+    const byChain = new Map<
+      string,
+      {
+        chainId: EVMChainId;
+        work: ITransactionWork[];
+        stored: IStoredDelegation[];
+      }
+    >();
+    for (const item of resolvedItems) {
+      const key = BigInt(item.chainId).toString(10);
+      let group = byChain.get(key);
+      if (!group) {
+        group = { chainId: item.chainId, work: [], stored: [] };
+        byChain.set(key, group);
+      }
+      group.work.push(item.work);
+      if (item.stored) group.stored.push(item.stored);
+    }
+
+    const paymentByChain = new Map<string, (typeof params.payments)[number]>();
+    for (const payment of params.payments) {
+      paymentByChain.set(BigInt(payment.chainId).toString(10), payment);
+    }
+
+    const results: ICancelDelegationsResult["results"] = [];
+    let firstChain = true;
+    for (const group of byChain.values()) {
+      const payment = paymentByChain.get(BigInt(group.chainId).toString(10));
+      if (!payment) {
+        throw new Error(
+          `cancelDelegations missing payment for chain ${group.chainId}`,
+        );
+      }
+      const chain = await this.requireRelayerChain(group.chainId);
+      const result = await this.transactionUtils.sendViaRelayer({
+        chainId: group.chainId,
+        work: group.work,
+        paymentToken: payment.paymentToken,
+        feeAtoms: payment.feeAtoms,
+        relayerUrl: chain.relayerUrl,
+        prefetchRelayerVaultAssertion: true,
+        retainDisplayDuringSubmit: true,
+        // Only the first chain owns the confirm UI; later chains keep the
+        // flyout open without re-triggering "awaiting confirmation".
+        onAwaitingConfirmation: firstChain
+          ? params.onAwaitingConfirmation
+          : undefined,
+        onFinalFeeRequired: params.onFinalFeeRequired,
+      });
+      firstChain = false;
+
+      const deletedIds: DelegationId[] = [];
+      for (const stored of group.stored) {
+        await this.delegationRepository.deleteDelegation(stored.delegationId);
+        deletedIds.push(stored.delegationId);
+      }
+
+      results.push({
+        ...result,
+        chainId: group.chainId,
+        deletedDelegationId: deletedIds[0],
+      });
+    }
+
+    return { results };
+  }
+
   async cancelDelegation(
     params: ICancelDelegationParams,
   ): Promise<ICancelDelegationResult> {
-    const chain = await this.requireRelayerChain(params.chainId);
-    const { stored, work } = await this.resolveCancelDelegation(params);
-
-    const result = await this.transactionUtils.sendViaRelayer({
-      chainId: params.chainId,
-      work,
-      paymentToken: params.paymentToken,
-      feeAtoms: params.feeAtoms,
-      relayerUrl: chain.relayerUrl,
-      prefetchRelayerVaultAssertion: true,
-      retainDisplayDuringSubmit: true,
+    const batch = await this.cancelDelegations({
+      items: [
+        {
+          chainId: params.chainId,
+          ...(params.stored ? { stored: params.stored } : {}),
+          ...(params.permissionContext
+            ? { permissionContext: params.permissionContext }
+            : {}),
+        },
+      ],
+      payments: [
+        {
+          chainId: params.chainId,
+          paymentToken: params.paymentToken,
+          feeAtoms: params.feeAtoms,
+        },
+      ],
       onAwaitingConfirmation: params.onAwaitingConfirmation,
       onFinalFeeRequired: params.onFinalFeeRequired,
+      retainDisplayDuringSubmit: params.retainDisplayDuringSubmit,
     });
-
-    let deletedDelegationId: ICancelDelegationResult["deletedDelegationId"];
-    if (stored) {
-      await this.delegationRepository.deleteDelegation(
-        stored.delegationId,
-      );
-      deletedDelegationId = stored.delegationId;
+    const first = batch.results[0];
+    if (!first) {
+      throw new Error("cancelDelegation returned no results");
     }
-
-    return { ...result, deletedDelegationId };
+    return first;
   }
 
   async removeStoredDelegation(
@@ -261,6 +350,16 @@ export class DelegationService implements IDelegationService {
   ): Promise<DelegationId> {
     await this.delegationRepository.deleteDelegation(stored.delegationId);
     return stored.delegationId;
+  }
+
+  async removeStoredDelegations(
+    storedList: readonly IStoredDelegation[],
+  ): Promise<DelegationId[]> {
+    const ids: DelegationId[] = [];
+    for (const stored of storedList) {
+      ids.push(await this.removeStoredDelegation(stored));
+    }
+    return ids;
   }
 
   private async resolveCancelDelegation(params: {
