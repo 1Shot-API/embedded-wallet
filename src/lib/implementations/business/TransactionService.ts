@@ -16,8 +16,9 @@ import type {
   ITransactionWork,
 } from "../../interfaces/business/ITransactionService";
 import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
-import type { IActivationPayment } from "../../interfaces/business/utils/ITransactionUtils";
+import type { IActivationPayment } from "../../types/domain/ActivationPayment";
 import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
+import type { IWalletUpgradeStatus } from "../../types/domain/WalletUpgradeStatus";
 import type { TokenAmount } from "../../types/primitives";
 
 const EMPTY_CALLDATA = HexString("0x");
@@ -42,6 +43,16 @@ export class TransactionService implements ITransactionService {
     address: EVMAccountAddress,
   ): Promise<boolean> {
     return this.options.transactionUtils.needsWalletUpgrade(chainId, address);
+  }
+
+  getWalletUpgradeStatus(
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ): Promise<IWalletUpgradeStatus> {
+    return this.options.transactionUtils.getWalletUpgradeStatus(
+      chainId,
+      address,
+    );
   }
 
   signWalletUpgradeAuthorization(

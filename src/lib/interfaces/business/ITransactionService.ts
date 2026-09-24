@@ -7,9 +7,10 @@ import type {
   IRelayerAuthorizationEntry,
   ISendTransactionResult,
 } from "../data/IOneshotRelayerRepository";
+import type { IActivationPayment } from "../../types/domain/ActivationPayment";
 import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
+import type { IWalletUpgradeStatus } from "../../types/domain/WalletUpgradeStatus";
 import type { TokenAmount } from "../../types/primitives";
-import type { IActivationPayment } from "./utils/ITransactionUtils";
 
 export interface IPaymentTokenOption {
   address: EVMAccountAddress;
@@ -53,6 +54,11 @@ export interface ITransactionService {
     chainId: EVMChainId,
     address: EVMAccountAddress,
   ): Promise<boolean>;
+
+  getWalletUpgradeStatus(
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ): Promise<IWalletUpgradeStatus>;
 
   signWalletUpgradeAuthorization(
     chainId: EVMChainId,

@@ -37,7 +37,6 @@ export {
 } from "./IDelegationService";
 export type { ExecutionPermissionType } from "./IDelegationService";
 export type {
-  IActivationPayment,
   ITransactionUtils as IBusinessTransactionUtils,
 } from "./utils/ITransactionUtils";
 export {

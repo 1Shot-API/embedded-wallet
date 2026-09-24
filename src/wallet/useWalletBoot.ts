@@ -90,6 +90,7 @@ import { registerFocusModeRpc } from "./registerFocusMode";
 import { registerSwitchChainRpc } from "./registerSwitchChain";
 import { registerOnrampRpc } from "./registerOnramp";
 import { registerBridgeRpc } from "./registerBridge";
+import { registerGetUpgradedRpc } from "./registerGetUpgraded";
 import { registerBitcoinProvider } from "../ows/registerBitcoinProvider";
 import { loadCachedEvmAddress, loadCredentialId } from "../storage";
 import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
@@ -739,6 +740,17 @@ export function useWalletBoot({
           }
           return address;
         },
+      });
+
+      registerGetUpgradedRpc(wallet, {
+        getOwnerAddress: () => {
+          const address = useWalletSessionStore.getState().evmAddress;
+          if (!address || String(address).toLowerCase() === "0x0") {
+            return null;
+          }
+          return address;
+        },
+        transactionService,
       });
 
       registerBridgeRpc(wallet, {

@@ -9,6 +9,7 @@ import { toViemLocalAccount } from "@1shotapi/ows-signer-utils";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import {
   EVMAccountAddress,
+  EVMContractAddress,
   EVMTransactionHash,
   type CeremonyUiParams,
   type EVMChainId,
@@ -43,13 +44,14 @@ import {
   NATIVE_TRANSFER_GAS,
   maxNativeSendable,
   withNativeFeeHeadroom,
-  type IActivationPayment,
   type ITransactionUtils,
 } from "../../../interfaces/business/utils/ITransactionUtils";
 import type { ITransactionUtils as IPresentationTransactionUtils } from "../../../interfaces/utils/ITransactionUtils";
 import type { IOWSProvider } from "../../../interfaces/utils/IOWSProvider";
-import { EPasskeyPromptReason } from "../../../types/enum/EPasskeyPromptReason";
+import type { IActivationPayment } from "../../../types/domain/ActivationPayment";
 import type { IFinalRelayerFee } from "../../../types/domain/RelayerSendUi";
+import type { IWalletUpgradeStatus } from "../../../types/domain/WalletUpgradeStatus";
+import { EPasskeyPromptReason } from "../../../types/enum/EPasskeyPromptReason";
 import { EAssetType } from "../../../types/enum/EAssetType";
 import {
   makeTokenAmount,
@@ -128,19 +130,15 @@ export class TransactionUtils implements ITransactionUtils {
     // send (before confirm) or after a failed upgrade leaves the account
     // unable to estimate on that chain.
     try {
-      const upgraded = await this.isCodeUpgraded(chainId, address);
-      await this.options.chainRepository.setWalletUpgraded(
-        chainId,
-        address,
-        upgraded,
-      );
+      const status = await this.getWalletUpgradeStatus(chainId, address);
       console.debug("[business/TransactionUtils] EIP-7702 upgrade check", {
         chainId,
         address,
-        upgraded,
-        needsUpgrade: !upgraded,
+        upgraded: status.upgraded,
+        codeAddress: status.codeAddress,
+        needsUpgrade: !status.upgraded,
       });
-      return !upgraded;
+      return !status.upgraded;
     } catch (error) {
       // Fail open: include an authorization rather than omit one when getCode
       // is unreachable (e.g. RPC origin allowlist / transient failure).
@@ -150,6 +148,19 @@ export class TransactionUtils implements ITransactionUtils {
       );
       return true;
     }
+  }
+
+  async getWalletUpgradeStatus(
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ): Promise<IWalletUpgradeStatus> {
+    const status = await this.readCodeUpgradeStatus(chainId, address);
+    await this.options.chainRepository.setWalletUpgraded(
+      chainId,
+      address,
+      status.upgraded,
+    );
+    return status;
   }
 
   async signWalletUpgradeAuthorization(
@@ -1414,13 +1425,15 @@ export class TransactionUtils implements ITransactionUtils {
     throw new Error("Timed out waiting for relayer transaction status");
   }
 
-  private async isCodeUpgraded(
+  private async readCodeUpgradeStatus(
     chainId: EVMChainId,
     address: EVMAccountAddress,
-  ): Promise<boolean> {
+  ): Promise<IWalletUpgradeStatus> {
     const client = this.options.blockchain.getPublicClient(chainId);
     const code = await client.getCode({ address });
-    if (!code || code === "0x") return false;
+    if (!code || code === "0x") {
+      return { upgraded: false };
+    }
 
     let impl = STATELESS_DELEGATOR_IMPL.toLowerCase();
     try {
@@ -1435,10 +1448,16 @@ export class TransactionUtils implements ITransactionUtils {
     // Do not substring-match the impl inside arbitrary bytecode — that can
     // false-positive and skip authorization on a chain that is not upgraded.
     if (!(normalized.startsWith("0xef0100") && normalized.length >= 48)) {
-      return false;
+      return { upgraded: false };
     }
     const delegated = `0x${normalized.slice(8, 48)}`;
-    return delegated === impl;
+    if (delegated !== impl) {
+      return { upgraded: false };
+    }
+    return {
+      upgraded: true,
+      codeAddress: EVMContractAddress(getAddress(delegated)),
+    };
   }
 
   private async requireRelayerChain(chainId: EVMChainId) {

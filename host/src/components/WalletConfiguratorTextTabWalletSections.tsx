@@ -356,6 +356,46 @@ export function WalletConfiguratorTextTabWalletSections({
             }
           />
           <TextField
+            id="activate-offline-permissions-chains-label"
+            label="Activate offline permissions chains label"
+            value={form.activateOfflinePermissionsChainsLabel}
+            onChange={(value) =>
+              patch("activateOfflinePermissionsChainsLabel", value)
+            }
+          />
+          <TextField
+            id="activate-offline-permissions-pay-from-label"
+            label="Activate offline permissions pay from label"
+            value={form.activateOfflinePermissionsPayFromLabel}
+            onChange={(value) =>
+              patch("activateOfflinePermissionsPayFromLabel", value)
+            }
+          />
+          <TextField
+            id="activate-offline-permissions-fee-label"
+            label="Activate offline permissions fee label"
+            value={form.activateOfflinePermissionsFeeLabel}
+            onChange={(value) =>
+              patch("activateOfflinePermissionsFeeLabel", value)
+            }
+          />
+          <TextField
+            id="activate-offline-permissions-insufficient-balance-error"
+            label="Activate offline permissions insufficient balance error"
+            value={form.activateOfflinePermissionsInsufficientBalanceError}
+            onChange={(value) =>
+              patch("activateOfflinePermissionsInsufficientBalanceError", value)
+            }
+          />
+          <TextField
+            id="activate-offline-permissions-no-usdc-error"
+            label="Activate offline permissions no USDC error"
+            value={form.activateOfflinePermissionsNoUsdcError}
+            onChange={(value) =>
+              patch("activateOfflinePermissionsNoUsdcError", value)
+            }
+          />
+          <TextField
             id="activate-offline-permissions-confirm"
             label="Activate offline permissions confirm"
             value={form.activateOfflinePermissionsConfirm}

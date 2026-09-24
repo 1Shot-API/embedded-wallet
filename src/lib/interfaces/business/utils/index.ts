@@ -1,4 +1,4 @@
-export type { IActivationPayment, ITransactionUtils } from "./ITransactionUtils";
+export type { ITransactionUtils } from "./ITransactionUtils";
 export {
   ITransactionUtilsType,
   NATIVE_TRANSFER_GAS,

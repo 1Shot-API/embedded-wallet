@@ -215,6 +215,11 @@ export interface IStyleFormState {
   cancelDelegationSkipOnchainAcknowledgement: string;
   activateOfflinePermissionsTitle: string;
   activateOfflinePermissionsBody: string;
+  activateOfflinePermissionsChainsLabel: string;
+  activateOfflinePermissionsPayFromLabel: string;
+  activateOfflinePermissionsFeeLabel: string;
+  activateOfflinePermissionsInsufficientBalanceError: string;
+  activateOfflinePermissionsNoUsdcError: string;
   activateOfflinePermissionsConfirm: string;
   activateOfflinePermissionsReject: string;
 
@@ -460,6 +465,13 @@ export const ACME_PRESET: IStyleFormState = {
   activateOfflinePermissionsTitle: "Activate offline permissions",
   activateOfflinePermissionsBody:
     "This is your first time using offline permissions. You must activate the feature on your account with a one-time transaction.",
+  activateOfflinePermissionsChainsLabel: "Networks to activate",
+  activateOfflinePermissionsPayFromLabel: "Pay fee from",
+  activateOfflinePermissionsFeeLabel: "Activation fee",
+  activateOfflinePermissionsInsufficientBalanceError:
+    "Insufficient USDC to pay the activation fee on {chainName}.",
+  activateOfflinePermissionsNoUsdcError:
+    "Hold USDC on Arc or a requested network to activate offline permissions.",
   activateOfflinePermissionsConfirm: "Activate",
   activateOfflinePermissionsReject: "Cancel",
   passkeyPromptUnlockTitle: "Unlock with passkey",
@@ -667,6 +679,13 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   activateOfflinePermissionsTitle: "Activate offline permissions",
   activateOfflinePermissionsBody:
     "This is your first time using offline permissions. You must activate the feature on your account with a one-time transaction.",
+  activateOfflinePermissionsChainsLabel: "Networks to activate",
+  activateOfflinePermissionsPayFromLabel: "Pay fee from",
+  activateOfflinePermissionsFeeLabel: "Activation fee",
+  activateOfflinePermissionsInsufficientBalanceError:
+    "Insufficient USDC to pay the activation fee on {chainName}.",
+  activateOfflinePermissionsNoUsdcError:
+    "Hold USDC on Arc or a requested network to activate offline permissions.",
   activateOfflinePermissionsConfirm: "Activate",
   activateOfflinePermissionsReject: "Cancel",
   passkeyPromptUnlockTitle: "Unlock with passkey",
@@ -994,6 +1013,31 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   const activateOfflinePermissions: Record<string, string> = {};
   put(activateOfflinePermissions, "title", form.activateOfflinePermissionsTitle);
   put(activateOfflinePermissions, "body", form.activateOfflinePermissionsBody);
+  put(
+    activateOfflinePermissions,
+    "chainsLabel",
+    form.activateOfflinePermissionsChainsLabel,
+  );
+  put(
+    activateOfflinePermissions,
+    "payFromLabel",
+    form.activateOfflinePermissionsPayFromLabel,
+  );
+  put(
+    activateOfflinePermissions,
+    "feeLabel",
+    form.activateOfflinePermissionsFeeLabel,
+  );
+  put(
+    activateOfflinePermissions,
+    "insufficientBalanceError",
+    form.activateOfflinePermissionsInsufficientBalanceError,
+  );
+  put(
+    activateOfflinePermissions,
+    "noUsdcError",
+    form.activateOfflinePermissionsNoUsdcError,
+  );
   put(
     activateOfflinePermissions,
     "confirmLabel",

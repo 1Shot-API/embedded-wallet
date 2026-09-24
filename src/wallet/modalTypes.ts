@@ -13,6 +13,8 @@ import type {
   IExecutionPermission,
   IExecutionPermissionRequest,
 } from "@1shotapi/ows-types";
+import type { IActivationPayment } from "../lib/types/domain/ActivationPayment";
+import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 import type { ISiweFields } from "../lib/types/domain/SiweFields";
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
 import type { IOnrampOpenRequest } from "../circle/onrampTypes";
@@ -21,9 +23,7 @@ import type {
   ICctpBridgeOpenRequest,
 } from "../circle/cctpBridgeTypes";
 import type { TokenAmount } from "../lib/types/primitives";
-import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 import type { ITransactionWork } from "../lib/interfaces/business/ITransactionService";
-import type { IActivationPayment } from "../lib/interfaces/business/utils/ITransactionUtils";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 

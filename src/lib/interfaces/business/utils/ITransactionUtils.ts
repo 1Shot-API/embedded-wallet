@@ -1,26 +1,20 @@
 import type { LocalAccount } from "viem/accounts";
-import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
+import type {
+  EVMAccountAddress,
+  EVMChainId,
+} from "@1shotapi/ows-types";
 import type {
   IRelayerAuthorizationEntry,
   ISendTransactionResult,
 } from "../../data/IOneshotRelayerRepository";
+import type { IActivationPayment } from "../../../types/domain/ActivationPayment";
 import type { IRelayerSendUiCallbacks } from "../../../types/domain/RelayerSendUi";
+import type { IWalletUpgradeStatus } from "../../../types/domain/WalletUpgradeStatus";
 import type { TokenAmount } from "../../../types/primitives";
 import type {
   IPaymentQuote,
   ITransactionWork,
 } from "../ITransactionService";
-
-/** Payment chain + USDC selected for offline-permission EIP-7702 activation. */
-export interface IActivationPayment {
-  paymentChainId: EVMChainId;
-  paymentToken: EVMAccountAddress;
-  /** Human-readable payment-chain label for the confirm modal. */
-  paymentChainName: string;
-  usdcBalance: TokenAmount;
-  usdcDecimals: number;
-  usdcSymbol: string;
-}
 
 /**
  * Shared send / EIP-7702 / ExactCalldata delegation plumbing for
@@ -34,6 +28,16 @@ export interface ITransactionUtils {
     chainId: EVMChainId,
     address: EVMAccountAddress,
   ): Promise<boolean>;
+
+  /**
+   * On-chain EIP-7702 status for `address` on `chainId`. Syncs the
+   * per-chain upgrade cache. Throws when getCode fails (callers that
+   * fail-open should catch).
+   */
+  getWalletUpgradeStatus(
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ): Promise<IWalletUpgradeStatus>;
 
   signWalletUpgradeAuthorization(
     chainId: EVMChainId,
