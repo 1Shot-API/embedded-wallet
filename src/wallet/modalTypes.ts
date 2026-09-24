@@ -101,7 +101,10 @@ export interface ICancelDelegationConfirmRequest {
 export interface IActivateOfflinePermissionsRequest {
   domain: string;
   ownerAddress: EVMAccountAddress;
-  /** Chains that still need EIP-7702 upgrade for this grant request. */
+  /**
+   * Chains that still need EIP-7702 for this grant — requested grant chains
+   * plus the USDC payment chain (usually Arc) when either needs upgrade.
+   */
   upgradeChains: Array<{ chainId: EVMChainId; chainName: string }>;
   payment: IActivationPayment;
 }

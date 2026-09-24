@@ -72,7 +72,7 @@ import { DEFAULT_CHAIN_ID } from "../../data/HardcodedChainRepository";
 import "../../utils/registerSmartAccountsEnvironments";
 
 const STATELESS_DELEGATOR_IMPL =
-  "0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B" as const;
+  EVMContractAddress("0x63c0c19a282a1B52b07dD5a65b58948A07DAE32B");
 
 /**
  * 65-byte zero signature for `relayer_estimate7710Transaction` unsigned
@@ -93,6 +93,10 @@ const LEGACY_DELEGATION_SECRET_KEY = "oneshot.delegationSecret";
 const POLL_MS = 1000;
 const MAX_POLL_ATTEMPTS = 180;
 const EMPTY_CALLDATA = "0x" as Hex;
+/** Safe no-op call target: empty calldata to the EOA hits the estimate shim
+ *  (or StatelessDelegator) fallback and reverts. Zero address accepts it. */
+const ACTIVATION_NOOP_TARGET =
+  EVMAccountAddress("0x0000000000000000000000000000000000000000");
 
 type ExactCalldataDelegationArgs = {
   smartAccount: Awaited<ReturnType<typeof toMetaMaskSmartAccount>>;
@@ -101,6 +105,12 @@ type ExactCalldataDelegationArgs = {
   value: bigint;
   callData: Hex;
   chainIdNumber: number;
+};
+
+/** EIP-7702 activation no-op: empty calldata, zero native value. */
+type ActivationNoOpDelegationArgs = {
+  smartAccount: Awaited<ReturnType<typeof toMetaMaskSmartAccount>>;
+  delegate: EVMAccountAddress;
 };
 
 export type TransactionUtilsOptions = {
@@ -408,7 +418,7 @@ export class TransactionUtils implements ITransactionUtils {
     const unique: EVMChainId[] = [];
     const seen = new Set<string>();
     for (const id of candidateChainIds) {
-      const key = String(id);
+      const key = chainIdKey(id);
       if (seen.has(key)) continue;
       seen.add(key);
       unique.push(id);
@@ -426,8 +436,8 @@ export class TransactionUtils implements ITransactionUtils {
     );
     if (withUsdc.length === 0) return null;
 
-    const preferArc = withUsdc.find(
-      (row) => String(row.chainId) === String(DEFAULT_CHAIN_ID),
+    const preferArc = withUsdc.find((row) =>
+      sameEvmChainId(row.chainId, DEFAULT_CHAIN_ID),
     );
     const picked = preferArc ?? withUsdc[0]!;
     const chain = await this.requireRelayerChain(picked.chainId);
@@ -596,19 +606,19 @@ export class TransactionUtils implements ITransactionUtils {
         >
       >();
       chainSmartAccounts.set(
-        String(payment.paymentChainId),
+        chainIdKey(payment.paymentChainId),
         paymentSmartAccount,
       );
       upgradeCapabilities.set(
-        String(payment.paymentChainId),
+        chainIdKey(payment.paymentChainId),
         paymentCapabilities,
       );
       const missingUpgradeIds = upgradeChainIds.filter(
-        (chainId) => !chainSmartAccounts.has(String(chainId)),
+        (chainId) => !chainSmartAccounts.has(chainIdKey(chainId)),
       );
       await Promise.all(
         missingUpgradeIds.map(async (chainId) => {
-          const key = String(chainId);
+          const key = chainIdKey(chainId);
           if (!upgradeCapabilities.has(key)) {
             const chain = await this.requireRelayerChain(chainId);
             const caps = await this.options.relayerRepository.getCapabilities(
@@ -668,21 +678,17 @@ export class TransactionUtils implements ITransactionUtils {
                   Promise.all(
                     upgradeChainIds.map((chainId) => {
                       const smartAccount = chainSmartAccounts.get(
-                        String(chainId),
+                        chainIdKey(chainId),
                       );
-                      const caps = upgradeCapabilities.get(String(chainId));
+                      const caps = upgradeCapabilities.get(chainIdKey(chainId));
                       if (!smartAccount || !caps) {
                         throw new Error(
                           `Missing smart account or capabilities for ${chainId}`,
                         );
                       }
-                      return this.createAndSignExactCalldataDelegation({
+                      return this.createAndSignActivationNoOpDelegation({
                         smartAccount,
                         delegate: caps.targetAddress,
-                        target: eoa,
-                        value: 0n,
-                        callData: EMPTY_CALLDATA,
-                        chainIdNumber: Number(BigInt(chainId)),
                       });
                     }),
                   ),
@@ -695,12 +701,18 @@ export class TransactionUtils implements ITransactionUtils {
 
       const authByChain = new Map<string, IRelayerAuthorizationEntry>();
       for (let i = 0; i < upgradeChainIds.length; i += 1) {
-        authByChain.set(String(upgradeChainIds[i]), signed.authEntries[i]!);
+        authByChain.set(
+          chainIdKey(upgradeChainIds[i]!),
+          signed.authEntries[i]!,
+        );
       }
       let feeDelegation = signed.feeDelegation;
       const workByChain = new Map<string, unknown>();
       for (let i = 0; i < upgradeChainIds.length; i += 1) {
-        workByChain.set(String(upgradeChainIds[i]), signed.workDelegations[i]!);
+        workByChain.set(
+          chainIdKey(upgradeChainIds[i]!),
+          signed.workDelegations[i]!,
+        );
       }
 
       const buildChainParams = async (
@@ -722,12 +734,11 @@ export class TransactionUtils implements ITransactionUtils {
 
         return Promise.all(
           orderedChainIds.map(async (chainId) => {
-            const isPayment =
-              String(chainId) === String(payment.paymentChainId);
-            const needsUpgrade = upgradeChainIds.some(
-              (id) => String(id) === String(chainId),
+            const isPayment = sameEvmChainId(chainId, payment.paymentChainId);
+            const needsUpgrade = upgradeChainIds.some((id) =>
+              sameEvmChainId(id, chainId),
             );
-            const chainIdDecimal = Number(BigInt(chainId)).toString(10);
+            const chainKey = chainIdKey(chainId);
             const transactions: IRelayer7710Params["transactions"] = [];
 
             if (isPayment) {
@@ -744,7 +755,7 @@ export class TransactionUtils implements ITransactionUtils {
             }
 
             if (needsUpgrade) {
-              const workSig = workByChain.get(String(chainId));
+              const workSig = workByChain.get(chainKey);
               if (!workSig) {
                 throw new Error(
                   `Missing work delegation for upgrade chain ${chainId}`,
@@ -754,7 +765,7 @@ export class TransactionUtils implements ITransactionUtils {
                 permissionContext: [toRelayerJson(workSig)],
                 executions: [
                   {
-                    target: eoa,
+                    target: EVMAccountAddress(ACTIVATION_NOOP_TARGET),
                     value: "0",
                     data: EMPTY_CALLDATA as HexString,
                   },
@@ -768,10 +779,10 @@ export class TransactionUtils implements ITransactionUtils {
               );
             }
 
-            const auth = authByChain.get(String(chainId));
-            const context = contexts?.[chainIdDecimal];
+            const auth = authByChain.get(chainKey);
+            const context = contexts?.[chainKey];
             return {
-              chainId: chainIdDecimal,
+              chainId: chainKey,
               transactions,
               ...(auth ? { authorizationList: [auth] } : {}),
               ...(context ? { context } : {}),
@@ -849,8 +860,7 @@ export class TransactionUtils implements ITransactionUtils {
         estimate.contextByChainId ??
         (estimate.context
           ? {
-              [Number(BigInt(payment.paymentChainId)).toString(10)]:
-                estimate.context,
+              [chainIdKey(payment.paymentChainId)]: estimate.context,
             }
           : undefined);
       params = await buildChainParams(feeAtoms, contextByChainId);
@@ -881,7 +891,7 @@ export class TransactionUtils implements ITransactionUtils {
               taskId,
             );
             if (
-              upgradeChainIds.some((id) => String(id) === String(chainId))
+              upgradeChainIds.some((id) => sameEvmChainId(id, chainId))
             ) {
               await this.options.chainRepository.setWalletUpgraded(
                 chainId,
@@ -1342,10 +1352,44 @@ export class TransactionUtils implements ITransactionUtils {
     });
   }
 
+  /**
+   * Empty-calldata activation work for EIP-7702. Must not use
+   * {@link ScopeType.FunctionCall}: AllowedMethodsEnforcer requires ≥4 bytes
+   * of calldata (`invalid-execution-data-length` on `0x`).
+   * NativeTokenTransferAmount + exactCalldata `0x` is the kit's intended
+   * empty-call path (no AllowedMethods).
+   */
+  private createActivationNoOpDelegation(
+    args: ActivationNoOpDelegationArgs,
+  ): ReturnType<typeof createDelegation> {
+    const { smartAccount, delegate } = args;
+    return createDelegation({
+      to: getAddress(delegate),
+      from: smartAccount.address,
+      environment: smartAccount.environment,
+      salt: randomSalt32(),
+      scope: {
+        type: ScopeType.NativeTokenTransferAmount,
+        maxAmount: 0n,
+        exactCalldata: { calldata: EMPTY_CALLDATA },
+      },
+    });
+  }
+
   private createUnsignedExactCalldataDelegation(
     args: ExactCalldataDelegationArgs,
   ): unknown {
     const delegation = this.createExactCalldataDelegation(args);
+    return {
+      ...delegation,
+      signature: PLACEHOLDER_DELEGATION_SIGNATURE_65_ZERO,
+    };
+  }
+
+  private createUnsignedActivationNoOpDelegation(
+    args: ActivationNoOpDelegationArgs,
+  ): unknown {
+    const delegation = this.createActivationNoOpDelegation(args);
     return {
       ...delegation,
       signature: PLACEHOLDER_DELEGATION_SIGNATURE_65_ZERO,
@@ -1364,6 +1408,15 @@ export class TransactionUtils implements ITransactionUtils {
     // signDelegation → signDigest paths and the second signer RPC cancels the
     // first Confirm UI (`ceremonyCancelled`). withCeremonyUiReason only sets
     // Confirm copy — it does not open/close display and awaits this method.
+    const signature = await smartAccount.signDelegation({ delegation });
+    return { ...delegation, signature };
+  }
+
+  private async createAndSignActivationNoOpDelegation(
+    args: ActivationNoOpDelegationArgs,
+  ): Promise<unknown> {
+    const { smartAccount } = args;
+    const delegation = this.createActivationNoOpDelegation(args);
     const signature = await smartAccount.signDelegation({ delegation });
     return { ...delegation, signature };
   }
@@ -1532,9 +1585,9 @@ export class TransactionUtils implements ITransactionUtils {
 
     return Promise.all(
       ordered.map(async (chainId) => {
-        const isPayment = String(chainId) === String(payment.paymentChainId);
-        const needsUpgrade = upgradeChainIds.some(
-          (id) => String(id) === String(chainId),
+        const isPayment = sameEvmChainId(chainId, payment.paymentChainId);
+        const needsUpgrade = upgradeChainIds.some((id) =>
+          sameEvmChainId(id, chainId),
         );
         const chain = await this.requireRelayerChain(chainId);
         const capabilities =
@@ -1582,19 +1635,15 @@ export class TransactionUtils implements ITransactionUtils {
         }
 
         if (needsUpgrade) {
-          const workDelegation = this.createUnsignedExactCalldataDelegation({
+          const workDelegation = this.createUnsignedActivationNoOpDelegation({
             smartAccount,
             delegate: capabilities.targetAddress,
-            target: eoa,
-            value: 0n,
-            callData: EMPTY_CALLDATA,
-            chainIdNumber,
           });
           transactions.push({
             permissionContext: [toRelayerJson(workDelegation)],
             executions: [
               {
-                target: eoa,
+                target: EVMAccountAddress(ACTIVATION_NOOP_TARGET),
                 value: "0",
                 data: EMPTY_CALLDATA as HexString,
               },
@@ -1662,7 +1711,7 @@ function shouldUseActivationMultichain(
   paymentChainId: EVMChainId,
 ): boolean {
   if (upgradeChainIds.length !== 1) return true;
-  return String(upgradeChainIds[0]) !== String(paymentChainId);
+  return !sameEvmChainId(upgradeChainIds[0]!, paymentChainId);
 }
 
 /** Fee/payment chain first, then remaining upgrade chains. */
@@ -1671,12 +1720,26 @@ function orderedActivationChainIds(
   paymentChainId: EVMChainId,
 ): EVMChainId[] {
   const ordered: EVMChainId[] = [paymentChainId];
+  const seen = new Set<string>([chainIdKey(paymentChainId)]);
   for (const chainId of upgradeChainIds) {
-    if (String(chainId) !== String(paymentChainId)) {
-      ordered.push(chainId);
-    }
+    const key = chainIdKey(chainId);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    ordered.push(chainId);
   }
   return ordered;
+}
+
+/** Canonical decimal key so `0x13b2` and `5042` match. */
+function chainIdKey(chainId: EVMChainId | string | number | bigint): string {
+  return BigInt(chainId).toString(10);
+}
+
+function sameEvmChainId(
+  a: EVMChainId | string | number | bigint,
+  b: EVMChainId | string | number | bigint,
+): boolean {
+  return chainIdKey(a) === chainIdKey(b);
 }
 
 function pickPaymentToken(
@@ -1701,7 +1764,9 @@ function methodSelector(callData: Hex): Hex {
   if (callData.length >= 10) {
     return callData.slice(0, 10) as Hex;
   }
-  // Empty / short calldata (e.g. plain ETH transfer): pin via exactCalldata alone.
+  // FunctionCall + AllowedMethodsEnforcer needs ≥4 calldata bytes. Empty
+  // activation work must use NativeTokenTransferAmount instead (see
+  // createActivationNoOpDelegation). This fallback is only a last resort.
   return "0x00000000";
 }
 

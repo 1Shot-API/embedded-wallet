@@ -388,14 +388,25 @@ export function useWalletBoot({
                 const requestedChainIds = [
                   ...new Map(
                     prepared.map(({ request }) => [
-                      String(request.chainId),
+                      BigInt(request.chainId).toString(10),
                       request.chainId,
                     ] as const),
                   ).values(),
                 ];
 
+                // Always consider Arc (DEFAULT_CHAIN_ID): activation fees are
+                // paid in USDC there even when the grant is only for Base.
+                const activationCandidateChainIds = [
+                  ...new Map(
+                    [...requestedChainIds, DEFAULT_CHAIN_ID].map(
+                      (chainId) =>
+                        [BigInt(chainId).toString(10), chainId] as const,
+                    ),
+                  ).values(),
+                ];
+
                 const upgradeChecks = await Promise.all(
-                  requestedChainIds.map(async (chainId) => ({
+                  activationCandidateChainIds.map(async (chainId) => ({
                     chainId,
                     needsUpgrade: await transactionService.needsWalletUpgrade(
                       chainId,
@@ -408,17 +419,10 @@ export function useWalletBoot({
                   .map((row) => row.chainId);
 
                 if (upgradeChainIds.length > 0) {
-                  const candidateChainIds = [
-                    ...new Map(
-                      [...requestedChainIds, DEFAULT_CHAIN_ID].map(
-                        (chainId) => [String(chainId), chainId] as const,
-                      ),
-                    ).values(),
-                  ];
                   const payment =
                     await transactionService.resolveActivationPayment(
                       owner,
-                      candidateChainIds,
+                      activationCandidateChainIds,
                     );
                   if (!payment) {
                     throw new OwsInvalidParamsError(
@@ -427,10 +431,29 @@ export function useWalletBoot({
                     );
                   }
 
+                  // Payment chain must be upgraded too (fee ExactCalldata).
+                  if (
+                    !upgradeChainIds.some(
+                      (id) =>
+                        BigInt(id).toString(10) ===
+                        BigInt(payment.paymentChainId).toString(10),
+                    )
+                  ) {
+                    const paymentNeedsUpgrade =
+                      await transactionService.needsWalletUpgrade(
+                        payment.paymentChainId,
+                        owner,
+                      );
+                    if (paymentNeedsUpgrade) {
+                      upgradeChainIds.push(payment.paymentChainId);
+                    }
+                  }
+
                   const upgradeChains = upgradeChainIds.map((chainId) => {
                     const preparedItem = prepared.find(
                       (item) =>
-                        String(item.request.chainId) === String(chainId),
+                        BigInt(item.request.chainId).toString(10) ===
+                        BigInt(chainId).toString(10),
                     );
                     return {
                       chainId,
