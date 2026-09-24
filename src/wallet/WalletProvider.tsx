@@ -792,11 +792,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
       // One hash per unique chain (cancelDelegations groups by chain).
       const chainOrder: EVMChainId[] = [];
-      const seen = new Set<string>();
+      const seen = new Set<EVMChainId>();
       for (const stored of storedList) {
-        const key = BigInt(stored.chainId).toString(10);
-        if (seen.has(key)) continue;
-        seen.add(key);
+        if (seen.has(stored.chainId)) continue;
+        seen.add(stored.chainId);
         chainOrder.push(stored.chainId);
       }
       return {

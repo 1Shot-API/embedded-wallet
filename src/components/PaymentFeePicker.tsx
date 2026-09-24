@@ -170,9 +170,7 @@ export function PaymentFeePicker({
       {error ? (
         <p className="text-destructive text-sm">{error}</p>
       ) : null}
-      {quote &&
-      BigInt(quote.paymentChainId).toString(10) !==
-        BigInt(chainId).toString(10) ? (
+      {quote && quote.paymentChainId !== chainId ? (
         <p className="text-muted-foreground text-[0.8rem]">
           Paid on {quote.paymentChainName}
         </p>

@@ -399,7 +399,7 @@ export function useWalletBoot({
                 const requestedChainIds = [
                   ...new Map(
                     prepared.map(({ request }) => [
-                      BigInt(request.chainId).toString(10),
+                      request.chainId,
                       request.chainId,
                     ] as const),
                   ).values(),
@@ -436,9 +436,7 @@ export function useWalletBoot({
                   // Payment chain must be upgraded too (fee ExactCalldata).
                   if (
                     !upgradeChainIds.some(
-                      (id) =>
-                        BigInt(id).toString(10) ===
-                        BigInt(payment.paymentChainId).toString(10),
+                      (id) => id === payment.paymentChainId,
                     )
                   ) {
                     const paymentNeedsUpgrade =
@@ -453,9 +451,7 @@ export function useWalletBoot({
 
                   const upgradeChains = upgradeChainIds.map((chainId) => {
                     const preparedItem = prepared.find(
-                      (item) =>
-                        BigInt(item.request.chainId).toString(10) ===
-                        BigInt(chainId).toString(10),
+                      (item) => item.request.chainId === chainId,
                     );
                     return {
                       chainId,

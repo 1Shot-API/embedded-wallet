@@ -24,24 +24,19 @@ type ChainGroup = {
   work: ITransactionWork[];
 };
 
-function chainKey(chainId: EVMChainId): string {
-  return BigInt(chainId).toString(10);
-}
-
 function groupItemsByChain(
   items: ICancelDelegationConfirmRequest["items"],
 ): ChainGroup[] {
-  const map = new Map<string, ChainGroup>();
+  const map = new Map<EVMChainId, ChainGroup>();
   for (const item of items) {
-    const key = chainKey(item.chainId);
-    let group = map.get(key);
+    let group = map.get(item.chainId);
     if (!group) {
       group = {
         chainId: item.chainId,
         chainName: item.chainName,
         work: [],
       };
-      map.set(key, group);
+      map.set(item.chainId, group);
     }
     group.work.push(item.work);
   }
@@ -119,7 +114,7 @@ export function CancelDelegationModal({
   const allQuotesReady =
     chainGroups.length > 0 &&
     chainGroups.every((group) => {
-      const key = chainKey(group.chainId);
+      const key = group.chainId;
       return quotes[key] != null && !quoteErrors[key];
     });
 
@@ -138,7 +133,7 @@ export function CancelDelegationModal({
 
   const setChainQuote = useCallback(
     (chainId: EVMChainId, quote: IPaymentQuote | null, err: string | null) => {
-      const key = chainKey(chainId);
+      const key = chainId;
       setQuotes((prev) => ({ ...prev, [key]: quote }));
       setQuoteErrors((prev) => ({ ...prev, [key]: err }));
     },
@@ -147,7 +142,7 @@ export function CancelDelegationModal({
 
   const buildPayments = useCallback((): ICancelDelegationPayment[] => {
     return chainGroups.map((group) => {
-      const quote = quotes[chainKey(group.chainId)];
+      const quote = quotes[group.chainId];
       if (!quote) {
         throw new Error(`Missing fee quote for chain ${group.chainName}`);
       }
@@ -294,7 +289,7 @@ export function CancelDelegationModal({
       <ul className="border-border mt-3 m-0 flex list-none flex-col gap-2 border-t pt-3 p-0">
         {request.items.map((item, index) => (
           <li
-            key={`${chainKey(item.chainId)}-${index}`}
+            key={`${item.chainId}-${index}`}
             className="flex flex-col gap-0.5"
           >
             <p className="text-foreground m-0 truncate text-sm font-medium">
@@ -316,7 +311,7 @@ export function CancelDelegationModal({
             </p>
           ) : null}
           {chainGroups.map((group) => {
-            const key = chainKey(group.chainId);
+            const key = group.chainId;
             return (
               <div key={key} className="flex flex-col gap-1">
                 {chainGroups.length > 1 ? (

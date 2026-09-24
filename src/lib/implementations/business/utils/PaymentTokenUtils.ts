@@ -133,11 +133,10 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
 
 function uniqueChainIds(chainIds: readonly EVMChainId[]): EVMChainId[] {
   const unique: EVMChainId[] = [];
-  const seen = new Set<string>();
+  const seen = new Set<EVMChainId>();
   for (const id of chainIds) {
-    const key = BigInt(id).toString(10);
-    if (seen.has(key)) continue;
-    seen.add(key);
+    if (seen.has(id)) continue;
+    seen.add(id);
     unique.push(id);
   }
   return unique;

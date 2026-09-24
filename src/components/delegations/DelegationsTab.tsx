@@ -99,8 +99,8 @@ export function DelegationsTab() {
     setError(null);
     try {
       const result = await cancelStoredDelegations(ids);
-      if (result.transactionHashes && result.transactionHashes.length > 0) {
-        const last = result.results[result.results.length - 1]!;
+      const last = result.results[result.results.length - 1];
+      if (last) {
         setSent({
           chainId: last.chainId,
           transactionHash: last.transactionHash,

@@ -332,7 +332,7 @@ export class TransactionUtils implements ITransactionUtils {
     const seedFeeAtoms = makeTokenAmount(
       parseUnits("0.01", selected.decimals),
     );
-    const crossChain = !sameEvmChainId(payment.paymentChainId, chainId);
+    const crossChain = payment.paymentChainId !== chainId;
 
     let estimate;
     if (!crossChain) {
@@ -611,19 +611,19 @@ export class TransactionUtils implements ITransactionUtils {
         >
       >();
       chainSmartAccounts.set(
-        chainIdKey(payment.paymentChainId),
+        payment.paymentChainId,
         paymentSmartAccount,
       );
       upgradeCapabilities.set(
-        chainIdKey(payment.paymentChainId),
+        payment.paymentChainId,
         paymentCapabilities,
       );
       const missingUpgradeIds = upgradeChainIds.filter(
-        (chainId) => !chainSmartAccounts.has(chainIdKey(chainId)),
+        (chainId) => !chainSmartAccounts.has(chainId),
       );
       await Promise.all(
         missingUpgradeIds.map(async (chainId) => {
-          const key = chainIdKey(chainId);
+          const key = chainId;
           if (!upgradeCapabilities.has(key)) {
             const chain = await this.requireRelayerChain(chainId);
             const caps = await this.options.relayerRepository.getCapabilities(
@@ -683,9 +683,9 @@ export class TransactionUtils implements ITransactionUtils {
                   Promise.all(
                     upgradeChainIds.map((chainId) => {
                       const smartAccount = chainSmartAccounts.get(
-                        chainIdKey(chainId),
+                        chainId,
                       );
-                      const caps = upgradeCapabilities.get(chainIdKey(chainId));
+                      const caps = upgradeCapabilities.get(chainId);
                       if (!smartAccount || !caps) {
                         throw new Error(
                           `Missing smart account or capabilities for ${chainId}`,
@@ -707,7 +707,7 @@ export class TransactionUtils implements ITransactionUtils {
       const authByChain = new Map<string, IRelayerAuthorizationEntry>();
       for (let i = 0; i < upgradeChainIds.length; i += 1) {
         authByChain.set(
-          chainIdKey(upgradeChainIds[i]!),
+          upgradeChainIds[i]!,
           signed.authEntries[i]!,
         );
       }
@@ -715,7 +715,7 @@ export class TransactionUtils implements ITransactionUtils {
       const workByChain = new Map<string, unknown>();
       for (let i = 0; i < upgradeChainIds.length; i += 1) {
         workByChain.set(
-          chainIdKey(upgradeChainIds[i]!),
+          upgradeChainIds[i]!,
           signed.workDelegations[i]!,
         );
       }
@@ -739,11 +739,11 @@ export class TransactionUtils implements ITransactionUtils {
 
         return Promise.all(
           orderedChainIds.map(async (chainId) => {
-            const isPayment = sameEvmChainId(chainId, payment.paymentChainId);
+            const isPayment = chainId === payment.paymentChainId;
             const needsUpgrade = upgradeChainIds.some((id) =>
-              sameEvmChainId(id, chainId),
+              id === chainId,
             );
-            const chainKey = chainIdKey(chainId);
+            const chainKey = chainId;
             const transactions: IRelayer7710Params["transactions"] = [];
 
             if (isPayment) {
@@ -865,7 +865,7 @@ export class TransactionUtils implements ITransactionUtils {
         estimate.contextByChainId ??
         (estimate.context
           ? {
-              [chainIdKey(payment.paymentChainId)]: estimate.context,
+              [payment.paymentChainId]: estimate.context,
             }
           : undefined);
       params = await buildChainParams(feeAtoms, contextByChainId);
@@ -896,7 +896,7 @@ export class TransactionUtils implements ITransactionUtils {
               taskId,
             );
             if (
-              upgradeChainIds.some((id) => sameEvmChainId(id, chainId))
+              upgradeChainIds.some((id) => id === chainId)
             ) {
               await this.options.chainRepository.setWalletUpgraded(
                 chainId,
@@ -1002,7 +1002,7 @@ export class TransactionUtils implements ITransactionUtils {
     onFinalFeeRequired?: (fee: IFinalRelayerFee) => Promise<void>;
   }): Promise<ISendTransactionResult> {
     const paymentChainId = args.paymentChainId ?? args.chainId;
-    if (!sameEvmChainId(paymentChainId, args.chainId)) {
+    if (paymentChainId !== args.chainId) {
       return this.sendViaRelayerCrossChain({
         ...args,
         paymentChainId,
@@ -1546,8 +1546,8 @@ export class TransactionUtils implements ITransactionUtils {
             args: [paymentCapabilities.feeCollector, feeAmount],
           }),
         );
-        const paymentKey = chainIdKey(paymentChainId);
-        const executionKey = chainIdKey(executionChainId);
+        const paymentKey = paymentChainId;
+        const executionKey = executionChainId;
         return [
           {
             chainId: paymentChainIdNumber.toString(10),
@@ -2057,9 +2057,9 @@ export class TransactionUtils implements ITransactionUtils {
 
     return Promise.all(
       ordered.map(async (chainId) => {
-        const isPayment = sameEvmChainId(chainId, payment.paymentChainId);
+        const isPayment = chainId === payment.paymentChainId;
         const needsUpgrade = upgradeChainIds.some((id) =>
-          sameEvmChainId(id, chainId),
+          id === chainId,
         );
         const chain = await this.requireRelayerChain(chainId);
         const capabilities =
@@ -2183,7 +2183,7 @@ function shouldUseActivationMultichain(
   paymentChainId: EVMChainId,
 ): boolean {
   if (upgradeChainIds.length !== 1) return true;
-  return !sameEvmChainId(upgradeChainIds[0]!, paymentChainId);
+  return upgradeChainIds[0]! !== paymentChainId;
 }
 
 /** Fee/payment chain first, then remaining upgrade chains. */
@@ -2192,26 +2192,14 @@ function orderedActivationChainIds(
   paymentChainId: EVMChainId,
 ): EVMChainId[] {
   const ordered: EVMChainId[] = [paymentChainId];
-  const seen = new Set<string>([chainIdKey(paymentChainId)]);
+  const seen = new Set<string>([paymentChainId]);
   for (const chainId of upgradeChainIds) {
-    const key = chainIdKey(chainId);
+    const key = chainId;
     if (seen.has(key)) continue;
     seen.add(key);
     ordered.push(chainId);
   }
   return ordered;
-}
-
-/** Canonical decimal key so `0x13b2` and `5042` match. */
-function chainIdKey(chainId: EVMChainId | string | number | bigint): string {
-  return BigInt(chainId).toString(10);
-}
-
-function sameEvmChainId(
-  a: EVMChainId | string | number | bigint,
-  b: EVMChainId | string | number | bigint,
-): boolean {
-  return chainIdKey(a) === chainIdKey(b);
 }
 
 function methodSelector(callData: Hex): Hex {

@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { EVMAccountAddress, type IExecutionPermissionRequest } from "@1shotapi/ows-types";
+import {
+  ChainUtils,
+  EVMAccountAddress,
+  type IExecutionPermissionRequest,
+} from "@1shotapi/ows-types";
 import { formatUnits, getAddress } from "viem";
 import { parseLiFiSwapData } from "../../../lib/implementations/business/DelegationService";
 import { LIFI_SWAP_PERIODIC } from "../../../lib/interfaces/business/IDelegationService";
@@ -181,14 +185,14 @@ export function LiFiSwapPermissionTerms({
   const sourceChain = resolveChain(executionRequest.chainId);
 
   const destChainIdRaw = readString(permissionData, "destinationChainId");
-  const destChainHex =
-    destChainIdRaw === ""
-      ? null
-      : destChainIdRaw.startsWith("0x") || destChainIdRaw.startsWith("0X")
-        ? destChainIdRaw
-        : /^\d+$/.test(destChainIdRaw)
-          ? `0x${BigInt(destChainIdRaw).toString(16)}`
-          : null;
+  let destChainHex: string | null = null;
+  if (destChainIdRaw !== "") {
+    try {
+      destChainHex = ChainUtils.asEVMChainId(destChainIdRaw);
+    } catch {
+      destChainHex = null;
+    }
+  }
   const destChain = destChainHex
     ? resolveChain(destChainHex as never)
     : undefined;

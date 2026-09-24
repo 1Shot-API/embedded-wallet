@@ -1,6 +1,6 @@
 import {
+  ChainUtils,
   EVMAccountAddress,
-  EVMChainId,
   EVMTransactionHash,
   type EVMAccountAddress as EVMAccountAddressType,
   type EVMChainId as EVMChainIdType,
@@ -309,7 +309,7 @@ export class BlockscoutAssetActivityRepository
   ): AssetActivity {
     return new AssetActivity(
       EVMTransactionHash(row.hash as `0x${string}`),
-      EVMChainId(row.chainId as `0x${string}`),
+      ChainUtils.asEVMChainId(row.chainId),
       EVMAccountAddress(row.tokenAddress as `0x${string}`),
       trackedAssetId,
       EVMAccountAddress(row.owner as `0x${string}`),

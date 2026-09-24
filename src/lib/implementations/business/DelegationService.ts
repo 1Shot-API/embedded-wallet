@@ -248,7 +248,7 @@ export class DelegationService implements IDelegationService {
     );
 
     const byChain = new Map<
-      string,
+      EVMChainId,
       {
         chainId: EVMChainId;
         work: ITransactionWork[];
@@ -256,25 +256,24 @@ export class DelegationService implements IDelegationService {
       }
     >();
     for (const item of resolvedItems) {
-      const key = BigInt(item.chainId).toString(10);
-      let group = byChain.get(key);
+      let group = byChain.get(item.chainId);
       if (!group) {
         group = { chainId: item.chainId, work: [], stored: [] };
-        byChain.set(key, group);
+        byChain.set(item.chainId, group);
       }
       group.work.push(item.work);
       if (item.stored) group.stored.push(item.stored);
     }
 
-    const paymentByChain = new Map<string, (typeof params.payments)[number]>();
+    const paymentByChain = new Map<EVMChainId, (typeof params.payments)[number]>();
     for (const payment of params.payments) {
-      paymentByChain.set(BigInt(payment.chainId).toString(10), payment);
+      paymentByChain.set(payment.chainId, payment);
     }
 
     const results: ICancelDelegationsResult["results"] = [];
     let firstChain = true;
     for (const group of byChain.values()) {
-      const payment = paymentByChain.get(BigInt(group.chainId).toString(10));
+      const payment = paymentByChain.get(group.chainId);
       if (!payment) {
         throw new Error(
           `cancelDelegations missing payment for chain ${group.chainId}`,
