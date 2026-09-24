@@ -2,8 +2,9 @@ import {
   EVMAccountAddress,
   EVMTransactionHash,
   HexString,
-  RelayerTransactionId,
+  RelayerTransactionIdSchema,
   type EVMChainId,
+  type RelayerTransactionId,
 } from "@1shotapi/ows-types";
 import type {
   IOneshotRelayerRepository,
@@ -119,32 +120,24 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
     relayerUrl: string,
     params: IRelayer7710Params,
   ): Promise<IRelayerEstimateResult> {
-    const { context: _context, delegationSecret: _secret, ...estimateParams } =
-      params;
-    void _context;
-    void _secret;
+    const result = await this.postJsonRpc<RawEstimateResult>(
+      relayerUrl,
+      "relayer_estimate7710Transaction",
+      stripEstimateFields(params),
+    );
+    return mapEstimateResult(result);
+  }
 
-    const result = await this.postJsonRpc<{
-      success: boolean;
-      paymentTokenAddress?: string;
-      paymentChain?: number;
-      gasUsed?: Record<string, string>;
-      requiredPaymentAmount?: string;
-      context?: string;
-      error?: string;
-    }>(relayerUrl, "relayer_estimate7710Transaction", estimateParams);
-
-    return {
-      success: result.success,
-      paymentTokenAddress: result.paymentTokenAddress
-        ? EVMAccountAddress(result.paymentTokenAddress as `0x${string}`)
-        : undefined,
-      paymentChain: result.paymentChain,
-      gasUsed: result.gasUsed ?? {},
-      requiredPaymentAmount: result.requiredPaymentAmount,
-      context: result.context,
-      error: result.error,
-    };
+  async estimate7710TransactionMultichain(
+    relayerUrl: string,
+    params: IRelayer7710Params[],
+  ): Promise<IRelayerEstimateResult> {
+    const result = await this.postJsonRpc<RawEstimateResult>(
+      relayerUrl,
+      "relayer_estimate7710TransactionMultichain",
+      params.map(stripEstimateFields),
+    );
+    return mapEstimateResult(result);
   }
 
   async send7710Transaction(
@@ -156,10 +149,26 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
       "relayer_send7710Transaction",
       params,
     );
-    if (typeof result !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(result)) {
-      throw new Error("relayer_send7710Transaction returned an invalid task id");
+    return parseTaskId(result, "relayer_send7710Transaction");
+  }
+
+  async send7710TransactionMultichain(
+    relayerUrl: string,
+    params: IRelayer7710Params[],
+  ): Promise<RelayerTransactionId[]> {
+    const result = await this.postJsonRpc<string[]>(
+      relayerUrl,
+      "relayer_send7710TransactionMultichain",
+      params,
+    );
+    if (!Array.isArray(result) || result.length === 0) {
+      throw new Error(
+        "relayer_send7710TransactionMultichain returned an invalid task id list",
+      );
     }
-    return RelayerTransactionId(result as `0x${string}`);
+    return result.map((id) =>
+      parseTaskId(id, "relayer_send7710TransactionMultichain"),
+    );
   }
 
   async getStatus(
@@ -246,4 +255,49 @@ function relayerEndpoint(relayerUrl: string): string {
 
 function chainIdToDecimal(chainId: EVMChainId): string {
   return BigInt(chainId).toString(10);
+}
+
+type RawEstimateResult = {
+  success: boolean;
+  paymentTokenAddress?: string;
+  paymentChain?: number;
+  gasUsed?: Record<string, string>;
+  requiredPaymentAmount?: string;
+  context?: string;
+  contextByChainId?: Record<string, string>;
+  error?: string;
+};
+
+function stripEstimateFields(params: IRelayer7710Params): IRelayer7710Params {
+  const { context: _context, delegationSecret: _secret, ...estimateParams } =
+    params;
+  void _context;
+  void _secret;
+  return estimateParams;
+}
+
+function mapEstimateResult(result: RawEstimateResult): IRelayerEstimateResult {
+  return {
+    success: result.success,
+    paymentTokenAddress: result.paymentTokenAddress
+      ? EVMAccountAddress(result.paymentTokenAddress as `0x${string}`)
+      : undefined,
+    paymentChain: result.paymentChain,
+    gasUsed: result.gasUsed ?? {},
+    requiredPaymentAmount: result.requiredPaymentAmount,
+    context: result.context,
+    contextByChainId: result.contextByChainId,
+    error: result.error,
+  };
+}
+
+function parseTaskId(
+  result: unknown,
+  method: string,
+): RelayerTransactionId {
+  const parsed = RelayerTransactionIdSchema.safeParse(result);
+  if (!parsed.success) {
+    throw new Error(`${method} returned an invalid task id`);
+  }
+  return parsed.data;
 }

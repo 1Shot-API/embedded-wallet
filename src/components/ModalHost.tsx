@@ -24,6 +24,7 @@ import { OnrampView } from "./OnrampView";
 import { CCTPBridge } from "./modals/CCTPBridge";
 import { GrantPermissionConsentModal } from "./modals/GrantPermissionConsentModal";
 import { CancelDelegationModal } from "./modals/CancelDelegationModal";
+import { ActivateOfflinePermissionsModal } from "./modals/ActivateOfflinePermissionsModal";
 
 export function ModalHost() {
   const activeModal = useModalStore((state) => state.activeModal);
@@ -105,6 +106,15 @@ export function ModalHost() {
       return (
         <GrantPermissionConsentModal
           request={activeModal.request}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    case "activateOfflinePermissions":
+      return (
+        <ActivateOfflinePermissionsModal
+          request={activeModal.request}
+          execute={activeModal.execute}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
         />

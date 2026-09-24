@@ -1,7 +1,7 @@
 import { erc20Abi, type Address } from "viem";
 import {
+  ChainUtils,
   EVMAccountAddress,
-  EVMChainId,
   type EVMAccountAddress as EVMAccountAddressType,
   type EVMChainId as EVMChainIdType,
 } from "@1shotapi/ows-types";
@@ -299,7 +299,7 @@ export class LocalStorageTrackedAssetRepository
         ) {
           continue;
         }
-        const chainId = EVMChainId(row.chainId as `0x${string}`);
+        const chainId = ChainUtils.asEVMChainId(row.chainId);
         const address = EVMAccountAddress(row.address as `0x${string}`);
         const type =
           row.type === EAssetType.Native

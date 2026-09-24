@@ -3,7 +3,7 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as configure / switchChain / focusWallet / addAsset / createAccount / onramp / bridge for
+  or custom RPC such as configure / switchChain / focusWallet / addAsset / createAccount / onramp / bridge / getUpgraded / requestCancelDelegations for
   theming, host-driven focus mode, tracked assets, and first-party Safari create.
 license: MIT
 metadata:
@@ -320,6 +320,25 @@ await proxy.rpc("onramp", {
 
 Returns `{ ok: true }` when the user closes the onramp view. The Relayer holds the Circle kit key; the browser only receives a single-use session. When Branding is nested in a Host iframe, Buy prefers AppKit `openWindow`; top-level Branding uses `mountIframe`. Override with `localStorage.setItem("circlePopup", "true"|"false")`.
 
+## Custom RPC — `getUpgraded`
+
+Read-only EIP-7702 upgrade check for the unlocked EOA on one chain. Hosts can call this before `wallet_requestExecutionPermissions` to prepare the user (onramp for USDC, expect an activation fee, etc.). No flyout.
+
+```typescript
+const status = await proxy.rpc("getUpgraded", {
+  chainId: "0x2105", // Base — or "0x1", "Bitcoin", …
+});
+// { upgraded: true, codeAddress: "0x…" }
+// { upgraded: false }
+// { upgraded: false, error: "Chain Bitcoin is not an EVM chain" }
+```
+
+| Method | Params | Behavior |
+|--------|--------|----------|
+| `getUpgraded` | `{ chainId: string }` OWS id (`0x…` / `Bitcoin` / `BitcoinTestnet`) | On-chain `getCode` for the unlocked EOA; `upgraded` when delegated to the StatelessDelegator impl |
+
+Returns `{ upgraded: boolean, codeAddress?: EVMContractAddress, error?: string }`. Non-EVM chain ids and getCode failures soft-fail via `error` (do not throw). Locked wallet throws `"Wallet is locked — unlock before getUpgraded"`.
+
 ## Custom RPC — `bridge`
 
 Opens the gasless CCTP USDC bridge (native TokenMessengerV2 + Circle Forwarding Service, submitted through the 1Shot relayer). Locked wallet → error. Cancel before success → `OwsUserRejectedError`. Execute failure → thrown error. Flyout closes when the RPC settles (`requestDisplay` / `hide`). Omit `sourceChainId` to use the session chain.
@@ -345,6 +364,30 @@ Returns `{ ok: true, burnTxHash, forwardTxHash? }` when the bridge succeeds (des
 
 Product analytics: `BridgeOpened`, `BridgeCompleted`, `BridgeFailed`, `BridgeCancelled` (burn submit still also emits `TransactionSubmitted*`).
 
+## Custom RPC — `requestCancelDelegations`
+
+Batch on-chain revoke for permissions this host previously received from `wallet_requestExecutionPermissions`. Pass the grant response `context` values as `permissionContexts`. Opens the cancel confirm modal (same UI as the Delegations tab). Same-chain contexts are disabled in one relayer transaction; multi-chain selections submit one batched send per chain.
+
+Only vault rows whose `hostDomain` matches the calling host are accepted. Unknown contexts or permissions granted to another host throw `OwsInvalidParamsError` before the flyout opens.
+
+```typescript
+// After wallet_requestExecutionPermissions → responses[].context
+const result = await proxy.rpc("requestCancelDelegations", {
+  permissionContexts: [
+    responses[0].context,
+    responses[1].context, // same or different chain — one modal
+  ],
+});
+// { transactionHashes: ["0x…", …] }  // one hash per unique chain
+// { transactionHashes: null }         // user skipped on-chain (vault delete only)
+```
+
+| Method | Params | Behavior |
+|--------|--------|----------|
+| `requestCancelDelegations` | `{ permissionContexts: HexString[] }` (min 1) | Domain-scoped batch cancel; flyout until grant/reject |
+
+User reject → `OwsUserRejectedError`. Prefer this over `wallet_revokeExecutionPermission` when canceling multiple grants or when the host should not touch permissions it did not receive.
+
 ## Other Host APIs
 
 | API | Use |
@@ -353,7 +396,7 @@ Product analytics: `BridgeOpened`, `BridgeCompleted`, `BridgeFailed`, `BridgeCan
 | `proxy.ethereum.on` / `removeListener` | Branding→Host EIP-1193 notifications (`chainChanged`, `accountsChanged` via `ows:eip1193`) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `switchChain`, `getChainId`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, `bridge`, …) |
+| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `switchChain`, `getChainId`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, `getUpgraded`, `bridge`, `requestCancelDelegations`, …) |
 | `proxy.analytics.on(listener)` / `.on(name, listener)` / `.off(listener)` | Branding→Host product analytics (`ows:analytics`) |
 
 Subscribe so in-wallet chain/account changes update host UI without polling:
@@ -396,7 +439,7 @@ The same rich payload is POSTed fire-and-forget to `POST /wallet/product-events`
 1Shot relayer. The local Host (`host/`) and marketing [wallet playground](https://www.1shotapi.com/playground)
 include a live Analytics panel fed by `proxy.analytics.on` (filter by `name`).
 
-EIP-7715 host RPCs: `wallet_requestExecutionPermissions`, `wallet_revokeExecutionPermission`, `wallet_getSupportedExecutionPermissions`, `wallet_getGrantedExecutionPermissions` (grant consent and on-chain revoke are wallet-driven).
+EIP-7715 host RPCs: `wallet_requestExecutionPermissions`, `wallet_revokeExecutionPermission` (single `permissionContext`), `wallet_getSupportedExecutionPermissions`, `wallet_getGrantedExecutionPermissions`. For batch / domain-scoped cancel from a host, use custom RPC `requestCancelDelegations` with the grant `context` values.
 
 ### Supported permission types
 

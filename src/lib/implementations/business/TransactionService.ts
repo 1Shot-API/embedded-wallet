@@ -16,7 +16,9 @@ import type {
   ITransactionWork,
 } from "../../interfaces/business/ITransactionService";
 import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
+import type { IRelayerPayment } from "../../types/domain/RelayerPayment";
 import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
+import type { IWalletUpgradeStatus } from "../../types/domain/WalletUpgradeStatus";
 import type { TokenAmount } from "../../types/primitives";
 
 const EMPTY_CALLDATA = HexString("0x");
@@ -43,6 +45,16 @@ export class TransactionService implements ITransactionService {
     return this.options.transactionUtils.needsWalletUpgrade(chainId, address);
   }
 
+  getWalletUpgradeStatus(
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ): Promise<IWalletUpgradeStatus> {
+    return this.options.transactionUtils.getWalletUpgradeStatus(
+      chainId,
+      address,
+    );
+  }
+
   signWalletUpgradeAuthorization(
     chainId: EVMChainId,
   ): Promise<IRelayerAuthorizationEntry> {
@@ -65,12 +77,35 @@ export class TransactionService implements ITransactionService {
     );
   }
 
+  quoteActivation(
+    owner: EVMAccountAddress,
+    upgradeChainIds: readonly EVMChainId[],
+    payment: IRelayerPayment,
+  ): Promise<IPaymentQuote> {
+    return this.options.transactionUtils.quoteActivation(
+      owner,
+      upgradeChainIds,
+      payment,
+    );
+  }
+
+  activateDelegations(
+    args: {
+      upgradeChainIds: readonly EVMChainId[];
+      payment: IRelayerPayment;
+      feeAtoms: TokenAmount;
+    } & IRelayerSendUiCallbacks,
+  ): Promise<ISendTransactionResult[]> {
+    return this.options.transactionUtils.activateDelegations(args);
+  }
+
   async sendTransaction(
     chainId: EVMChainId,
     work: ITransactionWork,
     options?: {
       paymentToken?: EVMAccountAddress;
       feeAtoms?: TokenAmount;
+      paymentChainId?: EVMChainId;
       authorizationList?: IRelayerAuthorizationEntry[];
     } & IRelayerSendUiCallbacks,
   ): Promise<ISendTransactionResult> {
@@ -99,6 +134,9 @@ export class TransactionService implements ITransactionService {
       work,
       paymentToken: options.paymentToken,
       feeAtoms: options.feeAtoms,
+      ...(options.paymentChainId
+        ? { paymentChainId: options.paymentChainId }
+        : {}),
       authorizationList: options.authorizationList,
       relayerUrl: chain.relayerUrl,
       onFinalFeeRequired: options.onFinalFeeRequired,

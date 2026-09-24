@@ -127,6 +127,7 @@ export function useRelayerConfirmSubmit({
     runExecute({
       paymentToken: quote.selectedToken,
       feeAtoms: quote.feeAtoms,
+      paymentChainId: quote.paymentChainId,
     });
   }, [quote, runExecute]);
 

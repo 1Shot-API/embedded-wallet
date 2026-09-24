@@ -170,6 +170,9 @@ export class BridgeService implements IBridgeService {
       work,
       paymentToken: payment.paymentToken,
       feeAtoms: payment.feeAtoms,
+      ...(payment.paymentChainId
+        ? { paymentChainId: payment.paymentChainId }
+        : {}),
       relayerUrl: source.relayerUrl,
     });
 
