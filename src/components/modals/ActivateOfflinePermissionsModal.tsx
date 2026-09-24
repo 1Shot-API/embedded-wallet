@@ -44,6 +44,9 @@ export function ActivateOfflinePermissionsModal({
     onResolve,
     onReject,
     rejectMessage,
+    // Stay open through activation poll so grant consent can follow without
+    // collapsing the flyout between submit and confirmation.
+    retainDisplayDuringSubmit: true,
     signingMessage: relayerCopy.signingMessage,
     waitingMessage: relayerCopy.waitingMessage,
     finalFeeNotice: relayerCopy.finalFeeNotice,
