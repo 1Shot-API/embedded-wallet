@@ -1,5 +1,6 @@
 import {
   EVMAccountAddress,
+  EVMContractAddress,
   EVMTransactionHash,
   HexString,
   RelayerTransactionIdSchema,
@@ -60,7 +61,7 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
       feeCollector: EVMAccountAddress(entry.feeCollector as `0x${string}`),
       targetAddress: EVMAccountAddress(entry.targetAddress as `0x${string}`),
       tokens: entry.tokens.map((token) => ({
-        address: EVMAccountAddress(token.address as `0x${string}`),
+        address: EVMContractAddress(token.address as `0x${string}`),
         symbol: token.symbol ?? "TOKEN",
         name: token.name,
         decimals: Number(token.decimals),
@@ -73,7 +74,7 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
   async getFeeData(
     relayerUrl: string,
     chainId: EVMChainId,
-    token: ReturnType<typeof EVMAccountAddress>,
+    token: EVMContractAddress,
   ): Promise<IRelayerFeeData> {
     const decimal = chainIdToDecimal(chainId);
     const result = await this.postJsonRpc<{
@@ -99,7 +100,7 @@ export class OneshotRelayerRepository implements IOneshotRelayerRepository {
     return {
       chainId: result.chainId,
       token: {
-        address: EVMAccountAddress(result.token.address as `0x${string}`),
+        address: EVMContractAddress(result.token.address as `0x${string}`),
         symbol: result.token.symbol ?? "TOKEN",
         name: result.token.name,
         decimals: Number(result.token.decimals),
@@ -280,7 +281,7 @@ function mapEstimateResult(result: RawEstimateResult): IRelayerEstimateResult {
   return {
     success: result.success,
     paymentTokenAddress: result.paymentTokenAddress
-      ? EVMAccountAddress(result.paymentTokenAddress as `0x${string}`)
+      ? EVMContractAddress(result.paymentTokenAddress as `0x${string}`)
       : undefined,
     paymentChain: result.paymentChain,
     gasUsed: result.gasUsed ?? {},

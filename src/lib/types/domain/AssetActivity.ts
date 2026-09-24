@@ -1,6 +1,7 @@
 import type {
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import type { EAssetActivityKind } from "../enum/EAssetActivityKind";
@@ -12,7 +13,7 @@ export class AssetActivity {
   constructor(
     public readonly hash: EVMTransactionHash,
     public readonly chainId: EVMChainId,
-    public readonly tokenAddress: EVMAccountAddress,
+    public readonly tokenAddress: EVMContractAddress,
     public readonly trackedAssetId: TrackedAssetId,
     public readonly owner: EVMAccountAddress,
     public readonly counterparty: EVMAccountAddress,

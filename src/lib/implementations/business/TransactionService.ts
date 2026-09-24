@@ -1,6 +1,7 @@
 import type {
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
 } from "@1shotapi/ows-types";
 import { HexString } from "@1shotapi/ows-types";
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
@@ -67,7 +68,7 @@ export class TransactionService implements ITransactionService {
     chainId: EVMChainId,
     owner: EVMAccountAddress,
     work: ITransactionWork | ITransactionWork[],
-    preferredToken?: EVMAccountAddress,
+    preferredToken?: EVMContractAddress,
   ): Promise<IPaymentQuote> {
     return this.options.transactionUtils.quotePayment(
       chainId,
@@ -95,7 +96,7 @@ export class TransactionService implements ITransactionService {
       chainId: EVMChainId;
       work: ITransactionWork | ITransactionWork[];
     }[],
-    preferredToken?: EVMAccountAddress,
+    preferredToken?: EVMContractAddress,
   ): Promise<IPaymentQuote> {
     return this.options.transactionUtils.quotePaymentMultichain(
       owner,
@@ -118,7 +119,7 @@ export class TransactionService implements ITransactionService {
     chainId: EVMChainId,
     work: ITransactionWork,
     options?: {
-      paymentToken?: EVMAccountAddress;
+      paymentToken?: EVMContractAddress;
       feeAtoms?: TokenAmount;
       paymentChainId?: EVMChainId;
       authorizationList?: IRelayerAuthorizationEntry[];

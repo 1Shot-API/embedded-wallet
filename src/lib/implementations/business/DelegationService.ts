@@ -666,7 +666,7 @@ export class DelegationService implements IDelegationService {
 }
 
 type Erc20PeriodData = {
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   periodAmount: bigint;
   periodDuration: number;
   startDate?: number;
@@ -675,7 +675,7 @@ type Erc20PeriodData = {
 
 type LiFiSwapData = {
   lifiDiamond: EVMAccountAddress;
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   outputAssetId: Hex;
   outputRecipient: Hex;
   destinationChainId: bigint;
@@ -687,7 +687,7 @@ type LiFiSwapData = {
 };
 
 type LiFiApproveData = {
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   spender: EVMAccountAddress;
 };
 
@@ -708,7 +708,7 @@ function parseErc20PeriodData(
   }
   const startRaw = data.startDate ?? data.start;
   return {
-    tokenAddress: EVMAccountAddress(getAddress(tokenRaw as `0x${string}`)),
+    tokenAddress: EVMContractAddress(getAddress(tokenRaw as `0x${string}`)),
     periodAmount: toBigIntAmount(amountRaw),
     periodDuration: Number(durationRaw),
     ...(typeof startRaw === "number" || typeof startRaw === "string"
@@ -725,7 +725,7 @@ export function parseLiFiSwapData(
   defaultSlippageBps: number,
 ): LiFiSwapData {
   const lifiDiamond = requireAddress(data.lifiDiamond, "lifiDiamond");
-  const tokenAddress = requireAddress(
+  const tokenAddress = requireContractAddress(
     data.tokenAddress ?? data.inputToken,
     "tokenAddress",
   );
@@ -788,7 +788,7 @@ export function parseLiFiApproveData(
   data: Record<string, unknown>,
 ): LiFiApproveData {
   return {
-    tokenAddress: requireAddress(
+    tokenAddress: requireContractAddress(
       data.tokenAddress ?? data.inputToken,
       "tokenAddress",
     ),
@@ -804,6 +804,16 @@ function requireAddress(
     throw new Error(`${field} is required`);
   }
   return EVMAccountAddress(getAddress(value as `0x${string}`));
+}
+
+function requireContractAddress(
+  value: unknown,
+  field: string,
+): EVMContractAddress {
+  if (typeof value !== "string") {
+    throw new Error(`${field} is required`);
+  }
+  return EVMContractAddress(getAddress(value as `0x${string}`));
 }
 
 function requireBytes32(value: unknown, field: string): Hex {

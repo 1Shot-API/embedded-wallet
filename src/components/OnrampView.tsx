@@ -6,8 +6,8 @@ import type {
 } from "@circle-fin/app-kit";
 import {
   ChainUtils,
-  EVMAccountAddress,
-  type EVMAccountAddress as EVMAccountAddressType,
+  EVMContractAddress,
+  type EVMAccountAddress,
   type EVMChainId,
 } from "@1shotapi/ows-types";
 import { zeroAddress } from "viem";
@@ -27,7 +27,7 @@ export type IOnrampViewProps = IOnrampOpenRequest & {
   onClose: () => void;
 };
 
-const PLACEHOLDER_TOKEN_ADDRESS = EVMAccountAddress(zeroAddress);
+const PLACEHOLDER_TOKEN_ADDRESS = EVMContractAddress(zeroAddress);
 
 /**
  * Full-screen Circle AppKit onramp inside the Branding Layer shell.
@@ -61,7 +61,7 @@ export function OnrampView({
   const [popupReady, setPopupReady] = useState(false);
   const [popupOpened, setPopupOpened] = useState(false);
   const [catalogTokenAddress, setCatalogTokenAddress] = useState<
-    EVMAccountAddressType | null
+    EVMContractAddress | null
   >(null);
   const [catalogIconUrl, setCatalogIconUrl] = useState<string | undefined>();
 

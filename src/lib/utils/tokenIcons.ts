@@ -1,7 +1,4 @@
-import type {
-  EVMAccountAddress,
-  EVMChainId,
-} from "@1shotapi/ows-types";
+import type { EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
 import type { TrackedAssetId } from "../types/primitives/TrackedAssetId";
 import { makeTrackedAssetId } from "../types/primitives/TrackedAssetId";
 
@@ -46,7 +43,7 @@ export function iconUrlForSymbol(symbol: string): string | undefined {
 
 export type IResolveAssetIconUrl = (
   chainId: EVMChainId,
-  address: EVMAccountAddress,
+  address: EVMContractAddress,
 ) => string | undefined;
 
 let resolveKnownAssetIconUrl: IResolveAssetIconUrl | null = null;
@@ -91,7 +88,7 @@ export function syncTrackedAssetIconUrls(
  */
 export function resolveAssetIconUrl(
   chainId: EVMChainId,
-  address: EVMAccountAddress,
+  address: EVMContractAddress,
   symbol?: string,
   iconUrlOverride?: string,
 ): string | undefined {

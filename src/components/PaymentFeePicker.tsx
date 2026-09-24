@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
+import {
+  EVMContractAddress,
+  type EVMAccountAddress,
+  type EVMChainId,
+} from "@1shotapi/ows-types";
 import { formatUnits } from "viem";
 import type {
   IPaymentQuote,
@@ -46,32 +50,32 @@ export interface IPaymentFeePickerProps {
 
 function paymentTokenKey(token: {
   chainId: EVMChainId;
-  address: EVMAccountAddress;
+  address: EVMContractAddress;
 }): string {
-  return `${String(token.chainId)}:${String(token.address).toLowerCase()}`;
+  return `${token.chainId}:${token.address}`;
 }
 
 function parsePaymentTokenKey(value: string): {
   chainId: EVMChainId;
-  address: EVMAccountAddress;
+  address: EVMContractAddress;
 } | null {
   const sep = value.indexOf(":");
   if (sep <= 0) return null;
   return {
     chainId: value.slice(0, sep) as EVMChainId,
-    address: value.slice(sep + 1) as EVMAccountAddress,
+    address: EVMContractAddress(value.slice(sep + 1) as `0x${string}`),
   };
 }
 
 function findTokenInList(
   tokens: readonly IPaymentTokenOption[],
-  address: EVMAccountAddress,
+  address: EVMContractAddress,
   chainId?: EVMChainId,
 ): IPaymentTokenOption | undefined {
   return tokens.find(
     (token) =>
       (chainId === undefined || token.chainId === chainId) &&
-      String(token.address).toLowerCase() === String(address).toLowerCase(),
+      token.address === address,
   );
 }
 
@@ -118,7 +122,7 @@ export function PaymentFeePicker({
 }: IPaymentFeePickerProps) {
   const { transactionService, paymentTokenUtils } = useWallet();
   const [preferredToken, setPreferredToken] = useState<
-    EVMAccountAddress | undefined
+    EVMContractAddress | undefined
   >(undefined);
   const [preferredChainId, setPreferredChainId] = useState<
     EVMChainId | undefined
@@ -184,7 +188,7 @@ export function PaymentFeePicker({
   }, [quote, tokenOptions]);
 
   const fetchQuote = useCallback(
-    async (token?: EVMAccountAddress) => {
+    async (token?: EVMContractAddress) => {
       if (workByChain && workByChain.length > 0) {
         return transactionService.quotePaymentMultichain(
           ownerAddress,
@@ -222,7 +226,7 @@ export function PaymentFeePicker({
   }, [fetchQuote, preferredToken]);
 
   async function onSelectToken(
-    token: EVMAccountAddress,
+    token: EVMContractAddress,
     tokenChainId: EVMChainId,
   ): Promise<void> {
     setSelectBusy(true);

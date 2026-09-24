@@ -1,5 +1,9 @@
-import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
-import { ChainUtils } from "@1shotapi/ows-types";
+import {
+  ChainUtils,
+  EVMContractAddress,
+  type EVMAccountAddress,
+  type EVMChainId,
+} from "@1shotapi/ows-types";
 import { parseUnits } from "viem";
 import type { IChainRepository } from "../../../interfaces/data/IChainRepository";
 import type { IOneshotRelayerRepository } from "../../../interfaces/data/IOneshotRelayerRepository";
@@ -38,7 +42,7 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
   async resolvePayment(
     owner: EVMAccountAddress,
     executionChainIds: readonly EVMChainId[],
-    preferredToken?: EVMAccountAddress,
+    preferredToken?: EVMContractAddress,
   ): Promise<IRelayerPayment | null> {
     const unique = uniqueChainIds(executionChainIds);
     if (unique.length === 0) return null;
@@ -111,7 +115,7 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
         if (!priorityChainIds.has(row.chainId) && token.balance <= 0n) {
           continue;
         }
-        const key = `${String(token.chainId)}:${String(token.address).toLowerCase()}`;
+        const key = `${token.chainId}:${token.address}`;
         if (seen.has(key)) continue;
         seen.add(key);
         options.push(token);
@@ -171,11 +175,10 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
         this.relayerRepository.getCapabilities(chain.relayerUrl, chainId),
       ]);
 
-      const balanceByAddress = new Map(
-        tracked.map((asset) => [
-          String(asset.address).toLowerCase(),
-          asset.balance ?? 0n,
-        ]),
+      // Tracked assets still brand ERC-20s as EVMAccountAddress; both brands
+      // share the EIP-55 string so Map lookup by contract address works.
+      const balanceByAddress = new Map<EVMContractAddress, bigint>(
+        tracked.map((asset) => [asset.address, asset.balance ?? 0n]),
       );
 
       const tokens: IPaymentTokenOption[] = capabilities.tokens.map(
@@ -183,9 +186,7 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
           ...token,
           chainId,
           chainName: chain.label,
-          balance: makeTokenAmount(
-            balanceByAddress.get(String(token.address).toLowerCase()) ?? 0n,
-          ),
+          balance: makeTokenAmount(balanceByAddress.get(token.address) ?? 0n),
         }),
       );
 
@@ -193,17 +194,15 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
       for (const asset of tracked) {
         if (asset.type !== EAssetType.Erc20) continue;
         if (asset.symbol.toUpperCase() !== "USDC") continue;
-        const key = String(asset.address).toLowerCase();
-        const already = tokens.some(
-          (t) => String(t.address).toLowerCase() === key,
-        );
+        const contract = asset.address;
+        const already = tokens.some((t) => t.address === contract);
         if (already) continue;
         const accepted = capabilities.tokens.some(
-          (t) => String(t.address).toLowerCase() === key,
+          (t) => t.address === contract,
         );
         if (!accepted) continue;
         tokens.push({
-          address: asset.address,
+          address: contract,
           symbol: asset.symbol,
           decimals: asset.decimals,
           chainId,
@@ -263,34 +262,27 @@ function hasSeedBalance(token: IPaymentTokenOption): boolean {
 
 function findTokenByAddress(
   tokens: IPaymentTokenOption[],
-  address: EVMAccountAddress,
+  address: EVMContractAddress,
   requireBalance: boolean,
 ): IPaymentTokenOption | null {
   const match = tokens.find(
-    (t) =>
-      String(t.address).toLowerCase() === String(address).toLowerCase() &&
-      (!requireBalance || t.balance > 0n),
+    (t) => t.address === address && (!requireBalance || t.balance > 0n),
   );
   return match ?? null;
 }
 
 function pickPaymentToken(
   tokens: IPaymentTokenOption[],
-  preferred?: EVMAccountAddress,
+  preferred?: EVMContractAddress,
 ): IPaymentTokenOption | null {
   // Default picks require enough balance for the unsigned seed fee so dust on
   // Arc does not win over a usable Base balance.
   const usable = tokens.filter((t) => hasSeedBalance(t));
   if (preferred) {
-    const match = usable.find(
-      (t) =>
-        String(t.address).toLowerCase() === String(preferred).toLowerCase(),
-    );
+    const match = usable.find((t) => t.address === preferred);
     if (match) return match;
     const anyPreferred = tokens.find(
-      (t) =>
-        String(t.address).toLowerCase() === String(preferred).toLowerCase() &&
-        t.balance > 0n,
+      (t) => t.address === preferred && t.balance > 0n,
     );
     if (anyPreferred) return anyPreferred;
   }

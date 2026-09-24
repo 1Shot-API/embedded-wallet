@@ -1,6 +1,6 @@
 import type {
-  EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   HexString,
   IExecutionPermission,
   IExecutionPermissionRequest,
@@ -46,7 +46,7 @@ export interface ICreateExecutionPermissionsParams {
 
 export interface ICancelDelegationParams extends IRelayerSendUiCallbacks {
   chainId: EVMChainId;
-  paymentToken: EVMAccountAddress;
+  paymentToken: EVMContractAddress;
   feeAtoms: TokenAmount;
   /** Fee payment chain — defaults to `chainId`. */
   paymentChainId?: EVMChainId;
@@ -69,7 +69,7 @@ export type ICancelDelegationItem = {
 export interface ICancelDelegationsParams extends IRelayerSendUiCallbacks {
   items: readonly ICancelDelegationItem[];
   /** Fee token (local-first / Arc USDC) — one payment for the whole batch. */
-  paymentToken: EVMAccountAddress;
+  paymentToken: EVMContractAddress;
   feeAtoms: TokenAmount;
   paymentChainId: EVMChainId;
 }

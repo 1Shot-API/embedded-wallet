@@ -1,6 +1,7 @@
 import type {
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   EVMTransactionHash,
   HexString,
   RelayerTransactionId,
@@ -12,7 +13,7 @@ export interface ISendTransactionResult {
 }
 
 export interface IRelayerPaymentToken {
-  address: EVMAccountAddress;
+  address: EVMContractAddress;
   symbol: string;
   name?: string;
   decimals: number;
@@ -37,7 +38,8 @@ export interface IRelayerFeeData {
 }
 
 export interface IRelayer7710Execution {
-  target: EVMAccountAddress;
+  /** Call target — EOA or contract (e.g. ERC-20 fee token). */
+  target: EVMAccountAddress | EVMContractAddress;
   value: string;
   data: HexString;
 }
@@ -69,7 +71,7 @@ export interface IRelayer7710Params {
 
 export interface IRelayerEstimateResult {
   success: boolean;
-  paymentTokenAddress?: EVMAccountAddress;
+  paymentTokenAddress?: EVMContractAddress;
   paymentChain?: number;
   gasUsed: Record<string, string>;
   requiredPaymentAmount?: string;
@@ -105,7 +107,7 @@ export interface IOneshotRelayerRepository {
   getFeeData(
     relayerUrl: string,
     chainId: EVMChainId,
-    token: EVMAccountAddress,
+    token: EVMContractAddress,
   ): Promise<IRelayerFeeData>;
 
   estimate7710Transaction(
