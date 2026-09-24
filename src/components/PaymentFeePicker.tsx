@@ -44,33 +44,50 @@ export interface IPaymentFeePickerProps {
   finalFee?: IFinalRelayerFee | null;
 }
 
-function findSelectedToken(
-  quote: IPaymentQuote,
-  paymentToken?: EVMAccountAddress,
+function paymentTokenKey(token: {
+  chainId: EVMChainId;
+  address: EVMAccountAddress;
+}): string {
+  return `${String(token.chainId)}:${String(token.address).toLowerCase()}`;
+}
+
+function parsePaymentTokenKey(value: string): {
+  chainId: EVMChainId;
+  address: EVMAccountAddress;
+} | null {
+  const sep = value.indexOf(":");
+  if (sep <= 0) return null;
+  return {
+    chainId: value.slice(0, sep) as EVMChainId,
+    address: value.slice(sep + 1) as EVMAccountAddress,
+  };
+}
+
+function findTokenInList(
+  tokens: readonly IPaymentTokenOption[],
+  address: EVMAccountAddress,
+  chainId?: EVMChainId,
 ): IPaymentTokenOption | undefined {
-  const target = paymentToken ?? quote.selectedToken;
-  return quote.tokens.find(
+  return tokens.find(
     (token) =>
-      String(token.address).toLowerCase() === String(target).toLowerCase(),
+      (chainId === undefined || token.chainId === chainId) &&
+      String(token.address).toLowerCase() === String(address).toLowerCase(),
   );
 }
 
-function PaymentTokenRow({
-  chainId,
-  token,
-}: {
-  chainId: EVMChainId;
-  token: IPaymentTokenOption;
-}) {
+function PaymentTokenRow({ token }: { token: IPaymentTokenOption }) {
   return (
     <span className="flex min-w-0 items-center gap-2">
       <AssetIcon
-        chainId={chainId}
+        chainId={token.chainId}
         address={token.address}
         symbol={token.symbol}
         size="sm"
       />
       <span>{token.symbol}</span>
+      <span className="text-muted-foreground truncate">
+        on {token.chainName}
+      </span>
       <span className="text-muted-foreground">
         ({formatUnits(token.balance, token.decimals)})
       </span>
@@ -82,6 +99,9 @@ function PaymentTokenRow({
  * Loads payment-token options (USDC preferred) and shows a live fee quote
  * from unsigned `relayer_estimate7710Transaction`. Use mode `final` after the
  * signed estimate settles the amount at submit.
+ *
+ * Token options load independently of a successful quote so the Select stays
+ * usable when estimate fails (e.g. Arc dust).
  */
 export function PaymentFeePicker({
   chainId,
@@ -96,15 +116,26 @@ export function PaymentFeePicker({
   mode = "estimate",
   finalFee = null,
 }: IPaymentFeePickerProps) {
-  const { transactionService } = useWallet();
+  const { transactionService, paymentTokenUtils } = useWallet();
   const [preferredToken, setPreferredToken] = useState<
     EVMAccountAddress | undefined
   >(undefined);
+  const [preferredChainId, setPreferredChainId] = useState<
+    EVMChainId | undefined
+  >(undefined);
+  const [tokenOptions, setTokenOptions] = useState<IPaymentTokenOption[]>([]);
   const [selectBusy, setSelectBusy] = useState(false);
   const onQuoteChangeRef = useRef(onQuoteChange);
   useEffect(() => {
     onQuoteChangeRef.current = onQuoteChange;
   }, [onQuoteChange]);
+
+  const executionChainIds = useMemo(() => {
+    if (workByChain && workByChain.length > 0) {
+      return [...new Set(workByChain.map((g) => g.chainId))];
+    }
+    return [chainId];
+  }, [chainId, workByChain]);
 
   const workKey = useMemo(() => {
     if (workByChain && workByChain.length > 0) {
@@ -129,6 +160,28 @@ export function PaymentFeePicker({
       )
       .join("|");
   }, [work, workByChain]);
+
+  // Load selectable tokens even when estimate fails (quote stays null).
+  useEffect(() => {
+    let cancelled = false;
+    void paymentTokenUtils
+      .listPaymentOptions(ownerAddress, executionChainIds)
+      .then((options) => {
+        if (!cancelled) setTokenOptions(options);
+      })
+      .catch(() => {
+        if (!cancelled) setTokenOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [executionChainIds, ownerAddress, paymentTokenUtils, workKey]);
+
+  // Prefer tokens from a successful quote (fresher balances), else catalog list.
+  const displayTokens = useMemo(() => {
+    if (quote && quote.tokens.length > 0) return quote.tokens;
+    return tokenOptions;
+  }, [quote, tokenOptions]);
 
   const fetchQuote = useCallback(
     async (token?: EVMAccountAddress) => {
@@ -156,8 +209,10 @@ export function PaymentFeePicker({
     try {
       const next = await fetchQuote(preferredToken);
       onQuoteChangeRef.current(next, null);
+      setTokenOptions(next.tokens);
       return next.feeFormatted;
     } catch (err: unknown) {
+      // Keep prior quote.tokens / tokenOptions so Pay with stays usable.
       onQuoteChangeRef.current(
         null,
         err instanceof Error ? err.message : "Failed to quote fee",
@@ -166,12 +221,17 @@ export function PaymentFeePicker({
     }
   }, [fetchQuote, preferredToken]);
 
-  async function onSelectToken(token: EVMAccountAddress): Promise<void> {
+  async function onSelectToken(
+    token: EVMAccountAddress,
+    tokenChainId: EVMChainId,
+  ): Promise<void> {
     setSelectBusy(true);
     try {
       setPreferredToken(token);
+      setPreferredChainId(tokenChainId);
       const next = await fetchQuote(token);
       onQuoteChange(next, null);
+      setTokenOptions(next.tokens);
     } catch (err: unknown) {
       onQuoteChange(
         null,
@@ -184,18 +244,58 @@ export function PaymentFeePicker({
 
   const isLoading = loading || selectBusy;
   const isFinal = mode === "final" && finalFee !== null;
-  const iconChainId = quote?.paymentChainId ?? chainId;
-  const selectedToken = isFinal
-    ? quote
-      ? findSelectedToken(quote, finalFee.paymentToken)
-      : undefined
-    : quote
-      ? findSelectedToken(quote)
-      : undefined;
+
+  const selectedToken = useMemo(() => {
+    if (isFinal && quote && finalFee) {
+      return findTokenInList(
+        displayTokens,
+        finalFee.paymentToken,
+        quote.paymentChainId,
+      );
+    }
+    if (quote) {
+      return findTokenInList(
+        displayTokens,
+        quote.selectedToken,
+        quote.paymentChainId,
+      );
+    }
+    if (preferredToken) {
+      return findTokenInList(displayTokens, preferredToken, preferredChainId);
+    }
+    return undefined;
+  }, [
+    displayTokens,
+    finalFee,
+    isFinal,
+    preferredChainId,
+    preferredToken,
+    quote,
+  ]);
+
   const feeLabel = isFinal ? "Final fee:" : "Est. fee:";
-  const feeDisplay = isFinal
-    ? finalFee.feeFormatted
-    : null;
+  const feeDisplay = isFinal ? finalFee.feeFormatted : null;
+  const selectValue = selectedToken
+    ? paymentTokenKey(selectedToken)
+    : quote
+      ? paymentTokenKey({
+          chainId: quote.paymentChainId,
+          address: quote.selectedToken,
+        })
+      : preferredToken && preferredChainId
+        ? paymentTokenKey({
+            chainId: preferredChainId,
+            address: preferredToken,
+          })
+        : "";
+
+  const showTokenSelect = !isFinal && displayTokens.length > 0;
+  const paidOnLabel =
+    selectedToken && selectedToken.chainId !== chainId
+      ? selectedToken.chainName
+      : quote && quote.paymentChainId !== chainId
+        ? quote.paymentChainName
+        : null;
 
   return (
     <div className="mt-4 flex flex-col gap-2 border-t pt-3">
@@ -205,9 +305,9 @@ export function PaymentFeePicker({
       {error ? (
         <p className="text-destructive text-sm">{error}</p>
       ) : null}
-      {quote && quote.paymentChainId !== chainId ? (
+      {paidOnLabel ? (
         <p className="text-muted-foreground text-[0.8rem]">
-          Paid on {quote.paymentChainName}
+          Paid on {paidOnLabel}
         </p>
       ) : null}
       <p className="flex flex-wrap items-center gap-2 text-sm">
@@ -225,7 +325,7 @@ export function PaymentFeePicker({
           {selectedToken ? (
             <>
               <AssetIcon
-                chainId={iconChainId}
+                chainId={selectedToken.chainId}
                 address={selectedToken.address}
                 symbol={selectedToken.symbol}
                 size="sm"
@@ -235,31 +335,31 @@ export function PaymentFeePicker({
           ) : null}
         </span>
       </p>
-      {quote && !isFinal ? (
+      {showTokenSelect ? (
         <div className="text-muted-foreground flex flex-col gap-1 text-[0.8rem]">
           <span>Pay with</span>
           <Select
-            value={String(quote.selectedToken)}
+            value={selectValue || undefined}
             disabled={isLoading}
             onValueChange={(value) => {
-              void onSelectToken(value as EVMAccountAddress);
+              const parsed = parsePaymentTokenKey(value);
+              if (!parsed) return;
+              void onSelectToken(parsed.address, parsed.chainId);
             }}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select payment token">
-                {selectedToken ? (
-                  <PaymentTokenRow chainId={iconChainId} token={selectedToken} />
-                ) : null}
+                {selectedToken ? <PaymentTokenRow token={selectedToken} /> : null}
               </SelectValue>
             </SelectTrigger>
             <SelectContent className="z-[10001]">
-              {quote.tokens.map((token) => (
+              {displayTokens.map((token) => (
                 <SelectItem
-                  key={String(token.address)}
-                  value={String(token.address)}
+                  key={paymentTokenKey(token)}
+                  value={paymentTokenKey(token)}
                   disabled={token.balance <= 0n}
                 >
-                  <PaymentTokenRow chainId={iconChainId} token={token} />
+                  <PaymentTokenRow token={token} />
                 </SelectItem>
               ))}
             </SelectContent>
@@ -267,7 +367,9 @@ export function PaymentFeePicker({
         </div>
       ) : isFinal && selectedToken ? (
         <div className="text-muted-foreground text-[0.8rem]">
-          <span>Pay with {selectedToken.symbol}</span>
+          <span>
+            Pay with {selectedToken.symbol} on {selectedToken.chainName}
+          </span>
         </div>
       ) : null}
     </div>

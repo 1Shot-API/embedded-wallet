@@ -1,4 +1,6 @@
 import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
+import { ChainUtils } from "@1shotapi/ows-types";
+import { parseUnits } from "viem";
 import type { IChainRepository } from "../../../interfaces/data/IChainRepository";
 import type { IOneshotRelayerRepository } from "../../../interfaces/data/IOneshotRelayerRepository";
 import type { ITrackedAssetRepository } from "../../../interfaces/data/ITrackedAssetRepository";
@@ -9,10 +11,18 @@ import { EAssetType } from "../../../types/enum/EAssetType";
 import { makeTokenAmount } from "../../../types/primitives";
 import { DEFAULT_CHAIN_ID } from "../../data/HardcodedChainRepository";
 
+/** Matches unsigned quote seed in TransactionUtils (`parseUnits("0.01", decimals)`). */
+const SEED_FEE_HUMAN = "0.01";
+
 type ChainPaymentOptions = {
   chainId: EVMChainId;
   chainName: string;
   tokens: IPaymentTokenOption[];
+};
+
+type FundedPick = {
+  row: ChainPaymentOptions;
+  selected: IPaymentTokenOption;
 };
 
 /**
@@ -33,41 +43,119 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
     const unique = uniqueChainIds(executionChainIds);
     if (unique.length === 0) return null;
 
-    const executionOptions = (
-      await Promise.all(unique.map((id) => this.loadChainOptions(owner, id)))
-    ).filter((row): row is ChainPaymentOptions => row !== null);
+    const { execution, arc, others } = await this.loadCandidateChains(
+      owner,
+      unique,
+    );
+    const searchOrder = [...execution, ...arcRows(arc, unique), ...others];
 
-    const fundedExecution: Array<{
-      row: ChainPaymentOptions;
-      selected: IPaymentTokenOption;
-    }> = [];
-    for (const row of executionOptions) {
-      const selected = pickPaymentToken(row.tokens, preferredToken);
-      if (selected) fundedExecution.push({ row, selected });
+    // 1. Preferred token wins on any candidate chain (any positive balance —
+    //    user explicitly chose it; quote/UI can still surface insufficiency).
+    if (preferredToken) {
+      for (const row of searchOrder) {
+        const match = findTokenByAddress(row.tokens, preferredToken, true);
+        if (match) return toRelayerPayment(row, match);
+      }
     }
 
-    // 1. Exactly one execution chain has a funded payment token → pay locally.
-    if (fundedExecution.length === 1) {
-      const only = fundedExecution[0]!;
-      return toRelayerPayment(only.row, only.selected);
+    // 2. Work chains — Arc default when it can cover the seed fee; else first
+    //    usable execution chain (skips dust that would fail estimate).
+    const fundedExecution = fundedPicks(execution);
+    const arcInExecution = fundedExecution.find(
+      (p) => p.row.chainId === DEFAULT_CHAIN_ID,
+    );
+    if (arcInExecution) {
+      return toRelayerPayment(arcInExecution.row, arcInExecution.selected);
     }
-
-    // 2. Arc USDC fallback (always considered, even if not in execution set).
-    const arcOptions = await this.loadChainOptions(owner, DEFAULT_CHAIN_ID);
-    if (arcOptions) {
-      const usdc = arcOptions.tokens.find(
-        (t) => t.symbol.toUpperCase() === "USDC" && t.balance > 0n,
-      );
-      if (usdc) return toRelayerPayment(arcOptions, usdc);
-    }
-
-    // 3. First execution chain with any funded payment token (stable order).
     if (fundedExecution.length > 0) {
       const first = fundedExecution[0]!;
       return toRelayerPayment(first.row, first.selected);
     }
 
+    // 3. Arc fallback (even when not in execution set).
+    if (arc) {
+      const usdc = arc.tokens.find(
+        (t) => t.symbol.toUpperCase() === "USDC" && hasSeedBalance(t),
+      );
+      if (usdc) return toRelayerPayment(arc, usdc);
+      const any = pickPaymentToken(arc.tokens);
+      if (any) return toRelayerPayment(arc, any);
+    }
+
+    // 4. Other wallet relayer chains.
+    for (const row of others) {
+      const selected = pickPaymentToken(row.tokens);
+      if (selected) return toRelayerPayment(row, selected);
+    }
+
     return null;
+  }
+
+  async listPaymentOptions(
+    owner: EVMAccountAddress,
+    executionChainIds: readonly EVMChainId[],
+  ): Promise<IPaymentTokenOption[]> {
+    const unique = uniqueChainIds(executionChainIds);
+    const { execution, arc, others } = await this.loadCandidateChains(
+      owner,
+      unique,
+    );
+    const priorityRows = [...execution, ...arcRows(arc, unique)];
+    const priorityChainIds = new Set(priorityRows.map((r) => r.chainId));
+    const rows = [...priorityRows, ...others];
+    const options: IPaymentTokenOption[] = [];
+    const seen = new Set<string>();
+    for (const row of rows) {
+      for (const token of row.tokens) {
+        // Always list execution + Arc tokens; other chains only when funded.
+        if (!priorityChainIds.has(row.chainId) && token.balance <= 0n) {
+          continue;
+        }
+        const key = `${String(token.chainId)}:${String(token.address).toLowerCase()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        options.push(token);
+      }
+    }
+    return options;
+  }
+
+  private async loadCandidateChains(
+    owner: EVMAccountAddress,
+    executionChainIds: readonly EVMChainId[],
+  ): Promise<{
+    execution: ChainPaymentOptions[];
+    arc: ChainPaymentOptions | null;
+    others: ChainPaymentOptions[];
+  }> {
+    const execution = (
+      await Promise.all(
+        executionChainIds.map((id) => this.loadChainOptions(owner, id)),
+      )
+    ).filter((row): row is ChainPaymentOptions => row !== null);
+
+    const executionSet = new Set(executionChainIds);
+    const arc = executionSet.has(DEFAULT_CHAIN_ID)
+      ? (execution.find((r) => r.chainId === DEFAULT_CHAIN_ID) ?? null)
+      : await this.loadChainOptions(owner, DEFAULT_CHAIN_ID);
+
+    const catalog = await this.chainRepository.list();
+    const considered = new Set<EVMChainId>([
+      ...executionChainIds,
+      DEFAULT_CHAIN_ID,
+    ]);
+    const otherIds: EVMChainId[] = [];
+    for (const c of catalog) {
+      if (!c.useRelayer) continue;
+      if (!ChainUtils.isEVMChainId(c.chainId)) continue;
+      if (considered.has(c.chainId)) continue;
+      otherIds.push(c.chainId);
+    }
+    const others = (
+      await Promise.all(otherIds.map((id) => this.loadChainOptions(owner, id)))
+    ).filter((row): row is ChainPaymentOptions => row !== null);
+
+    return { execution, arc, others };
   }
 
   private async loadChainOptions(
@@ -93,6 +181,8 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
       const tokens: IPaymentTokenOption[] = capabilities.tokens.map(
         (token) => ({
           ...token,
+          chainId,
+          chainName: chain.label,
           balance: makeTokenAmount(
             balanceByAddress.get(String(token.address).toLowerCase()) ?? 0n,
           ),
@@ -116,6 +206,8 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
           address: asset.address,
           symbol: asset.symbol,
           decimals: asset.decimals,
+          chainId,
+          chainName: chain.label,
           balance: makeTokenAmount(asset.balance ?? 0n),
         });
       }
@@ -131,6 +223,25 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
   }
 }
 
+/** Arc row only when not already included in the execution list. */
+function arcRows(
+  arc: ChainPaymentOptions | null,
+  executionChainIds: readonly EVMChainId[],
+): ChainPaymentOptions[] {
+  if (!arc) return [];
+  if (executionChainIds.includes(DEFAULT_CHAIN_ID)) return [];
+  return [arc];
+}
+
+function fundedPicks(rows: ChainPaymentOptions[]): FundedPick[] {
+  const out: FundedPick[] = [];
+  for (const row of rows) {
+    const selected = pickPaymentToken(row.tokens);
+    if (selected) out.push({ row, selected });
+  }
+  return out;
+}
+
 function uniqueChainIds(chainIds: readonly EVMChainId[]): EVMChainId[] {
   const unique: EVMChainId[] = [];
   const seen = new Set<EVMChainId>();
@@ -142,23 +253,52 @@ function uniqueChainIds(chainIds: readonly EVMChainId[]): EVMChainId[] {
   return unique;
 }
 
+function hasSeedBalance(token: IPaymentTokenOption): boolean {
+  try {
+    return token.balance >= parseUnits(SEED_FEE_HUMAN, token.decimals);
+  } catch {
+    return token.balance > 0n;
+  }
+}
+
+function findTokenByAddress(
+  tokens: IPaymentTokenOption[],
+  address: EVMAccountAddress,
+  requireBalance: boolean,
+): IPaymentTokenOption | null {
+  const match = tokens.find(
+    (t) =>
+      String(t.address).toLowerCase() === String(address).toLowerCase() &&
+      (!requireBalance || t.balance > 0n),
+  );
+  return match ?? null;
+}
+
 function pickPaymentToken(
   tokens: IPaymentTokenOption[],
   preferred?: EVMAccountAddress,
 ): IPaymentTokenOption | null {
-  const withBalance = tokens.filter((t) => t.balance > 0n);
+  // Default picks require enough balance for the unsigned seed fee so dust on
+  // Arc does not win over a usable Base balance.
+  const usable = tokens.filter((t) => hasSeedBalance(t));
   if (preferred) {
-    const match = withBalance.find(
+    const match = usable.find(
       (t) =>
         String(t.address).toLowerCase() === String(preferred).toLowerCase(),
     );
     if (match) return match;
+    const anyPreferred = tokens.find(
+      (t) =>
+        String(t.address).toLowerCase() === String(preferred).toLowerCase() &&
+        t.balance > 0n,
+    );
+    if (anyPreferred) return anyPreferred;
   }
-  const usdc = withBalance.find((t) => t.symbol.toUpperCase() === "USDC");
+  const usdc = usable.find((t) => t.symbol.toUpperCase() === "USDC");
   if (usdc) return usdc;
-  const usdt = withBalance.find((t) => t.symbol.toUpperCase() === "USDT");
+  const usdt = usable.find((t) => t.symbol.toUpperCase() === "USDT");
   if (usdt) return usdt;
-  return withBalance[0] ?? null;
+  return usable[0] ?? null;
 }
 
 function toRelayerPayment(

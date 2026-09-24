@@ -285,37 +285,17 @@ export class TransactionUtils implements ITransactionUtils {
       throw new Error("No relayer payment token with a positive balance");
     }
 
-    const paymentChain = await this.requireRelayerChain(payment.paymentChainId);
-    const paymentCapabilities =
-      await this.options.relayerRepository.getCapabilities(
-        paymentChain.relayerUrl,
-        payment.paymentChainId,
-      );
-
-    const tracked = await this.options.trackedAssetRepository.getBalances(
+    const tokens = await this.options.paymentTokenUtils.listPaymentOptions(
       owner,
-      { chainId: payment.paymentChainId },
-    );
-    const balanceByAddress = new Map(
-      tracked.map((asset) => [
-        String(asset.address).toLowerCase(),
-        asset.balance ?? 0n,
-      ]),
-    );
-    const tokens: IPaymentTokenOption[] = paymentCapabilities.tokens.map(
-      (token) => ({
-        ...token,
-        balance: makeTokenAmount(
-          balanceByAddress.get(String(token.address).toLowerCase()) ?? 0n,
-        ),
-      }),
+      [chainId],
     );
 
     let selected =
       tokens.find(
         (t) =>
+          t.chainId === payment.paymentChainId &&
           String(t.address).toLowerCase() ===
-          String(payment.paymentToken).toLowerCase(),
+            String(payment.paymentToken).toLowerCase(),
       ) ?? null;
     if (preferredToken) {
       const preferred = tokens.find(
@@ -329,10 +309,28 @@ export class TransactionUtils implements ITransactionUtils {
       throw new Error("No relayer payment token with a positive balance");
     }
 
+    const resolvedPayment: IRelayerPayment = {
+      paymentChainId: selected.chainId,
+      paymentToken: selected.address,
+      paymentChainName: selected.chainName,
+      balance: selected.balance,
+      decimals: selected.decimals,
+      symbol: selected.symbol,
+    };
+
+    const paymentChain = await this.requireRelayerChain(
+      resolvedPayment.paymentChainId,
+    );
+    const paymentCapabilities =
+      await this.options.relayerRepository.getCapabilities(
+        paymentChain.relayerUrl,
+        resolvedPayment.paymentChainId,
+      );
+
     const seedFeeAtoms = makeTokenAmount(
       parseUnits("0.01", selected.decimals),
     );
-    const crossChain = payment.paymentChainId !== chainId;
+    const crossChain = resolvedPayment.paymentChainId !== chainId;
 
     let estimate;
     if (!crossChain) {
@@ -406,7 +404,7 @@ export class TransactionUtils implements ITransactionUtils {
         "[business/TransactionUtils] quotePayment unsigned estimate",
         {
           chainId,
-          paymentChainId: payment.paymentChainId,
+          paymentChainId: resolvedPayment.paymentChainId,
           paymentToken: selected.address,
           workCount: workItems.length,
           crossChain: false,
@@ -421,13 +419,7 @@ export class TransactionUtils implements ITransactionUtils {
       estimate = await this.quotePaymentCrossChain({
         owner,
         executionChainId: chainId,
-        payment: {
-          ...payment,
-          paymentToken: selected.address,
-          balance: selected.balance,
-          decimals: selected.decimals,
-          symbol: selected.symbol,
-        },
+        payment: resolvedPayment,
         workItems,
         seedFeeAtoms,
         paymentCapabilities,
@@ -445,8 +437,8 @@ export class TransactionUtils implements ITransactionUtils {
     return {
       tokens,
       selectedToken: selected.address,
-      paymentChainId: payment.paymentChainId,
-      paymentChainName: payment.paymentChainName,
+      paymentChainId: resolvedPayment.paymentChainId,
+      paymentChainName: resolvedPayment.paymentChainName,
       feeAtoms,
       feeFormatted: formatUnits(feeAtoms, selected.decimals),
       feeCollector: paymentCapabilities.feeCollector,
@@ -505,6 +497,8 @@ export class TransactionUtils implements ITransactionUtils {
       symbol: payment.symbol,
       decimals: payment.decimals,
       balance: payment.balance,
+      chainId: payment.paymentChainId,
+      chainName: payment.paymentChainName,
     };
 
     return {
@@ -555,37 +549,17 @@ export class TransactionUtils implements ITransactionUtils {
       throw new Error("No relayer payment token with a positive balance");
     }
 
-    const paymentChain = await this.requireRelayerChain(payment.paymentChainId);
-    const paymentCapabilities =
-      await this.options.relayerRepository.getCapabilities(
-        paymentChain.relayerUrl,
-        payment.paymentChainId,
-      );
-
-    const tracked = await this.options.trackedAssetRepository.getBalances(
+    const tokens = await this.options.paymentTokenUtils.listPaymentOptions(
       owner,
-      { chainId: payment.paymentChainId },
-    );
-    const balanceByAddress = new Map(
-      tracked.map((asset) => [
-        String(asset.address).toLowerCase(),
-        asset.balance ?? 0n,
-      ]),
-    );
-    const tokens: IPaymentTokenOption[] = paymentCapabilities.tokens.map(
-      (token) => ({
-        ...token,
-        balance: makeTokenAmount(
-          balanceByAddress.get(String(token.address).toLowerCase()) ?? 0n,
-        ),
-      }),
+      executionChainIds,
     );
 
     let selected =
       tokens.find(
         (t) =>
+          t.chainId === payment.paymentChainId &&
           String(t.address).toLowerCase() ===
-          String(payment.paymentToken).toLowerCase(),
+            String(payment.paymentToken).toLowerCase(),
       ) ?? null;
     if (preferredToken) {
       const preferred = tokens.find(
@@ -599,16 +573,27 @@ export class TransactionUtils implements ITransactionUtils {
       throw new Error("No relayer payment token with a positive balance");
     }
 
-    const seedFeeAtoms = makeTokenAmount(
-      parseUnits("0.01", selected.decimals),
-    );
     const resolvedPayment: IRelayerPayment = {
-      ...payment,
+      paymentChainId: selected.chainId,
       paymentToken: selected.address,
+      paymentChainName: selected.chainName,
       balance: selected.balance,
       decimals: selected.decimals,
       symbol: selected.symbol,
     };
+
+    const paymentChain = await this.requireRelayerChain(
+      resolvedPayment.paymentChainId,
+    );
+    const paymentCapabilities =
+      await this.options.relayerRepository.getCapabilities(
+        paymentChain.relayerUrl,
+        resolvedPayment.paymentChainId,
+      );
+
+    const seedFeeAtoms = makeTokenAmount(
+      parseUnits("0.01", selected.decimals),
+    );
 
     const estimate = await this.quotePaymentWorkMultichain({
       owner,
@@ -629,8 +614,8 @@ export class TransactionUtils implements ITransactionUtils {
     return {
       tokens,
       selectedToken: selected.address,
-      paymentChainId: payment.paymentChainId,
-      paymentChainName: payment.paymentChainName,
+      paymentChainId: resolvedPayment.paymentChainId,
+      paymentChainName: resolvedPayment.paymentChainName,
       feeAtoms,
       feeFormatted: formatUnits(feeAtoms, selected.decimals),
       feeCollector: paymentCapabilities.feeCollector,

@@ -120,6 +120,26 @@ export function CancelDelegationModal({
 
   const quoteReady = quote != null && !quoteError;
 
+  const selectedBalance =
+    quote?.tokens.find(
+      (t) =>
+        t.chainId === quote.paymentChainId &&
+        String(t.address).toLowerCase() ===
+          String(quote.selectedToken).toLowerCase(),
+    )?.balance ?? null;
+
+  const insufficientBalance =
+    quote !== null &&
+    selectedBalance !== null &&
+    quote.feeAtoms > selectedBalance;
+
+  const balanceError = insufficientBalance
+    ? copy.insufficientBalanceError.replace(
+        "{chainName}",
+        quote.paymentChainName,
+      )
+    : null;
+
   const showConfirmActions =
     skipOnchain || phase === "confirm" || phase === "finalFee";
 
@@ -127,7 +147,7 @@ export function CancelDelegationModal({
     ? !localBusy
     : phase === "finalFee"
       ? true
-      : phase === "confirm" && quoteReady;
+      : phase === "confirm" && quoteReady && !insufficientBalance;
 
   const body = copy.body
     .replace("{domain}", request.domain)
@@ -304,6 +324,11 @@ export function CancelDelegationModal({
               setQuoteError(err);
             }}
           />
+          {balanceError ? (
+            <p className="text-destructive m-0 text-[0.9rem]" role="alert">
+              {balanceError}
+            </p>
+          ) : null}
           {statusMessage ? (
             <p className="text-muted-foreground m-0 text-[0.9rem]">
               {statusMessage}

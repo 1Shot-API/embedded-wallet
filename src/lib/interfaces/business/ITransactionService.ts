@@ -18,6 +18,9 @@ export interface IPaymentTokenOption {
   name?: string;
   decimals: number;
   balance: TokenAmount;
+  /** Chain this payment token lives on (fee ExactCalldata chain). */
+  chainId: EVMChainId;
+  chainName: string;
 }
 
 export interface IPaymentQuote {

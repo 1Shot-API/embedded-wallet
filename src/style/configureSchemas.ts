@@ -327,6 +327,7 @@ export const styleCopyCancelDelegationSchema = z.strictObject({
   waitingMessage: z.string(),
   skipOnchainLabel: z.string(),
   skipOnchainAcknowledgement: z.string(),
+  insufficientBalanceError: z.string(),
 });
 
 export const styleCopyActivateOfflinePermissionsSchema = z.strictObject({

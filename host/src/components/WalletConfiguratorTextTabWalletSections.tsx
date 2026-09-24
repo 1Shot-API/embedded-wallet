@@ -340,6 +340,13 @@ export function WalletConfiguratorTextTabWalletSections({
             }
           />
           <TextField
+            label="Cancel permission — insufficient balance"
+            value={form.cancelDelegationInsufficientBalanceError}
+            onChange={(value) =>
+              patch("cancelDelegationInsufficientBalanceError", value)
+            }
+          />
+          <TextField
             id="activate-offline-permissions-title"
             label="Activate offline permissions title"
             value={form.activateOfflinePermissionsTitle}

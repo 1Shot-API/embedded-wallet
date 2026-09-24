@@ -326,6 +326,8 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       skipOnchainLabel: "Skip onchain cancellation",
       skipOnchainAcknowledgement:
         "I acknowledge that this delegation may still be used onchain by anybody that holds it, and that canceling it without submitting an onchain cancellation will only remove it from my wallet",
+      insufficientBalanceError:
+        "Insufficient balance to pay the network fee on {chainName}. Choose another payment token.",
     },
     activateOfflinePermissions: {
       title: "Activate offline permissions",
