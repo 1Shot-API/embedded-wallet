@@ -1,6 +1,5 @@
 import {
-  EVMAccountAddress,
-  type EVMAccountAddress as EVMAccountAddressType,
+  EVMContractAddress,
   type EVMChainId as EVMChainIdType,
 } from "@1shotapi/ows-types";
 import { EChain } from "../../types/enum/EChain";
@@ -14,7 +13,7 @@ import {
 
 type ISeedRow = {
   chainId: EVMChainIdType;
-  address: EVMAccountAddressType;
+  address: EVMContractAddress;
   symbol: string;
   name: string;
   decimals: number;
@@ -49,7 +48,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Arc mainnet (5042) — USDC is gas; same pinned ERC-20 as testnet
   {
     chainId: EChain.Arc,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x3600000000000000000000000000000000000000",
     ),
     symbol: "USDC",
@@ -61,7 +60,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Arc Testnet (5042002) — native USDC
   {
     chainId: EChain.ArcTestnet,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x3600000000000000000000000000000000000000",
     ),
     symbol: "USDC",
@@ -73,7 +72,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Robinhood (4663) — official USDG (USDC is not deployed)
   {
     chainId: EChain.Robinhood,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
     ),
     symbol: "USDG",
@@ -84,7 +83,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Ethereum mainnet (1)
   {
     chainId: EChain.Ethereum,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
     ),
     symbol: "USDC",
@@ -95,7 +94,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Ethereum,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xdac17f958d2ee523a2206206994597c13d831ec7",
     ),
     symbol: "USDT",
@@ -104,7 +103,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Ethereum,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xe343167631d89B6Ffc58B88d6b7fB0228795491D",
     ),
     symbol: "USDG",
@@ -113,7 +112,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Ethereum,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xacA92E438df0B2401fF60dA7E4337B687a2435DA",
     ),
     symbol: "mUSD",
@@ -123,7 +122,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Optimism (10)
   {
     chainId: EChain.Optimism,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
     ),
     symbol: "USDC",
@@ -134,7 +133,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Optimism,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
     ),
     symbol: "USDT",
@@ -144,7 +143,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // BSC (56)
   {
     chainId: EChain.Bsc,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x8AC76a51cc950d9822D68b83fe1Ad97B32Cd580d",
     ),
     symbol: "USDC",
@@ -154,7 +153,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Bsc,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x55d398326f99059fF775485246999027B3197955",
     ),
     symbol: "USDT",
@@ -164,7 +163,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Unichain (130)
   {
     chainId: EChain.Unichain,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x078D782b760474a361dDA0AF3839290b0EF57AD6",
     ),
     symbol: "USDC",
@@ -175,7 +174,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Unichain,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xfe97E85d13ABD9c1c33384E796F10B73905637cE",
     ),
     symbol: "USD₮0",
@@ -185,7 +184,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Polygon (137)
   {
     chainId: EChain.Polygon,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
     ),
     symbol: "USDC",
@@ -196,7 +195,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Polygon,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xc2132D05D31c914a87C6611C10748AeB04B58e8F",
     ),
     symbol: "USDT",
@@ -206,7 +205,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Sonic (146)
   {
     chainId: EChain.Sonic,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x29219dd400f2Bf60E5a23d13Be72B486D4038894",
     ),
     symbol: "USDC",
@@ -218,7 +217,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Monad (143)
   {
     chainId: EChain.Monad,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
     ),
     symbol: "USDC",
@@ -229,7 +228,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Monad,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xe7cd86e13AC4309349F30B3435a9d337750fC82D",
     ),
     symbol: "USDT0",
@@ -239,7 +238,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Base (8453)
   {
     chainId: EChain.Base,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     ),
     symbol: "USDC",
@@ -250,7 +249,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Base,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xfde4c96c8593536e31f229ea8f37b2ada2699bb2",
     ),
     symbol: "USDT",
@@ -260,7 +259,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Arbitrum (42161)
   {
     chainId: EChain.Arbitrum,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     ),
     symbol: "USDC",
@@ -271,7 +270,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Arbitrum,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
     ),
     symbol: "USDT",
@@ -281,7 +280,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Celo (42220)
   {
     chainId: EChain.Celo,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xcebA9300f2b948710d2653dd7b07f33A8B32118C",
     ),
     symbol: "USDC",
@@ -291,7 +290,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Celo,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e",
     ),
     symbol: "USDT",
@@ -301,7 +300,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Linea (59144)
   {
     chainId: EChain.Linea,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
     ),
     symbol: "USDC",
@@ -312,7 +311,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Linea,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
     ),
     symbol: "USDT",
@@ -321,7 +320,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   },
   {
     chainId: EChain.Linea,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0xaca92e438df0b2401ff60da7e4337b687a2435da",
     ),
     symbol: "mUSD",
@@ -331,7 +330,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Base Sepolia (84532)
   {
     chainId: EChain.BaseSepolia,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     ),
     symbol: "USDC",
@@ -343,7 +342,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   // Sepolia (11155111)
   {
     chainId: EChain.Sepolia,
-    address: EVMAccountAddress(
+    address: EVMContractAddress(
       "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
     ),
     symbol: "USDC",
@@ -366,7 +365,7 @@ const BY_KEY = new Map(
 
 export function getKnownAssetIconUrl(
   chainId: EVMChainIdType,
-  address: EVMAccountAddressType,
+  address: EVMContractAddress,
 ): string | undefined {
   return BY_KEY.get(makeTrackedAssetId(chainId, address))?.iconUrl;
 }

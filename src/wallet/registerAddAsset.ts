@@ -1,11 +1,12 @@
 import { z } from "zod";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
-  EVMAccountAddress,
+  EVMContractAddress,
   EVMChainIdSchema,
   OwsUserRejectedError,
   type EVMAccountAddress as EVMAccountAddressType,
   type EVMChainId,
+  EVMContractAddressSchema,
 } from "@1shotapi/ows-types";
 import type {
   IKnownAssetRepository,
@@ -19,10 +20,7 @@ export const ADD_ASSET_RPC_METHOD = "addAsset";
 
 const addAssetParamsSchema = z.strictObject({
   chainId: EVMChainIdSchema,
-  assetAddress: z
-    .string()
-    .regex(/^0x[0-9a-fA-F]{40}$/)
-    .transform((value) => EVMAccountAddress(value as `0x${string}`)),
+  assetAddress: EVMContractAddressSchema,
   iconUrl: z
     .url()
     .refine((url) => isSafeHttpsIconUrl(url), {
@@ -35,7 +33,7 @@ export type IAddAssetParams = z.infer<typeof addAssetParamsSchema>;
 
 export interface IAddAssetApprovalRequest {
   chainId: EVMChainId;
-  assetAddress: EVMAccountAddress;
+  assetAddress: EVMContractAddress;
   /** Resolved token name for the confirm modal. */
   assetName: string;
   assetSymbol: string;

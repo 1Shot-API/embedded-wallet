@@ -2,6 +2,7 @@ import type { LocalAccount } from "viem/accounts";
 import type {
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
 } from "@1shotapi/ows-types";
 import type {
   IRelayerAuthorizationEntry,
@@ -53,7 +54,7 @@ export interface ITransactionUtils {
     chainId: EVMChainId,
     owner: EVMAccountAddress,
     work: ITransactionWork | ITransactionWork[],
-    preferredToken?: EVMAccountAddress,
+    preferredToken?: EVMContractAddress,
   ): Promise<IPaymentQuote>;
 
   /**
@@ -77,7 +78,7 @@ export interface ITransactionUtils {
       chainId: EVMChainId;
       work: ITransactionWork | ITransactionWork[];
     }[],
-    preferredToken?: EVMAccountAddress,
+    preferredToken?: EVMContractAddress,
   ): Promise<IPaymentQuote>;
 
   /**
@@ -89,7 +90,7 @@ export interface ITransactionUtils {
   sendViaRelayer(args: {
     chainId: EVMChainId;
     work: ITransactionWork | ITransactionWork[];
-    paymentToken: EVMAccountAddress;
+    paymentToken: EVMContractAddress;
     feeAtoms: TokenAmount;
     /** Defaults to `chainId`. */
     paymentChainId?: EVMChainId;
@@ -109,7 +110,7 @@ export interface ITransactionUtils {
       chainId: EVMChainId;
       work: ITransactionWork | ITransactionWork[];
     }[];
-    paymentToken: EVMAccountAddress;
+    paymentToken: EVMContractAddress;
     feeAtoms: TokenAmount;
     paymentChainId: EVMChainId;
     prefetchRelayerVaultAssertion?: boolean;

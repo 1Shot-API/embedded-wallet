@@ -124,8 +124,7 @@ export function CancelDelegationModal({
     quote?.tokens.find(
       (t) =>
         t.chainId === quote.paymentChainId &&
-        String(t.address).toLowerCase() ===
-          String(quote.selectedToken).toLowerCase(),
+        t.address === quote.selectedToken,
     )?.balance ?? null;
 
   const insufficientBalance =

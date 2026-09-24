@@ -1,4 +1,8 @@
-import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
+import type {
+  EVMAccountAddress,
+  EVMChainId,
+  EVMContractAddress,
+} from "@1shotapi/ows-types";
 import type { IPaymentTokenOption } from "../ITransactionService";
 import type { IRelayerPayment } from "../../../types/domain/RelayerPayment";
 
@@ -23,7 +27,7 @@ export interface IPaymentTokenUtils {
   resolvePayment(
     owner: EVMAccountAddress,
     executionChainIds: readonly EVMChainId[],
-    preferredToken?: EVMAccountAddress,
+    preferredToken?: EVMContractAddress,
   ): Promise<IRelayerPayment | null>;
 
   /**

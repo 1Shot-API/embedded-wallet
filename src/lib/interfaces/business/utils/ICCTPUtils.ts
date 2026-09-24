@@ -1,6 +1,7 @@
 import type {
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   HexString,
   UriString,
 } from "@1shotapi/ows-types";
@@ -34,7 +35,7 @@ export interface IEncodeDepositForBurnWithHookParams {
   totalBurn: bigint;
   destDomain: ECircleDomainId;
   mintRecipient: EVMAccountAddress;
-  burnToken: EVMAccountAddress;
+  burnToken: EVMContractAddress;
   maxFee: bigint;
   minFinalityThreshold: number;
 }
@@ -42,7 +43,7 @@ export interface IEncodeDepositForBurnWithHookParams {
 export interface IBuildCctpRelayerWorkParams {
   allowance: bigint;
   totalBurn: bigint;
-  usdcAddress: EVMAccountAddress;
+  usdcAddress: EVMContractAddress;
   tokenMessenger: EVMAccountAddress;
   approveData: HexString;
   burnData: HexString;

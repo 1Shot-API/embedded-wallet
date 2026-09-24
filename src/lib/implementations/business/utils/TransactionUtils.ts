@@ -100,7 +100,7 @@ const ACTIVATION_NOOP_TARGET =
 type ExactCalldataDelegationArgs = {
   smartAccount: Awaited<ReturnType<typeof toMetaMaskSmartAccount>>;
   delegate: EVMAccountAddress;
-  target: EVMAccountAddress;
+  target: EVMAccountAddress | EVMContractAddress;
   value: bigint;
   callData: Hex;
   chainIdNumber: number;
@@ -188,21 +188,21 @@ export class TransactionUtils implements ITransactionUtils {
       account?: LocalAccount;
       /** Prefetched so signing can share one passkey with fee/work digests. */
       nonce?: number;
-      contractAddress?: `0x${string}`;
+      contractAddress?: EVMContractAddress;
     },
   ): Promise<IRelayerAuthorizationEntry> {
     const account = options?.account ?? (await this.getViemAccount());
     const chainIdNumber = Number(BigInt(chainId));
     const client = this.options.blockchain.getPublicClient(chainId);
 
-    let contractAddress: `0x${string}` =
+    let contractAddress: EVMContractAddress =
       options?.contractAddress ?? STATELESS_DELEGATOR_IMPL;
     if (!options?.contractAddress) {
       try {
         const env = getSmartAccountsEnvironment(chainIdNumber);
-        contractAddress = getAddress(
+        contractAddress = EVMContractAddress(getAddress(
           env.implementations.EIP7702StatelessDeleGatorImpl,
-        );
+        ));
       } catch {
         // Fall back to the known Stateless7702 implementation address.
       }
@@ -269,7 +269,7 @@ export class TransactionUtils implements ITransactionUtils {
     chainId: EVMChainId,
     owner: EVMAccountAddress,
     work: ITransactionWork | ITransactionWork[],
-    preferredToken?: EVMAccountAddress,
+    preferredToken?: EVMContractAddress,
   ): Promise<IPaymentQuote> {
     const workItems = Array.isArray(work) ? work : [work];
     if (workItems.length === 0) {
@@ -290,21 +290,15 @@ export class TransactionUtils implements ITransactionUtils {
       [chainId],
     );
 
-    let selected =
+    // Trust resolvePayment for chain+token (including preferredToken). Do not
+    // re-match preferred by address alone — that can pick the same address on
+    // a different chain and rewrite paymentChainId.
+    const selected =
       tokens.find(
         (t) =>
           t.chainId === payment.paymentChainId &&
-          String(t.address).toLowerCase() ===
-            String(payment.paymentToken).toLowerCase(),
+          t.address === payment.paymentToken,
       ) ?? null;
-    if (preferredToken) {
-      const preferred = tokens.find(
-        (t) =>
-          String(t.address).toLowerCase() ===
-            String(preferredToken).toLowerCase() && t.balance > 0n,
-      );
-      if (preferred) selected = preferred;
-    }
     if (!selected || selected.balance <= 0n) {
       throw new Error("No relayer payment token with a positive balance");
     }
@@ -520,7 +514,7 @@ export class TransactionUtils implements ITransactionUtils {
       chainId: EVMChainId;
       work: ITransactionWork | ITransactionWork[];
     }[],
-    preferredToken?: EVMAccountAddress,
+    preferredToken?: EVMContractAddress,
   ): Promise<IPaymentQuote> {
     const groups = normalizeWorkByChain(workByChain);
     if (groups.length === 0) {
@@ -554,21 +548,15 @@ export class TransactionUtils implements ITransactionUtils {
       executionChainIds,
     );
 
-    let selected =
+    // Trust resolvePayment for chain+token (including preferredToken). Do not
+    // re-match preferred by address alone — that can pick the same address on
+    // a different chain and rewrite paymentChainId.
+    const selected =
       tokens.find(
         (t) =>
           t.chainId === payment.paymentChainId &&
-          String(t.address).toLowerCase() ===
-            String(payment.paymentToken).toLowerCase(),
+          t.address === payment.paymentToken,
       ) ?? null;
-    if (preferredToken) {
-      const preferred = tokens.find(
-        (t) =>
-          String(t.address).toLowerCase() ===
-            String(preferredToken).toLowerCase() && t.balance > 0n,
-      );
-      if (preferred) selected = preferred;
-    }
     if (!selected || selected.balance <= 0n) {
       throw new Error("No relayer payment token with a positive balance");
     }
@@ -671,17 +659,17 @@ export class TransactionUtils implements ITransactionUtils {
         upgradeChainIds.map(async (chainId) => {
           const chainIdNumber = Number(BigInt(chainId));
           const client = this.options.blockchain.getPublicClient(chainId);
-          let contractAddress: `0x${string}` = STATELESS_DELEGATOR_IMPL;
+          let contractAddress = STATELESS_DELEGATOR_IMPL;
           try {
             const env = getSmartAccountsEnvironment(chainIdNumber);
-            contractAddress = getAddress(
+            contractAddress = EVMContractAddress(getAddress(
               env.implementations.EIP7702StatelessDeleGatorImpl,
-            );
+            ));
           } catch {
             // keep hardcoded fallback
           }
           const nonce = await client.getTransactionCount({
-            address: getAddress(eoa),
+            address: eoa,
             blockTag: "pending",
           });
           return { chainId, chainIdNumber, contractAddress, nonce };
@@ -1040,7 +1028,7 @@ export class TransactionUtils implements ITransactionUtils {
       chainId: EVMChainId;
       work: ITransactionWork | ITransactionWork[];
     }[];
-    paymentToken: EVMAccountAddress;
+    paymentToken: EVMContractAddress;
     feeAtoms: TokenAmount;
     paymentChainId: EVMChainId;
     prefetchRelayerVaultAssertion?: boolean;
@@ -1159,12 +1147,12 @@ export class TransactionUtils implements ITransactionUtils {
           }
           const chainIdNumber = Number(BigInt(chainId));
           const client = this.options.blockchain.getPublicClient(chainId);
-          let contractAddress: `0x${string}` = STATELESS_DELEGATOR_IMPL;
+          let contractAddress = STATELESS_DELEGATOR_IMPL;
           try {
             const env = getSmartAccountsEnvironment(chainIdNumber);
-            contractAddress = getAddress(
+            contractAddress = EVMContractAddress(getAddress(
               env.implementations.EIP7702StatelessDeleGatorImpl,
-            );
+            ));
           } catch {
             // keep hardcoded fallback
           }
@@ -1373,8 +1361,7 @@ export class TransactionUtils implements ITransactionUtils {
             feeAtoms,
             feeFormatted: formatUnits(feeAtoms, paymentCapabilities.tokens.find(
               (t) =>
-                String(t.address).toLowerCase() ===
-                String(paymentToken).toLowerCase(),
+                t.address === paymentToken,
             )?.decimals ?? 6),
             paymentToken,
           });
@@ -1552,7 +1539,7 @@ export class TransactionUtils implements ITransactionUtils {
   async sendViaRelayer(args: {
     chainId: EVMChainId;
     work: ITransactionWork | ITransactionWork[];
-    paymentToken: EVMAccountAddress;
+    paymentToken: EVMContractAddress;
     feeAtoms: TokenAmount;
     paymentChainId?: EVMChainId;
     authorizationList?: IRelayerAuthorizationEntry[];
@@ -1627,14 +1614,14 @@ export class TransactionUtils implements ITransactionUtils {
       // inside Promise.all lets fee/work start a signer Confirm first; the
       // later auth RPC then cancels it (`ceremonyCancelled`).
       let upgradeNonce: number | undefined;
-      let upgradeContract: `0x${string}` | undefined;
+      let upgradeContract: EVMContractAddress | undefined;
       if (needsUpgrade) {
         upgradeContract = STATELESS_DELEGATOR_IMPL;
         try {
           const env = getSmartAccountsEnvironment(chainIdNumber);
-          upgradeContract = getAddress(
+          upgradeContract = EVMContractAddress(getAddress(
             env.implementations.EIP7702StatelessDeleGatorImpl,
-          );
+          ));
         } catch {
           // keep hardcoded fallback
         }
@@ -1799,8 +1786,7 @@ export class TransactionUtils implements ITransactionUtils {
         feeAtoms = tokenAmountFromAtomString(estimate.requiredPaymentAmount);
         const paymentTokenMeta = capabilities.tokens.find(
           (token) =>
-            String(token.address).toLowerCase() ===
-            String(paymentToken).toLowerCase(),
+            token.address === paymentToken,
         );
         const feeDecimals = paymentTokenMeta?.decimals ?? 6;
 
@@ -1913,7 +1899,7 @@ export class TransactionUtils implements ITransactionUtils {
     chainId: EVMChainId;
     paymentChainId: EVMChainId;
     work: ITransactionWork | ITransactionWork[];
-    paymentToken: EVMAccountAddress;
+    paymentToken: EVMContractAddress;
     feeAtoms: TokenAmount;
     authorizationList?: IRelayerAuthorizationEntry[];
     relayerUrl: string;
@@ -2001,19 +1987,19 @@ export class TransactionUtils implements ITransactionUtils {
       ]);
 
       let upgradeNonce: number | undefined;
-      let upgradeContract: `0x${string}` | undefined;
+      let upgradeContract: EVMContractAddress | undefined;
       if (needsUpgrade) {
         upgradeContract = STATELESS_DELEGATOR_IMPL;
         try {
           const env = getSmartAccountsEnvironment(executionChainIdNumber);
-          upgradeContract = getAddress(
+          upgradeContract = EVMContractAddress(getAddress(
             env.implementations.EIP7702StatelessDeleGatorImpl,
-          );
+          ));
         } catch {
           // keep hardcoded fallback
         }
         upgradeNonce = await executionClient.getTransactionCount({
-          address: getAddress(eoa),
+          address: eoa,
           blockTag: "pending",
         });
       }
@@ -2174,8 +2160,7 @@ export class TransactionUtils implements ITransactionUtils {
         feeAtoms = tokenAmountFromAtomString(estimate.requiredPaymentAmount);
         const paymentTokenMeta = paymentCapabilities.tokens.find(
           (token) =>
-            String(token.address).toLowerCase() ===
-            String(paymentToken).toLowerCase(),
+            token.address === paymentToken,
         );
         const feeDecimals = paymentTokenMeta?.decimals ?? 6;
         if (onFinalFeeRequired) {

@@ -1,6 +1,7 @@
 import type {
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   EVMTransactionHash,
   HexString,
 } from "@1shotapi/ows-types";
@@ -40,7 +41,7 @@ export interface ICctpBridgeQuote {
 }
 
 export interface ICctpBridgePayment {
-  paymentToken: EVMAccountAddress;
+  paymentToken: EVMContractAddress;
   feeAtoms: TokenAmount;
   paymentChainId?: EVMChainId;
 }

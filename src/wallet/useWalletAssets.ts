@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import type {
   CredentialId,
   EVMAccountAddress,
+  EVMContractAddress,
   EVMChainId,
 } from "@1shotapi/ows-types";
 import { ChainUtils } from "@1shotapi/ows-types";
@@ -90,7 +91,7 @@ export function useWalletAssets({
   );
 
   const addTrackedAsset = useCallback(
-    async (chainId: EVMChainId, address: EVMAccountAddress) => {
+    async (chainId: EVMChainId, address: EVMContractAddress) => {
       const owner = useWalletSessionStore.getState().evmAddress;
       const resolved = await knownAssetRepository.resolveForTracking(
         chainId,
@@ -109,7 +110,7 @@ export function useWalletAssets({
   );
 
   const removeTrackedAsset = useCallback(
-    async (chainId: EVMChainId, address: EVMAccountAddress) => {
+    async (chainId: EVMChainId, address: EVMContractAddress) => {
       await trackedAssetRepository.remove(chainId, address);
       await refreshTrackedAssetCount();
     },
@@ -117,14 +118,14 @@ export function useWalletAssets({
   );
 
   const getKnownAsset = useCallback(
-    async (chainId: EVMChainId, address: EVMAccountAddress) => {
+    async (chainId: EVMChainId, address: EVMContractAddress) => {
       return knownAssetRepository.getKnownAsset(chainId, address);
     },
     [knownAssetRepository],
   );
 
   const resolveTrackedAsset = useCallback(
-    async (chainId: EVMChainId, address: EVMAccountAddress) => {
+    async (chainId: EVMChainId, address: EVMContractAddress) => {
       const owner = useWalletSessionStore.getState().evmAddress;
       const listed = await trackedAssetRepository.list(chainId);
       const existing = listed.find(

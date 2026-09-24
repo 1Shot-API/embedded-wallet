@@ -1,10 +1,10 @@
-import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
+import type { EVMAccountAddress, EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
 import type { KnownAsset, NewTrackedAsset } from "../../types/domain";
 
 export interface IKnownAssetRepository {
   getKnownAsset(
     chainId: EVMChainId,
-    address: EVMAccountAddress,
+    address: EVMContractAddress,
   ): Promise<KnownAsset | null>;
 
   /** Native Circle USDC on `chainId` when the catalog marks `useCCTPBridge`. */
@@ -22,7 +22,7 @@ export interface IKnownAssetRepository {
    */
   resolveForTracking(
     chainId: EVMChainId,
-    address: EVMAccountAddress,
+    address: EVMContractAddress,
     owner: EVMAccountAddress,
   ): Promise<NewTrackedAsset>;
 }

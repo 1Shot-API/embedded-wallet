@@ -2,8 +2,8 @@ import { erc20Abi, type Address } from "viem";
 import {
   ChainUtils,
   EVMAccountAddress,
-  type EVMAccountAddress as EVMAccountAddressType,
-  type EVMChainId as EVMChainIdType,
+  EVMContractAddress,
+  EVMChainId,
 } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import {
@@ -78,7 +78,7 @@ export class LocalStorageTrackedAssetRepository
     return this.storageKey;
   }
 
-  async list(chainId?: EVMChainIdType): Promise<TrackedAsset[]> {
+  async list(chainId?: EVMChainId): Promise<TrackedAsset[]> {
     const storageKey = await this.resolveStorageKey();
     const assets = this.filterByChain(
       this.mergeWithDefaults(this.readStoredAssets(storageKey)),
@@ -94,8 +94,8 @@ export class LocalStorageTrackedAssetRepository
   }
 
   async has(
-    chainId: EVMChainIdType,
-    address: EVMAccountAddressType,
+    chainId: EVMChainId,
+    address: EVMContractAddress,
   ): Promise<boolean> {
     if (isDefaultTrackedAsset(chainId, address)) {
       return true;
@@ -107,7 +107,7 @@ export class LocalStorageTrackedAssetRepository
 
   async add(
     asset: NewTrackedAsset,
-    owner: EVMAccountAddressType,
+    owner: EVMAccountAddress,
   ): Promise<TrackedAsset> {
     if (isDefaultTrackedAsset(asset.chainId, asset.address)) {
       const existing = TrackedAsset.fromNew(asset);
@@ -151,8 +151,8 @@ export class LocalStorageTrackedAssetRepository
   }
 
   async remove(
-    chainId: EVMChainIdType,
-    address: EVMAccountAddressType,
+    chainId: EVMChainId,
+    address: EVMContractAddress,
   ): Promise<void> {
     if (isDefaultTrackedAsset(chainId, address)) {
       return;
@@ -168,8 +168,8 @@ export class LocalStorageTrackedAssetRepository
   }
 
   async getBalances(
-    owner: EVMAccountAddressType,
-    options: { id: TrackedAssetId } | { chainId: EVMChainIdType },
+    owner: EVMAccountAddress,
+    options: { id: TrackedAssetId } | { chainId: EVMChainId },
   ): Promise<TrackedAsset[]> {
     const storageKey = await this.resolveStorageKey();
     const all = this.mergeWithDefaults(this.readStoredAssets(storageKey));
@@ -194,7 +194,7 @@ export class LocalStorageTrackedAssetRepository
 
   private filterByChain(
     assets: TrackedAsset[],
-    chainId?: EVMChainIdType,
+    chainId?: EVMChainId,
   ): TrackedAsset[] {
     if (chainId == null) return assets;
     const key = String(chainId).toLowerCase();
@@ -221,7 +221,7 @@ export class LocalStorageTrackedAssetRepository
 
   private async ensureBalances(
     assets: TrackedAsset[],
-    owner: EVMAccountAddressType,
+    owner: EVMAccountAddress,
     forceEmit: boolean,
   ): Promise<TrackedAsset[]> {
     let anyFetched = forceEmit;
@@ -249,7 +249,7 @@ export class LocalStorageTrackedAssetRepository
 
   private async fetchBalance(
     asset: TrackedAsset,
-    owner: EVMAccountAddressType,
+    owner: EVMAccountAddress,
   ): Promise<bigint | null> {
     if (owner === EMPTY_OWNER) {
       return null;
@@ -300,7 +300,7 @@ export class LocalStorageTrackedAssetRepository
           continue;
         }
         const chainId = ChainUtils.asEVMChainId(row.chainId);
-        const address = EVMAccountAddress(row.address as `0x${string}`);
+        const address = EVMContractAddress(row.address as `0x${string}`);
         const type =
           row.type === EAssetType.Native
             ? EAssetType.Native

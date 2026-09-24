@@ -8,6 +8,7 @@ import type {
   CredentialPresentationApprovalRequest,
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   EVMSignatureHex,
   EVMTransactionHash,
   IExecutionPermission,
@@ -33,7 +34,7 @@ export interface IConfirmTransferRequest {
   amount: string;
   tokenName: string;
   tokenSymbol: string;
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   receiver: string;
   chainName: string;
   chainId: EVMChainId;
@@ -46,14 +47,14 @@ export interface IConfirmTransferRequest {
 /** Relayer payment selection from TX confirm UI (before execute). */
 export type IConfirmSendPayment = {
   /** Required when the confirm modal was opened with `useRelayer: true`. */
-  paymentToken?: EVMAccountAddress;
+  paymentToken?: EVMContractAddress;
   feeAtoms?: TokenAmount;
   paymentChainId?: EVMChainId;
 };
 
 /** Relayer confirm payload after UI validation. */
 export type IRelayerConfirmSendResult = {
-  paymentToken: EVMAccountAddress;
+  paymentToken: EVMContractAddress;
   feeAtoms: TokenAmount;
   /** Chain that pays the fee (may differ from the work chain). */
   paymentChainId: EVMChainId;

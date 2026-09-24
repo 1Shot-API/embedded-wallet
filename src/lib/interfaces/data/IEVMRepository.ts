@@ -1,6 +1,7 @@
 import type {
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   HexString,
 } from "@1shotapi/ows-types";
 import type { ISendTransactionResult } from "./IOneshotRelayerRepository";
@@ -19,7 +20,7 @@ export interface IEvmGasOverrides {
 export interface IEVMRepository {
   broadcastRawTransaction(
     chainId: EVMChainId,
-    to: EVMAccountAddress,
+    to: EVMAccountAddress | EVMContractAddress,
     data: HexString,
     value?: bigint,
     gasOverrides?: IEvmGasOverrides,

@@ -1,4 +1,4 @@
-import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
+import type { EVMAccountAddress, EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
 import type { TrackedAssetId } from "../../types/primitives";
 import type { NewTrackedAsset, TrackedAsset } from "../../types/domain";
 
@@ -8,12 +8,12 @@ export interface ITrackedAssetRepository {
    * Does **not** hit RPC — balances come from session cache only (else `null`).
    */
   list(chainId?: EVMChainId): Promise<TrackedAsset[]>;
-  has(chainId: EVMChainId, address: EVMAccountAddress): Promise<boolean>;
+  has(chainId: EVMChainId, address: EVMContractAddress): Promise<boolean>;
   add(
     asset: NewTrackedAsset,
     owner: EVMAccountAddress,
   ): Promise<TrackedAsset>;
-  remove(chainId: EVMChainId, address: EVMAccountAddress): Promise<void>;
+  remove(chainId: EVMChainId, address: EVMContractAddress): Promise<void>;
   /**
    * Network balance fetch. Pass `id` for one asset, or `chainId` for every
    * tracked asset on that chain. One of the two is required.

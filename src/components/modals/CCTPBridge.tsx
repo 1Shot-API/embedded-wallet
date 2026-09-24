@@ -426,8 +426,8 @@ export function CCTPBridge({
     if (!irisQuote || !paymentQuote || !sourceUsdc) return null;
     const burn = usdcAmountFromAtoms(irisQuote.totalBurn);
     const same =
-      String(paymentQuote.selectedToken).toLowerCase() ===
-      String(sourceUsdc.address).toLowerCase();
+      paymentQuote.selectedToken ===
+      sourceUsdc.address;
     if (!same) {
       return burn;
     }
@@ -886,9 +886,7 @@ function ConfirmSummary({
           <dd>
             {payment.feeFormatted}{" "}
             {payment.tokens.find(
-              (token) =>
-                String(token.address).toLowerCase() ===
-                String(payment.selectedToken).toLowerCase(),
+              (token) => token.address === payment.selectedToken,
             )?.symbol ?? "USDC"}
           </dd>
         </div>
