@@ -290,21 +290,16 @@ export class TransactionUtils implements ITransactionUtils {
       [chainId],
     );
 
-    let selected =
+    // Trust resolvePayment for chain+token (including preferredToken). Do not
+    // re-match preferred by address alone — that can pick the same address on
+    // a different chain and rewrite paymentChainId.
+    const selected =
       tokens.find(
         (t) =>
           t.chainId === payment.paymentChainId &&
           String(t.address).toLowerCase() ===
             String(payment.paymentToken).toLowerCase(),
       ) ?? null;
-    if (preferredToken) {
-      const preferred = tokens.find(
-        (t) =>
-          String(t.address).toLowerCase() ===
-            String(preferredToken).toLowerCase() && t.balance > 0n,
-      );
-      if (preferred) selected = preferred;
-    }
     if (!selected || selected.balance <= 0n) {
       throw new Error("No relayer payment token with a positive balance");
     }
@@ -554,21 +549,16 @@ export class TransactionUtils implements ITransactionUtils {
       executionChainIds,
     );
 
-    let selected =
+    // Trust resolvePayment for chain+token (including preferredToken). Do not
+    // re-match preferred by address alone — that can pick the same address on
+    // a different chain and rewrite paymentChainId.
+    const selected =
       tokens.find(
         (t) =>
           t.chainId === payment.paymentChainId &&
           String(t.address).toLowerCase() ===
             String(payment.paymentToken).toLowerCase(),
       ) ?? null;
-    if (preferredToken) {
-      const preferred = tokens.find(
-        (t) =>
-          String(t.address).toLowerCase() ===
-            String(preferredToken).toLowerCase() && t.balance > 0n,
-      );
-      if (preferred) selected = preferred;
-    }
     if (!selected || selected.balance <= 0n) {
       throw new Error("No relayer payment token with a positive balance");
     }
