@@ -1,9 +1,9 @@
 import {
   ChainUtils,
   EVMAccountAddress,
+  EVMContractAddress,
   EVMTransactionHash,
-  type EVMAccountAddress as EVMAccountAddressType,
-  type EVMChainId as EVMChainIdType,
+  type EVMChainId,
   type UriString,
 } from "@1shotapi/ows-types";
 import {
@@ -25,6 +25,7 @@ import {
   makeTrackedAssetId,
   type TrackedAssetId,
 } from "../../types/primitives";
+import { getAddress } from "viem";
 
 type StoredOptimistic = {
   hash: string;
@@ -167,9 +168,9 @@ export class BlockscoutAssetActivityRepository
   }
 
   private async fetchIndexed(args: {
-    owner: EVMAccountAddressType;
-    chainId: EVMChainIdType;
-    tokenAddress: EVMAccountAddressType;
+    owner: EVMAccountAddress;
+    chainId: EVMChainId;
+    tokenAddress: EVMContractAddress;
     decimals: number;
     trackedAssetId: TrackedAssetId;
     limit: number;
@@ -217,9 +218,9 @@ export class BlockscoutAssetActivityRepository
   private transferToActivity(
     transfer: RelayerActivityTransfer,
     args: {
-      owner: EVMAccountAddressType;
-      chainId: EVMChainIdType;
-      tokenAddress: EVMAccountAddressType;
+      owner: EVMAccountAddress;
+      chainId: EVMChainId;
+      tokenAddress: EVMContractAddress;
       decimals: number;
       trackedAssetId: TrackedAssetId;
     },
@@ -265,7 +266,7 @@ export class BlockscoutAssetActivityRepository
     const fromLower = from.toLowerCase();
     const toLower = to.toLowerCase();
     let kind: EAssetActivityKind;
-    let counterparty: EVMAccountAddressType;
+    let counterparty: EVMAccountAddress;
     if (fromLower === ownerLower) {
       kind = EAssetActivityKind.Sent;
       counterparty = EVMAccountAddress(to as `0x${string}`);
@@ -310,7 +311,7 @@ export class BlockscoutAssetActivityRepository
     return new AssetActivity(
       EVMTransactionHash(row.hash as `0x${string}`),
       ChainUtils.asEVMChainId(row.chainId),
-      EVMAccountAddress(row.tokenAddress as `0x${string}`),
+      EVMContractAddress(getAddress(row.tokenAddress)),
       trackedAssetId,
       EVMAccountAddress(row.owner as `0x${string}`),
       EVMAccountAddress(row.counterparty as `0x${string}`),

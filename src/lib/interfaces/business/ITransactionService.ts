@@ -1,6 +1,7 @@
 import type {
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   HexString,
 } from "@1shotapi/ows-types";
 import type {
@@ -13,16 +14,20 @@ import type { IWalletUpgradeStatus } from "../../types/domain/WalletUpgradeStatu
 import type { TokenAmount } from "../../types/primitives";
 
 export interface IPaymentTokenOption {
-  address: EVMAccountAddress;
+  /** ERC-20 (or other) payment token contract. */
+  address: EVMContractAddress;
   symbol: string;
   name?: string;
   decimals: number;
   balance: TokenAmount;
+  /** Chain this payment token lives on (fee ExactCalldata chain). */
+  chainId: EVMChainId;
+  chainName: string;
 }
 
 export interface IPaymentQuote {
   tokens: IPaymentTokenOption[];
-  selectedToken: EVMAccountAddress;
+  selectedToken: EVMContractAddress;
   /** Chain where the fee ExactCalldata runs (may differ from the work chain). */
   paymentChainId: EVMChainId;
   paymentChainName: string;
@@ -34,7 +39,7 @@ export interface IPaymentQuote {
 }
 
 export interface ITransactionWork {
-  to: EVMAccountAddress;
+  to: EVMAccountAddress | EVMContractAddress;
   data: HexString;
   value?: bigint;
 }
@@ -42,7 +47,7 @@ export interface ITransactionWork {
 export type ISendViaRelayerParams = {
   chainId: EVMChainId;
   work: ITransactionWork | ITransactionWork[];
-  paymentToken: EVMAccountAddress;
+  paymentToken: EVMContractAddress;
   /** Fee atoms from the confirm UI quote; may be adjusted after estimate. */
   feeAtoms: TokenAmount;
   /**
@@ -80,7 +85,7 @@ export interface ITransactionService {
     chainId: EVMChainId,
     owner: EVMAccountAddress,
     work: ITransactionWork | ITransactionWork[],
-    preferredToken?: EVMAccountAddress,
+    preferredToken?: EVMContractAddress,
   ): Promise<IPaymentQuote>;
 
   /** Unsigned fee quote for multi/single-chain EIP-7702 activation. */
@@ -88,6 +93,19 @@ export interface ITransactionService {
     owner: EVMAccountAddress,
     upgradeChainIds: readonly EVMChainId[],
     payment: IRelayerPayment,
+  ): Promise<IPaymentQuote>;
+
+  /**
+   * Combined unsigned fee quote for ExactCalldata work across one or more
+   * chains (local-first payment, then Arc USDC).
+   */
+  quotePaymentMultichain(
+    owner: EVMAccountAddress,
+    workByChain: readonly {
+      chainId: EVMChainId;
+      work: ITransactionWork | ITransactionWork[];
+    }[],
+    preferredToken?: EVMContractAddress,
   ): Promise<IPaymentQuote>;
 
   /**
@@ -110,7 +128,7 @@ export interface ITransactionService {
     chainId: EVMChainId,
     work: ITransactionWork,
     options?: {
-      paymentToken?: EVMAccountAddress;
+      paymentToken?: EVMContractAddress;
       feeAtoms?: TokenAmount;
       paymentChainId?: EVMChainId;
       authorizationList?: IRelayerAuthorizationEntry[];

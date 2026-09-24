@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ICancelDelegationConfirmRequest,
-  ICancelDelegationPayment,
+  IRelayerConfirmSendResult,
 } from "../../wallet/modalTypes";
 import type { IPaymentQuote } from "../../lib/interfaces/business";
 import type { IRelayerSendUiCallbacks } from "../../lib/types/domain/RelayerSendUi";
@@ -44,8 +44,8 @@ function groupItemsByChain(
 }
 
 /**
- * On-chain cancel / revoke confirm — lists selected delegations, quotes a
- * relayer fee per chain, then runs execute. Optional “Skip onchain
+ * On-chain cancel / revoke confirm — lists selected delegations, quotes one
+ * combined Multichain fee, then runs execute. Optional “Skip onchain
  * cancellation” removes vault rows only.
  */
 export function CancelDelegationModal({
@@ -58,7 +58,7 @@ export function CancelDelegationModal({
 }: {
   request: ICancelDelegationConfirmRequest;
   execute: (
-    payments: ICancelDelegationPayment[],
+    payment: IRelayerConfirmSendResult,
     ui: IRelayerSendUiCallbacks,
   ) => Promise<EVMTransactionHash[]>;
   executeLocal: () => Promise<void>;
@@ -74,12 +74,8 @@ export function CancelDelegationModal({
   const [localError, setLocalError] = useState<string | null>(null);
   const [phase, setPhase] = useState<CancelPhase>("confirm");
   const [error, setError] = useState<string | null>(null);
-  const [quotes, setQuotes] = useState<Record<string, IPaymentQuote | null>>(
-    {},
-  );
-  const [quoteErrors, setQuoteErrors] = useState<Record<string, string | null>>(
-    {},
-  );
+  const [quote, setQuote] = useState<IPaymentQuote | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
   const abortedRef = useRef(false);
   const finalFeeGateRef = useRef<{
     resolve: () => void;
@@ -93,6 +89,17 @@ export function CancelDelegationModal({
     () => groupItemsByChain(request.items),
     [request.items],
   );
+
+  const workByChain = useMemo(
+    () =>
+      chainGroups.map((group) => ({
+        chainId: group.chainId,
+        work: group.work,
+      })),
+    [chainGroups],
+  );
+
+  const primaryChainId = chainGroups[0]?.chainId;
 
   const chainNames = useMemo(
     () =>
@@ -111,12 +118,26 @@ export function CancelDelegationModal({
     };
   }, []);
 
-  const allQuotesReady =
-    chainGroups.length > 0 &&
-    chainGroups.every((group) => {
-      const key = group.chainId;
-      return quotes[key] != null && !quoteErrors[key];
-    });
+  const quoteReady = quote != null && !quoteError;
+
+  const selectedBalance =
+    quote?.tokens.find(
+      (t) =>
+        t.chainId === quote.paymentChainId &&
+        t.address === quote.selectedToken,
+    )?.balance ?? null;
+
+  const insufficientBalance =
+    quote !== null &&
+    selectedBalance !== null &&
+    quote.feeAtoms > selectedBalance;
+
+  const balanceError = insufficientBalance
+    ? copy.insufficientBalanceError.replace(
+        "{chainName}",
+        quote.paymentChainName,
+      )
+    : null;
 
   const showConfirmActions =
     skipOnchain || phase === "confirm" || phase === "finalFee";
@@ -125,50 +146,28 @@ export function CancelDelegationModal({
     ? !localBusy
     : phase === "finalFee"
       ? true
-      : phase === "confirm" && allQuotesReady;
+      : phase === "confirm" && quoteReady && !insufficientBalance;
 
   const body = copy.body
     .replace("{domain}", request.domain)
     .replace("{chainName}", chainNames);
 
-  const setChainQuote = useCallback(
-    (chainId: EVMChainId, quote: IPaymentQuote | null, err: string | null) => {
-      const key = chainId;
-      setQuotes((prev) => ({ ...prev, [key]: quote }));
-      setQuoteErrors((prev) => ({ ...prev, [key]: err }));
-    },
-    [],
-  );
-
-  const buildPayments = useCallback((): ICancelDelegationPayment[] => {
-    return chainGroups.map((group) => {
-      const quote = quotes[group.chainId];
-      if (!quote) {
-        throw new Error(`Missing fee quote for chain ${group.chainName}`);
-      }
-      return {
-        chainId: group.chainId,
-        paymentToken: quote.selectedToken,
-        feeAtoms: quote.feeAtoms,
-        paymentChainId: quote.paymentChainId,
-      };
-    });
-  }, [chainGroups, quotes]);
-
   const runExecute = useCallback(() => {
     abortedRef.current = false;
     setError(null);
-    setPhase("signing");
-    let payments: ICancelDelegationPayment[];
-    try {
-      payments = buildPayments();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err));
+    if (!quote) {
+      setError("Missing fee quote");
       setPhase("confirm");
       return;
     }
+    setPhase("signing");
+    const payment: IRelayerConfirmSendResult = {
+      paymentToken: quote.selectedToken,
+      feeAtoms: quote.feeAtoms,
+      paymentChainId: quote.paymentChainId,
+    };
 
-    void execute(payments, {
+    void execute(payment, {
       retainDisplayDuringSubmit: true,
       onAwaitingConfirmation: () => setPhase("submitting"),
       onFinalFeeRequired: (fee) =>
@@ -193,7 +192,7 @@ export function CancelDelegationModal({
         setError(err instanceof Error ? err.message : String(err));
         setPhase(showedFinalFeeRef.current ? "finalFee" : "confirm");
       });
-  }, [buildPayments, execute, onResolve]);
+  }, [execute, onResolve, quote]);
 
   const onConfirm = () => {
     if (skipOnchain) {
@@ -302,7 +301,7 @@ export function CancelDelegationModal({
         ))}
       </ul>
 
-      {!skipOnchain ? (
+      {!skipOnchain && primaryChainId !== undefined ? (
         <div className="mt-3 flex flex-col gap-4">
           {phase === "finalFee" ? (
             <p className="text-muted-foreground m-0 text-sm">
@@ -310,31 +309,25 @@ export function CancelDelegationModal({
               {finalFeeLabel ? ` (${finalFeeLabel})` : null}
             </p>
           ) : null}
-          {chainGroups.map((group) => {
-            const key = group.chainId;
-            return (
-              <div key={key} className="flex flex-col gap-1">
-                {chainGroups.length > 1 ? (
-                  <p className="text-muted-foreground m-0 text-xs font-medium uppercase">
-                    {group.chainName}
-                  </p>
-                ) : null}
-                <PaymentFeePicker
-                  chainId={group.chainId}
-                  ownerAddress={request.ownerAddress}
-                  work={group.work}
-                  quote={quotes[key] ?? null}
-                  error={quoteErrors[key] ?? null}
-                  loading={false}
-                  paused={feePickerPaused}
-                  mode={phase === "finalFee" ? "final" : "estimate"}
-                  onQuoteChange={(next, err) => {
-                    setChainQuote(group.chainId, next, err);
-                  }}
-                />
-              </div>
-            );
-          })}
+          <PaymentFeePicker
+            chainId={primaryChainId}
+            ownerAddress={request.ownerAddress}
+            workByChain={workByChain}
+            quote={quote}
+            error={quoteError}
+            loading={false}
+            paused={feePickerPaused}
+            mode={phase === "finalFee" ? "final" : "estimate"}
+            onQuoteChange={(next, err) => {
+              setQuote(next);
+              setQuoteError(err);
+            }}
+          />
+          {balanceError ? (
+            <p className="text-destructive m-0 text-[0.9rem]" role="alert">
+              {balanceError}
+            </p>
+          ) : null}
           {statusMessage ? (
             <p className="text-muted-foreground m-0 text-[0.9rem]">
               {statusMessage}

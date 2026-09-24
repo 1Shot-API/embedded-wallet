@@ -8,6 +8,7 @@ import type {
   CredentialPresentationApprovalRequest,
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   EVMSignatureHex,
   EVMTransactionHash,
   IExecutionPermission,
@@ -33,7 +34,7 @@ export interface IConfirmTransferRequest {
   amount: string;
   tokenName: string;
   tokenSymbol: string;
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   receiver: string;
   chainName: string;
   chainId: EVMChainId;
@@ -46,14 +47,14 @@ export interface IConfirmTransferRequest {
 /** Relayer payment selection from TX confirm UI (before execute). */
 export type IConfirmSendPayment = {
   /** Required when the confirm modal was opened with `useRelayer: true`. */
-  paymentToken?: EVMAccountAddress;
+  paymentToken?: EVMContractAddress;
   feeAtoms?: TokenAmount;
   paymentChainId?: EVMChainId;
 };
 
 /** Relayer confirm payload after UI validation. */
 export type IRelayerConfirmSendResult = {
-  paymentToken: EVMAccountAddress;
+  paymentToken: EVMContractAddress;
   feeAtoms: TokenAmount;
   /** Chain that pays the fee (may differ from the work chain). */
   paymentChainId: EVMChainId;
@@ -93,15 +94,6 @@ export interface ICancelDelegationConfirmItem {
   /** ExactCalldata work for unsigned fee estimate on this chain. */
   work: ITransactionWork;
 }
-
-/** Per-chain payment when canceling across one or more networks. */
-export type ICancelDelegationPayment = {
-  chainId: EVMChainId;
-  paymentToken: EVMAccountAddress;
-  feeAtoms: TokenAmount;
-  /** Fee payment chain — defaults to `chainId` when omitted. */
-  paymentChainId?: EVMChainId;
-};
 
 /** Cancel / revoke confirm (on-chain disableDelegation, possibly batched). */
 export interface ICancelDelegationConfirmRequest {
@@ -229,7 +221,7 @@ export type ModalRequest =
       kind: "cancelDelegation";
       request: ICancelDelegationConfirmRequest;
       execute: (
-        payments: ICancelDelegationPayment[],
+        payment: IRelayerConfirmSendResult,
         ui: IRelayerSendUiCallbacks,
       ) => Promise<EVMTransactionHash[]>;
       /** Vault-only delete when the user skips on-chain cancel. */

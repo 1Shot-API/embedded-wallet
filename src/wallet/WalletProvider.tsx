@@ -19,6 +19,7 @@ import {
 import {
   ChainUtils,
   EVMAccountAddress,
+  EVMContractAddress,
   EVMChainId,
   HexString,
   SolanaAccountAddress,
@@ -287,19 +288,19 @@ export type WalletContextValue = {
   listTrackedAssets: (chainId?: EVMChainId) => Promise<TrackedAsset[]>;
   addTrackedAsset: (
     chainId: EVMChainId,
-    address: EVMAccountAddress,
+    address: EVMContractAddress,
   ) => Promise<TrackedAsset>;
   removeTrackedAsset: (
     chainId: EVMChainId,
-    address: EVMAccountAddress,
+    address: EVMContractAddress,
   ) => Promise<void>;
   getKnownAsset: (
     chainId: EVMChainId,
-    address: EVMAccountAddress,
+    address: EVMContractAddress,
   ) => Promise<KnownAsset | null>;
   resolveTrackedAsset: (
     chainId: EVMChainId,
-    address: EVMAccountAddress,
+    address: EVMContractAddress,
   ) => Promise<TrackedAsset>;
   requestBalanceRefresh: (
     id?: TrackedAssetId,
@@ -320,11 +321,11 @@ export type WalletContextValue = {
    */
   sendTransaction: (
     chainId: EVMChainId,
-    to: EVMAccountAddress,
+    to: EVMAccountAddress | EVMContractAddress,
     data: HexString,
     value?: bigint,
     payment?: {
-      paymentToken: EVMAccountAddress;
+      paymentToken: EVMContractAddress;
       feeAtoms: TokenAmount;
       paymentChainId?: EVMChainId;
     },
@@ -577,11 +578,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const sendTransaction = useCallback(
     async (
       chainId: EVMChainId,
-      to: EVMAccountAddress,
+      to: EVMAccountAddress | EVMContractAddress,
       data: HexString,
       value?: bigint,
       payment?: {
-        paymentToken: EVMAccountAddress;
+        paymentToken: EVMContractAddress;
         feeAtoms: TokenAmount;
       },
     ) => {
@@ -768,13 +769,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             items,
             allowSkipOnchain: true,
           },
-          execute: async (payments, ui) => {
+          execute: async (payment, ui) => {
             const batch = await delegationService.cancelDelegations({
               items: storedList.map((stored) => ({
                 chainId: stored.chainId,
                 stored,
               })),
-              payments,
+              paymentToken: payment.paymentToken,
+              feeAtoms: payment.feeAtoms,
+              paymentChainId: payment.paymentChainId,
               ...ui,
             });
             return batch.results.map((r) => r.transactionHash);

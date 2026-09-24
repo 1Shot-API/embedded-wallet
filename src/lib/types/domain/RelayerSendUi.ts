@@ -1,11 +1,11 @@
-import type { EVMAccountAddress } from "@1shotapi/ows-types";
+import type { EVMContractAddress } from "@1shotapi/ows-types";
 import type { TokenAmount } from "../primitives";
 
 /** Relayer-settled fee shown between prepare and submit. */
 export type IFinalRelayerFee = {
   feeAtoms: TokenAmount;
   feeFormatted: string;
-  paymentToken: EVMAccountAddress;
+  paymentToken: EVMContractAddress;
 };
 
 /** Branding-layer hooks for {@link ITransactionUtils.sendViaRelayer}. */

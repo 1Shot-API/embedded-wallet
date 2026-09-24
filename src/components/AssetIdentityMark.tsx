@@ -1,14 +1,11 @@
-import type {
-  EVMAccountAddress,
-  EVMChainId,
-} from "@1shotapi/ows-types";
+import type { EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
 import { cn } from "@/lib/utils";
 import { resolveAssetIconUrl } from "../lib/utils/tokenIcons";
 import { SafeAssetImage } from "./SafeAssetImage";
 
 export interface IAssetIdentityMarkProps {
   chainId: EVMChainId;
-  address: EVMAccountAddress;
+  address: EVMContractAddress;
   symbol: string;
   /** Optional host / tracked override (HTTPS). */
   iconUrl?: string;

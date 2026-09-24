@@ -4,6 +4,7 @@ import {
   type BitcoinChainId,
   type BitcoinSegwitAccountAddress,
   EVMAccountAddress,
+  EVMContractAddress,
   type OWSChainId,
   SolanaAccountAddress,
 } from "@1shotapi/ows-types";
@@ -33,7 +34,7 @@ export interface IWalletSessionState {
   /** Bumped on tracked-asset add/remove so Balances tab reloads. */
   trackedAssetCount: number;
   mode: EWalletMode;
-  focusedAssetAddress: EVMAccountAddress | null;
+  focusedAssetAddress: EVMContractAddress | null;
 
   setReady: (ready: boolean) => void;
   setSignerReady: (ready: boolean) => void;
@@ -55,10 +56,10 @@ export interface IWalletSessionState {
   setCredentialCount: (count: number) => void;
   setTrackedAssetCount: (count: number) => void;
   setMode: (mode: EWalletMode) => void;
-  setFocusedAssetAddress: (address: EVMAccountAddress | null) => void;
+  setFocusedAssetAddress: (address: EVMContractAddress | null) => void;
   focusWallet: (
     chainId: OWSChainId,
-    assetAddress: EVMAccountAddress,
+    assetAddress: EVMContractAddress,
   ) => void;
   unfocusWallet: () => void;
 }

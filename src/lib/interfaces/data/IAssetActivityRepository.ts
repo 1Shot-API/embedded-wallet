@@ -1,6 +1,7 @@
 import type {
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import type { AssetActivity } from "../../types/domain/AssetActivity";
@@ -8,7 +9,7 @@ import type { TrackedAsset } from "../../types/domain/TrackedAsset";
 
 export interface IRecordSentActivityParams {
   chainId: EVMChainId;
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   owner: EVMAccountAddress;
   to: EVMAccountAddress;
   amount: bigint;

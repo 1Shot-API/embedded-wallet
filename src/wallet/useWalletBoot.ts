@@ -4,6 +4,7 @@ import { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
 import {
   ChainUtils,
   EVMAccountAddress,
+  EVMContractAddress,
   OwsInvalidParamsError,
   OwsUserRejectedError,
   type CredentialOfferApprovalRequest,
@@ -165,7 +166,7 @@ function createDeferredSigner(
 }
 
 function requireRelayerConfirmPayment(confirmed: {
-  paymentToken?: EVMAccountAddress;
+  paymentToken?: EVMContractAddress;
   feeAtoms?: TokenAmount;
   paymentChainId?: EVMChainId;
 }): IRelayerConfirmSendResult {
@@ -685,7 +686,7 @@ export function useWalletBoot({
                           ],
                           allowSkipOnchain: Boolean(stored),
                         },
-                        execute: async (payments, ui) => {
+                        execute: async (payment, ui) => {
                           const batch =
                             await delegationService.cancelDelegations({
                               items: [
@@ -695,7 +696,9 @@ export function useWalletBoot({
                                   permissionContext: params.permissionContext,
                                 },
                               ],
-                              payments,
+                              paymentToken: payment.paymentToken,
+                              feeAtoms: payment.feeAtoms,
+                              paymentChainId: payment.paymentChainId,
                               ...ui,
                             });
                           return batch.results.map((r) => r.transactionHash);
@@ -966,13 +969,13 @@ export function useWalletBoot({
               const useRelayer = chain?.useRelayer === true;
 
               const transfer = transactionUtils.tryDecodeErc20Transfer(
-                request.to,
+                request.to ? EVMContractAddress(request.to) : null,
                 request.data,
               );
 
               const executeSend = async (
                 payment: {
-                  paymentToken?: EVMAccountAddress;
+                  paymentToken?: EVMContractAddress;
                   feeAtoms?: TokenAmount;
                   paymentChainId?: EVMChainId;
                 },
@@ -980,7 +983,7 @@ export function useWalletBoot({
               ) => {
                 let relayerOptions:
                   | {
-                      paymentToken: EVMAccountAddress;
+                      paymentToken: EVMContractAddress;
                       feeAtoms: TokenAmount;
                       paymentChainId: EVMChainId;
                     }

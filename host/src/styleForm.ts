@@ -213,6 +213,7 @@ export interface IStyleFormState {
   cancelDelegationReject: string;
   cancelDelegationSkipOnchainLabel: string;
   cancelDelegationSkipOnchainAcknowledgement: string;
+  cancelDelegationInsufficientBalanceError: string;
   activateOfflinePermissionsTitle: string;
   activateOfflinePermissionsBody: string;
   activateOfflinePermissionsChainsLabel: string;
@@ -462,6 +463,8 @@ export const ACME_PRESET: IStyleFormState = {
   cancelDelegationSkipOnchainLabel: "Skip onchain cancellation",
   cancelDelegationSkipOnchainAcknowledgement:
     "I acknowledge that this delegation may still be used onchain by anybody that holds it, and that canceling it without submitting an onchain cancellation will only remove it from my wallet",
+  cancelDelegationInsufficientBalanceError:
+    "Insufficient balance to pay the network fee on {chainName}. Choose another payment token.",
   activateOfflinePermissionsTitle: "Activate offline permissions",
   activateOfflinePermissionsBody:
     "This is your first time using offline permissions. You must activate the feature on your account with a one-time transaction.",
@@ -676,6 +679,8 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   cancelDelegationSkipOnchainLabel: "Skip onchain cancellation",
   cancelDelegationSkipOnchainAcknowledgement:
     "I acknowledge that this delegation may still be used onchain by anybody that holds it, and that canceling it without submitting an onchain cancellation will only remove it from my wallet",
+  cancelDelegationInsufficientBalanceError:
+    "Insufficient balance to pay the network fee on {chainName}. Choose another payment token.",
   activateOfflinePermissionsTitle: "Activate offline permissions",
   activateOfflinePermissionsBody:
     "This is your first time using offline permissions. You must activate the feature on your account with a one-time transaction.",
@@ -1005,6 +1010,11 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
     cancelDelegation,
     "skipOnchainAcknowledgement",
     form.cancelDelegationSkipOnchainAcknowledgement,
+  );
+  put(
+    cancelDelegation,
+    "insufficientBalanceError",
+    form.cancelDelegationInsufficientBalanceError,
   );
   if (Object.keys(cancelDelegation).length > 0) {
     copy.cancelDelegation = cancelDelegation;

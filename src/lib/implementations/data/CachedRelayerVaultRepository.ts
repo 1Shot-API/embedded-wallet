@@ -42,6 +42,7 @@ import type { IRelayerCredentialsClient } from "../../interfaces/data/IRelayerCr
 import { loadCosePublicKey, loadCredentialId } from "../../../storage";
 import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
 import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
+import { getAddress } from "viem";
 
 export type { CredentialStorageBackend };
 
@@ -544,7 +545,7 @@ export class CachedRelayerVaultRepository
         permissionType: d.permissionResponse.permission.type,
         to: d.permissionResponse.to,
         ...(typeof tokenRaw === "string"
-          ? { tokenAddress: EVMAccountAddress(this.asHex(tokenRaw)) }
+          ? { tokenAddress: EVMContractAddress(getAddress(tokenRaw)) }
           : {}),
         ...(typeof amountRaw === "string"
           ? { periodAmount: HexString(this.asHex(amountRaw)) }

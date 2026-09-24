@@ -2,6 +2,7 @@ import type { LocalAccount } from "viem/accounts";
 import type {
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
 } from "@1shotapi/ows-types";
 import type {
   IRelayerAuthorizationEntry,
@@ -53,7 +54,7 @@ export interface ITransactionUtils {
     chainId: EVMChainId,
     owner: EVMAccountAddress,
     work: ITransactionWork | ITransactionWork[],
-    preferredToken?: EVMAccountAddress,
+    preferredToken?: EVMContractAddress,
   ): Promise<IPaymentQuote>;
 
   /**
@@ -67,6 +68,20 @@ export interface ITransactionUtils {
   ): Promise<IPaymentQuote>;
 
   /**
+   * Combined unsigned fee quote for ExactCalldata work across one or more
+   * chains (local-first payment, then Arc USDC). Uses Multichain estimate when
+   * payment ≠ sole work chain or there are multiple work chains.
+   */
+  quotePaymentMultichain(
+    owner: EVMAccountAddress,
+    workByChain: readonly {
+      chainId: EVMChainId;
+      work: ITransactionWork | ITransactionWork[];
+    }[],
+    preferredToken?: EVMContractAddress,
+  ): Promise<IPaymentQuote>;
+
+  /**
    * Public-relayer ExactCalldata fee + work path: optional EIP-7702 upgrade,
    * estimate, send, poll. `work` may be one item (Send) or several
    * (e.g. USDC approve + CCTP burn) — still one fee and one passkey ceremony.
@@ -75,7 +90,7 @@ export interface ITransactionUtils {
   sendViaRelayer(args: {
     chainId: EVMChainId;
     work: ITransactionWork | ITransactionWork[];
-    paymentToken: EVMAccountAddress;
+    paymentToken: EVMContractAddress;
     feeAtoms: TokenAmount;
     /** Defaults to `chainId`. */
     paymentChainId?: EVMChainId;
@@ -84,6 +99,22 @@ export interface ITransactionUtils {
     /** Batch relayer vault auth into the coalesced sign ceremony via executeBatch. */
     prefetchRelayerVaultAssertion?: boolean;
   } & IRelayerSendUiCallbacks): Promise<ISendTransactionResult>;
+
+  /**
+   * One Multichain (or single-chain) 7710 submit for ExactCalldata work on
+   * multiple execution chains — one fee, one passkey. Returns one result per
+   * entry in `workByChain` (same order).
+   */
+  sendViaRelayerMultichain(args: {
+    workByChain: readonly {
+      chainId: EVMChainId;
+      work: ITransactionWork | ITransactionWork[];
+    }[];
+    paymentToken: EVMContractAddress;
+    feeAtoms: TokenAmount;
+    paymentChainId: EVMChainId;
+    prefetchRelayerVaultAssertion?: boolean;
+  } & IRelayerSendUiCallbacks): Promise<ISendTransactionResult[]>;
 
   /**
    * One-time EIP-7702 activation for offline permissions: no-op ExactCalldata

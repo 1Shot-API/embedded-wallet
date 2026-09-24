@@ -1,4 +1,5 @@
 import {
+  EVMContractAddress,
   EVMTransactionHash,
   UriString,
   type EVMAccountAddress,
@@ -251,7 +252,7 @@ export class BridgeService implements IBridgeService {
 
   private async readAllowance(
     chainId: EVMChainId,
-    usdc: EVMAccountAddress,
+    usdc: EVMContractAddress,
     owner: EVMAccountAddress,
     spender: EVMAccountAddress,
   ): Promise<bigint> {

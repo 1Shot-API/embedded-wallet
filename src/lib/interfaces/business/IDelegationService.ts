@@ -1,6 +1,6 @@
 import type {
-  EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   HexString,
   IExecutionPermission,
   IExecutionPermissionRequest,
@@ -46,8 +46,10 @@ export interface ICreateExecutionPermissionsParams {
 
 export interface ICancelDelegationParams extends IRelayerSendUiCallbacks {
   chainId: EVMChainId;
-  paymentToken: EVMAccountAddress;
+  paymentToken: EVMContractAddress;
   feeAtoms: TokenAmount;
+  /** Fee payment chain — defaults to `chainId`. */
+  paymentChainId?: EVMChainId;
   /** Vault row when canceling from the Delegations tab. */
   stored?: IStoredDelegation;
   /**
@@ -64,19 +66,12 @@ export type ICancelDelegationItem = {
   permissionContext?: HexString;
 };
 
-/** Per-chain payment for {@link IDelegationService.cancelDelegations}. */
-export type ICancelDelegationChainPayment = {
-  chainId: EVMChainId;
-  paymentToken: EVMAccountAddress;
-  feeAtoms: TokenAmount;
-  /** Fee payment chain — defaults to `chainId`. */
-  paymentChainId?: EVMChainId;
-};
-
 export interface ICancelDelegationsParams extends IRelayerSendUiCallbacks {
   items: readonly ICancelDelegationItem[];
-  /** One payment per unique chain in `items` (same key as `chainId`). */
-  payments: readonly ICancelDelegationChainPayment[];
+  /** Fee token (local-first / Arc USDC) — one payment for the whole batch. */
+  paymentToken: EVMContractAddress;
+  feeAtoms: TokenAmount;
+  paymentChainId: EVMChainId;
 }
 
 export type IBuildCancelWorkParams = {
@@ -109,8 +104,9 @@ export interface IDelegationService {
   buildCancelWork(params: IBuildCancelWorkParams): Promise<ITransactionWork>;
 
   /**
-   * Disable one or more delegations. Groups by chain and submits one
-   * `sendViaRelayer(work[])` per chain (one fee + one passkey each).
+   * Disable one or more delegations. Groups ExactCalldata work by execution
+   * chain and submits one Multichain (or single-chain) 7710 send — one fee,
+   * one passkey. Returns one result per execution chain.
    */
   cancelDelegations(
     params: ICancelDelegationsParams,

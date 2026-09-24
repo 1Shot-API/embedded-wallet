@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { EVMAccountAddress, type IExecutionPermissionRequest } from "@1shotapi/ows-types";
+import { EVMContractAddress, type IExecutionPermissionRequest } from "@1shotapi/ows-types";
 import { formatUnits, getAddress } from "viem";
 import { ERC20_TOKEN_PERIODIC } from "../../../lib/interfaces/business/IDelegationService";
 import { EAssetType } from "../../../lib/types/enum/EAssetType";
@@ -75,7 +75,12 @@ export function Erc20PeriodicPermissionTerms({
     if (!tokenAddress) return;
     let cancelled = false;
     const chainId = executionRequest.chainId;
-    const checksummed = getAddress(tokenAddress as `0x${string}`);
+    let token: EVMContractAddress;
+    try {
+      token = EVMContractAddress(getAddress(tokenAddress));
+    } catch {
+      return;
+    }
 
     void (async () => {
       const assets = await listTrackedAssets();
@@ -83,8 +88,8 @@ export function Erc20PeriodicPermissionTerms({
       const tracked = assets.find(
         (a) =>
           a.type === EAssetType.Erc20 &&
-          String(a.chainId).toLowerCase() === String(chainId).toLowerCase() &&
-          getAddress(String(a.address)).toLowerCase() === checksummed.toLowerCase(),
+          a.chainId === chainId &&
+          a.address === token,
       );
       if (tracked) {
         setTokenSymbol(tracked.symbol);
@@ -92,7 +97,7 @@ export function Erc20PeriodicPermissionTerms({
         setTokenIconUrl(
           resolveAssetIconUrl(
             chainId,
-            EVMAccountAddress(checksummed),
+            token,
             tracked.symbol,
             tracked.iconUrl,
           ),
@@ -100,10 +105,7 @@ export function Erc20PeriodicPermissionTerms({
         return;
       }
       try {
-        const known = await getKnownAsset(
-          chainId,
-          EVMAccountAddress(checksummed),
-        );
+        const known = await getKnownAsset(chainId, token);
         if (cancelled) return;
         if (known) {
           setTokenSymbol(known.symbol);
@@ -111,7 +113,7 @@ export function Erc20PeriodicPermissionTerms({
           setTokenIconUrl(
             resolveAssetIconUrl(
               chainId,
-              EVMAccountAddress(checksummed),
+              token,
               known.symbol,
               known.iconUrl,
             ),

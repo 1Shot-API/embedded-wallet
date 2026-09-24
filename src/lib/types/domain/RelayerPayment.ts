@@ -1,7 +1,4 @@
-import type {
-  EVMAccountAddress,
-  EVMChainId,
-} from "@1shotapi/ows-types";
+import type { EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
 import type { TokenAmount } from "../primitives";
 
 /**
@@ -10,7 +7,8 @@ import type { TokenAmount } from "../primitives";
  */
 export interface IRelayerPayment {
   paymentChainId: EVMChainId;
-  paymentToken: EVMAccountAddress;
+  /** ERC-20 payment token contract on `paymentChainId`. */
+  paymentToken: EVMContractAddress;
   /** Human-readable payment-chain label for confirm UI. */
   paymentChainName: string;
   balance: TokenAmount;

@@ -265,40 +265,32 @@ export class DelegationService implements IDelegationService {
       if (item.stored) group.stored.push(item.stored);
     }
 
-    const paymentByChain = new Map<EVMChainId, (typeof params.payments)[number]>();
-    for (const payment of params.payments) {
-      paymentByChain.set(payment.chainId, payment);
-    }
+    const workByChain = [...byChain.values()].map((group) => ({
+      chainId: group.chainId,
+      work: group.work,
+    }));
+
+    const sendResults = await this.transactionUtils.sendViaRelayerMultichain({
+      workByChain,
+      paymentToken: params.paymentToken,
+      feeAtoms: params.feeAtoms,
+      paymentChainId: params.paymentChainId,
+      prefetchRelayerVaultAssertion: true,
+      retainDisplayDuringSubmit: true,
+      onAwaitingConfirmation: params.onAwaitingConfirmation,
+      onFinalFeeRequired: params.onFinalFeeRequired,
+    });
 
     const results: ICancelDelegationsResult["results"] = [];
-    let firstChain = true;
+    let index = 0;
     for (const group of byChain.values()) {
-      const payment = paymentByChain.get(group.chainId);
-      if (!payment) {
+      const result = sendResults[index];
+      if (!result) {
         throw new Error(
-          `cancelDelegations missing payment for chain ${group.chainId}`,
+          `cancelDelegations missing relayer result for chain ${group.chainId}`,
         );
       }
-      const chain = await this.requireRelayerChain(group.chainId);
-      const result = await this.transactionUtils.sendViaRelayer({
-        chainId: group.chainId,
-        work: group.work,
-        paymentToken: payment.paymentToken,
-        feeAtoms: payment.feeAtoms,
-        ...(payment.paymentChainId
-          ? { paymentChainId: payment.paymentChainId }
-          : {}),
-        relayerUrl: chain.relayerUrl,
-        prefetchRelayerVaultAssertion: true,
-        retainDisplayDuringSubmit: true,
-        // Only the first chain owns the confirm UI; later chains keep the
-        // flyout open without re-triggering "awaiting confirmation".
-        onAwaitingConfirmation: firstChain
-          ? params.onAwaitingConfirmation
-          : undefined,
-        onFinalFeeRequired: params.onFinalFeeRequired,
-      });
-      firstChain = false;
+      index += 1;
 
       const deletedIds: DelegationId[] = [];
       for (const stored of group.stored) {
@@ -329,13 +321,9 @@ export class DelegationService implements IDelegationService {
             : {}),
         },
       ],
-      payments: [
-        {
-          chainId: params.chainId,
-          paymentToken: params.paymentToken,
-          feeAtoms: params.feeAtoms,
-        },
-      ],
+      paymentToken: params.paymentToken,
+      feeAtoms: params.feeAtoms,
+      paymentChainId: params.paymentChainId ?? params.chainId,
       onAwaitingConfirmation: params.onAwaitingConfirmation,
       onFinalFeeRequired: params.onFinalFeeRequired,
       retainDisplayDuringSubmit: params.retainDisplayDuringSubmit,
@@ -678,7 +666,7 @@ export class DelegationService implements IDelegationService {
 }
 
 type Erc20PeriodData = {
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   periodAmount: bigint;
   periodDuration: number;
   startDate?: number;
@@ -687,7 +675,7 @@ type Erc20PeriodData = {
 
 type LiFiSwapData = {
   lifiDiamond: EVMAccountAddress;
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   outputAssetId: Hex;
   outputRecipient: Hex;
   destinationChainId: bigint;
@@ -699,7 +687,7 @@ type LiFiSwapData = {
 };
 
 type LiFiApproveData = {
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   spender: EVMAccountAddress;
 };
 
@@ -720,7 +708,7 @@ function parseErc20PeriodData(
   }
   const startRaw = data.startDate ?? data.start;
   return {
-    tokenAddress: EVMAccountAddress(getAddress(tokenRaw as `0x${string}`)),
+    tokenAddress: EVMContractAddress(getAddress(tokenRaw as `0x${string}`)),
     periodAmount: toBigIntAmount(amountRaw),
     periodDuration: Number(durationRaw),
     ...(typeof startRaw === "number" || typeof startRaw === "string"
@@ -737,7 +725,7 @@ export function parseLiFiSwapData(
   defaultSlippageBps: number,
 ): LiFiSwapData {
   const lifiDiamond = requireAddress(data.lifiDiamond, "lifiDiamond");
-  const tokenAddress = requireAddress(
+  const tokenAddress = requireContractAddress(
     data.tokenAddress ?? data.inputToken,
     "tokenAddress",
   );
@@ -800,7 +788,7 @@ export function parseLiFiApproveData(
   data: Record<string, unknown>,
 ): LiFiApproveData {
   return {
-    tokenAddress: requireAddress(
+    tokenAddress: requireContractAddress(
       data.tokenAddress ?? data.inputToken,
       "tokenAddress",
     ),
@@ -816,6 +804,16 @@ function requireAddress(
     throw new Error(`${field} is required`);
   }
   return EVMAccountAddress(getAddress(value as `0x${string}`));
+}
+
+function requireContractAddress(
+  value: unknown,
+  field: string,
+): EVMContractAddress {
+  if (typeof value !== "string") {
+    throw new Error(`${field} is required`);
+  }
+  return EVMContractAddress(getAddress(value as `0x${string}`));
 }
 
 function requireBytes32(value: unknown, field: string): Hex {
