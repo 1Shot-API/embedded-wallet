@@ -7,7 +7,7 @@ import type {
   IRelayerAuthorizationEntry,
   ISendTransactionResult,
 } from "../../data/IOneshotRelayerRepository";
-import type { IActivationPayment } from "../../../types/domain/ActivationPayment";
+import type { IRelayerPayment } from "../../../types/domain/RelayerPayment";
 import type { IRelayerSendUiCallbacks } from "../../../types/domain/RelayerSendUi";
 import type { IWalletUpgradeStatus } from "../../../types/domain/WalletUpgradeStatus";
 import type { TokenAmount } from "../../../types/primitives";
@@ -46,10 +46,8 @@ export interface ITransactionUtils {
   getViemAccount(addressOverride?: EVMAccountAddress): Promise<LocalAccount>;
 
   /**
-   * Prefer USDC with balance, then USDT, else first token with balance.
-   * Builds unsigned ExactCalldata fee+work delegations (placeholder
-   * signatures) and calls `relayer_estimate7710Transaction` so the confirm
-   * UI shows `requiredPaymentAmount` before any passkey ceremony.
+   * Resolve fee payment for work on `chainId` (local-first, Arc USDC fallback),
+   * then unsigned estimate — single-chain or multichain when payment ≠ work.
    */
   quotePayment(
     chainId: EVMChainId,
@@ -59,35 +57,28 @@ export interface ITransactionUtils {
   ): Promise<IPaymentQuote>;
 
   /**
-   * Pick USDC payment for EIP-7702 activation among `candidateChainIds`
-   * (requested ∪ Arc). Prefers Arc when its USDC balance is > 0; else the
-   * first candidate (in order) with USDC. Returns null when none have USDC.
-   */
-  resolveActivationPayment(
-    owner: EVMAccountAddress,
-    candidateChainIds: readonly EVMChainId[],
-  ): Promise<IActivationPayment | null>;
-
-  /**
-   * Unsigned USDC fee quote for activating EIP-7702 on `upgradeChainIds`,
+   * Unsigned fee quote for activating EIP-7702 on `upgradeChainIds`,
    * paid on `paymentChainId`. Uses single-chain or multichain estimate.
    */
   quoteActivation(
     owner: EVMAccountAddress,
     upgradeChainIds: readonly EVMChainId[],
-    payment: IActivationPayment,
+    payment: IRelayerPayment,
   ): Promise<IPaymentQuote>;
 
   /**
    * Public-relayer ExactCalldata fee + work path: optional EIP-7702 upgrade,
    * estimate, send, poll. `work` may be one item (Send) or several
    * (e.g. USDC approve + CCTP burn) — still one fee and one passkey ceremony.
+   * When `paymentChainId` differs from `chainId`, fee is multichain.
    */
   sendViaRelayer(args: {
     chainId: EVMChainId;
     work: ITransactionWork | ITransactionWork[];
     paymentToken: EVMAccountAddress;
     feeAtoms: TokenAmount;
+    /** Defaults to `chainId`. */
+    paymentChainId?: EVMChainId;
     authorizationList?: IRelayerAuthorizationEntry[];
     relayerUrl: string;
     /** Batch relayer vault auth into the coalesced sign ceremony via executeBatch. */
@@ -101,7 +92,7 @@ export interface ITransactionUtils {
    */
   activateDelegations(args: {
     upgradeChainIds: readonly EVMChainId[];
-    payment: IActivationPayment;
+    payment: IRelayerPayment;
     feeAtoms: TokenAmount;
   } & IRelayerSendUiCallbacks): Promise<ISendTransactionResult[]>;
 

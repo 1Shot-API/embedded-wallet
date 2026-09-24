@@ -149,6 +149,7 @@ export function PaymentFeePicker({
 
   const isLoading = loading || selectBusy;
   const isFinal = mode === "final" && finalFee !== null;
+  const iconChainId = quote?.paymentChainId ?? chainId;
   const selectedToken = isFinal
     ? quote
       ? findSelectedToken(quote, finalFee.paymentToken)
@@ -169,6 +170,11 @@ export function PaymentFeePicker({
       {error ? (
         <p className="text-destructive text-sm">{error}</p>
       ) : null}
+      {quote && quote.paymentChainId !== chainId ? (
+        <p className="text-muted-foreground text-[0.8rem]">
+          Paid on {quote.paymentChainName}
+        </p>
+      ) : null}
       <p className="flex flex-wrap items-center gap-2 text-sm">
         <span>{feeLabel}</span>
         <span className="inline-flex flex-wrap items-center gap-1.5">
@@ -184,7 +190,7 @@ export function PaymentFeePicker({
           {selectedToken ? (
             <>
               <AssetIcon
-                chainId={chainId}
+                chainId={iconChainId}
                 address={selectedToken.address}
                 symbol={selectedToken.symbol}
                 size="sm"
@@ -207,7 +213,7 @@ export function PaymentFeePicker({
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select payment token">
                 {selectedToken ? (
-                  <PaymentTokenRow chainId={chainId} token={selectedToken} />
+                  <PaymentTokenRow chainId={iconChainId} token={selectedToken} />
                 ) : null}
               </SelectValue>
             </SelectTrigger>
@@ -218,7 +224,7 @@ export function PaymentFeePicker({
                   value={String(token.address)}
                   disabled={token.balance <= 0n}
                 >
-                  <PaymentTokenRow chainId={chainId} token={token} />
+                  <PaymentTokenRow chainId={iconChainId} token={token} />
                 </SelectItem>
               ))}
             </SelectContent>

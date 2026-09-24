@@ -16,7 +16,7 @@ import type {
   ITransactionWork,
 } from "../../interfaces/business/ITransactionService";
 import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
-import type { IActivationPayment } from "../../types/domain/ActivationPayment";
+import type { IRelayerPayment } from "../../types/domain/RelayerPayment";
 import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
 import type { IWalletUpgradeStatus } from "../../types/domain/WalletUpgradeStatus";
 import type { TokenAmount } from "../../types/primitives";
@@ -77,20 +77,10 @@ export class TransactionService implements ITransactionService {
     );
   }
 
-  resolveActivationPayment(
-    owner: EVMAccountAddress,
-    candidateChainIds: readonly EVMChainId[],
-  ): Promise<IActivationPayment | null> {
-    return this.options.transactionUtils.resolveActivationPayment(
-      owner,
-      candidateChainIds,
-    );
-  }
-
   quoteActivation(
     owner: EVMAccountAddress,
     upgradeChainIds: readonly EVMChainId[],
-    payment: IActivationPayment,
+    payment: IRelayerPayment,
   ): Promise<IPaymentQuote> {
     return this.options.transactionUtils.quoteActivation(
       owner,
@@ -102,7 +92,7 @@ export class TransactionService implements ITransactionService {
   activateDelegations(
     args: {
       upgradeChainIds: readonly EVMChainId[];
-      payment: IActivationPayment;
+      payment: IRelayerPayment;
       feeAtoms: TokenAmount;
     } & IRelayerSendUiCallbacks,
   ): Promise<ISendTransactionResult[]> {
@@ -115,6 +105,7 @@ export class TransactionService implements ITransactionService {
     options?: {
       paymentToken?: EVMAccountAddress;
       feeAtoms?: TokenAmount;
+      paymentChainId?: EVMChainId;
       authorizationList?: IRelayerAuthorizationEntry[];
     } & IRelayerSendUiCallbacks,
   ): Promise<ISendTransactionResult> {
@@ -143,6 +134,9 @@ export class TransactionService implements ITransactionService {
       work,
       paymentToken: options.paymentToken,
       feeAtoms: options.feeAtoms,
+      ...(options.paymentChainId
+        ? { paymentChainId: options.paymentChainId }
+        : {}),
       authorizationList: options.authorizationList,
       relayerUrl: chain.relayerUrl,
       onFinalFeeRequired: options.onFinalFeeRequired,

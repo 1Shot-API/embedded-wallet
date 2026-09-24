@@ -1,5 +1,5 @@
 export { AssetActivity } from "./AssetActivity";
-export type { IActivationPayment } from "./ActivationPayment";
+export type { IRelayerPayment } from "./RelayerPayment";
 export { BitcoinUtxo } from "./BitcoinUtxo";
 export { KnownAsset } from "./KnownAsset";
 export { NewTrackedAsset, TrackedAsset } from "./TrackedAsset";

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
-import { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
+import { EVMAccountAddressSchema, EVMChainIdSchema } from "@1shotapi/ows-types";
 import {
   EWalletMode,
   useWalletSessionStore,
@@ -13,15 +13,9 @@ export const FOCUS_WALLET_RPC_METHOD = "focusWallet";
 export const UNFOCUS_WALLET_RPC_METHOD = "unfocusWallet";
 
 const focusWalletParamsSchema = z.strictObject({
-    chainId: z
-      .string()
-      .regex(/^0x[0-9a-fA-F]+$/)
-      .transform((value) => EVMChainId(value as `0x${string}`)),
-    assetAddress: z
-      .string()
-      .regex(/^0x[0-9a-fA-F]{40}$/)
-      .transform((value) => EVMAccountAddress(value as `0x${string}`)),
-  });
+  chainId: EVMChainIdSchema,
+  assetAddress: EVMAccountAddressSchema,
+});
 
 export type IFocusWalletParams = z.infer<typeof focusWalletParamsSchema>;
 

@@ -1,8 +1,8 @@
 import {
   AES256CipherTextEnvelope,
+  ChainUtils,
   DomainString,
   EVMAccountAddress,
-  EVMChainId,
   EVMContractAddress,
   HexString,
   UnixTimestamp,
@@ -671,7 +671,7 @@ export class CachedRelayerVaultRepository
       Record<string, unknown>
     >;
     const response: IExecutionPermissionResponse = {
-      chainId: EVMChainId(this.asHex(record.chainId)),
+      chainId: ChainUtils.asEVMChainId(this.asHex(record.chainId)),
       to: EVMAccountAddress(this.asHex(record.to)),
       permission:
         record.permission as IExecutionPermissionResponse["permission"],
@@ -698,7 +698,7 @@ export class CachedRelayerVaultRepository
     return {
       delegationId: DelegationId(raw.delegationId),
       delegationHash: HexString(raw.delegationHash),
-      chainId: EVMChainId(raw.chainId),
+      chainId: ChainUtils.asEVMChainId(raw.chainId),
       hostDomain: DomainString(raw.hostDomain),
       memo: raw.memo,
       createdAt: UnixTimestamp(raw.createdAt),

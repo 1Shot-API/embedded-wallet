@@ -1,6 +1,6 @@
 import {
+  ChainUtils,
   EVMAccountAddress,
-  EVMChainId,
   EVMTransactionHash,
   type EVMAccountAddress as EVMAccountAddressType,
   type EVMTransactionHash as EVMTransactionHashType,
@@ -74,8 +74,8 @@ export function parseInFlight(raw: string): ICctpInFlightBurn | null {
   return {
     burnTxHash: EVMTransactionHash(row.burnTxHash as `0x${string}`),
     sourceDomain: row.sourceDomain as ECircleDomainId,
-    sourceChainId: EVMChainId(row.sourceChainId as `0x${string}`),
-    destChainId: EVMChainId(row.destChainId as `0x${string}`),
+    sourceChainId: ChainUtils.asEVMChainId(row.sourceChainId),
+    destChainId: ChainUtils.asEVMChainId(row.destChainId),
     amountAtoms,
     address: EVMAccountAddress(row.address as `0x${string}`),
   };

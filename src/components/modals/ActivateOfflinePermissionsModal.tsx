@@ -80,7 +80,7 @@ export function ActivateOfflinePermissionsModal({
 
   const insufficientBalance =
     submit.quote !== null &&
-    submit.quote.feeAtoms > request.payment.usdcBalance;
+    submit.quote.feeAtoms > request.payment.balance;
 
   const balanceError = insufficientBalance
     ? copy.insufficientBalanceError.replace(
@@ -146,15 +146,15 @@ export function ActivateOfflinePermissionsModal({
             {copy.payFromLabel}
           </span>
           <p className="m-0 text-sm">
-            {request.payment.paymentChainName} ({request.payment.usdcSymbol})
+            {request.payment.paymentChainName} ({request.payment.symbol})
           </p>
           <p className="text-muted-foreground m-0 text-xs">
             Balance:{" "}
             {formatUnits(
-              request.payment.usdcBalance,
-              request.payment.usdcDecimals,
+              request.payment.balance,
+              request.payment.decimals,
             )}{" "}
-            {request.payment.usdcSymbol}
+            {request.payment.symbol}
           </p>
         </div>
 
@@ -178,7 +178,7 @@ export function ActivateOfflinePermissionsModal({
             </span>
             {submit.phase === "finalFee" && submit.finalFee ? (
               <span>
-                {submit.finalFee.feeFormatted} {request.payment.usdcSymbol}
+                {submit.finalFee.feeFormatted} {request.payment.symbol}
               </span>
             ) : (
               <>
@@ -188,7 +188,7 @@ export function ActivateOfflinePermissionsModal({
                   paused={submit.feePickerPaused}
                 />
                 <span className="text-muted-foreground">
-                  {request.payment.usdcSymbol}
+                  {request.payment.symbol}
                 </span>
               </>
             )}

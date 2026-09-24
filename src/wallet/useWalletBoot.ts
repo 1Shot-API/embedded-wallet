@@ -63,6 +63,7 @@ import type {
 } from "../lib/interfaces/utils";
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
+import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPaymentTokenUtils";
 import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type { SupportedChain } from "../lib/types/domain";
 import type { TokenAmount } from "../lib/types/primitives";
@@ -91,6 +92,7 @@ import { registerSwitchChainRpc } from "./registerSwitchChain";
 import { registerOnrampRpc } from "./registerOnramp";
 import { registerBridgeRpc } from "./registerBridge";
 import { registerGetUpgradedRpc } from "./registerGetUpgraded";
+import { registerRequestCancelDelegationsRpc } from "./registerRequestCancelDelegations";
 import { registerBitcoinProvider } from "../ows/registerBitcoinProvider";
 import { loadCachedEvmAddress, loadCredentialId } from "../storage";
 import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
@@ -165,15 +167,22 @@ function createDeferredSigner(
 function requireRelayerConfirmPayment(confirmed: {
   paymentToken?: EVMAccountAddress;
   feeAtoms?: TokenAmount;
+  paymentChainId?: EVMChainId;
 }): IRelayerConfirmSendResult {
   if (!confirmed.paymentToken || confirmed.feeAtoms === undefined) {
     throw new OwsInvalidParamsError(
       "Select a relayer payment token and fee before confirming the transaction",
     );
   }
+  if (!confirmed.paymentChainId) {
+    throw new OwsInvalidParamsError(
+      "Missing paymentChainId from the fee quote",
+    );
+  }
   return {
     paymentToken: confirmed.paymentToken,
     feeAtoms: confirmed.feeAtoms,
+    paymentChainId: confirmed.paymentChainId,
   };
 }
 
@@ -198,6 +207,7 @@ export interface IUseWalletBootParams {
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   transactionService: ITransactionService;
+  paymentTokenUtils: IPaymentTokenUtils;
   delegationService: IDelegationService;
   transactionUtils: ITransactionUtils;
   cctpUtils: ICCTPUtils;
@@ -229,6 +239,7 @@ export function useWalletBoot({
   knownAssetRepository,
   trackedAssetRepository,
   transactionService,
+  paymentTokenUtils,
   delegationService,
   transactionUtils,
   cctpUtils,
@@ -388,25 +399,17 @@ export function useWalletBoot({
                 const requestedChainIds = [
                   ...new Map(
                     prepared.map(({ request }) => [
-                      BigInt(request.chainId).toString(10),
+                      request.chainId,
                       request.chainId,
                     ] as const),
                   ).values(),
                 ];
 
-                // Always consider Arc (DEFAULT_CHAIN_ID): activation fees are
-                // paid in USDC there even when the grant is only for Base.
-                const activationCandidateChainIds = [
-                  ...new Map(
-                    [...requestedChainIds, DEFAULT_CHAIN_ID].map(
-                      (chainId) =>
-                        [BigInt(chainId).toString(10), chainId] as const,
-                    ),
-                  ).values(),
-                ];
-
+                // Upgrade check is for grant/requested chains only. Arc is
+                // considered as a payment fallback inside PaymentTokenUtils —
+                // if the fee lands on Arc, we append it below when needed.
                 const upgradeChecks = await Promise.all(
-                  activationCandidateChainIds.map(async (chainId) => ({
+                  requestedChainIds.map(async (chainId) => ({
                     chainId,
                     needsUpgrade: await transactionService.needsWalletUpgrade(
                       chainId,
@@ -419,11 +422,10 @@ export function useWalletBoot({
                   .map((row) => row.chainId);
 
                 if (upgradeChainIds.length > 0) {
-                  const payment =
-                    await transactionService.resolveActivationPayment(
-                      owner,
-                      activationCandidateChainIds,
-                    );
+                  const payment = await paymentTokenUtils.resolvePayment(
+                    owner,
+                    upgradeChainIds,
+                  );
                   if (!payment) {
                     throw new OwsInvalidParamsError(
                       styleController.get().copy.activateOfflinePermissions
@@ -434,9 +436,7 @@ export function useWalletBoot({
                   // Payment chain must be upgraded too (fee ExactCalldata).
                   if (
                     !upgradeChainIds.some(
-                      (id) =>
-                        BigInt(id).toString(10) ===
-                        BigInt(payment.paymentChainId).toString(10),
+                      (id) => id === payment.paymentChainId,
                     )
                   ) {
                     const paymentNeedsUpgrade =
@@ -451,9 +451,7 @@ export function useWalletBoot({
 
                   const upgradeChains = upgradeChainIds.map((chainId) => {
                     const preparedItem = prepared.find(
-                      (item) =>
-                        BigInt(item.request.chainId).toString(10) ===
-                        BigInt(chainId).toString(10),
+                      (item) => item.request.chainId === chainId,
                     );
                     return {
                       chainId,
@@ -670,28 +668,37 @@ export function useWalletBoot({
                 await runWithAnalytics(
                   (event) => eventBus.emitAnalytics(event),
                   async () => {
-                    const txHash = await ask<EVMTransactionHash | null>(
+                    const txHashes = await ask<EVMTransactionHash[] | null>(
                       ({ id, resolve, reject }) => ({
                         id,
                         kind: "cancelDelegation",
                         request: {
                           domain: String(domain),
-                          chainName: chain.label,
-                          chainId,
                           ownerAddress: owner,
-                          work: cancelWork,
+                          items: [
+                            {
+                              memo: stored?.memo ?? "",
+                              chainName: chain.label,
+                              chainId,
+                              work: cancelWork,
+                            },
+                          ],
                           allowSkipOnchain: Boolean(stored),
                         },
-                        execute: async (payment: IRelayerConfirmSendResult, ui) => {
-                          const result = await delegationService.cancelDelegation({
-                            chainId,
-                            paymentToken: payment.paymentToken,
-                            feeAtoms: payment.feeAtoms,
-                            ...(stored ? { stored } : {}),
-                            permissionContext: params.permissionContext,
-                            ...ui,
-                          });
-                          return result.transactionHash;
+                        execute: async (payments, ui) => {
+                          const batch =
+                            await delegationService.cancelDelegations({
+                              items: [
+                                {
+                                  chainId,
+                                  ...(stored ? { stored } : {}),
+                                  permissionContext: params.permissionContext,
+                                },
+                              ],
+                              payments,
+                              ...ui,
+                            });
+                          return batch.results.map((r) => r.transactionHash);
                         },
                         executeLocal: async () => {
                           if (!stored) {
@@ -699,13 +706,15 @@ export function useWalletBoot({
                               "Skip onchain cancellation requires a stored permission",
                             );
                           }
-                          await delegationService.removeStoredDelegation(stored);
+                          await delegationService.removeStoredDelegation(
+                            stored,
+                          );
                         },
                         resolve,
                         reject,
                       }),
                     );
-                    return txHash;
+                    return txHashes?.[0] ?? null;
                   },
                   {
                     success: (txHash) =>
@@ -774,6 +783,14 @@ export function useWalletBoot({
           return address;
         },
         transactionService,
+      });
+
+      registerRequestCancelDelegationsRpc(wallet, {
+        configProvider,
+        delegationService,
+        ensureOnboardedForSigning,
+        resolveChain,
+        ask,
       });
 
       registerBridgeRpc(wallet, {
@@ -957,6 +974,7 @@ export function useWalletBoot({
                 payment: {
                   paymentToken?: EVMAccountAddress;
                   feeAtoms?: TokenAmount;
+                  paymentChainId?: EVMChainId;
                 },
                 ui?: import("../lib/types/domain/RelayerSendUi").IRelayerSendUiCallbacks,
               ) => {
@@ -964,6 +982,7 @@ export function useWalletBoot({
                   | {
                       paymentToken: EVMAccountAddress;
                       feeAtoms: TokenAmount;
+                      paymentChainId: EVMChainId;
                     }
                   | undefined;
                 if (useRelayer) {
@@ -971,6 +990,7 @@ export function useWalletBoot({
                   relayerOptions = {
                     paymentToken: confirmed.paymentToken,
                     feeAtoms: confirmed.feeAtoms,
+                    paymentChainId: confirmed.paymentChainId,
                   };
                 }
 

@@ -92,6 +92,7 @@ export interface IWalletActionsProps {
   onRequestDelegation: () => void;
   onRequestLiFiDelegation: () => void;
   onCancelDelegation: (id: string) => void;
+  onCancelSelectedDelegations: (ids: string[]) => void;
   onGetSupportedPermissions: () => void;
   onGetGrantedPermissions: () => void;
 }
@@ -146,10 +147,14 @@ export function WalletActions({
   onRequestDelegation,
   onRequestLiFiDelegation,
   onCancelDelegation,
+  onCancelSelectedDelegations,
   onGetSupportedPermissions,
   onGetGrantedPermissions,
 }: IWalletActionsProps) {
   const meta = hostChainMeta(chainId);
+  const [selectedGrantIds, setSelectedGrantIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [addAssetChainId, setAddAssetChainId] = useState<string>(
     FOCUS_USDT_BASE.chainId,
   );
@@ -681,30 +686,69 @@ export function WalletActions({
 
         {sessionGrants.length > 0 ? (
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
-            {sessionGrants.map((grant) => (
-              <li
-                key={grant.id}
-                className="border-border flex flex-col gap-2 rounded-md border p-2"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-foreground m-0 text-xs font-medium">
-                    {grant.summary}
-                  </p>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={!ready || busy}
-                    onClick={() => onCancelDelegation(grant.id)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-                <pre className="border-border bg-muted/40 m-0 max-h-40 overflow-auto rounded-md border p-2 font-mono text-[0.65rem] break-all whitespace-pre-wrap">
-                  {grant.json}
-                </pre>
+            {sessionGrants.map((grant) => {
+              const checked = selectedGrantIds.has(grant.id);
+              return (
+                <li
+                  key={grant.id}
+                  className="border-border flex flex-col gap-2 rounded-md border p-2"
+                >
+                  <div className="flex items-start gap-2">
+                    <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2">
+                      <input
+                        type="checkbox"
+                        className="border-input mt-0.5 size-4 shrink-0 rounded border"
+                        checked={checked}
+                        disabled={!ready || busy}
+                        onChange={() => {
+                          setSelectedGrantIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(grant.id)) next.delete(grant.id);
+                            else next.add(grant.id);
+                            return next;
+                          });
+                        }}
+                      />
+                      <p className="text-foreground m-0 text-xs font-medium">
+                        {grant.summary}
+                      </p>
+                    </label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!ready || busy}
+                      onClick={() => onCancelDelegation(grant.id)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                  <pre className="border-border bg-muted/40 m-0 max-h-40 overflow-auto rounded-md border p-2 font-mono text-[0.65rem] break-all whitespace-pre-wrap">
+                    {grant.json}
+                  </pre>
+                </li>
+              );
+            })}
+            {selectedGrantIds.size > 0 ? (
+              <li className="flex items-center justify-between gap-2 pt-1">
+                <p className="text-muted-foreground m-0 text-xs">
+                  {selectedGrantIds.size} selected
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!ready || busy}
+                  onClick={() => {
+                    const ids = [...selectedGrantIds];
+                    setSelectedGrantIds(new Set());
+                    onCancelSelectedDelegations(ids);
+                  }}
+                >
+                  Cancel selected
+                </Button>
               </li>
-            ))}
+            ) : null}
           </ul>
         ) : null}
 

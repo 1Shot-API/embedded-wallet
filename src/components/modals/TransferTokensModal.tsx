@@ -238,6 +238,7 @@ export function TransferTokensModal({
           ? {
               paymentToken: quote.selectedToken,
               feeAtoms: quote.feeAtoms,
+              paymentChainId: quote.paymentChainId,
             }
           : undefined,
       );
