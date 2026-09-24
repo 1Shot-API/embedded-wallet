@@ -768,13 +768,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             items,
             allowSkipOnchain: true,
           },
-          execute: async (payments, ui) => {
+          execute: async (payment, ui) => {
             const batch = await delegationService.cancelDelegations({
               items: storedList.map((stored) => ({
                 chainId: stored.chainId,
                 stored,
               })),
-              payments,
+              paymentToken: payment.paymentToken,
+              feeAtoms: payment.feeAtoms,
+              paymentChainId: payment.paymentChainId,
               ...ui,
             });
             return batch.results.map((r) => r.transactionHash);

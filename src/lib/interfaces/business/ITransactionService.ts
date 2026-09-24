@@ -18,6 +18,9 @@ export interface IPaymentTokenOption {
   name?: string;
   decimals: number;
   balance: TokenAmount;
+  /** Chain this payment token lives on (fee ExactCalldata chain). */
+  chainId: EVMChainId;
+  chainName: string;
 }
 
 export interface IPaymentQuote {
@@ -88,6 +91,19 @@ export interface ITransactionService {
     owner: EVMAccountAddress,
     upgradeChainIds: readonly EVMChainId[],
     payment: IRelayerPayment,
+  ): Promise<IPaymentQuote>;
+
+  /**
+   * Combined unsigned fee quote for ExactCalldata work across one or more
+   * chains (local-first payment, then Arc USDC).
+   */
+  quotePaymentMultichain(
+    owner: EVMAccountAddress,
+    workByChain: readonly {
+      chainId: EVMChainId;
+      work: ITransactionWork | ITransactionWork[];
+    }[],
+    preferredToken?: EVMAccountAddress,
   ): Promise<IPaymentQuote>;
 
   /**

@@ -285,37 +285,17 @@ export class TransactionUtils implements ITransactionUtils {
       throw new Error("No relayer payment token with a positive balance");
     }
 
-    const paymentChain = await this.requireRelayerChain(payment.paymentChainId);
-    const paymentCapabilities =
-      await this.options.relayerRepository.getCapabilities(
-        paymentChain.relayerUrl,
-        payment.paymentChainId,
-      );
-
-    const tracked = await this.options.trackedAssetRepository.getBalances(
+    const tokens = await this.options.paymentTokenUtils.listPaymentOptions(
       owner,
-      { chainId: payment.paymentChainId },
-    );
-    const balanceByAddress = new Map(
-      tracked.map((asset) => [
-        String(asset.address).toLowerCase(),
-        asset.balance ?? 0n,
-      ]),
-    );
-    const tokens: IPaymentTokenOption[] = paymentCapabilities.tokens.map(
-      (token) => ({
-        ...token,
-        balance: makeTokenAmount(
-          balanceByAddress.get(String(token.address).toLowerCase()) ?? 0n,
-        ),
-      }),
+      [chainId],
     );
 
     let selected =
       tokens.find(
         (t) =>
+          t.chainId === payment.paymentChainId &&
           String(t.address).toLowerCase() ===
-          String(payment.paymentToken).toLowerCase(),
+            String(payment.paymentToken).toLowerCase(),
       ) ?? null;
     if (preferredToken) {
       const preferred = tokens.find(
@@ -329,10 +309,28 @@ export class TransactionUtils implements ITransactionUtils {
       throw new Error("No relayer payment token with a positive balance");
     }
 
+    const resolvedPayment: IRelayerPayment = {
+      paymentChainId: selected.chainId,
+      paymentToken: selected.address,
+      paymentChainName: selected.chainName,
+      balance: selected.balance,
+      decimals: selected.decimals,
+      symbol: selected.symbol,
+    };
+
+    const paymentChain = await this.requireRelayerChain(
+      resolvedPayment.paymentChainId,
+    );
+    const paymentCapabilities =
+      await this.options.relayerRepository.getCapabilities(
+        paymentChain.relayerUrl,
+        resolvedPayment.paymentChainId,
+      );
+
     const seedFeeAtoms = makeTokenAmount(
       parseUnits("0.01", selected.decimals),
     );
-    const crossChain = payment.paymentChainId !== chainId;
+    const crossChain = resolvedPayment.paymentChainId !== chainId;
 
     let estimate;
     if (!crossChain) {
@@ -406,7 +404,7 @@ export class TransactionUtils implements ITransactionUtils {
         "[business/TransactionUtils] quotePayment unsigned estimate",
         {
           chainId,
-          paymentChainId: payment.paymentChainId,
+          paymentChainId: resolvedPayment.paymentChainId,
           paymentToken: selected.address,
           workCount: workItems.length,
           crossChain: false,
@@ -421,13 +419,7 @@ export class TransactionUtils implements ITransactionUtils {
       estimate = await this.quotePaymentCrossChain({
         owner,
         executionChainId: chainId,
-        payment: {
-          ...payment,
-          paymentToken: selected.address,
-          balance: selected.balance,
-          decimals: selected.decimals,
-          symbol: selected.symbol,
-        },
+        payment: resolvedPayment,
         workItems,
         seedFeeAtoms,
         paymentCapabilities,
@@ -445,8 +437,8 @@ export class TransactionUtils implements ITransactionUtils {
     return {
       tokens,
       selectedToken: selected.address,
-      paymentChainId: payment.paymentChainId,
-      paymentChainName: payment.paymentChainName,
+      paymentChainId: resolvedPayment.paymentChainId,
+      paymentChainName: resolvedPayment.paymentChainName,
       feeAtoms,
       feeFormatted: formatUnits(feeAtoms, selected.decimals),
       feeCollector: paymentCapabilities.feeCollector,
@@ -505,6 +497,8 @@ export class TransactionUtils implements ITransactionUtils {
       symbol: payment.symbol,
       decimals: payment.decimals,
       balance: payment.balance,
+      chainId: payment.paymentChainId,
+      chainName: payment.paymentChainName,
     };
 
     return {
@@ -516,6 +510,116 @@ export class TransactionUtils implements ITransactionUtils {
       feeFormatted: formatUnits(feeAtoms, payment.decimals),
       feeCollector: capabilities.feeCollector,
       targetAddress: capabilities.targetAddress,
+      minFee: feeAtoms,
+    };
+  }
+
+  async quotePaymentMultichain(
+    owner: EVMAccountAddress,
+    workByChain: readonly {
+      chainId: EVMChainId;
+      work: ITransactionWork | ITransactionWork[];
+    }[],
+    preferredToken?: EVMAccountAddress,
+  ): Promise<IPaymentQuote> {
+    const groups = normalizeWorkByChain(workByChain);
+    if (groups.length === 0) {
+      throw new Error("quotePaymentMultichain requires at least one work item");
+    }
+
+    const executionChainIds = groups.map((g) => g.chainId);
+    if (
+      groups.length === 1 &&
+      executionChainIds[0] !== undefined
+    ) {
+      return this.quotePayment(
+        executionChainIds[0],
+        owner,
+        groups[0]!.work,
+        preferredToken,
+      );
+    }
+
+    const payment = await this.options.paymentTokenUtils.resolvePayment(
+      owner,
+      executionChainIds,
+      preferredToken,
+    );
+    if (!payment) {
+      throw new Error("No relayer payment token with a positive balance");
+    }
+
+    const tokens = await this.options.paymentTokenUtils.listPaymentOptions(
+      owner,
+      executionChainIds,
+    );
+
+    let selected =
+      tokens.find(
+        (t) =>
+          t.chainId === payment.paymentChainId &&
+          String(t.address).toLowerCase() ===
+            String(payment.paymentToken).toLowerCase(),
+      ) ?? null;
+    if (preferredToken) {
+      const preferred = tokens.find(
+        (t) =>
+          String(t.address).toLowerCase() ===
+            String(preferredToken).toLowerCase() && t.balance > 0n,
+      );
+      if (preferred) selected = preferred;
+    }
+    if (!selected || selected.balance <= 0n) {
+      throw new Error("No relayer payment token with a positive balance");
+    }
+
+    const resolvedPayment: IRelayerPayment = {
+      paymentChainId: selected.chainId,
+      paymentToken: selected.address,
+      paymentChainName: selected.chainName,
+      balance: selected.balance,
+      decimals: selected.decimals,
+      symbol: selected.symbol,
+    };
+
+    const paymentChain = await this.requireRelayerChain(
+      resolvedPayment.paymentChainId,
+    );
+    const paymentCapabilities =
+      await this.options.relayerRepository.getCapabilities(
+        paymentChain.relayerUrl,
+        resolvedPayment.paymentChainId,
+      );
+
+    const seedFeeAtoms = makeTokenAmount(
+      parseUnits("0.01", selected.decimals),
+    );
+
+    const estimate = await this.quotePaymentWorkMultichain({
+      owner,
+      payment: resolvedPayment,
+      groups,
+      seedFeeAtoms,
+      paymentCapabilities,
+    });
+
+    if (!estimate.success || !estimate.requiredPaymentAmount) {
+      throw new Error(
+        estimate.error ?? "relayer_estimate7710TransactionMultichain failed",
+      );
+    }
+
+    const feeAtoms = tokenAmountFromAtomString(estimate.requiredPaymentAmount);
+
+    return {
+      tokens,
+      selectedToken: selected.address,
+      paymentChainId: resolvedPayment.paymentChainId,
+      paymentChainName: resolvedPayment.paymentChainName,
+      feeAtoms,
+      feeFormatted: formatUnits(feeAtoms, selected.decimals),
+      feeCollector: paymentCapabilities.feeCollector,
+      targetAddress: paymentCapabilities.targetAddress,
       minFee: feeAtoms,
     };
   }
@@ -914,6 +1018,463 @@ export class TransactionUtils implements ITransactionUtils {
       } catch (pollError) {
         await Promise.all(
           upgradeChainIds.map((chainId) =>
+            this.options.chainRepository.setWalletUpgraded(
+              chainId,
+              eoa,
+              false,
+            ),
+          ),
+        );
+        throw pollError;
+      }
+    } catch (error) {
+      if (!retainDisplayDuringSubmit) {
+        await this.options.owsProvider.hideDisplay();
+      }
+      throw error;
+    }
+  }
+
+  async sendViaRelayerMultichain(args: {
+    workByChain: readonly {
+      chainId: EVMChainId;
+      work: ITransactionWork | ITransactionWork[];
+    }[];
+    paymentToken: EVMAccountAddress;
+    feeAtoms: TokenAmount;
+    paymentChainId: EVMChainId;
+    prefetchRelayerVaultAssertion?: boolean;
+    retainDisplayDuringSubmit?: boolean;
+    onAwaitingConfirmation?: () => void;
+    onFinalFeeRequired?: (fee: IFinalRelayerFee) => Promise<void>;
+  }): Promise<ISendTransactionResult[]> {
+    const groups = normalizeWorkByChain(args.workByChain);
+    if (groups.length === 0) {
+      throw new Error("sendViaRelayerMultichain requires at least one work item");
+    }
+
+    const {
+      paymentToken,
+      paymentChainId,
+      onAwaitingConfirmation,
+      onFinalFeeRequired,
+      retainDisplayDuringSubmit,
+    } = args;
+    let feeAtoms: TokenAmount = args.feeAtoms;
+
+    const workChainIds = groups.map((g) => g.chainId);
+    if (
+      groups.length === 1 &&
+      workChainIds[0] === paymentChainId
+    ) {
+      const chain = await this.requireRelayerChain(paymentChainId);
+      const single = await this.sendViaRelayer({
+        chainId: paymentChainId,
+        work: groups[0]!.work,
+        paymentToken,
+        feeAtoms,
+        paymentChainId,
+        relayerUrl: chain.relayerUrl,
+        prefetchRelayerVaultAssertion: args.prefetchRelayerVaultAssertion,
+        retainDisplayDuringSubmit,
+        onAwaitingConfirmation,
+        onFinalFeeRequired,
+      });
+      return [single];
+    }
+
+    const paymentChain = await this.requireRelayerChain(paymentChainId);
+    const useMultichain = shouldUseActivationMultichain(
+      workChainIds,
+      paymentChainId,
+    );
+
+    const signer = await this.options.owsProvider.getSigner();
+    const eoa =
+      signer.getCachedAddress?.() ??
+      loadCachedEvmAddress() ??
+      (await signer.evm.getAccountAddress());
+
+    await this.options.owsProvider.ensureDisplay();
+    try {
+      const delegationSecret = await loadOrCreateDelegationBinding();
+      const viemAccount = await this.getViemAccount(eoa);
+      const destinationUrl = styleController.get().destinationUrl;
+      const memo = buildMemo(
+        eoa,
+        this.options.presentationTransactionUtils.resolveHostDomain(),
+      );
+
+      const paymentCapabilities =
+        await this.options.relayerRepository.getCapabilities(
+          paymentChain.relayerUrl,
+          paymentChainId,
+        );
+      const paymentChainIdNumber = Number(BigInt(paymentChainId));
+      const paymentClient =
+        this.options.blockchain.getPublicClient(paymentChainId);
+      const paymentSmartAccount = await toMetaMaskSmartAccount({
+        client: paymentClient as never,
+        implementation: Implementation.Stateless7702,
+        address: eoa,
+        signer: { account: viemAccount },
+      });
+
+      const chainSmartAccounts = new Map<
+        EVMChainId,
+        Awaited<ReturnType<typeof toMetaMaskSmartAccount>>
+      >();
+      const chainCapabilities = new Map<
+        EVMChainId,
+        Awaited<ReturnType<IOneshotRelayerRepository["getCapabilities"]>>
+      >();
+      chainSmartAccounts.set(paymentChainId, paymentSmartAccount);
+      chainCapabilities.set(paymentChainId, paymentCapabilities);
+
+      await Promise.all(
+        workChainIds.map(async (chainId) => {
+          if (chainSmartAccounts.has(chainId)) return;
+          const chain = await this.requireRelayerChain(chainId);
+          const caps = await this.options.relayerRepository.getCapabilities(
+            chain.relayerUrl,
+            chainId,
+          );
+          chainCapabilities.set(chainId, caps);
+          const client = this.options.blockchain.getPublicClient(chainId);
+          const smartAccount = await toMetaMaskSmartAccount({
+            client: client as never,
+            implementation: Implementation.Stateless7702,
+            address: eoa,
+            signer: { account: viemAccount },
+          });
+          chainSmartAccounts.set(chainId, smartAccount);
+        }),
+      );
+
+      const upgradePrep = await Promise.all(
+        workChainIds.map(async (chainId) => {
+          const needsUpgrade = await this.needsWalletUpgrade(chainId, eoa);
+          if (!needsUpgrade) {
+            return { chainId, needsUpgrade: false as const };
+          }
+          const chainIdNumber = Number(BigInt(chainId));
+          const client = this.options.blockchain.getPublicClient(chainId);
+          let contractAddress: `0x${string}` = STATELESS_DELEGATOR_IMPL;
+          try {
+            const env = getSmartAccountsEnvironment(chainIdNumber);
+            contractAddress = getAddress(
+              env.implementations.EIP7702StatelessDeleGatorImpl,
+            );
+          } catch {
+            // keep hardcoded fallback
+          }
+          const nonce = await client.getTransactionCount({
+            address: getAddress(eoa),
+            blockTag: "pending",
+          });
+          return {
+            chainId,
+            needsUpgrade: true as const,
+            chainIdNumber,
+            contractAddress,
+            nonce,
+          };
+        }),
+      );
+
+      const feeCalldata = HexStringCompat(
+        encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "transfer",
+          args: [paymentCapabilities.feeCollector, feeAtoms],
+        }),
+      );
+
+      const upgradeCount = upgradePrep.filter((p) => p.needsUpgrade).length;
+      const workCount = groups.reduce((n, g) => n + g.work.length, 0);
+      const approveCopy = approveTransactionCeremony(upgradeCount > 0);
+      const minCalls = upgradeCount + 1 + workCount;
+      const coalesceOptions: CoalesceSignDigestOptions = { minCalls };
+      if (args.prefetchRelayerVaultAssertion) {
+        const { challengeId, challenge } =
+          await this.options.delegationRepository.mintRelayerVaultChallenge();
+        coalesceOptions.challenge = challenge as `0x${string}`;
+        coalesceOptions.onBatchAssertion = (assertion) => {
+          this.options.delegationRepository.cacheRelayerVaultAssertion(
+            challengeId,
+            assertion,
+          );
+        };
+      }
+
+      const signed = await withCeremonyUiReason(
+        EPasskeyPromptReason.ApproveTransaction,
+        () =>
+          withCoalescedSignDigest(
+            signer,
+            approveCopy,
+            async () => {
+              const authEntries = await Promise.all(
+                upgradePrep.map((prep) =>
+                  prep.needsUpgrade
+                    ? this.signWalletUpgradeAuthorizationInner(prep.chainId, {
+                        account: viemAccount,
+                        nonce: prep.nonce,
+                        contractAddress: prep.contractAddress,
+                      })
+                    : Promise.resolve(undefined),
+                ),
+              );
+              const feeDelegation =
+                await this.createAndSignExactCalldataDelegation({
+                  smartAccount: paymentSmartAccount,
+                  delegate: paymentCapabilities.targetAddress,
+                  target: paymentToken,
+                  value: 0n,
+                  callData: feeCalldata,
+                  chainIdNumber: paymentChainIdNumber,
+                });
+              const workDelegationsByChain = new Map<EVMChainId, unknown[]>();
+              await Promise.all(
+                groups.map(async (group) => {
+                  const smartAccount = chainSmartAccounts.get(group.chainId);
+                  const caps = chainCapabilities.get(group.chainId);
+                  if (!smartAccount || !caps) {
+                    throw new Error(
+                      `Missing smart account or capabilities for ${group.chainId}`,
+                    );
+                  }
+                  const chainIdNumber = Number(BigInt(group.chainId));
+                  const workDelegations = await Promise.all(
+                    group.work.map((item) =>
+                      this.createAndSignExactCalldataDelegation({
+                        smartAccount,
+                        delegate: caps.targetAddress,
+                        target: item.to,
+                        value: item.value ?? 0n,
+                        callData: (item.data || "0x") as Hex,
+                        chainIdNumber,
+                      }),
+                    ),
+                  );
+                  workDelegationsByChain.set(group.chainId, workDelegations);
+                }),
+              );
+              return { authEntries, feeDelegation, workDelegationsByChain };
+            },
+            coalesceOptions,
+          ),
+      );
+
+      const authByChain = new Map<EVMChainId, IRelayerAuthorizationEntry>();
+      for (let i = 0; i < workChainIds.length; i += 1) {
+        const entry = signed.authEntries[i];
+        if (entry) authByChain.set(workChainIds[i]!, entry);
+      }
+      let feeDelegation = signed.feeDelegation;
+      const workDelegationsByChain = signed.workDelegationsByChain;
+
+      const buildChainParams = (
+        feeAmount: TokenAmount,
+        contexts?: Record<string, string>,
+      ): IRelayer7710Params[] => {
+        const feeData = HexStringCompat(
+          encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "transfer",
+            args: [paymentCapabilities.feeCollector, feeAmount],
+          }),
+        );
+        const orderedChainIds = orderedActivationChainIds(
+          workChainIds,
+          paymentChainId,
+        );
+        return orderedChainIds.map((chainId) => {
+          const isPayment = chainId === paymentChainId;
+          const group = groups.find((g) => g.chainId === chainId);
+          const transactions: IRelayer7710Params["transactions"] = [];
+
+          if (isPayment) {
+            transactions.push({
+              permissionContext: [toRelayerJson(feeDelegation)],
+              executions: [
+                {
+                  target: paymentToken,
+                  value: "0",
+                  data: feeData as HexString,
+                },
+              ],
+            });
+          }
+
+          if (group) {
+            const workSigs = workDelegationsByChain.get(chainId);
+            if (!workSigs || workSigs.length !== group.work.length) {
+              throw new Error(
+                `Missing work delegations for chain ${chainId}`,
+              );
+            }
+            for (let i = 0; i < group.work.length; i += 1) {
+              const item = group.work[i]!;
+              const value = item.value ?? 0n;
+              transactions.push({
+                permissionContext: [toRelayerJson(workSigs[i])],
+                executions: [
+                  {
+                    target: item.to,
+                    value: value === 0n ? "0" : `0x${value.toString(16)}`,
+                    data: (item.data || "0x") as HexString,
+                  },
+                ],
+              });
+            }
+          }
+
+          if (transactions.length === 0) {
+            throw new Error(
+              `Multichain params for chain ${chainId} have no transactions`,
+            );
+          }
+
+          const auth = authByChain.get(chainId);
+          const chainKey = Number(BigInt(chainId)).toString(10);
+          const context = contexts?.[chainKey];
+          return {
+            chainId: chainKey,
+            transactions,
+            ...(auth ? { authorizationList: [auth] } : {}),
+            ...(context ? { context } : {}),
+            memo,
+            delegationSecret,
+            ...(destinationUrl ? { destinationUrl } : {}),
+          } satisfies IRelayer7710Params;
+        });
+      };
+
+      let params = buildChainParams(feeAtoms);
+      let estimate = useMultichain
+        ? await this.options.relayerRepository.estimate7710TransactionMultichain(
+            paymentChain.relayerUrl,
+            params,
+          )
+        : await this.options.relayerRepository.estimate7710Transaction(
+            paymentChain.relayerUrl,
+            params[0]!,
+          );
+
+      if (
+        estimate.success &&
+        estimate.requiredPaymentAmount &&
+        tokenAmountFromAtomString(estimate.requiredPaymentAmount) > feeAtoms
+      ) {
+        feeAtoms = tokenAmountFromAtomString(estimate.requiredPaymentAmount);
+        if (onFinalFeeRequired) {
+          await onFinalFeeRequired({
+            feeAtoms,
+            feeFormatted: formatUnits(feeAtoms, paymentCapabilities.tokens.find(
+              (t) =>
+                String(t.address).toLowerCase() ===
+                String(paymentToken).toLowerCase(),
+            )?.decimals ?? 6),
+            paymentToken,
+          });
+        }
+        const nextFeeCalldata = HexStringCompat(
+          encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "transfer",
+            args: [paymentCapabilities.feeCollector, feeAtoms],
+          }),
+        );
+        const adjustCopy = adjustFeeCeremony();
+        feeDelegation = await withCeremonyUiReason(
+          EPasskeyPromptReason.AdjustFee,
+          () =>
+            withCoalescedSignDigest(signer, adjustCopy, () =>
+              this.createAndSignExactCalldataDelegation({
+                smartAccount: paymentSmartAccount,
+                delegate: paymentCapabilities.targetAddress,
+                target: paymentToken,
+                value: 0n,
+                callData: nextFeeCalldata,
+                chainIdNumber: paymentChainIdNumber,
+              }),
+            ),
+        );
+        params = buildChainParams(feeAtoms);
+      }
+
+      if (!estimate.success) {
+        throw new Error(
+          estimate.error ?? "relayer multichain estimate failed",
+        );
+      }
+
+      if (!retainDisplayDuringSubmit) {
+        await this.options.owsProvider.hideDisplay();
+      } else {
+        onAwaitingConfirmation?.();
+      }
+
+      const paymentChainKey = Number(BigInt(paymentChainId)).toString(10);
+      const contextByChainId =
+        estimate.contextByChainId ??
+        (estimate.context
+          ? { [paymentChainKey]: estimate.context }
+          : undefined);
+      params = buildChainParams(feeAtoms, contextByChainId);
+
+      const taskIds = useMultichain
+        ? await this.options.relayerRepository.send7710TransactionMultichain(
+            paymentChain.relayerUrl,
+            params,
+          )
+        : [
+            await this.options.relayerRepository.send7710Transaction(
+              paymentChain.relayerUrl,
+              params[0]!,
+            ),
+          ];
+
+      const orderedChainIds = orderedActivationChainIds(
+        workChainIds,
+        paymentChainId,
+      );
+
+      try {
+        const byChain = new Map<EVMChainId, ISendTransactionResult>();
+        await Promise.all(
+          taskIds.map(async (taskId, i) => {
+            const chainId = orderedChainIds[i]!;
+            const hash = await this.pollUntilTerminal(
+              paymentChain.relayerUrl,
+              taskId,
+            );
+            if (authByChain.has(chainId)) {
+              await this.options.chainRepository.setWalletUpgraded(
+                chainId,
+                eoa,
+                true,
+              );
+            }
+            byChain.set(chainId, {
+              relayerTransactionId: taskId,
+              transactionHash: hash,
+            });
+          }),
+        );
+        return groups.map((group) => {
+          const result = byChain.get(group.chainId);
+          if (!result) {
+            throw new Error(
+              `Missing relayer result for work chain ${group.chainId}`,
+            );
+          }
+          return result;
+        });
+      } catch (pollError) {
+        await Promise.all(
+          [...authByChain.keys()].map((chainId) =>
             this.options.chainRepository.setWalletUpgraded(
               chainId,
               eoa,
@@ -2038,6 +2599,149 @@ export class TransactionUtils implements ITransactionUtils {
   }
 
   /**
+   * Unsigned Multichain estimate: fee on payment chain + ExactCalldata work on
+   * each execution chain (combined into payment-chain entry when they match).
+   */
+  private async quotePaymentWorkMultichain(args: {
+    owner: EVMAccountAddress;
+    payment: IRelayerPayment;
+    groups: Array<{ chainId: EVMChainId; work: ITransactionWork[] }>;
+    seedFeeAtoms: TokenAmount;
+    paymentCapabilities: Awaited<
+      ReturnType<IOneshotRelayerRepository["getCapabilities"]>
+    >;
+  }): Promise<
+    Awaited<ReturnType<IOneshotRelayerRepository["estimate7710Transaction"]>>
+  > {
+    const {
+      owner,
+      payment,
+      groups,
+      seedFeeAtoms,
+      paymentCapabilities,
+    } = args;
+    const paymentChain = await this.requireRelayerChain(payment.paymentChainId);
+    const paymentChainIdNumber = Number(BigInt(payment.paymentChainId));
+    const viemAccount = await this.getViemAccount(owner);
+
+    const paymentClient = this.options.blockchain.getPublicClient(
+      payment.paymentChainId,
+    );
+    const paymentSmartAccount = await toMetaMaskSmartAccount({
+      client: paymentClient as never,
+      implementation: Implementation.Stateless7702,
+      address: owner,
+      signer: { account: viemAccount },
+    });
+
+    const feeCalldata = HexStringCompat(
+      encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "transfer",
+        args: [paymentCapabilities.feeCollector, seedFeeAtoms],
+      }),
+    );
+    const feeDelegation = this.createUnsignedExactCalldataDelegation({
+      smartAccount: paymentSmartAccount,
+      delegate: paymentCapabilities.targetAddress,
+      target: payment.paymentToken,
+      value: 0n,
+      callData: feeCalldata,
+      chainIdNumber: paymentChainIdNumber,
+    });
+
+    const workChainIds = groups.map((g) => g.chainId);
+    const ordered = orderedActivationChainIds(
+      workChainIds,
+      payment.paymentChainId,
+    );
+
+    const params: IRelayer7710Params[] = await Promise.all(
+      ordered.map(async (chainId) => {
+        const isPayment = chainId === payment.paymentChainId;
+        const group = groups.find((g) => g.chainId === chainId);
+        const transactions: IRelayer7710Params["transactions"] = [];
+
+        if (isPayment) {
+          transactions.push({
+            permissionContext: [toRelayerJson(feeDelegation)],
+            executions: [
+              {
+                target: payment.paymentToken,
+                value: "0",
+                data: feeCalldata as HexString,
+              },
+            ],
+          });
+        }
+
+        if (group) {
+          const chain = await this.requireRelayerChain(chainId);
+          const caps = await this.options.relayerRepository.getCapabilities(
+            chain.relayerUrl,
+            chainId,
+          );
+          const chainIdNumber = Number(BigInt(chainId));
+          const client = this.options.blockchain.getPublicClient(chainId);
+          const smartAccount = await toMetaMaskSmartAccount({
+            client: client as never,
+            implementation: Implementation.Stateless7702,
+            address: owner,
+            signer: { account: viemAccount },
+          });
+          for (const item of group.work) {
+            const workDelegation = this.createUnsignedExactCalldataDelegation({
+              smartAccount,
+              delegate: caps.targetAddress,
+              target: item.to,
+              value: item.value ?? 0n,
+              callData: (item.data || "0x") as Hex,
+              chainIdNumber,
+            });
+            const value = item.value ?? 0n;
+            transactions.push({
+              permissionContext: [toRelayerJson(workDelegation)],
+              executions: [
+                {
+                  target: item.to,
+                  value: value === 0n ? "0" : `0x${value.toString(16)}`,
+                  data: (item.data || "0x") as HexString,
+                },
+              ],
+            });
+          }
+        }
+
+        if (transactions.length === 0) {
+          throw new Error(
+            `quotePaymentWorkMultichain: no transactions for ${chainId}`,
+          );
+        }
+
+        return {
+          chainId: Number(BigInt(chainId)).toString(10),
+          transactions,
+        } satisfies IRelayer7710Params;
+      }),
+    );
+
+    console.debug(
+      "[business/TransactionUtils] quotePaymentMultichain unsigned estimate",
+      {
+        paymentChainId: payment.paymentChainId,
+        paymentToken: payment.paymentToken,
+        workChains: workChainIds,
+        workCount: groups.reduce((n, g) => n + g.work.length, 0),
+      },
+    );
+
+    return this.options.relayerRepository.estimate7710TransactionMultichain(
+      paymentChain.relayerUrl,
+      params,
+    );
+  }
+
+  /**
    * Build unsigned (placeholder) or shell params for activation estimate.
    * Signed submit uses the coalesced ceremony path instead.
    */
@@ -2186,7 +2890,7 @@ function shouldUseActivationMultichain(
   return upgradeChainIds[0]! !== paymentChainId;
 }
 
-/** Fee/payment chain first, then remaining upgrade chains. */
+/** Fee/payment chain first, then remaining upgrade/work chains. */
 function orderedActivationChainIds(
   upgradeChainIds: readonly EVMChainId[],
   paymentChainId: EVMChainId,
@@ -2199,6 +2903,26 @@ function orderedActivationChainIds(
     ordered.push(chainId);
   }
   return ordered;
+}
+
+function normalizeWorkByChain(
+  workByChain: readonly {
+    chainId: EVMChainId;
+    work: ITransactionWork | ITransactionWork[];
+  }[],
+): Array<{ chainId: EVMChainId; work: ITransactionWork[] }> {
+  const byChain = new Map<EVMChainId, ITransactionWork[]>();
+  for (const entry of workByChain) {
+    const items = Array.isArray(entry.work) ? entry.work : [entry.work];
+    if (items.length === 0) continue;
+    const existing = byChain.get(entry.chainId);
+    if (existing) {
+      existing.push(...items);
+    } else {
+      byChain.set(entry.chainId, [...items]);
+    }
+  }
+  return [...byChain.entries()].map(([chainId, work]) => ({ chainId, work }));
 }
 
 function methodSelector(callData: Hex): Hex {

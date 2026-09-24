@@ -265,40 +265,32 @@ export class DelegationService implements IDelegationService {
       if (item.stored) group.stored.push(item.stored);
     }
 
-    const paymentByChain = new Map<EVMChainId, (typeof params.payments)[number]>();
-    for (const payment of params.payments) {
-      paymentByChain.set(payment.chainId, payment);
-    }
+    const workByChain = [...byChain.values()].map((group) => ({
+      chainId: group.chainId,
+      work: group.work,
+    }));
+
+    const sendResults = await this.transactionUtils.sendViaRelayerMultichain({
+      workByChain,
+      paymentToken: params.paymentToken,
+      feeAtoms: params.feeAtoms,
+      paymentChainId: params.paymentChainId,
+      prefetchRelayerVaultAssertion: true,
+      retainDisplayDuringSubmit: true,
+      onAwaitingConfirmation: params.onAwaitingConfirmation,
+      onFinalFeeRequired: params.onFinalFeeRequired,
+    });
 
     const results: ICancelDelegationsResult["results"] = [];
-    let firstChain = true;
+    let index = 0;
     for (const group of byChain.values()) {
-      const payment = paymentByChain.get(group.chainId);
-      if (!payment) {
+      const result = sendResults[index];
+      if (!result) {
         throw new Error(
-          `cancelDelegations missing payment for chain ${group.chainId}`,
+          `cancelDelegations missing relayer result for chain ${group.chainId}`,
         );
       }
-      const chain = await this.requireRelayerChain(group.chainId);
-      const result = await this.transactionUtils.sendViaRelayer({
-        chainId: group.chainId,
-        work: group.work,
-        paymentToken: payment.paymentToken,
-        feeAtoms: payment.feeAtoms,
-        ...(payment.paymentChainId
-          ? { paymentChainId: payment.paymentChainId }
-          : {}),
-        relayerUrl: chain.relayerUrl,
-        prefetchRelayerVaultAssertion: true,
-        retainDisplayDuringSubmit: true,
-        // Only the first chain owns the confirm UI; later chains keep the
-        // flyout open without re-triggering "awaiting confirmation".
-        onAwaitingConfirmation: firstChain
-          ? params.onAwaitingConfirmation
-          : undefined,
-        onFinalFeeRequired: params.onFinalFeeRequired,
-      });
-      firstChain = false;
+      index += 1;
 
       const deletedIds: DelegationId[] = [];
       for (const stored of group.stored) {
@@ -329,13 +321,9 @@ export class DelegationService implements IDelegationService {
             : {}),
         },
       ],
-      payments: [
-        {
-          chainId: params.chainId,
-          paymentToken: params.paymentToken,
-          feeAtoms: params.feeAtoms,
-        },
-      ],
+      paymentToken: params.paymentToken,
+      feeAtoms: params.feeAtoms,
+      paymentChainId: params.paymentChainId ?? params.chainId,
       onAwaitingConfirmation: params.onAwaitingConfirmation,
       onFinalFeeRequired: params.onFinalFeeRequired,
       retainDisplayDuringSubmit: params.retainDisplayDuringSubmit,

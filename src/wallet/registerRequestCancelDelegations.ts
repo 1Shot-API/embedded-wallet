@@ -139,13 +139,15 @@ export function registerRequestCancelDelegationsRpc(
             items,
             allowSkipOnchain: true,
           },
-          execute: async (payments, ui) => {
+          execute: async (payment, ui) => {
             const batch = await options.delegationService.cancelDelegations({
               items: storedList.map((stored) => ({
                 chainId: stored.chainId,
                 stored,
               })),
-              payments,
+              paymentToken: payment.paymentToken,
+              feeAtoms: payment.feeAtoms,
+              paymentChainId: payment.paymentChainId,
               ...ui,
             });
             return batch.results.map((r) => r.transactionHash);
