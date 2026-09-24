@@ -200,9 +200,9 @@ export class TransactionUtils implements ITransactionUtils {
     if (!options?.contractAddress) {
       try {
         const env = getSmartAccountsEnvironment(chainIdNumber);
-        contractAddress = getAddress(
+        contractAddress = EVMContractAddress(getAddress(
           env.implementations.EIP7702StatelessDeleGatorImpl,
-        );
+        ));
       } catch {
         // Fall back to the known Stateless7702 implementation address.
       }
@@ -659,17 +659,17 @@ export class TransactionUtils implements ITransactionUtils {
         upgradeChainIds.map(async (chainId) => {
           const chainIdNumber = Number(BigInt(chainId));
           const client = this.options.blockchain.getPublicClient(chainId);
-          let contractAddress: `0x${string}` = STATELESS_DELEGATOR_IMPL;
+          let contractAddress = STATELESS_DELEGATOR_IMPL;
           try {
             const env = getSmartAccountsEnvironment(chainIdNumber);
-            contractAddress = getAddress(
+            contractAddress = EVMContractAddress(getAddress(
               env.implementations.EIP7702StatelessDeleGatorImpl,
-            );
+            ));
           } catch {
             // keep hardcoded fallback
           }
           const nonce = await client.getTransactionCount({
-            address: getAddress(eoa),
+            address: eoa,
             blockTag: "pending",
           });
           return { chainId, chainIdNumber, contractAddress, nonce };
@@ -1147,12 +1147,12 @@ export class TransactionUtils implements ITransactionUtils {
           }
           const chainIdNumber = Number(BigInt(chainId));
           const client = this.options.blockchain.getPublicClient(chainId);
-          let contractAddress: `0x${string}` = STATELESS_DELEGATOR_IMPL;
+          let contractAddress = STATELESS_DELEGATOR_IMPL;
           try {
             const env = getSmartAccountsEnvironment(chainIdNumber);
-            contractAddress = getAddress(
+            contractAddress = EVMContractAddress(getAddress(
               env.implementations.EIP7702StatelessDeleGatorImpl,
-            );
+            ));
           } catch {
             // keep hardcoded fallback
           }
@@ -1614,14 +1614,14 @@ export class TransactionUtils implements ITransactionUtils {
       // inside Promise.all lets fee/work start a signer Confirm first; the
       // later auth RPC then cancels it (`ceremonyCancelled`).
       let upgradeNonce: number | undefined;
-      let upgradeContract: `0x${string}` | undefined;
+      let upgradeContract: EVMContractAddress | undefined;
       if (needsUpgrade) {
         upgradeContract = STATELESS_DELEGATOR_IMPL;
         try {
           const env = getSmartAccountsEnvironment(chainIdNumber);
-          upgradeContract = getAddress(
+          upgradeContract = EVMContractAddress(getAddress(
             env.implementations.EIP7702StatelessDeleGatorImpl,
-          );
+          ));
         } catch {
           // keep hardcoded fallback
         }
@@ -1987,19 +1987,19 @@ export class TransactionUtils implements ITransactionUtils {
       ]);
 
       let upgradeNonce: number | undefined;
-      let upgradeContract: `0x${string}` | undefined;
+      let upgradeContract: EVMContractAddress | undefined;
       if (needsUpgrade) {
         upgradeContract = STATELESS_DELEGATOR_IMPL;
         try {
           const env = getSmartAccountsEnvironment(executionChainIdNumber);
-          upgradeContract = getAddress(
+          upgradeContract = EVMContractAddress(getAddress(
             env.implementations.EIP7702StatelessDeleGatorImpl,
-          );
+          ));
         } catch {
           // keep hardcoded fallback
         }
         upgradeNonce = await executionClient.getTransactionCount({
-          address: getAddress(eoa),
+          address: eoa,
           blockTag: "pending",
         });
       }
