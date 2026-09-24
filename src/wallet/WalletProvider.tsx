@@ -46,6 +46,7 @@ import {
   CCTPUtils,
   DelegationService,
   LiFiUtils,
+  PaymentTokenUtils,
   TransactionService,
 } from "../lib/implementations/business";
 import {
@@ -81,6 +82,7 @@ import type {
 } from "../lib/interfaces/business";
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
+import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPaymentTokenUtils";
 import type {
   ICircleProvider,
   IConfigProvider,
@@ -161,10 +163,17 @@ const credentialRepository = new CachedRelayerVaultRepository({
   owsProvider,
 });
 
+const paymentTokenUtils = new PaymentTokenUtils(
+  chainRepository,
+  oneshotRelayerRepository,
+  trackedAssetRepository,
+);
+
 const businessTransactionUtils = new BusinessTransactionUtils({
   chainRepository,
   relayerRepository: oneshotRelayerRepository,
   trackedAssetRepository,
+  paymentTokenUtils,
   blockchain: blockchainProvider,
   presentationTransactionUtils: transactionUtils,
   owsProvider,
@@ -229,6 +238,7 @@ export type WalletContextValue = {
   oneshotRelayerRepository: IOneshotRelayerRepository;
   evmRepository: IEVMRepository;
   transactionService: ITransactionService;
+  paymentTokenUtils: IPaymentTokenUtils;
   bridgeService: IBridgeService;
   bitcoinService: IBitcoinService;
   delegationService: IDelegationService;
@@ -316,6 +326,7 @@ export type WalletContextValue = {
     payment?: {
       paymentToken: EVMAccountAddress;
       feeAtoms: TokenAmount;
+      paymentChainId?: EVMChainId;
     },
   ) => Promise<EVMTransactionHash>;
   /**
@@ -506,6 +517,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     knownAssetRepository,
     trackedAssetRepository,
     transactionService,
+    paymentTokenUtils,
     delegationService,
     transactionUtils,
     cctpUtils,
@@ -906,6 +918,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       oneshotRelayerRepository,
       evmRepository,
       transactionService,
+      paymentTokenUtils,
       bridgeService,
       bitcoinService,
       delegationService,

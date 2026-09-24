@@ -5,5 +5,6 @@ export { BitcoinService } from "./BitcoinService";
 export { DelegationService } from "./DelegationService";
 export { TransactionUtils as BusinessTransactionUtils } from "./utils/TransactionUtils";
 export type { TransactionUtilsOptions as BusinessTransactionUtilsOptions } from "./utils/TransactionUtils";
+export { PaymentTokenUtils } from "./utils/PaymentTokenUtils";
 export { CCTPUtils } from "./utils/CCTPUtils";
 export { LiFiUtils } from "./utils/LiFiUtils";

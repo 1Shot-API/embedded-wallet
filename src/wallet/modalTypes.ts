@@ -13,7 +13,7 @@ import type {
   IExecutionPermission,
   IExecutionPermissionRequest,
 } from "@1shotapi/ows-types";
-import type { IActivationPayment } from "../lib/types/domain/ActivationPayment";
+import type { IRelayerPayment } from "../lib/types/domain/RelayerPayment";
 import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 import type { ISiweFields } from "../lib/types/domain/SiweFields";
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
@@ -48,12 +48,15 @@ export type IConfirmSendPayment = {
   /** Required when the confirm modal was opened with `useRelayer: true`. */
   paymentToken?: EVMAccountAddress;
   feeAtoms?: TokenAmount;
+  paymentChainId?: EVMChainId;
 };
 
 /** Relayer confirm payload after UI validation. */
 export type IRelayerConfirmSendResult = {
   paymentToken: EVMAccountAddress;
   feeAtoms: TokenAmount;
+  /** Chain that pays the fee (may differ from the work chain). */
+  paymentChainId: EVMChainId;
 };
 
 /** Result from TX confirm when canceling or selecting payment (legacy shape). */
@@ -96,6 +99,8 @@ export type ICancelDelegationPayment = {
   chainId: EVMChainId;
   paymentToken: EVMAccountAddress;
   feeAtoms: TokenAmount;
+  /** Fee payment chain — defaults to `chainId` when omitted. */
+  paymentChainId?: EVMChainId;
 };
 
 /** Cancel / revoke confirm (on-chain disableDelegation, possibly batched). */
@@ -119,7 +124,7 @@ export interface IActivateOfflinePermissionsRequest {
    * plus the USDC payment chain (usually Arc) when either needs upgrade.
    */
   upgradeChains: Array<{ chainId: EVMChainId; chainName: string }>;
-  payment: IActivationPayment;
+  payment: IRelayerPayment;
 }
 
 export type ModalRequest =

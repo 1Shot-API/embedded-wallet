@@ -155,6 +155,7 @@ export function CancelDelegationModal({
         chainId: group.chainId,
         paymentToken: quote.selectedToken,
         feeAtoms: quote.feeAtoms,
+        paymentChainId: quote.paymentChainId,
       };
     });
   }, [chainGroups, quotes]);

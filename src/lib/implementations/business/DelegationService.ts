@@ -286,6 +286,9 @@ export class DelegationService implements IDelegationService {
         work: group.work,
         paymentToken: payment.paymentToken,
         feeAtoms: payment.feeAtoms,
+        ...(payment.paymentChainId
+          ? { paymentChainId: payment.paymentChainId }
+          : {}),
         relayerUrl: chain.relayerUrl,
         prefetchRelayerVaultAssertion: true,
         retainDisplayDuringSubmit: true,

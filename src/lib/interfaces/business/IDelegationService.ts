@@ -64,11 +64,13 @@ export type ICancelDelegationItem = {
   permissionContext?: HexString;
 };
 
-/** Per-chain USDC payment for {@link IDelegationService.cancelDelegations}. */
+/** Per-chain payment for {@link IDelegationService.cancelDelegations}. */
 export type ICancelDelegationChainPayment = {
   chainId: EVMChainId;
   paymentToken: EVMAccountAddress;
   feeAtoms: TokenAmount;
+  /** Fee payment chain — defaults to `chainId`. */
+  paymentChainId?: EVMChainId;
 };
 
 export interface ICancelDelegationsParams extends IRelayerSendUiCallbacks {

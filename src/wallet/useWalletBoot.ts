@@ -63,6 +63,7 @@ import type {
 } from "../lib/interfaces/utils";
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
+import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPaymentTokenUtils";
 import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type { SupportedChain } from "../lib/types/domain";
 import type { TokenAmount } from "../lib/types/primitives";
@@ -166,15 +167,22 @@ function createDeferredSigner(
 function requireRelayerConfirmPayment(confirmed: {
   paymentToken?: EVMAccountAddress;
   feeAtoms?: TokenAmount;
+  paymentChainId?: EVMChainId;
 }): IRelayerConfirmSendResult {
   if (!confirmed.paymentToken || confirmed.feeAtoms === undefined) {
     throw new OwsInvalidParamsError(
       "Select a relayer payment token and fee before confirming the transaction",
     );
   }
+  if (!confirmed.paymentChainId) {
+    throw new OwsInvalidParamsError(
+      "Missing paymentChainId from the fee quote",
+    );
+  }
   return {
     paymentToken: confirmed.paymentToken,
     feeAtoms: confirmed.feeAtoms,
+    paymentChainId: confirmed.paymentChainId,
   };
 }
 
@@ -199,6 +207,7 @@ export interface IUseWalletBootParams {
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   transactionService: ITransactionService;
+  paymentTokenUtils: IPaymentTokenUtils;
   delegationService: IDelegationService;
   transactionUtils: ITransactionUtils;
   cctpUtils: ICCTPUtils;
@@ -230,6 +239,7 @@ export function useWalletBoot({
   knownAssetRepository,
   trackedAssetRepository,
   transactionService,
+  paymentTokenUtils,
   delegationService,
   transactionUtils,
   cctpUtils,
@@ -395,19 +405,11 @@ export function useWalletBoot({
                   ).values(),
                 ];
 
-                // Always consider Arc (DEFAULT_CHAIN_ID): activation fees are
-                // paid in USDC there even when the grant is only for Base.
-                const activationCandidateChainIds = [
-                  ...new Map(
-                    [...requestedChainIds, DEFAULT_CHAIN_ID].map(
-                      (chainId) =>
-                        [BigInt(chainId).toString(10), chainId] as const,
-                    ),
-                  ).values(),
-                ];
-
+                // Upgrade check is for grant/requested chains only. Arc is
+                // considered as a payment fallback inside PaymentTokenUtils —
+                // if the fee lands on Arc, we append it below when needed.
                 const upgradeChecks = await Promise.all(
-                  activationCandidateChainIds.map(async (chainId) => ({
+                  requestedChainIds.map(async (chainId) => ({
                     chainId,
                     needsUpgrade: await transactionService.needsWalletUpgrade(
                       chainId,
@@ -420,11 +422,10 @@ export function useWalletBoot({
                   .map((row) => row.chainId);
 
                 if (upgradeChainIds.length > 0) {
-                  const payment =
-                    await transactionService.resolveActivationPayment(
-                      owner,
-                      activationCandidateChainIds,
-                    );
+                  const payment = await paymentTokenUtils.resolvePayment(
+                    owner,
+                    upgradeChainIds,
+                  );
                   if (!payment) {
                     throw new OwsInvalidParamsError(
                       styleController.get().copy.activateOfflinePermissions
@@ -977,6 +978,7 @@ export function useWalletBoot({
                 payment: {
                   paymentToken?: EVMAccountAddress;
                   feeAtoms?: TokenAmount;
+                  paymentChainId?: EVMChainId;
                 },
                 ui?: import("../lib/types/domain/RelayerSendUi").IRelayerSendUiCallbacks,
               ) => {
@@ -984,6 +986,7 @@ export function useWalletBoot({
                   | {
                       paymentToken: EVMAccountAddress;
                       feeAtoms: TokenAmount;
+                      paymentChainId: EVMChainId;
                     }
                   | undefined;
                 if (useRelayer) {
@@ -991,6 +994,7 @@ export function useWalletBoot({
                   relayerOptions = {
                     paymentToken: confirmed.paymentToken,
                     feeAtoms: confirmed.feeAtoms,
+                    paymentChainId: confirmed.paymentChainId,
                   };
                 }
 

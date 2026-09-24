@@ -7,7 +7,7 @@ import type {
   IRelayerAuthorizationEntry,
   ISendTransactionResult,
 } from "../data/IOneshotRelayerRepository";
-import type { IActivationPayment } from "../../types/domain/ActivationPayment";
+import type { IRelayerPayment } from "../../types/domain/RelayerPayment";
 import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
 import type { IWalletUpgradeStatus } from "../../types/domain/WalletUpgradeStatus";
 import type { TokenAmount } from "../../types/primitives";
@@ -23,6 +23,9 @@ export interface IPaymentTokenOption {
 export interface IPaymentQuote {
   tokens: IPaymentTokenOption[];
   selectedToken: EVMAccountAddress;
+  /** Chain where the fee ExactCalldata runs (may differ from the work chain). */
+  paymentChainId: EVMChainId;
+  paymentChainName: string;
   feeAtoms: TokenAmount;
   feeFormatted: string;
   feeCollector: EVMAccountAddress;
@@ -36,14 +39,19 @@ export interface ITransactionWork {
   value?: bigint;
 }
 
-export interface ISendViaRelayerParams {
+export type ISendViaRelayerParams = {
   chainId: EVMChainId;
   work: ITransactionWork | ITransactionWork[];
   paymentToken: EVMAccountAddress;
   /** Fee atoms from the confirm UI quote; may be adjusted after estimate. */
   feeAtoms: TokenAmount;
+  /**
+   * Chain that pays the relayer fee. Defaults to `chainId`. When different,
+   * fee runs on this chain and work on `chainId` (multichain 7710).
+   */
+  paymentChainId?: EVMChainId;
   authorizationList?: IRelayerAuthorizationEntry[];
-}
+};
 
 /**
  * Orchestrates EIP-7702 upgrade, fee quotes, ExactCalldata delegations,
@@ -65,10 +73,8 @@ export interface ITransactionService {
   ): Promise<IRelayerAuthorizationEntry>;
 
   /**
-   * Prefer USDC with balance, then USDT, else first token with balance.
-   * When `preferredToken` is set, use it if present in capabilities.
-   * Quotes via unsigned `relayer_estimate7710Transaction` (placeholder
-   * signatures) so confirm UI shows an accurate fee before passkey sign.
+   * Resolve fee payment for work on `chainId` (local-first, Arc USDC fallback),
+   * then unsigned estimate — single-chain or multichain when payment ≠ work.
    */
   quotePayment(
     chainId: EVMChainId,
@@ -77,20 +83,11 @@ export interface ITransactionService {
     preferredToken?: EVMAccountAddress,
   ): Promise<IPaymentQuote>;
 
-  /**
-   * Resolve USDC payment for EIP-7702 offline-permission activation among
-   * candidate chains (requested ∪ Arc). Null when none hold USDC.
-   */
-  resolveActivationPayment(
-    owner: EVMAccountAddress,
-    candidateChainIds: readonly EVMChainId[],
-  ): Promise<IActivationPayment | null>;
-
-  /** Unsigned USDC fee quote for multi/single-chain EIP-7702 activation. */
+  /** Unsigned fee quote for multi/single-chain EIP-7702 activation. */
   quoteActivation(
     owner: EVMAccountAddress,
     upgradeChainIds: readonly EVMChainId[],
-    payment: IActivationPayment,
+    payment: IRelayerPayment,
   ): Promise<IPaymentQuote>;
 
   /**
@@ -99,7 +96,7 @@ export interface ITransactionService {
   activateDelegations(
     args: {
       upgradeChainIds: readonly EVMChainId[];
-      payment: IActivationPayment;
+      payment: IRelayerPayment;
       feeAtoms: TokenAmount;
     } & IRelayerSendUiCallbacks,
   ): Promise<ISendTransactionResult[]>;
@@ -115,6 +112,7 @@ export interface ITransactionService {
     options?: {
       paymentToken?: EVMAccountAddress;
       feeAtoms?: TokenAmount;
+      paymentChainId?: EVMChainId;
       authorizationList?: IRelayerAuthorizationEntry[];
     } & IRelayerSendUiCallbacks,
   ): Promise<ISendTransactionResult>;

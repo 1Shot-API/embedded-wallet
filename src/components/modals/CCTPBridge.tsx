@@ -514,6 +514,7 @@ export function CCTPBridge({
         {
           paymentToken: paymentQuote.selectedToken,
           feeAtoms: paymentQuote.feeAtoms,
+          paymentChainId: paymentQuote.paymentChainId,
         },
         (progress) => {
           setBurnTxHash(progress.burnTxHash);
