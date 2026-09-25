@@ -581,6 +581,16 @@ export function useWalletAuth({
     await ensureReadyRef.current();
   }, [awaitSignerRef]);
 
+  /**
+   * Gate for signed EIP-1193 / in-wallet actions.
+   *
+   * When the session is already unlocked (including returning sessions hydrated
+   * from cache), skip — the signing / PoP ceremony itself authenticates.
+   * When locked, run full {@link ensureReady} so SIWE `personal_sign` /
+   * typed-data (and other signed RPCs) prompt unlock or setup instead of
+   * failing. Do not early-return on {@link isWalletCreated} alone: a stored
+   * credential with `unlocked === false` still needs unlock.
+   */
   const ensureOnboardedForSigning = useCallback(async () => {
     const awaitSigner = awaitSignerRef.current;
     if (!awaitSigner) {
@@ -589,7 +599,7 @@ export function useWalletAuth({
       );
     }
     await awaitSigner();
-    if (isWalletCreated()) {
+    if (useWalletSessionStore.getState().unlocked) {
       return;
     }
     await ensureReadyRef.current();

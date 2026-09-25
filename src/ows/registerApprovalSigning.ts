@@ -11,9 +11,10 @@ import type { EVMSignatureHex, EVMTransactionHash } from "@1shotapi/ows-types";
 
 export type RegisterApprovalSigningOptions = {
   /**
-   * Setup-only gate before signed actions: run onboarding when no credential
-   * exists. With a known credential, skip unlock — the signing ceremony
-   * authenticates. Pair with {@link onAuthenticated}.
+   * Readiness gate before signed actions. Prefer `ensureOnboardedForSigning`:
+   * no-op when the session is already unlocked; otherwise full unlock/setup
+   * so host-driven SIWE (`personal_sign` / typed data) does not fail while
+   * locked. Pair with {@link onAuthenticated}.
    */
   ensureReady?: () => Promise<void>;
   /** Mark unlocked + refresh addresses after a successful signing ceremony. */
@@ -45,7 +46,7 @@ export type RegisterApprovalSigningOptions = {
 /**
  * Build SignHelper handlers and register them on the wallet (pre-`start()`).
  *
- * SignHelper adapts EIP-1193 ↔ `approveAndSign*`. Setup (`ensureReady`) runs
+ * SignHelper adapts EIP-1193 ↔ `approveAndSign*`. Readiness (`ensureReady`) runs
  * inside approve callbacks (while the display session is held). Unlock
  * (`onAuthenticated`) is passed through to SignHelper so it runs after
  * display release — post-sign address refresh must not keep the flyout open.

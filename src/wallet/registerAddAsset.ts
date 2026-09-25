@@ -14,6 +14,7 @@ import type {
 } from "../lib/interfaces/data";
 import { isSafeHttpsIconUrl } from "../lib/utils/tokenIcons";
 import { useWalletSessionStore } from "./sessionStore";
+import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 
 /** Custom RPC — host: `await proxy.rpc("addAsset", { chainId, assetAddress, iconUrl? })`. */
 export const ADD_ASSET_RPC_METHOD = "addAsset";
@@ -42,6 +43,7 @@ export interface IAddAssetApprovalRequest {
 }
 
 export type RegisterAddAssetOptions = {
+  ensureReady: WalletReadyGate;
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   getOwnerAddress: () => EVMAccountAddressType;
@@ -60,7 +62,7 @@ export function registerAddAssetRpc(
 ): void {
   wallet.registerRpc(
     ADD_ASSET_RPC_METHOD,
-    async (params) => {
+    withWalletReady(options.ensureReady, async (params) => {
       const { chainId, assetAddress, iconUrl } = params as IAddAssetParams;
       const owner = options.getOwnerAddress();
       const [resolved, display] = await Promise.all([
@@ -98,7 +100,7 @@ export function registerAddAssetRpc(
       } finally {
         await display.hide();
       }
-    },
+    }),
     addAssetParamsSchema,
   );
 }
