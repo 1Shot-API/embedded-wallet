@@ -54,8 +54,9 @@ export type RegisterCredentialsProviderOptions = {
    */
   ensureReady?: () => Promise<void>;
   /**
-   * Setup-only when no credential exists. With a known passkey, skip unlock —
-   * the PoP ceremony authenticates. Pair with {@link onAuthenticated}.
+   * Signed-action gate (same as `ensureOnboardedForSigning`): no-op when the
+   * session is unlocked; otherwise full unlock/setup. Pair with
+   * {@link onAuthenticated} after PoP / issue.
    */
   ensureOnboarded?: () => Promise<void>;
   /** Mark unlocked after a successful PoP / issue ceremony. */

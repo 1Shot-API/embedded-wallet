@@ -15,6 +15,7 @@ import type { IChainRepository } from "../lib/interfaces/data/IChainRepository";
 import type { IKnownAssetRepository } from "../lib/interfaces/data/IKnownAssetRepository";
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import { ECctpTransferSpeed } from "../lib/types/enum/ECctpTransferSpeed";
+import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 
 /** Custom RPC — host: `await proxy.rpc("bridge", { amount?, sourceChainId?, destinationChainId?, speed?, tokenAddress? })`. */
 export const BRIDGE_RPC_METHOD = "bridge";
@@ -35,6 +36,7 @@ const bridgeParamsSchema = z
 export type IBridgeParams = z.infer<typeof bridgeParamsSchema>;
 
 export type RegisterBridgeOptions = {
+  ensureReady: WalletReadyGate;
   getOwnerAddress: () => EVMAccountAddress | null;
   getSessionChainId: () => EVMChainIdType;
   chainRepository: IChainRepository;
@@ -75,7 +77,7 @@ export function registerBridgeRpc(
 ): void {
   wallet.registerRpc(
     BRIDGE_RPC_METHOD,
-    async (params) => {
+    withWalletReady(options.ensureReady, async (params) => {
       const { amount, sourceChainId, destinationChainId, speed, tokenAddress } =
         params as IBridgeParams;
       const owner = options.getOwnerAddress();
@@ -178,7 +180,7 @@ export function registerBridgeRpc(
       } finally {
         await display.hide();
       }
-    },
+    }),
     bridgeParamsSchema,
   );
 }

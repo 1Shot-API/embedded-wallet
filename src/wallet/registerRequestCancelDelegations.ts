@@ -16,6 +16,7 @@ import type { IStoredDelegation } from "../lib/types/domain/StoredDelegation";
 import type { ActiveModal } from "./modalTypes";
 import { loadCachedEvmAddress } from "../storage";
 import { useWalletSessionStore } from "./sessionStore";
+import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 
 /** Custom RPC — host: `await proxy.rpc("requestCancelDelegations", { permissionContexts })`. */
 export const REQUEST_CANCEL_DELEGATIONS_RPC_METHOD =
@@ -37,7 +38,8 @@ export type IRequestCancelDelegationsResult = {
 export type RegisterRequestCancelDelegationsOptions = {
   configProvider: IConfigProvider;
   delegationService: IDelegationService;
-  ensureOnboardedForSigning: () => Promise<void>;
+  /** Prefer `ensureOnboardedForSigning` — unlock/setup before cancel consent. */
+  ensureOnboardedForSigning: WalletReadyGate;
   resolveChain: (chainId: EVMChainId) => SupportedChain | null;
   ask: <T>(
     build: (handlers: {
@@ -60,11 +62,9 @@ export function registerRequestCancelDelegationsRpc(
 ): void {
   wallet.registerRpc(
     REQUEST_CANCEL_DELEGATIONS_RPC_METHOD,
-    async (params) => {
+    withWalletReady(options.ensureOnboardedForSigning, async (params) => {
       const { permissionContexts } =
         params as IRequestCancelDelegationsParams;
-
-      await options.ensureOnboardedForSigning();
 
       const { hostDomain: callerDomain } =
         await options.configProvider.getConfig();
@@ -177,7 +177,7 @@ export function registerRequestCancelDelegationsRpc(
       } finally {
         await display.hide();
       }
-    },
+    }),
     requestCancelDelegationsParamsSchema,
   );
 }
