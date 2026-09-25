@@ -6,6 +6,7 @@ import {
   type EVMContractAddress,
 } from "@1shotapi/ows-types";
 import type { ITransactionService } from "../lib/interfaces/business";
+import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 
 /** Custom RPC — host: `await proxy.rpc("getUpgraded", { chainId })`. */
 export const GET_UPGRADED_RPC_METHOD = "getUpgraded";
@@ -23,6 +24,7 @@ export type IGetUpgradedResult = {
 };
 
 export type RegisterGetUpgradedOptions = {
+  ensureReady: WalletReadyGate;
   getOwnerAddress: () => EVMAccountAddress | null;
   transactionService: ITransactionService;
 };
@@ -38,7 +40,7 @@ export function registerGetUpgradedRpc(
 ): void {
   wallet.registerRpc(
     GET_UPGRADED_RPC_METHOD,
-    async (params) => {
+    withWalletReady(options.ensureReady, async (params) => {
       const { chainId: raw } = params as IGetUpgradedParams;
 
       if (ChainUtils.isBitcoinChainId(raw)) {
@@ -72,7 +74,7 @@ export function registerGetUpgradedRpc(
               : `Failed to check upgrade status for chain ${raw}`,
         } satisfies IGetUpgradedResult;
       }
-    },
+    }),
     getUpgradedParamsSchema,
   );
 }

@@ -768,6 +768,7 @@ export function useWalletBoot({
       registerFocusModeRpc(wallet, rpcHelper);
 
       registerOnrampRpc(wallet, {
+        ensureReady,
         getOwnerAddress: () => {
           const address = useWalletSessionStore.getState().evmAddress;
           if (!address || String(address).toLowerCase() === "0x0") {
@@ -778,6 +779,7 @@ export function useWalletBoot({
       });
 
       registerGetUpgradedRpc(wallet, {
+        ensureReady,
         getOwnerAddress: () => {
           const address = useWalletSessionStore.getState().evmAddress;
           if (!address || String(address).toLowerCase() === "0x0") {
@@ -797,6 +799,7 @@ export function useWalletBoot({
       });
 
       registerBridgeRpc(wallet, {
+        ensureReady,
         getOwnerAddress: () => {
           const address = useWalletSessionStore.getState().evmAddress;
           if (!address || String(address).toLowerCase() === "0x0") {
@@ -817,6 +820,7 @@ export function useWalletBoot({
       });
 
       registerAddAssetRpc(wallet, {
+        ensureReady,
         knownAssetRepository,
         trackedAssetRepository,
         getOwnerAddress: () => useWalletSessionStore.getState().evmAddress,

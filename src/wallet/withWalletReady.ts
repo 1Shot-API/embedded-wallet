@@ -4,9 +4,11 @@
  * Branding wrappers (`registerApprovalSigning`, `registerCredentialsProvider`)
  * take optional setup / unlock callbacks. Some flows (e.g. `present`) also need
  * credentials in the local cache before they can match / show consent. Custom
- * RPCs (`eth_sendTransaction`, future 7710/delegation sends) should use the
- * same centralized gate pattern so unlock/setup is never forgotten when new
- * methods are added.
+ * RPCs that need an address or vault (`onramp`, `bridge`, `getUpgraded`,
+ * `addAsset`, future 7710/delegation sends) should wrap handlers with
+ * {@link withWalletReady} so unlock/setup is never forgotten when new methods
+ * are added. Shell-only RPCs (`configure`, `switchChain`, `focusWallet`,
+ * `createAccount`) do not unlock.
  *
  * Full `ensureReady` owns:
  * - unlocked → no-op
