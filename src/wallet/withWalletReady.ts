@@ -14,10 +14,12 @@
  * - otherwise → setup modal (login existing / create new), then recover
  *
  * For **signed** EIP-1193 actions (`personal_sign`, typed data, `eth_sendTransaction`),
- * in-wallet send, and credential **issue/present PoP**: pass a setup-only gate —
- * run setup/login only when no credential id exists. With a known credential,
- * skip a separate `getPublicKey` unlock; the signing / PoP ceremony itself
- * authenticates. Pair with `onAuthenticated` (inside branding `approveAnd*` /
+ * in-wallet send, and credential **issue/present PoP**: use
+ * `ensureOnboardedForSigning` (or equivalent):
+ * - session already unlocked → no-op; the signing / PoP ceremony authenticates
+ * - session locked → full `ensureReady` (unlock or setup) so SIWE and other
+ *   host-driven signs never fail with a locked wallet
+ * Pair with `onAuthenticated` (inside branding `approveAnd*` /
  * `approveAndAcceptOffer` / `approveAndPresent`) to mark unlocked and refresh
  * addresses after a successful ceremony.
  */
@@ -27,7 +29,7 @@ export type WalletReadyGate = () => Promise<void>;
 /**
  * Wrap a host RPC / credential handler so it always runs after {@link ensureReady}.
  * Use for actions that need an unlocked signer before any other work
- * (e.g. credential delete). Prefer branding setup-only gates on
+ * (e.g. credential delete). Prefer `ensureOnboardedForSigning` on
  * `approveAndSign*` / credential `approveAnd*` for signed actions.
  */
 export function withWalletReady<TArgs extends unknown[], TResult>(
