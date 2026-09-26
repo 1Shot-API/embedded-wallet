@@ -211,6 +211,7 @@ export function clearWalletStorage(): void {
   localStorage.removeItem("ows-wallet-backup");
   // Account-scoped caches — wipe so the next passkey starts clean.
   localStorage.removeItem("ows.credentials.v2");
+  localStorage.removeItem("ows.vault.v1");
   localStorage.removeItem("ows.tracked-assets.v2");
   localStorage.removeItem("ows.asset-activity.v1");
 }
