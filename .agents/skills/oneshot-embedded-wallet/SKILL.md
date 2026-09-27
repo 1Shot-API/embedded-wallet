@@ -368,7 +368,7 @@ Product analytics: `BridgeOpened`, `BridgeCompleted`, `BridgeFailed`, `BridgeCan
 
 Batch on-chain revoke for permissions this host previously received from `wallet_requestExecutionPermissions`. Pass the grant response `context` values as `permissionContexts`. Opens the cancel confirm modal (same UI as the Delegations tab). Same-chain contexts are disabled in one relayer transaction; multi-chain selections submit one batched send per chain.
 
-Only vault rows whose `hostDomain` matches the calling host are accepted. Unknown contexts or permissions granted to another host throw `OwsInvalidParamsError` before the flyout opens.
+Only vault rows whose `hostDomain` matches the calling host are accepted. If a `permissionContext` is missing locally (e.g. granted on another device), the wallet recovers credentials/delegations from the relayer once and retries the lookup before failing. Still-unknown contexts or permissions granted to another host throw `OwsInvalidParamsError` before the flyout opens. Unlock and interactive `eth_requestAccounts` also warm the vault from the relayer so cross-device grants are usually already present.
 
 ```typescript
 // After wallet_requestExecutionPermissions → responses[].context
