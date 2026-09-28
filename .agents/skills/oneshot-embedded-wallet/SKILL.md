@@ -243,10 +243,16 @@ const { chainId } = await proxy.rpc("getChainId");
 Host-controlled shell modes. Callers (not end users) switch between **General** (multi-chain tabs) and **Focused** (single chain + asset detail view).
 
 ```typescript
-// Lock to one chain + ERC-20 (or other) asset
+// Lock to one chain + ERC-20 (or native) asset
 await proxy.rpc("focusWallet", {
   chainId: "0x13b2", // Arc
   assetAddress: "0x3600000000000000000000000000000000000000", // USDC
+});
+proxy.showWallet();
+
+// Bitcoin — only one asset on the chain; assetAddress optional / ignored
+await proxy.rpc("focusWallet", {
+  chainId: "Bitcoin", // or "BitcoinTestnet"
 });
 proxy.showWallet();
 
@@ -256,10 +262,10 @@ await proxy.rpc("unfocusWallet");
 
 | Method | Params | Effect |
 |--------|--------|--------|
-| `focusWallet` | `{ chainId: \`0x…\`, assetAddress: \`0x…\` }` | Switches active chain, sets focused asset, shows Asset Details shell |
+| `focusWallet` | `{ chainId: \`0x…\` \| \`"Bitcoin"\` \| \`"BitcoinTestnet"\`, assetAddress?: \`0x…\` }` | Switches active chain, focuses shell. EVM requires `assetAddress`; Bitcoin ignores it and shows native BTC. |
 | `unfocusWallet` | none | Clears focus; returns to network selector + tabs |
 
-`focusWallet` returns `{ ok: true, mode: "focused", chainId, assetAddress }`.  
+`focusWallet` returns `{ ok: true, mode: "focused", chainId, assetAddress }` (`assetAddress` is `null` for Bitcoin).  
 `unfocusWallet` returns `{ ok: true, mode: "general" }`.
 
 Unlike `addAsset`, **`focusWallet` does not ask the user for confirmation** — hosts may temporarily lock the shell to any asset.
@@ -368,7 +374,7 @@ Product analytics: `BridgeOpened`, `BridgeCompleted`, `BridgeFailed`, `BridgeCan
 
 Batch on-chain revoke for permissions this host previously received from `wallet_requestExecutionPermissions`. Pass the grant response `context` values as `permissionContexts`. Opens the cancel confirm modal (same UI as the Delegations tab). Same-chain contexts are disabled in one relayer transaction; multi-chain selections submit one batched send per chain.
 
-Only vault rows whose `hostDomain` matches the calling host are accepted. Unknown contexts or permissions granted to another host throw `OwsInvalidParamsError` before the flyout opens.
+Only vault rows whose `hostDomain` matches the calling host are accepted. If a `permissionContext` is missing locally (e.g. granted on another device), the wallet recovers credentials/delegations from the relayer once and retries the lookup before failing. Still-unknown contexts or permissions granted to another host throw `OwsInvalidParamsError` before the flyout opens. Unlock and interactive `eth_requestAccounts` also warm the vault from the relayer so cross-device grants are usually already present.
 
 ```typescript
 // After wallet_requestExecutionPermissions → responses[].context

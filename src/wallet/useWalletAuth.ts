@@ -440,17 +440,28 @@ export function useWalletAuth({
       saveWalletCreated(credentialId);
       useWalletSessionStore.getState().setWalletCreated(true);
       await refreshAddresses();
-      // Unlock alone — callers that need the vault (ensureReady) recover
-      // after this when the local cache is empty. A challenge on this
-      // ceremony caches an assertion so recover avoids a second passkey.
+      // Challenge on this ceremony caches an assertion so recover avoids a
+      // second passkey. Always warm credentials + delegations from the
+      // relayer (cross-device grants must land before cancel/list).
       setUnlocked(true);
+      try {
+        await credentialRepository.refreshFromRelayer();
+        await refreshCredentialCount();
+      } catch (error: unknown) {
+        console.warn(
+          "[credentials] recover after unlock failed (passkey may be unregistered)",
+          error,
+        );
+      }
       return;
     }
     await loginWithPasskey();
   }, [
+    credentialRepository,
     getPublicKeyCachingRelayerAssertion,
     loginWithPasskey,
     refreshAddresses,
+    refreshCredentialCount,
     setUnlocked,
     signerRef,
   ]);
@@ -519,25 +530,8 @@ export function useWalletAuth({
 
     unlockInFlightRef.current = (async () => {
       if (isWalletCreated()) {
+        // unlockWithStoredCredential always warms the vault from the relayer.
         await unlockWithStoredCredential();
-        // Warm vault once after unlock when both local lists are empty.
-        // Refresh / Credentials / Delegations call refreshFromRelayer themselves
-        // and must not also hit this path via nested ensureReady.
-        try {
-          const [creds, dels] = await Promise.all([
-            credentialRepository.list(),
-            credentialRepository.listDelegations(),
-          ]);
-          if (creds.length === 0 && dels.length === 0) {
-            await credentialRepository.refreshFromRelayer();
-            await refreshCredentialCount();
-          }
-        } catch (error: unknown) {
-          console.warn(
-            "[credentials] recover after unlock failed (passkey may be unregistered)",
-            error,
-          );
-        }
         return;
       }
       await runSetupFlow();
@@ -548,12 +542,7 @@ export function useWalletAuth({
     } finally {
       unlockInFlightRef.current = undefined;
     }
-  }, [
-    credentialRepository,
-    refreshCredentialCount,
-    runSetupFlow,
-    unlockWithStoredCredential,
-  ]);
+  }, [runSetupFlow, unlockWithStoredCredential]);
 
   const ensureReadyRef = useRef(ensureReadyImpl);
   useEffect(() => {
