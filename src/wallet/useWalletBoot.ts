@@ -282,11 +282,18 @@ export function useWalletBoot({
         hidden: true,
         credentialId: loadCredentialId(),
       });
+      let wrappedSigner: OWSSigner | null = null;
       const awaitSigner = async (): Promise<OWSSigner> => {
+        // Wrap once — re-wrapping nests vault-decrypt / ceremony handlers and
+        // can leave pendingEncrypted uncleared after piggyback decrypt.
+        if (wrappedSigner) {
+          return wrappedSigner;
+        }
         const loaded = wrapSignerWithVaultDecrypt(
           wrapSignerWithCeremonyCopy(await signerPromise),
           credentialRepository,
         );
+        wrappedSigner = loaded;
         signerRef.current = loaded;
         owsProvider.setSigner(loaded);
         return loaded;
