@@ -13,18 +13,18 @@ export class WalletConfig {
      * Resolved once when config is first requested.
      */
     public readonly hostDomain: DomainString,
-    /** localStorage key for optimistic send history. */
+    /** IndexedDB cache key for optimistic send history. */
     public readonly assetActivityStorageKey: string,
-    /** localStorage key for user-tracked assets. */
+    /** IndexedDB cache key for user-tracked assets. */
     public readonly trackedAssetsStorageKey: string,
     /**
-     * localStorage key for the plaintext vault cache (credentials +
-     * delegations + future typed blobs).
+     * IndexedDB cache key for the plaintext vault cache (credentials +
+     * delegations + pending encrypted blobs).
      */
     public readonly vaultStorageKey: string,
     /** Default page size when listing asset activity. */
     public readonly assetActivityDefaultLimit: number,
-    /** Max optimistic send rows retained in localStorage. */
+    /** Max optimistic send rows retained in IndexedDB. */
     public readonly assetActivityMaxOptimistic: number,
     /**
      * Circle onramp widget origin (must match Relayer `ONRAMP_WIDGET_BASE_URL`).

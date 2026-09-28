@@ -8,6 +8,14 @@ import {
   EVMAccountAddress,
   SolanaAccountAddress,
 } from "@1shotapi/ows-types";
+import {
+  ASSET_ACTIVITY_CACHE_KEY,
+  DELEGATION_BINDING_IDB_KEY,
+  TRACKED_ASSETS_CACHE_KEY,
+  VAULT_CACHE_KEY,
+  WALLET_IDB_CACHE_KEYS,
+  idbClearKeys,
+} from "./lib/utils/idbStringStore";
 
 const WALLET_CREATED_KEY = "ows-wallet-created";
 /** Public WebAuthn credential handle (not a bearer token / JWT). */
@@ -194,7 +202,7 @@ export function saveCachedSecp256k1PublicKey(publicKey: `0x${string}`): void {
   localStorage.setItem(SECP256K1_PUBLIC_KEY_KEY, publicKey);
 }
 
-export function clearWalletStorage(): void {
+export async function clearWalletStorage(): Promise<void> {
   localStorage.removeItem(WALLET_CREATED_KEY);
   localStorage.removeItem(PASSKEY_HANDLE_KEY);
   localStorage.removeItem(COSE_PUBLIC_KEY_KEY);
@@ -209,9 +217,19 @@ export function clearWalletStorage(): void {
   localStorage.removeItem("ows-relayer-passkey-registered");
   localStorage.removeItem("ows-credential-id");
   localStorage.removeItem("ows-wallet-backup");
-  // Account-scoped caches — wipe so the next passkey starts clean.
+  // Account-scoped caches — wipe localStorage leftovers from pre-IDB migration.
   localStorage.removeItem("ows.credentials.v2");
-  localStorage.removeItem("ows.vault.v1");
-  localStorage.removeItem("ows.tracked-assets.v2");
-  localStorage.removeItem("ows.asset-activity.v1");
+  localStorage.removeItem(VAULT_CACHE_KEY);
+  localStorage.removeItem(TRACKED_ASSETS_CACHE_KEY);
+  localStorage.removeItem(ASSET_ACTIVITY_CACHE_KEY);
+  localStorage.removeItem("oneshot.delegationSecret");
+
+  try {
+    await idbClearKeys(WALLET_IDB_CACHE_KEYS);
+  } catch (error: unknown) {
+    console.warn("[storage] failed to clear IndexedDB wallet caches", error);
+  }
 }
+
+/** Re-export for Change Account / callers that need the dbind key name. */
+export { DELEGATION_BINDING_IDB_KEY };
