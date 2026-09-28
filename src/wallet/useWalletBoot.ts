@@ -304,9 +304,23 @@ export function useWalletBoot({
 
       registerConfigureRpc(wallet, chainRepository);
 
+      const warmVaultFromRelayer = async (): Promise<void> => {
+        try {
+          await credentialRepository.refreshFromRelayer();
+          const listed = await credentialRepository.list();
+          useWalletSessionStore.getState().setCredentialCount(listed.length);
+        } catch (error: unknown) {
+          console.warn(
+            "[credentials] recover after connect failed (passkey may be unregistered)",
+            error,
+          );
+        }
+      };
+
       registerAccountConnect(wallet, signer, {
         storage: walletStorage,
         ensureReady,
+        warmVaultFromRelayer,
         requestConnectApproval: () =>
           ask<boolean>(({ id, resolve }) => ({
             id,
@@ -794,6 +808,11 @@ export function useWalletBoot({
         configProvider,
         delegationService,
         ensureOnboardedForSigning,
+        refreshVaultFromRelayer: async () => {
+          await credentialRepository.refreshFromRelayer();
+          const listed = await credentialRepository.list();
+          useWalletSessionStore.getState().setCredentialCount(listed.length);
+        },
         resolveChain,
         ask,
       });

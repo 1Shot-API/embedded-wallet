@@ -270,19 +270,31 @@ export class CachedRelayerVaultRepository
   }
 
   async deleteDelegation(delegationId: DelegationIdType): Promise<void> {
+    await this.deleteDelegations([delegationId]);
+  }
+
+  async deleteDelegations(
+    delegationIds: readonly DelegationIdType[],
+  ): Promise<void> {
+    if (delegationIds.length === 0) return;
     await this.ensureStorageKey();
     const blob = this.readBlob();
-    const blobId = blob.blobIds[delegationId];
-    delete blob.delegations[delegationId];
-    delete blob.blobIds[delegationId];
+    const remoteBlobIds: string[] = [];
+    for (const delegationId of delegationIds) {
+      const blobId = blob.blobIds[delegationId];
+      if (blobId) {
+        remoteBlobIds.push(blobId);
+      }
+      delete blob.delegations[delegationId];
+      delete blob.blobIds[delegationId];
+    }
     this.writeBlob(blob);
 
-    if (blobId) {
-      try {
-        await this.deleteRelayerBlob(blobId);
-      } catch (error: unknown) {
-        console.warn("[vault] failed to delete delegation blob on relayer", error);
-      }
+    if (remoteBlobIds.length === 0) return;
+    try {
+      await this.deleteRelayerBlobs(remoteBlobIds);
+    } catch (error: unknown) {
+      console.warn("[vault] failed to delete delegation blob(s) on relayer", error);
     }
   }
 
@@ -475,10 +487,16 @@ export class CachedRelayerVaultRepository
   }
 
   private async deleteRelayerBlob(blobId: string): Promise<void> {
+    await this.deleteRelayerBlobs([blobId]);
+  }
+
+  /** One WebAuthn assertion for one or many relayer blob deletes. */
+  private async deleteRelayerBlobs(blobIds: string[]): Promise<void> {
+    if (blobIds.length === 0) return;
     const assertion = await this.assert();
     await this.client.deleteCredentials({
       ...assertion,
-      credentialBlobId: blobId,
+      credentialBlobIds: blobIds,
     });
   }
 

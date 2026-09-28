@@ -59,7 +59,7 @@ export interface IWalletSessionState {
   setFocusedAssetAddress: (address: EVMContractAddress | null) => void;
   focusWallet: (
     chainId: OWSChainId,
-    assetAddress: EVMContractAddress,
+    assetAddress: EVMContractAddress | null,
   ) => void;
   unfocusWallet: () => void;
 }

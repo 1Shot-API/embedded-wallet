@@ -21,6 +21,12 @@ export type RegisterAccountConnectOptions = {
   storage: AccountConnectStorage;
   ensureReady: () => Promise<void>;
   requestConnectApproval: () => Promise<boolean>;
+  /**
+   * After interactive connect approval, warm credentials/delegations from the
+   * relayer. Not called on silent reconnect (grant + cache). Failures should
+   * be swallowed by the caller so connect still succeeds.
+   */
+  warmVaultFromRelayer?: () => Promise<void>;
   /** Optional — used for EIP-1193 `connect` event payload. */
   getChainId?: () => Promise<string> | string;
 };
@@ -89,9 +95,13 @@ export function registerAccountConnect(
       markAccountsGranted();
 
       if (cached) {
+        // Returning session with address cache — unlock may have been skipped.
+        // Warm vault so cross-device credentials/delegations are available.
+        await options.warmVaultFromRelayer?.();
         return announceConnected(cached);
       }
 
+      // ensureReady → unlock/login already recovers from the relayer.
       await options.ensureReady();
       const evm = await signer.evm.getAccountAddress();
       const solana = await signer.solana.getAccountAddress();

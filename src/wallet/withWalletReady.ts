@@ -11,8 +11,8 @@
  * `createAccount`) do not unlock.
  *
  * Full `ensureReady` owns:
- * - unlocked → no-op
- * - cached credential id → passkey unlock (+ credential recover when cache empty)
+ * - unlocked → no-op (vault warm is unlock/connect/cancel refresh-on-miss)
+ * - cached credential id → passkey unlock + always `refreshFromRelayer`
  * - otherwise → setup modal (login existing / create new), then recover
  *
  * For **signed** EIP-1193 actions (`personal_sign`, typed data, `eth_sendTransaction`),

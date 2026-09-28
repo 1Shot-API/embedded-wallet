@@ -40,6 +40,11 @@ export type RegisterRequestCancelDelegationsOptions = {
   delegationService: IDelegationService;
   /** Prefer `ensureOnboardedForSigning` — unlock/setup before cancel consent. */
   ensureOnboardedForSigning: WalletReadyGate;
+  /**
+   * Full vault recover (credentials + delegations). Used when a host
+   * permissionContext is missing locally (e.g. granted on another device).
+   */
+  refreshVaultFromRelayer: () => Promise<void>;
   resolveChain: (chainId: EVMChainId) => SupportedChain | null;
   ask: <T>(
     build: (handlers: {
@@ -70,26 +75,47 @@ export function registerRequestCancelDelegationsRpc(
         await options.configProvider.getConfig();
       const callerKey = String(callerDomain).toLowerCase();
 
-      const storedList: IStoredDelegation[] = [];
-      for (const raw of permissionContexts) {
-        const permissionContext = HexString(
-          String(raw) as `0x${string}`,
-        );
-        const stored =
-          await options.delegationService.findByPermissionContext(
-            permissionContext,
+      const resolveStored = async (): Promise<{
+        storedList: IStoredDelegation[];
+        missing: HexString[];
+      }> => {
+        const storedList: IStoredDelegation[] = [];
+        const missing: HexString[] = [];
+        for (const raw of permissionContexts) {
+          const permissionContext = HexString(
+            String(raw) as `0x${string}`,
           );
-        if (!stored) {
-          throw new OwsInvalidParamsError(
-            "Unknown permissionContext — grant must exist in this wallet vault",
-          );
+          const stored =
+            await options.delegationService.findByPermissionContext(
+              permissionContext,
+            );
+          if (!stored) {
+            missing.push(permissionContext);
+            continue;
+          }
+          storedList.push(stored);
         }
+        return { storedList, missing };
+      };
+
+      let { storedList, missing } = await resolveStored();
+      if (missing.length > 0) {
+        // Cross-device grants may only exist on the relayer until recover.
+        await options.refreshVaultFromRelayer();
+        ({ storedList, missing } = await resolveStored());
+      }
+      if (missing.length > 0) {
+        throw new OwsInvalidParamsError(
+          "Unknown permissionContext — grant must exist in this wallet vault",
+        );
+      }
+
+      for (const stored of storedList) {
         if (String(stored.hostDomain).toLowerCase() !== callerKey) {
           throw new OwsInvalidParamsError(
             "Cannot cancel a permission granted to a different host",
           );
         }
-        storedList.push(stored);
       }
 
       for (const stored of storedList) {

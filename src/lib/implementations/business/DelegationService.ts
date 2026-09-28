@@ -283,6 +283,7 @@ export class DelegationService implements IDelegationService {
 
     const results: ICancelDelegationsResult["results"] = [];
     let index = 0;
+    const allStoredIds: DelegationId[] = [];
     for (const group of byChain.values()) {
       const result = sendResults[index];
       if (!result) {
@@ -294,8 +295,8 @@ export class DelegationService implements IDelegationService {
 
       const deletedIds: DelegationId[] = [];
       for (const stored of group.stored) {
-        await this.delegationRepository.deleteDelegation(stored.delegationId);
         deletedIds.push(stored.delegationId);
+        allStoredIds.push(stored.delegationId);
       }
 
       results.push({
@@ -303,6 +304,11 @@ export class DelegationService implements IDelegationService {
         chainId: group.chainId,
         deletedDelegationId: deletedIds[0],
       });
+    }
+
+    // One assert (reuses executeBatch-cached assertion) for all remote blobs.
+    if (allStoredIds.length > 0) {
+      await this.delegationRepository.deleteDelegations(allStoredIds);
     }
 
     return { results };
@@ -345,11 +351,10 @@ export class DelegationService implements IDelegationService {
   async removeStoredDelegations(
     storedList: readonly IStoredDelegation[],
   ): Promise<DelegationId[]> {
-    const ids: DelegationId[] = [];
-    for (const stored of storedList) {
-      ids.push(await this.removeStoredDelegation(stored));
-    }
-    return ids;
+    if (storedList.length === 0) return [];
+    const ids = storedList.map((stored) => stored.delegationId);
+    await this.delegationRepository.deleteDelegations(ids);
+    return [...ids];
   }
 
   private async resolveCancelDelegation(params: {
