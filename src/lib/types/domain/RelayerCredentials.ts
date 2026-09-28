@@ -22,9 +22,17 @@ export interface IWalletCredentialChallengeResponse {
 
 export interface IRecoveredCredentialBlob {
   id: string;
-  ciphertext: string;
+  /** Opaque payload (AES envelope or plaintext JSON). */
+  payload: string;
+  /** When false, `payload` is already plaintext JSON (e.g. trackedAssets). */
+  encrypted: boolean;
   createdTimestamp: number;
 }
+
+export type ICredentialStoreItem = {
+  payload: string;
+  encrypted: boolean;
+};
 
 export interface IRelayerCredentialsErrorBody {
   error: string;

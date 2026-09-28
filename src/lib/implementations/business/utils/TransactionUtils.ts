@@ -58,7 +58,11 @@ import {
   tokenAmountFromAtomString,
   type TokenAmount,
 } from "../../../types/primitives";
-import { idbGetString, idbSetString } from "../../../utils/idbStringStore";
+import {
+  DELEGATION_BINDING_IDB_KEY,
+  idbGetString,
+  idbSetString,
+} from "../../../utils/idbStringStore";
 import { withCeremonyUiReason } from "../../../../wallet/ceremonyUiOverrideStore";
 import { withCoalescedSignDigest } from "../../../../wallet/withCoalescedSignDigest";
 import type { CoalesceSignDigestOptions } from "../../../../wallet/withCoalescedSignDigest";
@@ -87,7 +91,6 @@ const PLACEHOLDER_AUTH_S =
   "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
 
 /** IndexedDB key for the client delegation-binding value (not localStorage). */
-const DELEGATION_BINDING_IDB_KEY = "oneshot.dbind";
 const LEGACY_DELEGATION_SECRET_KEY = "oneshot.delegationSecret";
 const POLL_MS = 1000;
 const MAX_POLL_ATTEMPTS = 180;

@@ -14,6 +14,7 @@ export type {
 export type {
   IWebAuthnAssertionRequest,
   IWalletCredentialChallengeResponse,
+  ICredentialStoreItem,
   IRecoveredCredentialBlob,
   IRelayerCredentialsErrorBody,
 } from "./RelayerCredentials";
