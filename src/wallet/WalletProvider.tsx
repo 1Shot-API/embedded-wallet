@@ -137,12 +137,11 @@ analyticsBridge.start();
 const transactionUtils: ITransactionUtils = new TransactionUtils();
 const knownAssetRepository: IKnownAssetRepository =
   new HardcodedKnownAssetRepository(blockchainProvider);
-const trackedAssetRepository: ITrackedAssetRepository =
-  new LocalStorageTrackedAssetRepository(
-    blockchainProvider,
-    eventBus,
-    configProvider,
-  );
+const trackedAssetRepository = new LocalStorageTrackedAssetRepository(
+  blockchainProvider,
+  eventBus,
+  configProvider,
+);
 const assetActivityRepository: IAssetActivityRepository =
   new BlockscoutAssetActivityRepository(eventBus, configProvider);
 const oneshotRelayerRepository: IOneshotRelayerRepository =
@@ -162,6 +161,7 @@ const credentialRepository = new CachedRelayerVaultRepository({
   client: relayerCredentialsClient,
   configProvider,
   owsProvider,
+  trackedAssetSync: trackedAssetRepository,
 });
 
 const paymentTokenUtils = new PaymentTokenUtils(
@@ -713,6 +713,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const cancelStoredDelegations = useCallback(
     async (delegationIds: readonly DelegationId[]) => {
       await ensureOnboardedForSigning();
+      await credentialRepository.ensureDecrypted();
       if (delegationIds.length === 0) {
         throw new Error("Select at least one permission to cancel.");
       }

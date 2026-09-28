@@ -54,6 +54,10 @@ export type RegisterCredentialsProviderOptions = {
    */
   ensureReady?: () => Promise<void>;
   /**
+   * Decrypt pending encrypted vault blobs before credentials list/present.
+   */
+  ensureDecrypted?: () => Promise<void>;
+  /**
    * Signed-action gate (same as `ensureOnboardedForSigning`): no-op when the
    * session is unlocked; otherwise full unlock/setup. Pair with
    * {@link onAuthenticated} after PoP / issue.
@@ -110,6 +114,7 @@ export function registerCredentialsProvider(
   options: RegisterCredentialsProviderOptions,
 ): CredentialsHelper {
   const ensureReady = options.ensureReady ?? (async () => {});
+  const ensureDecrypted = options.ensureDecrypted ?? (async () => {});
   const ensureOnboarded =
     options.ensureOnboarded ?? options.ensureReady ?? (async () => {});
   const emitAnalytics = options.emitAnalytics;
@@ -249,13 +254,18 @@ export function registerCredentialsProvider(
         ensureReady,
         isWalletCreated,
         listLocal: () => options.repository.list(),
+        ensureDecrypted,
       });
       return present(input);
     },
-    list: (filter) => helper.handlers.list(filter),
-    delete: withWalletReady(ensureReady, (input) =>
-      helper.handlers.delete(input),
-    ),
+    list: async (filter) => {
+      await ensureDecrypted();
+      return helper.handlers.list(filter);
+    },
+    delete: withWalletReady(ensureReady, async (input) => {
+      await ensureDecrypted();
+      return helper.handlers.delete(input);
+    }),
   });
 
   return helper;

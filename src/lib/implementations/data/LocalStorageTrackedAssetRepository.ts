@@ -13,6 +13,10 @@ import {
 import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
 import type { ITrackedAssetRepository } from "../../interfaces/data/ITrackedAssetRepository";
+import type {
+  IVaultTrackedAssetRow,
+  IVaultTrackedAssetSync,
+} from "../../interfaces/data/IVaultTrackedAssetSync";
 import {
   DEFAULT_TRACKED_ASSETS,
   isDefaultTrackedAsset,
@@ -50,11 +54,12 @@ export type TrackedAssetRepositoryOptions = {
 const EMPTY_OWNER = EVMAccountAddress("0x0");
 
 export class LocalStorageTrackedAssetRepository
-  implements ITrackedAssetRepository
+  implements ITrackedAssetRepository, IVaultTrackedAssetSync
 {
   private readonly storage: CredentialStorageBackend;
   private readonly balanceCache = new Map<TrackedAssetId, bigint>();
   private storageKey: string | null = null;
+  private changeListener: (() => void) | null = null;
 
   constructor(
     private readonly blockchain: IBlockchainProvider,
@@ -67,6 +72,48 @@ export class LocalStorageTrackedAssetRepository
       (typeof localStorage !== "undefined"
         ? localStorage
         : createMemoryStorageBackend());
+  }
+
+  setChangeListener(listener: (() => void) | null): void {
+    this.changeListener = listener;
+  }
+
+  async exportUserAssetsForVault(): Promise<IVaultTrackedAssetRow[]> {
+    const storageKey = await this.resolveStorageKey();
+    return this.readStoredAssets(storageKey).map((asset) => ({
+      chainId: asset.chainId,
+      address: asset.address,
+      type: asset.type,
+      name: asset.name,
+      symbol: asset.symbol,
+      decimals: asset.decimals,
+      id: asset.id,
+      ...(asset.iconUrl ? { iconUrl: asset.iconUrl } : {}),
+    }));
+  }
+
+  async replaceUserAssetsFromVault(
+    assets: IVaultTrackedAssetRow[],
+  ): Promise<void> {
+    const storageKey = await this.resolveStorageKey();
+    const next: TrackedAsset[] = [];
+    for (const row of assets) {
+      if (isDefaultTrackedAsset(row.chainId, row.address)) continue;
+      const tracked = TrackedAsset.fromNew(
+        new NewTrackedAsset(
+          row.chainId,
+          row.address,
+          row.type,
+          row.name,
+          row.symbol,
+          row.decimals,
+          row.iconUrl,
+        ),
+      );
+      next.push(tracked);
+    }
+    this.writeAssets(storageKey, next, false);
+    syncTrackedAssetIconUrls(this.mergeWithDefaults(next));
   }
 
   private async resolveStorageKey(): Promise<string> {
@@ -333,7 +380,11 @@ export class LocalStorageTrackedAssetRepository
     }
   }
 
-  private writeAssets(storageKey: string, assets: TrackedAsset[]): void {
+  private writeAssets(
+    storageKey: string,
+    assets: TrackedAsset[],
+    notifyChange = true,
+  ): void {
     // Persist only user-added (non-default) rows as NewTrackedAsset fields + id.
     const userAssets = assets.filter(
       (asset) => !isDefaultTrackedAsset(asset.chainId, asset.address),
@@ -351,5 +402,8 @@ export class LocalStorageTrackedAssetRepository
       })),
     };
     this.storage.setItem(storageKey, JSON.stringify(blob));
+    if (notifyChange) {
+      this.changeListener?.();
+    }
   }
 }

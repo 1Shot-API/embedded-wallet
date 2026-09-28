@@ -56,13 +56,18 @@ export async function ensureCredentialsReadable(options: {
   ensureReady: WalletReadyGate;
   isWalletCreated: () => boolean;
   listLocal: () => Promise<readonly unknown[]>;
+  /** Decrypt pending vault blobs before treating the cache as authoritative. */
+  ensureDecrypted?: () => Promise<void>;
 }): Promise<void> {
   if (!options.isWalletCreated()) {
     await options.ensureReady();
+    await options.ensureDecrypted?.();
     return;
   }
+  await options.ensureDecrypted?.();
   const listed = await options.listLocal();
   if (listed.length === 0) {
     await options.ensureReady();
+    await options.ensureDecrypted?.();
   }
 }

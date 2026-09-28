@@ -34,6 +34,7 @@ import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
 import { registerConfigureRpc } from "../style/registerConfigure";
 import { wrapSignerWithCeremonyCopy } from "./wrapSignerWithCeremonyCopy";
+import { wrapSignerWithVaultDecrypt } from "./wrapSignerWithVaultDecrypt";
 import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
 import { styleController } from "../style/styleController";
 import {
@@ -282,7 +283,10 @@ export function useWalletBoot({
         credentialId: loadCredentialId(),
       });
       const awaitSigner = async (): Promise<OWSSigner> => {
-        const loaded = wrapSignerWithCeremonyCopy(await signerPromise);
+        const loaded = wrapSignerWithVaultDecrypt(
+          wrapSignerWithCeremonyCopy(await signerPromise),
+          credentialRepository,
+        );
         signerRef.current = loaded;
         owsProvider.setSigner(loaded);
         return loaded;
@@ -1153,6 +1157,7 @@ export function useWalletBoot({
         trust: issuerTrust,
         attestationProvider,
         ensureReady,
+        ensureDecrypted: () => credentialRepository.ensureDecrypted(),
         ensureOnboarded: ensureOnboardedForSigning,
         onAuthenticated: onSigningAuthenticated,
         emitAnalytics: (event) => eventBus.emitAnalytics(event),
