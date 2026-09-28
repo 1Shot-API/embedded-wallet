@@ -135,8 +135,17 @@ export function MainPanel() {
     setSelectedAsset(null);
   }, [chainId]);
 
-  if (mode === EWalletMode.Focused && focusedAssetAddress) {
-    return <FocusedAssetPanel />;
+  if (mode === EWalletMode.Focused) {
+    if (ChainUtils.isBitcoinChainId(chainId)) {
+      return (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <BitcoinDetails />
+        </div>
+      );
+    }
+    if (focusedAssetAddress) {
+      return <FocusedAssetPanel />;
+    }
   }
 
   if (selectedAsset) {
