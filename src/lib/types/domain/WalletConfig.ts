@@ -18,8 +18,8 @@ export class WalletConfig {
     /** IndexedDB cache key for user-tracked assets. */
     public readonly trackedAssetsStorageKey: string,
     /**
-     * IndexedDB cache key for the plaintext vault cache (credentials +
-     * delegations + pending encrypted blobs).
+     * Legacy monolithic vault cache key (`ows.vault.v1`). Kept for one-shot
+     * migration into per-item IndexedDB object stores; not written anymore.
      */
     public readonly vaultStorageKey: string,
     /** Default page size when listing asset activity. */

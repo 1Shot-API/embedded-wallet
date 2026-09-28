@@ -16,6 +16,7 @@ import {
   WALLET_IDB_CACHE_KEYS,
   idbClearKeys,
 } from "./lib/utils/idbStringStore";
+import { idbClearVaultStores } from "./lib/utils/idbVaultStore";
 
 const WALLET_CREATED_KEY = "ows-wallet-created";
 /** Public WebAuthn credential handle (not a bearer token / JWT). */
@@ -226,6 +227,7 @@ export async function clearWalletStorage(): Promise<void> {
 
   try {
     await idbClearKeys(WALLET_IDB_CACHE_KEYS);
+    await idbClearVaultStores();
   } catch (error: unknown) {
     console.warn("[storage] failed to clear IndexedDB wallet caches", error);
   }
