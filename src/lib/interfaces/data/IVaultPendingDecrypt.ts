@@ -13,6 +13,11 @@ export type IPendingEncryptedBlob = {
  * Implemented by {@link CachedRelayerVaultRepository}.
  */
 export interface IVaultPendingDecrypt {
+  /**
+   * Load the local vault cache so {@link peekPendingEncrypted} /
+   * {@link hasPendingEncrypted} are authoritative (IndexedDB is async).
+   */
+  ensurePendingStateLoaded(): Promise<void>;
   hasPendingEncrypted(): boolean;
   peekPendingEncrypted(): IPendingEncryptedBlob[];
   /**

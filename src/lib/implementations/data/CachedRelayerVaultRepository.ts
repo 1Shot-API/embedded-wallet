@@ -412,6 +412,10 @@ export class CachedRelayerVaultRepository
     return this.refreshInFlight;
   }
 
+  async ensurePendingStateLoaded(): Promise<void> {
+    await this.ensureBlobLoaded();
+  }
+
   hasPendingEncrypted(): boolean {
     if (!this.blobLoaded) return false;
     return this.readBlob().pendingEncrypted.length > 0;
@@ -443,12 +447,14 @@ export class CachedRelayerVaultRepository
       const id = ids[i]!;
       const raw = plaintexts[i];
       if (typeof raw !== "string") continue;
+      // Always drop from pending once ciphertext decrypted — otherwise a parse
+      // failure re-prompts on every Credentials / Delegations tab open.
+      applied.add(id);
       const wrapper = this.parseVaultRemoteBlob(raw);
       if (!wrapper) {
         console.warn("[vault] skipping invalid decrypted blob", id);
         continue;
       }
-      applied.add(id);
       if (wrapper.type === "credential") {
         credentials[wrapper.data.credentialId] = wrapper.data;
         blobIds[wrapper.data.credentialId] = id;
@@ -565,8 +571,30 @@ export class CachedRelayerVaultRepository
     const pendingEncrypted: IPendingEncryptedBlob[] = [];
     let trackedAssetsHydrated = false;
 
+    // Remote blob id → logical id for plaintext already decrypted locally.
+    // Refresh must not re-queue those or wipe the in-memory vault.
+    const priorLogicalByBlobId = new Map<string, string>();
+    for (const [logicalId, remoteId] of Object.entries(prior.blobIds)) {
+      priorLogicalByBlobId.set(remoteId, logicalId);
+    }
+
     for (const item of remote) {
       if (item.encrypted) {
+        const logicalId = priorLogicalByBlobId.get(item.id);
+        if (logicalId) {
+          const localCredential = prior.credentials[logicalId];
+          if (localCredential) {
+            credentials[logicalId] = localCredential;
+            blobIds[logicalId] = item.id;
+            continue;
+          }
+          const localDelegation = prior.delegations[logicalId];
+          if (localDelegation) {
+            delegations[logicalId] = localDelegation;
+            blobIds[logicalId] = item.id;
+            continue;
+          }
+        }
         pendingEncrypted.push({
           id: item.id,
           payload: item.payload,
