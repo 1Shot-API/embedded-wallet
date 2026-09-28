@@ -21,6 +21,7 @@ export function wrapSignerWithVaultDecrypt(
   const executeBatch = signer.executeBatch.bind(signer);
 
   signer.signDigest = (async (digests, options) => {
+    await vault.ensurePendingStateLoaded();
     const pending = vault.peekPendingEncrypted();
     const needUpload = vault.hasPendingTrackedAssetsUpload();
     if (pending.length === 0 && !needUpload) {
@@ -59,6 +60,7 @@ export function wrapSignerWithVaultDecrypt(
   }) as OWSSigner["signDigest"];
 
   signer.executeBatch = (async (params: ExecuteBatchParams) => {
+    await vault.ensurePendingStateLoaded();
     const pending = vault.peekPendingEncrypted();
     const needUpload = vault.hasPendingTrackedAssetsUpload();
     if (pending.length === 0 && !needUpload) {
