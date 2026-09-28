@@ -27,7 +27,6 @@ import type {
   IVaultTrackedAssetRow,
   IVaultTrackedAssetSync,
 } from "../../interfaces/data/IVaultTrackedAssetSync";
-import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
 import type {
   IDelegationCaveat,
@@ -51,14 +50,16 @@ import { loadCosePublicKey, loadCredentialId } from "../../../storage";
 import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
 import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
 import {
-  createIdbKvBackend,
-  createMemoryAsyncKvStore,
-  migrateLocalStorageKeyToIdb,
-  type AsyncKvStore,
-} from "../../utils/idbStringStore";
+  cloneVaultSnapshot,
+  createIdbVaultStore,
+  createMemoryVaultStore,
+  emptyVaultSnapshot,
+  type IVaultSnapshot,
+  type IVaultStore,
+} from "../../utils/idbVaultStore";
 import { getAddress } from "viem";
 
-export type { AsyncKvStore };
+export type { IVaultStore, IVaultSnapshot };
 
 /** Logical id for the single replaceable tracked-assets vault blob. */
 export const TRACKED_ASSETS_LOGICAL_ID = "trackedAssets";
@@ -99,23 +100,13 @@ export type VaultRemoteBlob =
       data: { assets: IVaultTrackedAssetRow[] };
     };
 
-type LocalVaultBlob = {
-  credentials: Record<string, StoredCredential>;
-  delegations: Record<string, IStoredDelegation>;
-  revoked: string[];
-  /** Logical id (credentialId or delegationId or trackedAssets) → relayer blob id. */
-  blobIds: Record<string, string>;
-  /** Encrypted recover payloads waiting for a Signing Layer decrypt. */
-  pendingEncrypted: IPendingEncryptedBlob[];
-  /** Local tracked-assets changed; upload on next assert ceremony. */
-  pendingTrackedAssetsUpload: boolean;
-};
+type LocalVaultBlob = IVaultSnapshot;
 
 export interface ICachedRelayerVaultRepositoryDeps {
   client: IRelayerCredentialsClient;
   owsProvider: IOWSProvider;
-  configProvider: IConfigProvider;
-  storage?: AsyncKvStore;
+  /** Per-item IndexedDB vault store (defaults to IDB or in-memory). */
+  vaultStore?: IVaultStore;
   trackedAssetSync?: IVaultTrackedAssetSync;
 }
 
@@ -123,21 +114,22 @@ export interface ICachedRelayerVaultRepositoryDeps {
  * Local plaintext vault + official copies on the 1Shot Relayer.
  * Holds credentials, ERC-7715 delegations, and unencrypted tracked assets.
  *
- * Local cache lives in IndexedDB (`AsyncKvStore`). `list`/`get` read the
- * in-memory mirror; mutative methods sync to the relayer;
- * `refreshFromRelayer` recovers blobs, hydrates unencrypted immediately, and
- * queues encrypted payloads for opportunistic or forced decrypt.
+ * Local cache lives in IndexedDB object stores (credentials / delegations /
+ * pendingEncrypted / vaultMeta). `list`/`get` read the in-memory mirror;
+ * mutative methods sync to the relayer; `refreshFromRelayer` recovers blobs,
+ * hydrates unencrypted immediately, and queues encrypted payloads for
+ * opportunistic or forced decrypt.
  */
 export class CachedRelayerVaultRepository
   implements ICredentialRepository, IDelegationRepository, IVaultPendingDecrypt
 {
   private readonly client: IRelayerCredentialsClient;
   private readonly owsProvider: IOWSProvider;
-  private readonly configProvider: IConfigProvider;
-  private readonly storage: AsyncKvStore;
+  private readonly vaultStore: IVaultStore;
   private readonly trackedAssetSync: IVaultTrackedAssetSync | null;
-  private storageKey: string | null = null;
   private cachedBlob: LocalVaultBlob | null = null;
+  /** Last snapshot written to IDB — used to persist only changed rows. */
+  private lastPersistedBlob: LocalVaultBlob | null = null;
   private blobLoaded = false;
   private blobLoadInFlight: Promise<void> | null = null;
   private refreshInFlight: Promise<void> | null = null;
@@ -149,13 +141,12 @@ export class CachedRelayerVaultRepository
   constructor(deps: ICachedRelayerVaultRepositoryDeps) {
     this.client = deps.client;
     this.owsProvider = deps.owsProvider;
-    this.configProvider = deps.configProvider;
     this.trackedAssetSync = deps.trackedAssetSync ?? null;
-    this.storage =
-      deps.storage ??
+    this.vaultStore =
+      deps.vaultStore ??
       (typeof indexedDB !== "undefined"
-        ? createIdbKvBackend()
-        : createMemoryAsyncKvStore());
+        ? createIdbVaultStore()
+        : createMemoryVaultStore());
     this.trackedAssetSync?.setChangeListener(() => {
       void this.onTrackedAssetsChanged();
     });
@@ -164,17 +155,9 @@ export class CachedRelayerVaultRepository
   /** Drop the in-memory vault mirror (e.g. after Change Account clears IDB). */
   invalidateLocalCache(): void {
     this.cachedBlob = null;
+    this.lastPersistedBlob = null;
     this.blobLoaded = false;
     this.blobLoadInFlight = null;
-  }
-
-  private async ensureStorageKey(): Promise<string> {
-    if (this.storageKey) {
-      return this.storageKey;
-    }
-    const config = await this.configProvider.getConfig();
-    this.storageKey = config.vaultStorageKey;
-    return this.storageKey;
   }
 
   private async ensureBlobLoaded(): Promise<void> {
@@ -184,10 +167,20 @@ export class CachedRelayerVaultRepository
       return;
     }
     this.blobLoadInFlight = (async () => {
-      const storageKey = await this.ensureStorageKey();
-      await migrateLocalStorageKeyToIdb(this.storage, storageKey);
-      const raw = await this.storage.getItem(storageKey);
-      this.cachedBlob = this.parseLocalVaultBlob(raw);
+      const loaded = await this.vaultStore.loadAll();
+      // Re-hydrate branded nested fields after IDB structured clone.
+      const delegations: Record<string, IStoredDelegation> = {};
+      for (const [key, value] of Object.entries(loaded.delegations)) {
+        if (this.isStoredDelegation(value)) {
+          delegations[key] = this.hydrateStoredDelegation(value);
+        }
+      }
+      const snapshot: LocalVaultBlob = {
+        ...loaded,
+        delegations,
+      };
+      this.cachedBlob = snapshot;
+      this.lastPersistedBlob = cloneVaultSnapshot(snapshot);
       this.blobLoaded = true;
     })().finally(() => {
       this.blobLoadInFlight = null;
@@ -1201,61 +1194,7 @@ export class CachedRelayerVaultRepository
   }
 
   private emptyBlob(): LocalVaultBlob {
-    return {
-      credentials: {},
-      delegations: {},
-      revoked: [],
-      blobIds: {},
-      pendingEncrypted: [],
-      pendingTrackedAssetsUpload: false,
-    };
-  }
-
-  private parseLocalVaultBlob(raw: string | null): LocalVaultBlob {
-    if (!raw) {
-      return this.emptyBlob();
-    }
-    try {
-      const parsed = JSON.parse(raw) as Partial<LocalVaultBlob>;
-      const credentials =
-        parsed && typeof parsed.credentials === "object"
-          ? (parsed.credentials ?? {})
-          : {};
-      const delegationsRaw =
-        parsed && typeof parsed.delegations === "object"
-          ? (parsed.delegations ?? {})
-          : {};
-      const delegations: Record<string, IStoredDelegation> = {};
-      for (const [key, value] of Object.entries(delegationsRaw)) {
-        if (this.isStoredDelegation(value)) {
-          delegations[key] = this.hydrateStoredDelegation(value);
-        }
-      }
-      const pendingEncrypted = Array.isArray(parsed.pendingEncrypted)
-        ? parsed.pendingEncrypted.filter(
-            (item): item is IPendingEncryptedBlob =>
-              !!item &&
-              typeof item === "object" &&
-              typeof (item as IPendingEncryptedBlob).id === "string" &&
-              typeof (item as IPendingEncryptedBlob).payload === "string" &&
-              typeof (item as IPendingEncryptedBlob).createdTimestamp ===
-                "number",
-          )
-        : [];
-      return {
-        credentials,
-        delegations,
-        revoked: Array.isArray(parsed.revoked) ? parsed.revoked : [],
-        blobIds:
-          parsed && typeof parsed.blobIds === "object"
-            ? (parsed.blobIds ?? {})
-            : {},
-        pendingEncrypted,
-        pendingTrackedAssetsUpload: parsed.pendingTrackedAssetsUpload === true,
-      };
-    } catch {
-      return this.emptyBlob();
-    }
+    return emptyVaultSnapshot();
   }
 
   /** Sync read of the in-memory mirror (call after {@link ensureBlobLoaded}). */
@@ -1263,27 +1202,17 @@ export class CachedRelayerVaultRepository
     return this.cachedBlob ?? this.emptyBlob();
   }
 
+  /**
+   * Update the in-memory mirror and persist only rows that changed vs the
+   * last IndexedDB snapshot (per-item object stores).
+   */
   private async writeBlob(blob: LocalVaultBlob): Promise<void> {
-    const storageKey = await this.ensureStorageKey();
+    const prev = this.lastPersistedBlob ?? this.emptyBlob();
     this.cachedBlob = blob;
     this.blobLoaded = true;
-    const credCount = Object.keys(blob.credentials).length;
-    const delCount = Object.keys(blob.delegations).length;
-    const blobCount = Object.keys(blob.blobIds).length;
-    const pendingCount = blob.pendingEncrypted.length;
-    if (
-      credCount === 0 &&
-      delCount === 0 &&
-      blob.revoked.length === 0 &&
-      blobCount === 0 &&
-      pendingCount === 0 &&
-      !blob.pendingTrackedAssetsUpload
-    ) {
-      await this.storage.removeItem(storageKey);
-      return;
-    }
-    await this.storage.setItem(storageKey, JSON.stringify(blob));
+    await this.vaultStore.persistDiff(prev, blob);
+    this.lastPersistedBlob = cloneVaultSnapshot(blob);
   }
 }
 
-export { createMemoryAsyncKvStore, createIdbKvBackend };
+export { createMemoryVaultStore, createIdbVaultStore };

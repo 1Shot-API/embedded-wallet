@@ -166,9 +166,7 @@ const relayerCredentialsClient = new RelayerCredentialsClient({
 
 const credentialRepository = new CachedRelayerVaultRepository({
   client: relayerCredentialsClient,
-  configProvider,
   owsProvider,
-  storage: walletKvStore,
   trackedAssetSync: trackedAssetRepository,
 });
 
