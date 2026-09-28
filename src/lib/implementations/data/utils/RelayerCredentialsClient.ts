@@ -129,7 +129,7 @@ export class RelayerCredentialsClient implements IRelayerCredentialsClient {
 
   async deleteCredentials(
     body: IWebAuthnAssertionRequest & {
-      credentialBlobId?: string;
+      credentialBlobIds?: string[];
       deleteAll?: boolean;
     },
   ): Promise<{ deleted: number }> {

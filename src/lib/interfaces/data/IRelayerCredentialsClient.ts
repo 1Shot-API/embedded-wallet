@@ -59,7 +59,7 @@ export interface IRelayerCredentialsClient {
 
   deleteCredentials(
     body: IWebAuthnAssertionRequest & {
-      credentialBlobId?: string;
+      credentialBlobIds?: string[];
       deleteAll?: boolean;
     },
   ): Promise<{ deleted: number }>;

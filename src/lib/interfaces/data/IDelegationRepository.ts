@@ -27,6 +27,8 @@ export interface IDelegationRepository {
   ): Promise<IStoredDelegation | undefined>;
   listDelegations(): Promise<IDelegationSummary[]>;
   deleteDelegation(delegationId: DelegationId): Promise<void>;
+  /** Remove many vault rows and delete their relayer blobs under one assertion. */
+  deleteDelegations(delegationIds: readonly DelegationId[]): Promise<void>;
 
   /** Mint a single-use relayer challenge for batched vault auth. */
   mintRelayerVaultChallenge(): Promise<IWalletCredentialChallengeResponse>;
