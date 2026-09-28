@@ -7,9 +7,11 @@ import {
   type UriString,
 } from "@1shotapi/ows-types";
 import {
-  createMemoryStorageBackend,
-  type CredentialStorageBackend,
-} from "../../../demo/local-storage-store";
+  createIdbKvBackend,
+  createMemoryAsyncKvStore,
+  migrateLocalStorageKeyToIdb,
+  type AsyncKvStore,
+} from "../../utils/idbStringStore";
 import type {
   IAssetActivityRepository,
   IListAssetActivityParams,
@@ -61,7 +63,7 @@ type RelayerActivityPagedResponse = {
 };
 
 export type AssetActivityRepositoryOptions = {
-  storage?: CredentialStorageBackend;
+  storage?: AsyncKvStore;
 };
 
 /**
@@ -72,7 +74,8 @@ export type AssetActivityRepositoryOptions = {
 export class BlockscoutAssetActivityRepository
   implements IAssetActivityRepository
 {
-  private readonly storage: CredentialStorageBackend;
+  private readonly storage: AsyncKvStore;
+  private readonly migratedKeys = new Set<string>();
 
   constructor(
     private readonly eventBus: IEventBus,
@@ -81,9 +84,9 @@ export class BlockscoutAssetActivityRepository
   ) {
     this.storage =
       options.storage ??
-      (typeof localStorage !== "undefined"
-        ? localStorage
-        : createMemoryStorageBackend());
+      (typeof indexedDB !== "undefined"
+        ? createIdbKvBackend()
+        : createMemoryAsyncKvStore());
   }
 
   async list(params: IListAssetActivityParams): Promise<AssetActivity[]> {
@@ -93,7 +96,7 @@ export class BlockscoutAssetActivityRepository
     const trackedAssetId = asset.id;
 
     const optimistic: AssetActivity[] = [];
-    for (const row of this.readOptimistic(config.assetActivityStorageKey)) {
+    for (const row of await this.readOptimistic(config.assetActivityStorageKey)) {
       if (
         row.chainId === String(asset.chainId) &&
         row.tokenAddress.toLowerCase() === asset.address.toLowerCase() &&
@@ -156,11 +159,13 @@ export class BlockscoutAssetActivityRepository
 
     const next = [
       stored,
-      ...this.readOptimistic(config.assetActivityStorageKey).filter(
+      ...(
+        await this.readOptimistic(config.assetActivityStorageKey)
+      ).filter(
         (row) => row.hash.toLowerCase() !== stored.hash.toLowerCase(),
       ),
     ].slice(0, config.assetActivityMaxOptimistic);
-    this.writeOptimistic(config.assetActivityStorageKey, next);
+    await this.writeOptimistic(config.assetActivityStorageKey, next);
 
     const activity = this.optimisticToActivity(stored, trackedAssetId);
     this.eventBus.emit(new TransactionHistoryUpdatedEvent(trackedAssetId));
@@ -323,9 +328,16 @@ export class BlockscoutAssetActivityRepository
     );
   }
 
-  private readOptimistic(storageKey: string): StoredOptimistic[] {
+  private async ensureMigrated(storageKey: string): Promise<void> {
+    if (this.migratedKeys.has(storageKey)) return;
+    await migrateLocalStorageKeyToIdb(this.storage, storageKey);
+    this.migratedKeys.add(storageKey);
+  }
+
+  private async readOptimistic(storageKey: string): Promise<StoredOptimistic[]> {
+    await this.ensureMigrated(storageKey);
     try {
-      const raw = this.storage.getItem(storageKey);
+      const raw = await this.storage.getItem(storageKey);
       if (!raw) {
         return [];
       }
@@ -336,8 +348,12 @@ export class BlockscoutAssetActivityRepository
     }
   }
 
-  private writeOptimistic(storageKey: string, rows: StoredOptimistic[]): void {
+  private async writeOptimistic(
+    storageKey: string,
+    rows: StoredOptimistic[],
+  ): Promise<void> {
+    await this.ensureMigrated(storageKey);
     const blob: StoredBlob = { optimistic: rows };
-    this.storage.setItem(storageKey, JSON.stringify(blob));
+    await this.storage.setItem(storageKey, JSON.stringify(blob));
   }
 }

@@ -18,10 +18,6 @@ import {
   type WebAuthnAssertionFields,
 } from "@1shotapi/ows-types";
 import { z } from "zod";
-import {
-  createMemoryStorageBackend,
-  type CredentialStorageBackend,
-} from "../../../demo/local-storage-store";
 import type { IDelegationRepository } from "../../interfaces/data/IDelegationRepository";
 import type {
   IPendingEncryptedBlob,
@@ -54,9 +50,15 @@ import type { IRelayerCredentialsClient } from "../../interfaces/data/IRelayerCr
 import { loadCosePublicKey, loadCredentialId } from "../../../storage";
 import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
 import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
+import {
+  createIdbKvBackend,
+  createMemoryAsyncKvStore,
+  migrateLocalStorageKeyToIdb,
+  type AsyncKvStore,
+} from "../../utils/idbStringStore";
 import { getAddress } from "viem";
 
-export type { CredentialStorageBackend };
+export type { AsyncKvStore };
 
 /** Logical id for the single replaceable tracked-assets vault blob. */
 export const TRACKED_ASSETS_LOGICAL_ID = "trackedAssets";
@@ -113,7 +115,7 @@ export interface ICachedRelayerVaultRepositoryDeps {
   client: IRelayerCredentialsClient;
   owsProvider: IOWSProvider;
   configProvider: IConfigProvider;
-  storage?: CredentialStorageBackend;
+  storage?: AsyncKvStore;
   trackedAssetSync?: IVaultTrackedAssetSync;
 }
 
@@ -121,7 +123,8 @@ export interface ICachedRelayerVaultRepositoryDeps {
  * Local plaintext vault + official copies on the 1Shot Relayer.
  * Holds credentials, ERC-7715 delegations, and unencrypted tracked assets.
  *
- * `list`/`get` read the cache; mutative methods sync to the relayer;
+ * Local cache lives in IndexedDB (`AsyncKvStore`). `list`/`get` read the
+ * in-memory mirror; mutative methods sync to the relayer;
  * `refreshFromRelayer` recovers blobs, hydrates unencrypted immediately, and
  * queues encrypted payloads for opportunistic or forced decrypt.
  */
@@ -131,9 +134,12 @@ export class CachedRelayerVaultRepository
   private readonly client: IRelayerCredentialsClient;
   private readonly owsProvider: IOWSProvider;
   private readonly configProvider: IConfigProvider;
-  private readonly storage: CredentialStorageBackend;
+  private readonly storage: AsyncKvStore;
   private readonly trackedAssetSync: IVaultTrackedAssetSync | null;
   private storageKey: string | null = null;
+  private cachedBlob: LocalVaultBlob | null = null;
+  private blobLoaded = false;
+  private blobLoadInFlight: Promise<void> | null = null;
   private refreshInFlight: Promise<void> | null = null;
   private ensureDecryptInFlight: Promise<void> | null = null;
   private trackedAssetsSyncInFlight: Promise<void> | null = null;
@@ -147,12 +153,19 @@ export class CachedRelayerVaultRepository
     this.trackedAssetSync = deps.trackedAssetSync ?? null;
     this.storage =
       deps.storage ??
-      (typeof localStorage !== "undefined"
-        ? localStorage
-        : createMemoryStorageBackend());
+      (typeof indexedDB !== "undefined"
+        ? createIdbKvBackend()
+        : createMemoryAsyncKvStore());
     this.trackedAssetSync?.setChangeListener(() => {
       void this.onTrackedAssetsChanged();
     });
+  }
+
+  /** Drop the in-memory vault mirror (e.g. after Change Account clears IDB). */
+  invalidateLocalCache(): void {
+    this.cachedBlob = null;
+    this.blobLoaded = false;
+    this.blobLoadInFlight = null;
   }
 
   private async ensureStorageKey(): Promise<string> {
@@ -164,15 +177,33 @@ export class CachedRelayerVaultRepository
     return this.storageKey;
   }
 
+  private async ensureBlobLoaded(): Promise<void> {
+    if (this.blobLoaded) return;
+    if (this.blobLoadInFlight) {
+      await this.blobLoadInFlight;
+      return;
+    }
+    this.blobLoadInFlight = (async () => {
+      const storageKey = await this.ensureStorageKey();
+      await migrateLocalStorageKeyToIdb(this.storage, storageKey);
+      const raw = await this.storage.getItem(storageKey);
+      this.cachedBlob = this.parseLocalVaultBlob(raw);
+      this.blobLoaded = true;
+    })().finally(() => {
+      this.blobLoadInFlight = null;
+    });
+    await this.blobLoadInFlight;
+  }
+
   // --- ICredentialRepository -------------------------------------------------
 
   async store(credential: StoredCredential): Promise<void> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     const blob = this.readBlob();
     const previousBlobId = blob.blobIds[credential.credentialId];
     blob.credentials[credential.credentialId] = credential;
     blob.revoked = blob.revoked.filter((id) => id !== credential.credentialId);
-    this.writeBlob(blob);
+    await this.writeBlob(blob);
 
     const wrapper: VaultRemoteBlob = {
       type: "credential",
@@ -192,7 +223,7 @@ export class CachedRelayerVaultRepository
   }
 
   async get(credentialId: CredentialId): Promise<StoredCredential | undefined> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     const blob = this.readBlob();
     if (blob.revoked.includes(credentialId)) {
       return undefined;
@@ -201,7 +232,7 @@ export class CachedRelayerVaultRepository
   }
 
   async list(filter?: CredentialFilter): Promise<CredentialSummary[]> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     const blob = this.readBlob();
     const revoked = new Set(blob.revoked);
     const active = Object.values(blob.credentials).filter(
@@ -211,13 +242,13 @@ export class CachedRelayerVaultRepository
   }
 
   async delete(credentialId: CredentialId): Promise<void> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     const blob = this.readBlob();
     const blobId = blob.blobIds[credentialId];
     delete blob.credentials[credentialId];
     delete blob.blobIds[credentialId];
     blob.revoked = blob.revoked.filter((id) => id !== credentialId);
-    this.writeBlob(blob);
+    await this.writeBlob(blob);
 
     if (blobId) {
       try {
@@ -229,11 +260,11 @@ export class CachedRelayerVaultRepository
   }
 
   async revoke(credentialId: CredentialId): Promise<void> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     const blob = this.readBlob();
     if (blob.credentials[credentialId] && !blob.revoked.includes(credentialId)) {
       blob.revoked.push(credentialId);
-      this.writeBlob(blob);
+      await this.writeBlob(blob);
     }
 
     const blobId = blob.blobIds[credentialId];
@@ -242,7 +273,7 @@ export class CachedRelayerVaultRepository
         await this.deleteRelayerBlob(blobId);
         const next = this.readBlob();
         delete next.blobIds[credentialId];
-        this.writeBlob(next);
+        await this.writeBlob(next);
       } catch (error: unknown) {
         console.warn("[vault] failed to revoke credential blob on relayer", error);
       }
@@ -257,7 +288,7 @@ export class CachedRelayerVaultRepository
 
   async storeDelegations(delegations: IStoredDelegation[]): Promise<void> {
     if (delegations.length === 0) return;
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     const blob = this.readBlob();
     const uploads: Array<{
       logicalId: string;
@@ -281,7 +312,7 @@ export class CachedRelayerVaultRepository
         },
       });
     }
-    this.writeBlob(blob);
+    await this.writeBlob(blob);
 
     try {
       await this.uploadWrappers(uploads);
@@ -296,14 +327,14 @@ export class CachedRelayerVaultRepository
   async getDelegation(
     delegationId: DelegationIdType,
   ): Promise<IStoredDelegation | undefined> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     return this.readBlob().delegations[delegationId];
   }
 
   async getDelegationByHash(
     delegationHash: HexString,
   ): Promise<IStoredDelegation | undefined> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     const hash = String(delegationHash).toLowerCase();
     return Object.values(this.readBlob().delegations).find(
       (d) => String(d.delegationHash).toLowerCase() === hash,
@@ -311,7 +342,7 @@ export class CachedRelayerVaultRepository
   }
 
   async listDelegations(): Promise<IDelegationSummary[]> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     return this.summarizeDelegations(Object.values(this.readBlob().delegations));
   }
 
@@ -323,7 +354,7 @@ export class CachedRelayerVaultRepository
     delegationIds: readonly DelegationIdType[],
   ): Promise<void> {
     if (delegationIds.length === 0) return;
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     const blob = this.readBlob();
     const remoteBlobIds: string[] = [];
     for (const delegationId of delegationIds) {
@@ -334,7 +365,7 @@ export class CachedRelayerVaultRepository
       delete blob.delegations[delegationId];
       delete blob.blobIds[delegationId];
     }
-    this.writeBlob(blob);
+    await this.writeBlob(blob);
 
     if (remoteBlobIds.length === 0) return;
     try {
@@ -382,25 +413,26 @@ export class CachedRelayerVaultRepository
   }
 
   hasPendingEncrypted(): boolean {
-    if (!this.storageKey) {
-      // Best-effort sync read when key known from prior ensureStorageKey.
-      return false;
-    }
+    if (!this.blobLoaded) return false;
     return this.readBlob().pendingEncrypted.length > 0;
   }
 
   peekPendingEncrypted(): IPendingEncryptedBlob[] {
-    if (!this.storageKey) return [];
+    if (!this.blobLoaded) return [];
     return [...this.readBlob().pendingEncrypted];
   }
 
   hasPendingTrackedAssetsUpload(): boolean {
-    if (!this.storageKey) return false;
+    if (!this.blobLoaded) return false;
     return this.readBlob().pendingTrackedAssetsUpload;
   }
 
-  applyDecryptedPayloads(plaintexts: string[], ids: string[]): void {
-    if (!this.storageKey || ids.length === 0) return;
+  async applyDecryptedPayloads(
+    plaintexts: string[],
+    ids: string[],
+  ): Promise<void> {
+    if (ids.length === 0) return;
+    await this.ensureBlobLoaded();
     const blob = this.readBlob();
     const credentials = { ...blob.credentials };
     const delegations = { ...blob.delegations };
@@ -424,10 +456,9 @@ export class CachedRelayerVaultRepository
         delegations[wrapper.data.delegationId] = wrapper.data;
         blobIds[wrapper.data.delegationId] = id;
       }
-      // trackedAssets should not appear in encrypted pending queue
     }
 
-    this.writeBlob({
+    await this.writeBlob({
       ...blob,
       credentials,
       delegations,
@@ -437,7 +468,7 @@ export class CachedRelayerVaultRepository
   }
 
   async ensureDecrypted(): Promise<void> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     if (this.readBlob().pendingEncrypted.length === 0) {
       if (this.readBlob().pendingTrackedAssetsUpload) {
         await this.uploadPendingTrackedAssetsStandalone();
@@ -457,7 +488,7 @@ export class CachedRelayerVaultRepository
     challengeId: ChallengeId,
     assertion: WebAuthnAssertionFields,
   ): Promise<void> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     if (!this.trackedAssetSync || !this.readBlob().pendingTrackedAssetsUpload) {
       this.cacheRelayerVaultAssertion(challengeId, assertion);
       return;
@@ -488,7 +519,7 @@ export class CachedRelayerVaultRepository
           }),
       );
       const plaintexts = batchResult.plaintexts ?? [];
-      this.applyDecryptedPayloads(
+      await this.applyDecryptedPayloads(
         plaintexts,
         pending.map((p) => p.id),
       );
@@ -505,19 +536,19 @@ export class CachedRelayerVaultRepository
           pending.map((p) => AES256CipherTextEnvelope(p.payload)),
         ),
     );
-    this.applyDecryptedPayloads(
+    await this.applyDecryptedPayloads(
       plaintexts,
       pending.map((p) => p.id),
     );
   }
 
   private async runRefreshFromRelayer(): Promise<void> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     const { credentials: remote } = await this.recoverRemoteBlobs();
     const prior = this.readBlob();
 
     if (remote.length === 0) {
-      this.writeBlob({
+      await this.writeBlob({
         credentials: {},
         delegations: {},
         revoked: [],
@@ -567,7 +598,7 @@ export class CachedRelayerVaultRepository
       }
     }
 
-    this.writeBlob({
+    await this.writeBlob({
       credentials,
       delegations,
       revoked: [],
@@ -619,10 +650,10 @@ export class CachedRelayerVaultRepository
   }
 
   private async markTrackedAssetsUploadPending(): Promise<void> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     const blob = this.readBlob();
     if (blob.pendingTrackedAssetsUpload) return;
-    this.writeBlob({ ...blob, pendingTrackedAssetsUpload: true });
+    await this.writeBlob({ ...blob, pendingTrackedAssetsUpload: true });
   }
 
   /**
@@ -644,7 +675,7 @@ export class CachedRelayerVaultRepository
    * Safe to call when {@link hasPendingTrackedAssetsUpload} is true.
    */
   async syncTrackedAssetsToRelayer(): Promise<void> {
-    await this.ensureStorageKey();
+    await this.ensureBlobLoaded();
     if (!this.trackedAssetSync) return;
     if (!this.readBlob().pendingTrackedAssetsUpload) return;
     if (this.trackedAssetsSyncInFlight) {
@@ -708,7 +739,7 @@ export class CachedRelayerVaultRepository
     const next = this.readBlob();
     next.blobIds[TRACKED_ASSETS_LOGICAL_ID] = id;
     next.pendingTrackedAssetsUpload = false;
-    this.writeBlob(next);
+    await this.writeBlob(next);
     if (previousBlobId && previousBlobId !== id) {
       try {
         await this.deleteRelayerBlob(previousBlobId);
@@ -816,7 +847,7 @@ export class CachedRelayerVaultRepository
     for (let i = 0; i < items.length; i++) {
       next.blobIds[items[i]!.logicalId] = ids[i]!;
     }
-    this.writeBlob(next);
+    await this.writeBlob(next);
 
     for (const item of items) {
       if (item.previousBlobId) {
@@ -1152,16 +1183,10 @@ export class CachedRelayerVaultRepository
     };
   }
 
-  private readBlob(): LocalVaultBlob {
-    const storageKey = this.storageKey;
-    if (!storageKey) {
-      return this.emptyBlob();
-    }
-    const raw = this.storage.getItem(storageKey);
+  private parseLocalVaultBlob(raw: string | null): LocalVaultBlob {
     if (!raw) {
       return this.emptyBlob();
     }
-
     try {
       const parsed = JSON.parse(raw) as Partial<LocalVaultBlob>;
       const credentials =
@@ -1205,11 +1230,15 @@ export class CachedRelayerVaultRepository
     }
   }
 
-  private writeBlob(blob: LocalVaultBlob): void {
-    const storageKey = this.storageKey;
-    if (!storageKey) {
-      return;
-    }
+  /** Sync read of the in-memory mirror (call after {@link ensureBlobLoaded}). */
+  private readBlob(): LocalVaultBlob {
+    return this.cachedBlob ?? this.emptyBlob();
+  }
+
+  private async writeBlob(blob: LocalVaultBlob): Promise<void> {
+    const storageKey = await this.ensureStorageKey();
+    this.cachedBlob = blob;
+    this.blobLoaded = true;
     const credCount = Object.keys(blob.credentials).length;
     const delCount = Object.keys(blob.delegations).length;
     const blobCount = Object.keys(blob.blobIds).length;
@@ -1222,11 +1251,11 @@ export class CachedRelayerVaultRepository
       pendingCount === 0 &&
       !blob.pendingTrackedAssetsUpload
     ) {
-      this.storage.removeItem(storageKey);
+      await this.storage.removeItem(storageKey);
       return;
     }
-    this.storage.setItem(storageKey, JSON.stringify(blob));
+    await this.storage.setItem(storageKey, JSON.stringify(blob));
   }
 }
 
-export { createMemoryStorageBackend };
+export { createMemoryAsyncKvStore, createIdbKvBackend };

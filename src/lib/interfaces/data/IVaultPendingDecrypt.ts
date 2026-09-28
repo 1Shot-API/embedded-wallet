@@ -19,7 +19,7 @@ export interface IVaultPendingDecrypt {
    * Apply plaintexts from a Signing Layer decrypt / executeBatch and clear
    * the matching pending rows.
    */
-  applyDecryptedPayloads(plaintexts: string[], ids: string[]): void;
+  applyDecryptedPayloads(plaintexts: string[], ids: string[]): Promise<void>;
   /** Force a decrypt ceremony when pending encrypted blobs exist. */
   ensureDecrypted(): Promise<void>;
   /**

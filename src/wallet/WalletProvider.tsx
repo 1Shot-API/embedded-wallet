@@ -30,6 +30,7 @@ import {
   type StoredCredential,
 } from "@1shotapi/ows-types";
 import { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
+import { createIdbKvBackend } from "../lib/utils/idbStringStore";
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
 import { RelayerCredentialsClient } from "../lib/implementations/data/utils/RelayerCredentialsClient";
 import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
@@ -137,13 +138,19 @@ analyticsBridge.start();
 const transactionUtils: ITransactionUtils = new TransactionUtils();
 const knownAssetRepository: IKnownAssetRepository =
   new HardcodedKnownAssetRepository(blockchainProvider);
+
+const walletKvStore = createIdbKvBackend();
+
 const trackedAssetRepository = new LocalStorageTrackedAssetRepository(
   blockchainProvider,
   eventBus,
   configProvider,
+  { storage: walletKvStore },
 );
 const assetActivityRepository: IAssetActivityRepository =
-  new BlockscoutAssetActivityRepository(eventBus, configProvider);
+  new BlockscoutAssetActivityRepository(eventBus, configProvider, {
+    storage: walletKvStore,
+  });
 const oneshotRelayerRepository: IOneshotRelayerRepository =
   new OneshotRelayerRepository();
 const evmRepository: IEVMRepository = new EVMRepository(
@@ -161,6 +168,7 @@ const credentialRepository = new CachedRelayerVaultRepository({
   client: relayerCredentialsClient,
   configProvider,
   owsProvider,
+  storage: walletKvStore,
   trackedAssetSync: trackedAssetRepository,
 });
 
@@ -884,7 +892,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       } else if (choice === "import") {
         await openImportPrivateKey();
       } else if (choice === "changeAccount") {
-        clearWalletStorage();
+        await clearWalletStorage();
+        credentialRepository.invalidateLocalCache();
         signerRef.current?.clearSession();
         const session = useWalletSessionStore.getState();
         session.setUnlocked(false);

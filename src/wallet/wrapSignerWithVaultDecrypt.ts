@@ -93,7 +93,7 @@ export function wrapSignerWithVaultDecrypt(
         offset,
         offset + pending.length,
       );
-      vault.applyDecryptedPayloads(
+      await vault.applyDecryptedPayloads(
         pendingPlaintexts,
         pending.map((p) => p.id),
       );
@@ -120,7 +120,7 @@ async function applyBatchSideEffects(
   challengeId: ChallengeId | null,
 ): Promise<void> {
   if (pending.length > 0 && batchResult.plaintexts) {
-    vault.applyDecryptedPayloads(
+    await vault.applyDecryptedPayloads(
       batchResult.plaintexts,
       pending.map((p) => p.id),
     );
