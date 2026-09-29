@@ -14,6 +14,17 @@ Host Layer (integrator dapp)
 Safari create (first-party): /create/  → embeds Branding + createAccount RPC
 ```
 
+The `/create/` page loads the branding iframe with an internal query flag
+`createHost=1` so the embed shows a stable passkey-create shell instead of the
+login/create onboarding panel. The flag has no effect unless the branding app
+runs inside an iframe. Integrator hosts should not set this flag; it is only
+for the first-party `/create/` host page.
+
+Before shipping `/create/` changes: run `npm test` (at least
+`test/wallet/createHostEmbed.test.ts`), verify `/create/` without `handoff` shows
+an error with no skeleton, smoke-test Safari/popup handoff end-to-end, and
+confirm top-level `/?createHost=1` still shows normal onboarding.
+
 ## Stack
 
 | Path | Content |

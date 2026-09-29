@@ -3,6 +3,7 @@ import {
   OWSProxy,
 } from "@1shotapi/ows-provider";
 import { COSEPublicKey, CredentialId, OwsUserRejectedError } from "@1shotapi/ows-types";
+import { appendCreateHostQuery } from "@/wallet/createHostEmbed";
 import {
   OWS_ACCOUNT_CREATED,
   OWS_ACCOUNT_CREATE_CANCELLED,
@@ -10,6 +11,16 @@ import {
   postAccountCreateHandoff,
   type AccountCreateHandoffMessage,
 } from "@/wallet/createAccountHandoffMessages";
+import {
+  CREATE_PAGE_VIEWPORT_CHROME,
+  CREATE_WALLET_MOUNT_MIN_HEIGHT_PX,
+  CREATE_WALLET_MOUNT_MIN_HEIGHT_VAR,
+  CREATE_WALLET_SIZE_X_VAR,
+  CREATE_WALLET_SIZE_Y_MAX_VAR,
+  CREATE_WALLET_SIZE_Y_VAR,
+  WALLET_SIZE_X,
+  WALLET_SIZE_Y,
+} from "./createHostConstants";
 
 /**
  * First-party Host Layer page (same origin as the Branding Layer) for Safari
@@ -18,18 +29,49 @@ import {
  *
  * Host-owned iframe panel size (branding scales to fit; see OWSProxy.create).
  */
-const WALLET_SIZE_X = 420;
-const WALLET_SIZE_Y = 480;
 
 /** Let postMessage reach the opener before window.close() races the poll. */
 const CLOSE_AFTER_NOTIFY_MS = 400;
 
 const statusEl = document.getElementById("status")!;
 const container = document.getElementById("wallet-container")!;
+const skeletonEl = document.getElementById("wallet-skeleton");
+
+function applyMountSizeVars(): void {
+  const root = document.documentElement;
+  root.style.setProperty(CREATE_WALLET_SIZE_X_VAR, `${WALLET_SIZE_X}px`);
+  root.style.setProperty(CREATE_WALLET_SIZE_Y_VAR, `${WALLET_SIZE_Y}px`);
+  root.style.setProperty(
+    CREATE_WALLET_SIZE_Y_MAX_VAR,
+    `calc(100dvh - ${CREATE_PAGE_VIEWPORT_CHROME})`,
+  );
+  root.style.setProperty(
+    CREATE_WALLET_MOUNT_MIN_HEIGHT_VAR,
+    `${CREATE_WALLET_MOUNT_MIN_HEIGHT_PX}px`,
+  );
+}
+
+applyMountSizeVars();
 
 function setStatus(message: string, isError = false): void {
   statusEl.textContent = message;
   statusEl.classList.toggle("error", isError);
+  statusEl.hidden = false;
+}
+
+function hideStatus(): void {
+  statusEl.hidden = true;
+  statusEl.textContent = "";
+  statusEl.classList.remove("error");
+}
+
+function dismissSkeleton(): void {
+  skeletonEl?.remove();
+}
+
+function abortCreatePage(message: string): void {
+  dismissSkeleton();
+  setStatus(message, true);
 }
 
 function readHandoff(): string | null {
@@ -62,7 +104,7 @@ async function closeOrPrompt(): Promise<void> {
 async function main(): Promise<void> {
   const handoff = readHandoff();
   if (!handoff) {
-    setStatus("Missing handoff token. Open this page from the wallet.", true);
+    abortCreatePage("Missing handoff token. Open this page from the wallet.");
     return;
   }
 
@@ -74,7 +116,9 @@ async function main(): Promise<void> {
     hasOpener,
   });
 
-  const walletUrl = new URL("/", window.location.origin).href;
+  const walletUrl = appendCreateHostQuery(
+    new URL("/", window.location.origin),
+  ).href;
   setStatus("Connecting to wallet…");
 
   const proxy = await OWSProxy.create(container, walletUrl, {
@@ -83,10 +127,10 @@ async function main(): Promise<void> {
     presentationMode: EWalletPresentationMode.Inline,
   });
 
-  try {
-    proxy.showWallet();
-    setStatus("Follow the prompts to create your passkey…");
+  dismissSkeleton();
+  hideStatus();
 
+  try {
     const result = (await proxy.rpc("createAccount", {
       registrationOnly: true,
     })) as {
@@ -142,16 +186,15 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   console.error("[create] failed", error);
+  const message =
+    error instanceof Error ? error.message : "Failed to start";
   const handoff = readHandoff();
   if (handoff) {
     notifyWallet({
       type: OWS_ACCOUNT_CREATE_FAILED,
       handoff,
-      message: error instanceof Error ? error.message : String(error),
+      message,
     });
   }
-  setStatus(
-    error instanceof Error ? error.message : "Failed to start",
-    true,
-  );
+  abortCreatePage(message);
 });
