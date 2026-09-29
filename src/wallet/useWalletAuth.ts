@@ -70,7 +70,8 @@ export function useWalletAuth({
    */
   const runWhileUnlockInFlight = useCallback(async (work: () => Promise<void>) => {
     if (unlockInFlightRef.current) {
-      await unlockInFlightRef.current;
+      await work();
+      return;
     }
     unlockInFlightRef.current = (async () => {
       await work();
@@ -486,7 +487,7 @@ export function useWalletAuth({
         await createNewWalletFromUi();
       }
     } finally {
-      await display.hide();
+      display.release();
     }
 
     if (choice !== "import") {
