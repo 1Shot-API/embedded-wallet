@@ -34,8 +34,27 @@ import {
 const CLOSE_AFTER_NOTIFY_MS = 400;
 
 const statusEl = document.getElementById("status")!;
+const mountEl = document.querySelector(".wallet-mount");
 const container = document.getElementById("wallet-container")!;
 const skeletonEl = document.getElementById("wallet-skeleton");
+
+const CONNECTING_CLASS = "is-connecting";
+
+function beginConnecting(): void {
+  mountEl?.classList.add(CONNECTING_CLASS);
+}
+
+function endConnecting(): void {
+  mountEl?.classList.remove(CONNECTING_CLASS);
+}
+
+function waitForNextPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
+}
 
 function applyMountSizeVars(): void {
   const root = document.documentElement;
@@ -70,6 +89,7 @@ function dismissSkeleton(): void {
 }
 
 function abortCreatePage(message: string): void {
+  endConnecting();
   dismissSkeleton();
   setStatus(message, true);
 }
@@ -119,6 +139,7 @@ async function main(): Promise<void> {
   const walletUrl = appendCreateHostQuery(
     new URL("/", window.location.origin),
   ).href;
+  beginConnecting();
   setStatus("Connecting to wallet…");
 
   const proxy = await OWSProxy.create(container, walletUrl, {
@@ -127,6 +148,9 @@ async function main(): Promise<void> {
     presentationMode: EWalletPresentationMode.Inline,
   });
 
+  endConnecting();
+  proxy.showWallet();
+  await waitForNextPaint();
   dismissSkeleton();
   hideStatus();
 

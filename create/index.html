@@ -73,6 +73,12 @@
           0 8px 24px rgb(0 0 0 / 8%);
         background: #fff;
       }
+      .wallet-mount.is-connecting #wallet-skeleton {
+        z-index: 2;
+      }
+      .wallet-mount.is-connecting ~ #status {
+        visibility: hidden;
+      }
       #wallet-container {
         position: relative;
         width: 100%;
