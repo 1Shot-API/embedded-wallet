@@ -8,6 +8,11 @@
       :root {
         color-scheme: light;
         font-family: system-ui, sans-serif;
+        /* Must match create/createHostConstants.ts; overridden at load by applyMountSizeVars(). */
+        --create-wallet-size-x: 420px;
+        --create-wallet-size-y: 600px;
+        --create-wallet-size-y-max: calc(100dvh - 11rem);
+        --create-wallet-mount-min-height: 480px;
       }
       * {
         box-sizing: border-box;
@@ -54,9 +59,12 @@
       /* Inline OWSProxy fills this mount (absolute inset 0) — keep modal size. */
       .wallet-mount {
         position: relative;
-        width: 420px;
-        height: 480px;
-        max-width: 100%;
+        width: min(var(--create-wallet-size-x), 100%);
+        height: min(var(--create-wallet-size-y), var(--create-wallet-size-y-max));
+        min-height: min(
+          var(--create-wallet-mount-min-height),
+          var(--create-wallet-size-y-max)
+        );
         flex: 0 0 auto;
         border-radius: 12px;
         overflow: hidden;
@@ -65,9 +73,70 @@
           0 8px 24px rgb(0 0 0 / 8%);
         background: #fff;
       }
+      .wallet-mount.is-connecting #wallet-skeleton {
+        z-index: 2;
+      }
+      .wallet-mount.is-connecting ~ #status {
+        visibility: hidden;
+      }
       #wallet-container {
+        position: relative;
         width: 100%;
         height: 100%;
+        z-index: 1;
+      }
+      #wallet-skeleton {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        padding: 1.25rem 1.25rem 1rem;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        pointer-events: none;
+      }
+      #wallet-skeleton .sk-title {
+        height: 1.25rem;
+        width: 55%;
+        border-radius: 0.375rem;
+        background: #f5f5f5;
+      }
+      #wallet-skeleton .sk-body {
+        margin-top: 0.75rem;
+        height: 3.5rem;
+        width: 100%;
+        border-radius: 0.375rem;
+        background: #f5f5f5;
+      }
+      #wallet-skeleton .sk-label {
+        margin-top: 1.25rem;
+        height: 0.875rem;
+        width: 28%;
+        border-radius: 0.25rem;
+        background: #f5f5f5;
+      }
+      #wallet-skeleton .sk-field {
+        margin-top: 0.375rem;
+        height: 2.5rem;
+        width: 100%;
+        border-radius: 0.5rem;
+        background: #f5f5f5;
+      }
+      #wallet-skeleton .sk-actions {
+        margin-top: auto;
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 0.5rem;
+        padding-bottom: 0.25rem;
+      }
+      #wallet-skeleton .sk-btn {
+        height: 2.75rem;
+        width: 100%;
+        border-radius: 0.5rem;
+        background: #f5f5f5;
+      }
+      #wallet-skeleton .sk-btn-primary {
+        background: #e8e8e8;
       }
       #status {
         margin-top: 1rem;
@@ -75,6 +144,9 @@
         color: #404040;
         text-align: center;
         max-width: 28rem;
+      }
+      #status[hidden] {
+        display: none;
       }
       #status.error {
         color: #b91c1c;
@@ -90,13 +162,22 @@
           width="40"
           height="40"
         />
-        <h1>Create your 1Shot Wallet</h1>
+        <h1>Create your wallet</h1>
       </div>
       <p class="subtitle">
-        Complete passkey setup in this tab. It will close automatically when
-        you finish.
+        This tab closes automatically when you finish.
       </p>
       <div class="wallet-mount">
+        <div id="wallet-skeleton" aria-hidden="true">
+          <div class="sk-title"></div>
+          <div class="sk-body"></div>
+          <div class="sk-label"></div>
+          <div class="sk-field"></div>
+          <div class="sk-actions">
+            <div class="sk-btn"></div>
+            <div class="sk-btn sk-btn-primary"></div>
+          </div>
+        </div>
         <div id="wallet-container"></div>
       </div>
       <p id="status" aria-live="polite">Starting…</p>
