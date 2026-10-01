@@ -3,7 +3,7 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as configure / switchChain / focusWallet / addAsset / createAccount / onramp / bridge / getUpgraded / requestCancelDelegations for
+  or custom RPC such as configure / switchChain / focusWallet / addAsset / createAccount / onramp / bridge / getUpgraded / getBitcoinBalance / requestCancelDelegations for
   theming, host-driven focus mode, tracked assets, and first-party Safari create.
 license: MIT
 metadata:
@@ -238,6 +238,60 @@ const { chainId } = await proxy.rpc("getChainId");
 |--------|--------|----------|
 | `getChainId` | none | Returns `{ chainId }` from the wallet session store |
 
+## EVM balances (EIP-1193)
+
+Native and ERC-20 balances use the standard provider — no custom RPC. Branding
+proxies read methods (`eth_getBalance`, `eth_call`, …) to the active EVM chain
+JSON-RPC URL via `RpcHelper`.
+
+```ts
+// Native (wei hex string)
+const wei = await proxy.ethereum.request({
+  method: "eth_getBalance",
+  params: [address, "latest"],
+});
+
+// ERC-20 — encode balanceOf(address) calldata yourself (viem `encodeFunctionData`, etc.)
+const data = await proxy.ethereum.request({
+  method: "eth_call",
+  params: [{ to: tokenAddress, data: balanceOfCalldata }, "latest"],
+});
+```
+
+Notes:
+
+- Reads do **not** require unlock or `eth_requestAccounts`.
+- They use `RpcHelper`'s current **EVM** chain. If the session is on Bitcoin
+  (`getChainId` / `switchChain`), call `switchChain` to an EVM id first when you
+  care which chain is queried. Prefer custom `getChainId` for the session chain.
+- JSON-RPC `fetch` runs from the Branding origin (`wallet.1shotapi.com`); the
+  chain RPC must allow CORS from that origin.
+
+## Custom RPC — `getBitcoinBalance`
+
+There is no EIP-1193 equivalent for Bitcoin. Read confirmed + pending (mempool)
+satoshi balances for the unlocked wallet on Bitcoin mainnet or testnet.
+
+```ts
+const { chainId, address, confirmed, unconfirmed } = await proxy.rpc(
+  "getBitcoinBalance",
+  {}, // or omit; defaults to "Bitcoin"
+);
+// or: await proxy.rpc("getBitcoinBalance", { chainId: "BitcoinTestnet" });
+```
+
+| Method | Params | Behavior |
+|--------|--------|----------|
+| `getBitcoinBalance` | `{ chainId?: "Bitcoin" \| "BitcoinTestnet" }` (default `"Bitcoin"`) | Resolves the wallet SegWit address (session → cache → signer), returns satoshi balances |
+
+Returns `{ chainId, address, confirmed, unconfirmed }`:
+
+- `confirmed` — known on-chain balance (satoshi decimal string)
+- `unconfirmed` — pending mempool delta (satoshi decimal string; may be negative)
+
+Requires unlock/setup (`ensureReady`). Address is always the wallet’s — hosts
+cannot query arbitrary addresses.
+
 ## Custom RPC — `focusWallet` / `unfocusWallet`
 
 Host-controlled shell modes. Callers (not end users) switch between **General** (multi-chain tabs) and **Focused** (single chain + asset detail view).
@@ -402,7 +456,7 @@ User reject → `OwsUserRejectedError`. Prefer this over `wallet_revokeExecution
 | `proxy.ethereum.on` / `removeListener` | Branding→Host EIP-1193 notifications (`chainChanged`, `accountsChanged` via `ows:eip1193`) |
 | `proxy.credentials.*` | OID4 offer / present (when enabled in wallet) |
 | `proxy.showWallet()` / `hideWallet()` | Host-driven flyout without an EIP-1193 call |
-| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `switchChain`, `getChainId`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, `getUpgraded`, `bridge`, `requestCancelDelegations`, …) |
+| `proxy.rpc(method, params)` | Custom Branding RPC (`configure`, `switchChain`, `getChainId`, `getBitcoinBalance`, `focusWallet`, `unfocusWallet`, `addAsset`, `createAccount`, `onramp`, `getUpgraded`, `bridge`, `requestCancelDelegations`, …) |
 | `proxy.analytics.on(listener)` / `.on(name, listener)` / `.off(listener)` | Branding→Host product analytics (`ows:analytics`) |
 
 Subscribe so in-wallet chain/account changes update host UI without polling:

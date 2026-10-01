@@ -283,6 +283,40 @@ export function useHostTestActions({
     })();
   };
 
+  const handleGetBitcoinBalance = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    const btcChainId = ChainUtils.isBitcoinChainId(chainId)
+      ? ChainUtils.asBitcoinChainId(chainId)
+      : "Bitcoin";
+    reportStatus(`Fetching Bitcoin balance (${btcChainId})…`);
+    void (async () => {
+      try {
+        const result = (await proxy.rpc("getBitcoinBalance", {
+          chainId: btcChainId,
+        })) as {
+          chainId?: string;
+          address?: string;
+          confirmed?: string;
+          unconfirmed?: string;
+        };
+        reportStatus(
+          `BTC ${result.chainId ?? btcChainId}: confirmed=${result.confirmed ?? "?"} unconfirmed=${result.unconfirmed ?? "?"} @ ${result.address ?? "?"}`,
+        );
+      } catch (error) {
+        reportStatus(
+          error instanceof Error
+            ? error.message
+            : "getBitcoinBalance failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
   const handleUsdcModeChange = (next: UsdcMode) => {
     setUsdcMode(next);
     clearUsdcOutputs();
@@ -1030,6 +1064,7 @@ export function useHostTestActions({
     onConnect: handleConnect,
     onChainChange: handleChainChange,
     onRefreshChain: handleRefreshChain,
+    onGetBitcoinBalance: handleGetBitcoinBalance,
     onMessageChange: setMessage,
     onSignModeChange: setSignMode,
     onTypedDataJsonChange: setTypedDataJson,

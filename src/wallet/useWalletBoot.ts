@@ -49,6 +49,7 @@ import type {
 } from "../lib/interfaces/data";
 import type {
   IDelegationService,
+  IBitcoinService,
   ITransactionService,
 } from "../lib/interfaces/business";
 import {
@@ -94,6 +95,7 @@ import { registerSwitchChainRpc } from "./registerSwitchChain";
 import { registerOnrampRpc } from "./registerOnramp";
 import { registerBridgeRpc } from "./registerBridge";
 import { registerGetUpgradedRpc } from "./registerGetUpgraded";
+import { registerGetBitcoinBalanceRpc } from "./registerGetBitcoinBalance";
 import { registerRequestCancelDelegationsRpc } from "./registerRequestCancelDelegations";
 import { registerBitcoinProvider } from "../ows/registerBitcoinProvider";
 import { loadCachedEvmAddress, loadCredentialId } from "../storage";
@@ -209,6 +211,7 @@ export interface IUseWalletBootParams {
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   transactionService: ITransactionService;
+  bitcoinService: IBitcoinService;
   paymentTokenUtils: IPaymentTokenUtils;
   delegationService: IDelegationService;
   transactionUtils: ITransactionUtils;
@@ -241,6 +244,7 @@ export function useWalletBoot({
   knownAssetRepository,
   trackedAssetRepository,
   transactionService,
+  bitcoinService,
   paymentTokenUtils,
   delegationService,
   transactionUtils,
@@ -813,6 +817,12 @@ export function useWalletBoot({
           return address;
         },
         transactionService,
+      });
+
+      registerGetBitcoinBalanceRpc(wallet, {
+        ensureReady,
+        bitcoinService,
+        owsProvider,
       });
 
       registerRequestCancelDelegationsRpc(wallet, {
