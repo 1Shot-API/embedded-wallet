@@ -53,6 +53,7 @@ export interface IWalletActionsProps {
   onConnect: () => void;
   onChainChange: (chainId: string) => void;
   onRefreshChain: () => void;
+  onGetBitcoinBalance: () => void;
   onMessageChange: (message: string) => void;
   onSignModeChange: (mode: SignMode) => void;
   onTypedDataJsonChange: (json: string) => void;
@@ -117,6 +118,7 @@ export function WalletActions({
   onConnect,
   onChainChange,
   onRefreshChain,
+  onGetBitcoinBalance,
   onMessageChange,
   onSignModeChange,
   onTypedDataJsonChange,
@@ -261,6 +263,15 @@ export function WalletActions({
           onClick={onRefreshChain}
         >
           <RefreshCwIcon />
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!ready || busy}
+          onClick={onGetBitcoinBalance}
+          title="proxy.rpc('getBitcoinBalance') for current Bitcoin network"
+        >
+          BTC balance
         </Button>
       </div>
 
