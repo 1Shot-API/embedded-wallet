@@ -16,6 +16,15 @@ export type {
 } from "./IBridgeService";
 export { IBridgeServiceType } from "./IBridgeService";
 export type {
+  IEarnPayment,
+  IEarnPosition,
+  IEarnQuote,
+  IEarnQuoteParams,
+  IEarnResult,
+  IEarnService,
+} from "./IEarnService";
+export { IEarnServiceType } from "./IEarnService";
+export type {
   IBitcoinSendParams,
   IBitcoinSendResult,
   IBitcoinService,
@@ -58,5 +67,12 @@ export type {
   IEncodeDepositForBurnWithHookParams,
 } from "./utils/ICCTPUtils";
 export { ICCTPUtilsType } from "./utils/ICCTPUtils";
+export type {
+  Earn4626Abi,
+  IBuildEarnDepositWorkParams,
+  IBuildEarnWithdrawWorkParams,
+  IEarnUtils,
+} from "./utils/IEarnUtils";
+export { earn4626Abi, IEarnUtilsType } from "./utils/IEarnUtils";
 export type { ILiFiSwapTerms, ILiFiUtils } from "./utils/ILiFiUtils";
 export { ILiFiUtilsType } from "./utils/ILiFiUtils";

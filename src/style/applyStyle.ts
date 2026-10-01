@@ -66,6 +66,10 @@ export function mergeStyle(
         ...current.copy.cctpBridge,
         ...patch.copy?.cctpBridge,
       },
+      earn: {
+        ...current.copy.earn,
+        ...patch.copy?.earn,
+      },
       grantExecutionPermission: {
         ...current.copy.grantExecutionPermission,
         ...patch.copy?.grantExecutionPermission,
@@ -229,6 +233,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       transferTokens: { ...DEFAULT_STYLE.copy.transferTokens },
       sendNativeToken: { ...DEFAULT_STYLE.copy.sendNativeToken },
       cctpBridge: { ...DEFAULT_STYLE.copy.cctpBridge },
+      earn: { ...DEFAULT_STYLE.copy.earn },
       grantExecutionPermission: {
         ...DEFAULT_STYLE.copy.grantExecutionPermission,
       },

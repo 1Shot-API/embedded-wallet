@@ -17,5 +17,12 @@ export class KnownAsset {
     /** Higher weight sorts above peers in Balances defaults (e.g. stable > native). */
     public readonly weight: number = 0,
     public readonly iconUrl?: string,
+    /** When true, Asset Details shows Earn for Arc USDC. */
+    public readonly useEarn: boolean = false,
+    /** Pinned Morpho ERC-4626 vault for Earn (Arc USDC only). */
+    public readonly earnVaultAddress?: EVMContractAddress,
+    public readonly earnVaultName?: string,
+    /** Snapshot APY at catalog pin time (decimal, e.g. 0.042). */
+    public readonly earnCurrentApy?: number,
   ) {}
 }

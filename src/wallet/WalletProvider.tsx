@@ -44,8 +44,10 @@ import { EVMRepository } from "../lib/implementations/data/EVMRepository";
 import {
   BitcoinService,
   BridgeService,
+  EarnService,
   BusinessTransactionUtils,
   CCTPUtils,
+  EarnUtils,
   DelegationService,
   LiFiUtils,
   PaymentTokenUtils,
@@ -80,9 +82,11 @@ import type {
   IBridgeService,
   IBitcoinService,
   IDelegationService,
+  IEarnService,
   ITransactionService,
 } from "../lib/interfaces/business";
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
+import type { IEarnUtils } from "../lib/interfaces/business/utils/IEarnUtils";
 import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
 import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPaymentTokenUtils";
 import type {
@@ -188,6 +192,7 @@ const businessTransactionUtils = new BusinessTransactionUtils({
 });
 
 const cctpUtils: ICCTPUtils = new CCTPUtils();
+const earnUtils: IEarnUtils = new EarnUtils();
 const liFiUtils: ILiFiUtils = new LiFiUtils();
 
 const transactionService: ITransactionService = new TransactionService({
@@ -203,6 +208,14 @@ const bridgeService: IBridgeService = new BridgeService(
   circleRepository,
   businessTransactionUtils,
   cctpUtils,
+  blockchainProvider,
+);
+
+const earnService: IEarnService = new EarnService(
+  chainRepository,
+  knownAssetRepository,
+  businessTransactionUtils,
+  earnUtils,
   blockchainProvider,
 );
 
@@ -247,6 +260,7 @@ export type WalletContextValue = {
   transactionService: ITransactionService;
   paymentTokenUtils: IPaymentTokenUtils;
   bridgeService: IBridgeService;
+  earnService: IEarnService;
   bitcoinService: IBitcoinService;
   delegationService: IDelegationService;
   liFiUtils: ILiFiUtils;
@@ -931,6 +945,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       transactionService,
       paymentTokenUtils,
       bridgeService,
+      earnService,
       bitcoinService,
       delegationService,
       liFiUtils,

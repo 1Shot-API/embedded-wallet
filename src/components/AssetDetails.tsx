@@ -6,7 +6,9 @@ import {
   PlusIcon,
   QrCodeIcon,
   SendIcon,
+  TrendingUpIcon,
 } from "lucide-react";
+import { formatUnits } from "viem";
 import { TrackedAsset } from "../lib/types/domain";
 import { EAssetType } from "../lib/types/enum/EAssetType";
 import { useStyle } from "../style/StyleProvider";
@@ -20,6 +22,7 @@ import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import { openOnramp } from "../circle/openOnramp";
 import { openCctpBridge } from "../circle/openCctpBridge";
+import { openEarn } from "../circle/openEarn";
 import { AssetIdentityMark } from "./AssetIdentityMark";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { TransactionHistory } from "./TransactionHistory";
@@ -38,7 +41,8 @@ export interface IAssetDetailsProps {
 export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   const { style } = useStyle();
   const { balances: copy } = style.copy;
-  const { requestBalanceRefresh, resolveChain, getKnownAsset } = useWallet();
+  const { requestBalanceRefresh, resolveChain, getKnownAsset, earnService } =
+    useWallet();
   const { evmAddress, solanaAddress, bitcoinMainnetAddress, bitcoinTestnetAddress } =
     useWalletSessionStore(
     useShallow((state) => ({
@@ -52,8 +56,11 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   const [sendOpen, setSendOpen] = useState(false);
   const [buyBusy, setBuyBusy] = useState(false);
   const [bridgeBusy, setBridgeBusy] = useState(false);
+  const [earnBusy, setEarnBusy] = useState(false);
   const [canBridge, setCanBridge] = useState(false);
   const [canBuyAsset, setCanBuyAsset] = useState(false);
+  const [canEarn, setCanEarn] = useState(false);
+  const [earningAtoms, setEarningAtoms] = useState<bigint | null>(null);
 
   const { balance, decimals } = useLiveTrackedBalance(
     assetProp.id,
@@ -87,12 +94,32 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
       if (!cancelled) {
         setCanBridge(known?.useCCTPBridge === true);
         setCanBuyAsset(known?.canBuy === true);
+        setCanEarn(known?.useEarn === true);
       }
     });
     return () => {
       cancelled = true;
     };
   }, [assetProp.address, assetProp.chainId, getKnownAsset]);
+
+  useEffect(() => {
+    if (!canEarn || !evmAddress) {
+      setEarningAtoms(null);
+      return;
+    }
+    let cancelled = false;
+    void earnService
+      .getPosition(assetProp.chainId, evmAddress)
+      .then((position) => {
+        if (!cancelled) setEarningAtoms(position.assets);
+      })
+      .catch(() => {
+        if (!cancelled) setEarningAtoms(0n);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [assetProp.chainId, canEarn, earnService, evmAddress, balance]);
 
   const chain = resolveChain(asset.chainId);
   const network = chain?.label ?? String(asset.chainId);
@@ -160,6 +187,36 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
     requestBalanceRefresh,
   ]);
 
+  const openEarnFlow = useCallback(() => {
+    if (!evmAddress || earnBusy || !canEarn) return;
+    setEarnBusy(true);
+    void openEarn({
+      chainId: asset.chainId,
+      ownerAddress: evmAddress,
+      availableAtoms: balance,
+    })
+      .catch(() => {
+        /* user closed or rejected */
+      })
+      .finally(() => {
+        setEarnBusy(false);
+        void requestBalanceRefresh(asset.id);
+        void earnService
+          .getPosition(asset.chainId, evmAddress)
+          .then((position) => setEarningAtoms(position.assets))
+          .catch(() => setEarningAtoms(0n));
+      });
+  }, [
+    asset.chainId,
+    asset.id,
+    balance,
+    canEarn,
+    earnBusy,
+    earnService,
+    evmAddress,
+    requestBalanceRefresh,
+  ]);
+
   return (
     <div
       className="flex min-h-0 flex-1 flex-col gap-5"
@@ -192,6 +249,14 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
             }
             className="text-primary text-3xl font-semibold tracking-tight"
           />
+          {canEarn ? (
+            <p className="text-muted-foreground text-sm">
+              {copy.earningLabel}:{" "}
+              {earningAtoms === null
+                ? "…"
+                : `${formatUnits(earningAtoms, asset.decimals)} ${asset.symbol}`}
+            </p>
+          ) : null}
         </header>
 
         <nav
@@ -231,6 +296,16 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
               onClick={openBridge}
             >
               <ArrowLeftRightIcon className="size-5" />
+            </ActionButton>
+          ) : null}
+          {canEarn ? (
+            <ActionButton
+              label={copy.earnLabel}
+              variant="outline"
+              disabled={!hasEvmWallet || earnBusy}
+              onClick={openEarnFlow}
+            >
+              <TrendingUpIcon className="size-5" />
             </ActionButton>
           ) : null}
         </nav>

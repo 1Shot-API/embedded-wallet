@@ -155,6 +155,8 @@ export interface IStyleFormState {
   receiveCloseLabel: string;
   sendLabel: string;
   bridgeLabel: string;
+  earnLabel: string;
+  earningLabel: string;
   cctpBridgeTitle: string;
   cctpBridgeBody: string;
   cctpBridgeConfirmTitle: string;
@@ -164,6 +166,15 @@ export interface IStyleFormState {
   cctpBridgeCancel: string;
   cctpBridgeBack: string;
   cctpBridgeSentTitle: string;
+  earnTitle: string;
+  earnBody: string;
+  earnConfirmTitle: string;
+  earnConfirmBody: string;
+  earnGetQuote: string;
+  earnConfirm: string;
+  earnCancel: string;
+  earnBack: string;
+  earnSentTitle: string;
 
   // Text — Confirm transfer (host ERC-20)
   confirmTransferTitle: string;
@@ -408,6 +419,8 @@ export const ACME_PRESET: IStyleFormState = {
   receiveCloseLabel: "Close",
   sendLabel: "Send",
   bridgeLabel: "Bridge",
+  earnLabel: "Earn",
+  earningLabel: "Earning",
   cctpBridgeTitle: "Bridge USDC",
   cctpBridgeBody:
     "Send USDC to another network. Circle mints on the destination — you never pay native gas.",
@@ -419,6 +432,17 @@ export const ACME_PRESET: IStyleFormState = {
   cctpBridgeCancel: "Cancel",
   cctpBridgeBack: "Back",
   cctpBridgeSentTitle: "Bridge complete",
+  earnTitle: "Earn USDC",
+  earnBody:
+    "Deposit Arc USDC into a Morpho vault to earn yield. Withdraw anytime.",
+  earnConfirmTitle: "Confirm Earn",
+  earnConfirmBody:
+    "Review the quote and relayer fee, then confirm with your passkey.",
+  earnGetQuote: "Get quote",
+  earnConfirm: "Confirm",
+  earnCancel: "Cancel",
+  earnBack: "Back",
+  earnSentTitle: "Earn complete",
   confirmTransferTitle: "Confirm Transfer",
   confirmTransferBody:
     "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
@@ -624,6 +648,8 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   receiveCloseLabel: "Close",
   sendLabel: "Send",
   bridgeLabel: "Bridge",
+  earnLabel: "Earn",
+  earningLabel: "Earning",
   cctpBridgeTitle: "Bridge USDC",
   cctpBridgeBody:
     "Send USDC to another network. Circle mints on the destination — you never pay native gas.",
@@ -635,6 +661,17 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   cctpBridgeCancel: "Cancel",
   cctpBridgeBack: "Back",
   cctpBridgeSentTitle: "Bridge complete",
+  earnTitle: "Earn USDC",
+  earnBody:
+    "Deposit Arc USDC into a Morpho vault to earn yield. Withdraw anytime.",
+  earnConfirmTitle: "Confirm Earn",
+  earnConfirmBody:
+    "Review the quote and relayer fee, then confirm with your passkey.",
+  earnGetQuote: "Get quote",
+  earnConfirm: "Confirm",
+  earnCancel: "Cancel",
+  earnBack: "Back",
+  earnSentTitle: "Earn complete",
   confirmTransferTitle: "Confirm transfer",
   confirmTransferBody:
     "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
@@ -1161,6 +1198,8 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(balances, "receiveCloseLabel", form.receiveCloseLabel);
   put(balances, "sendLabel", form.sendLabel);
   put(balances, "bridgeLabel", form.bridgeLabel);
+  put(balances, "earnLabel", form.earnLabel);
+  put(balances, "earningLabel", form.earningLabel);
   if (Object.keys(balances).length > 0) copy.balances = balances;
 
   const cctpBridge: Record<string, string> = {};
@@ -1174,6 +1213,18 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(cctpBridge, "backLabel", form.cctpBridgeBack);
   put(cctpBridge, "successTitle", form.cctpBridgeSentTitle);
   if (Object.keys(cctpBridge).length > 0) copy.cctpBridge = cctpBridge;
+
+  const earn: Record<string, string> = {};
+  put(earn, "title", form.earnTitle);
+  put(earn, "body", form.earnBody);
+  put(earn, "confirmTitle", form.earnConfirmTitle);
+  put(earn, "confirmBody", form.earnConfirmBody);
+  put(earn, "getQuoteLabel", form.earnGetQuote);
+  put(earn, "confirmLabel", form.earnConfirm);
+  put(earn, "cancelLabel", form.earnCancel);
+  put(earn, "backLabel", form.earnBack);
+  put(earn, "successTitle", form.earnSentTitle);
+  if (Object.keys(earn).length > 0) copy.earn = earn;
 
   const exportPrivateKey: Record<string, string> = {};
   put(exportPrivateKey, "title", form.exportPrivateKeyTitle);
