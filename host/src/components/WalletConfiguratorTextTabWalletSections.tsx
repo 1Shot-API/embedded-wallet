@@ -94,6 +94,18 @@ export function WalletConfiguratorTextTabWalletSections({
             onChange={(value) => patch("bridgeLabel", value)}
           />
           <TextField
+            id="earn-label"
+            label="Earn button"
+            value={form.earnLabel}
+            onChange={(value) => patch("earnLabel", value)}
+          />
+          <TextField
+            id="earning-label"
+            label="Earning balance label"
+            value={form.earningLabel}
+            onChange={(value) => patch("earningLabel", value)}
+          />
+          <TextField
             id="cctp-bridge-title"
             label="Bridge modal title"
             value={form.cctpBridgeTitle}
@@ -146,6 +158,60 @@ export function WalletConfiguratorTextTabWalletSections({
             label="Bridge success title"
             value={form.cctpBridgeSentTitle}
             onChange={(value) => patch("cctpBridgeSentTitle", value)}
+          />
+          <TextField
+            id="earn-title"
+            label="Earn modal title"
+            value={form.earnTitle}
+            onChange={(value) => patch("earnTitle", value)}
+          />
+          <BodyField
+            id="earn-body"
+            label="Earn modal body"
+            value={form.earnBody}
+            onChange={(value) => patch("earnBody", value)}
+          />
+          <TextField
+            id="earn-confirm-title"
+            label="Earn confirm title"
+            value={form.earnConfirmTitle}
+            onChange={(value) => patch("earnConfirmTitle", value)}
+          />
+          <BodyField
+            id="earn-confirm-body"
+            label="Earn confirm body"
+            value={form.earnConfirmBody}
+            onChange={(value) => patch("earnConfirmBody", value)}
+          />
+          <TextField
+            id="earn-get-quote"
+            label="Earn get quote"
+            value={form.earnGetQuote}
+            onChange={(value) => patch("earnGetQuote", value)}
+          />
+          <TextField
+            id="earn-confirm"
+            label="Earn confirm"
+            value={form.earnConfirm}
+            onChange={(value) => patch("earnConfirm", value)}
+          />
+          <TextField
+            id="earn-cancel"
+            label="Earn cancel"
+            value={form.earnCancel}
+            onChange={(value) => patch("earnCancel", value)}
+          />
+          <TextField
+            id="earn-back"
+            label="Earn back"
+            value={form.earnBack}
+            onChange={(value) => patch("earnBack", value)}
+          />
+          <TextField
+            id="earn-sent-title"
+            label="Earn success title"
+            value={form.earnSentTitle}
+            onChange={(value) => patch("earnSentTitle", value)}
           />
           <TextField
             id="confirm-transfer-title"

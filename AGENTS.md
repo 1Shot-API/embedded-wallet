@@ -29,6 +29,8 @@ Fiat onramp: Asset Details **Buy** and host RPC `onramp({ chainId?, amount? })` 
 
 CCTP bridge: Asset Details **Bridge** (native USDC with `useCCTPBridge`) and host RPC `bridge({ amount?, sourceChainId?, destinationChainId? })` open `CCTPBridge`. Source omit → session chain. Burns via `TokenMessengerV2.depositForBurnWithHook` + `cctp-forward` hook through the EIP-7710 relayer (same USDC fee as Send). Destination mint is Circle’s Forwarding Service — no dest-chain signature, no native gas, no BridgeKit.
 
+Arc USDC Earn: Asset Details **Earn** (catalog `useEarn` + pinned Morpho vault) opens `EarnModal` for deposit/withdraw. Position/APY via EarnKit or ERC-4626 reads; execution is approve + ERC-4626 through `sendViaRelayer` (same USDC fee as Send/Bridge). No host `earn` RPC in v1. Invested balance is the Earning line on USDC Asset Details only — no separate vault share row.
+
 ### Form validation UX
 
 Primary submit actions (e.g. Send in `TransferTokensModal`) stay **disabled until every required field is valid**. Do not leave the button enabled and only reject on click. Empty fields show no error text; invalid non-empty input shows inline errors; the CTA enables only when the whole form is ready.
@@ -56,6 +58,8 @@ When adding or changing UI strings or host-tunable options:
 ### Injectable classes (constructor DI)
 
 Prefer **direct constructor parameter properties** for injectable services/utils — not an `XXXOptions` bag. Call sites pass dependencies positionally; implementations use `this.chainRepository` (etc.), never `this.options.*`.
+
+**No inline `import("…").Type` in signatures.** Always import types at the top of the file (`import type { Foo } from "…"` / named imports) and use the bound name. Do not write `usdcAddress: import("@1shotapi/ows-types").EVMContractAddress`.
 
 ```ts
 // Prefer

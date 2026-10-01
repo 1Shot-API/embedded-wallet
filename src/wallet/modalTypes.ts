@@ -23,6 +23,10 @@ import type {
   ICctpBridgeModalResult,
   ICctpBridgeOpenRequest,
 } from "../circle/cctpBridgeTypes";
+import type {
+  IEarnModalResult,
+  IEarnOpenRequest,
+} from "../circle/earnTypes";
 import type { TokenAmount } from "../lib/types/primitives";
 import type { ITransactionWork } from "../lib/interfaces/business/ITransactionService";
 
@@ -267,6 +271,13 @@ export type ModalRequest =
       kind: "cctpBridge";
       request: ICctpBridgeOpenRequest;
       resolve: (result: ICctpBridgeModalResult) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "earn";
+      request: IEarnOpenRequest;
+      resolve: (result: IEarnModalResult) => void;
       reject: (error: unknown) => void;
     };
 

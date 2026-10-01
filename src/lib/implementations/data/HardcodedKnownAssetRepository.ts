@@ -15,6 +15,7 @@ import { makeTrackedAssetId } from "@/lib/types/primitives";
 import {
   RELAYER_KNOWN_ASSETS,
   getCctpBridgeAsset as lookupCctpBridgeAsset,
+  getEarnAsset as lookupEarnAsset,
   getOnrampAsset as lookupOnrampAsset,
 } from "./relayerKnownAssets";
 import { HardcodedChainRepository } from "./HardcodedChainRepository";
@@ -124,6 +125,10 @@ export class HardcodedKnownAssetRepository implements IKnownAssetRepository {
     chainId: EVMChainId,
   ): Promise<KnownAsset | null> {
     return lookupCctpBridgeAsset(chainId);
+  }
+
+  async getEarnAsset(chainId: EVMChainId): Promise<KnownAsset | null> {
+    return lookupEarnAsset(chainId);
   }
 
   async getOnrampAsset(

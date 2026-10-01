@@ -10,6 +10,9 @@ export interface IKnownAssetRepository {
   /** Native Circle USDC on `chainId` when the catalog marks `useCCTPBridge`. */
   getCctpBridgeAsset(chainId: EVMChainId): Promise<KnownAsset | null>;
 
+  /** Arc USDC with a pinned Earn vault on `chainId`. */
+  getEarnAsset(chainId: EVMChainId): Promise<KnownAsset | null>;
+
   /** Buyable stable on `chainId` for Circle onramp (defaults to USDC). */
   getOnrampAsset(
     chainId: EVMChainId,

@@ -22,6 +22,11 @@ type ISeedRow = {
   canBuy?: boolean;
   /** Pinned default stables use 100 so they sort above native (50). */
   weight?: number;
+  /** Arc USDC Earn (Morpho vault). */
+  useEarn?: boolean;
+  earnVaultAddress?: EVMContractAddress;
+  earnVaultName?: string;
+  earnCurrentApy?: number;
 };
 
 function seed(row: ISeedRow): KnownAsset {
@@ -36,6 +41,10 @@ function seed(row: ISeedRow): KnownAsset {
     row.canBuy ?? row.symbol.toUpperCase() === "USDC",
     row.weight ?? 0,
     iconUrlForSymbol(row.symbol),
+    row.useEarn === true,
+    row.earnVaultAddress,
+    row.earnVaultName,
+    row.earnCurrentApy,
   );
 }
 
@@ -56,6 +65,13 @@ const SEED_ROWS: readonly ISeedRow[] = [
     decimals: 6,
     useCCTPBridge: true,
     weight: 100,
+    // Steakhouse Prime USDC — active Morpho, Circle Sentinel
+    useEarn: true,
+    earnVaultAddress: EVMContractAddress(
+      "0xbeef0007d5A04246F5382957035Df34f7e82102e",
+    ),
+    earnVaultName: "Steakhouse Prime USDC",
+    earnCurrentApy: 0.002768,
   },
   // Arc Testnet (5042002) — native USDC
   {
@@ -68,6 +84,12 @@ const SEED_ROWS: readonly ISeedRow[] = [
     decimals: 6,
     useCCTPBridge: true,
     weight: 100,
+    useEarn: true,
+    earnVaultAddress: EVMContractAddress(
+      "0xAabbeF1D3971c710276ed41eC791BbE14CdB8E88",
+    ),
+    earnVaultName: "EarnKit USDC Vault (Arc Testnet)",
+    earnCurrentApy: 0.042,
   },
   // Robinhood (4663) — official USDG (USDC is not deployed)
   {
@@ -378,6 +400,19 @@ export function getCctpBridgeAsset(
     RELAYER_KNOWN_ASSETS.find(
       (asset) =>
         asset.useCCTPBridge && String(asset.chainId).toLowerCase() === key,
+    ) ?? null
+  );
+}
+
+/** Arc USDC with a pinned Earn vault for `chainId`. */
+export function getEarnAsset(chainId: EVMChainIdType): KnownAsset | null {
+  const key = String(chainId).toLowerCase();
+  return (
+    RELAYER_KNOWN_ASSETS.find(
+      (asset) =>
+        asset.useEarn &&
+        asset.earnVaultAddress &&
+        String(asset.chainId).toLowerCase() === key,
     ) ?? null
   );
 }

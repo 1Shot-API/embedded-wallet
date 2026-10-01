@@ -22,6 +22,7 @@ import { AddAssetModal } from "./modals/AddAssetModal";
 import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
 import { OnrampView } from "./OnrampView";
 import { CCTPBridge } from "./modals/CCTPBridge";
+import { EarnModal } from "./modals/EarnModal";
 import { GrantPermissionConsentModal } from "./modals/GrantPermissionConsentModal";
 import { CancelDelegationModal } from "./modals/CancelDelegationModal";
 import { ActivateOfflinePermissionsModal } from "./modals/ActivateOfflinePermissionsModal";
@@ -175,6 +176,14 @@ export function ModalHost() {
     case "cctpBridge":
       return (
         <CCTPBridge
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    case "earn":
+      return (
+        <EarnModal
           request={activeModal.request}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}

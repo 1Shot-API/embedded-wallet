@@ -424,6 +424,17 @@ Returns `{ ok: true, burnTxHash, forwardTxHash? }` when the bridge succeeds (des
 
 Product analytics: `BridgeOpened`, `BridgeCompleted`, `BridgeFailed`, `BridgeCancelled` (burn submit still also emits `TransactionSubmitted*`).
 
+## Asset Details — Arc USDC Earn (no host RPC yet)
+
+On Arc mainnet / Arc Testnet native USDC (`useEarn` in the known-asset catalog), Asset Details shows an **Earn** button next to Buy/Bridge and a secondary **Earning** balance (vault position in USDC terms). There is **no** host `earn` RPC in v1 — only the in-wallet Asset Details entry point.
+
+Earn deposits/withdraws a pinned Morpho ERC-4626 vault (Circle Sentinel preferred). Quotes and position reads can use EarnKit; **execution always goes through the EIP-7710 public relayer** (USDC `approve` + vault `deposit` / `withdraw`), same fee UX as Bridge/Send — not EarnKit’s wallet-adapter submit path (same-chain EarnKit is not gasless).
+
+| Surface | Behavior |
+|---------|----------|
+| Asset Details **Earn** | Opens Earn modal (Deposit / Withdraw tabs) for Arc USDC only |
+| Balances list | No separate vault share token row — invested amount is the Earning line on USDC details |
+
 ## Custom RPC — `requestCancelDelegations`
 
 Batch on-chain revoke for permissions this host previously received from `wallet_requestExecutionPermissions`. Pass the grant response `context` values as `permissionContexts`. Opens the cancel confirm modal (same UI as the Delegations tab). Same-chain contexts are disabled in one relayer transaction; multi-chain selections submit one batched send per chain.
@@ -526,3 +537,4 @@ Hosts that need both approve and swap should send **two** items in one `wallet_r
 - Use `addAsset` when the host wants a lasting Balances entry; expect a confirm modal (contrast with `focusWallet`).
 - Use `onramp` (or the in-wallet Buy button) for fiat → crypto; do not put the Circle kit key in the Host or Branding Layer.
 - Use `bridge` (or the in-wallet Bridge button) for gasless CCTP USDC; do not require native gas or dest-chain `receiveMessage`.
+- Use Asset Details **Earn** for Arc USDC Morpho vault deposit/withdraw (relayer-paid); there is no host `earn` RPC yet.

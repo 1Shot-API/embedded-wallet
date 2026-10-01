@@ -19,7 +19,7 @@ export {
   serializeInFlight,
   inFlightStorageKey,
 } from "./CircleRepository";
-export { getCctpBridgeAsset } from "./relayerKnownAssets";
+export { getCctpBridgeAsset, getEarnAsset } from "./relayerKnownAssets";
 export {
   RelayerCredentialsClient,
   RelayerCredentialsError,

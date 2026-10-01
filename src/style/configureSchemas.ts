@@ -230,6 +230,39 @@ export const styleCopyCctpBridgeSchema = z.strictObject({
   doneLabel: z.string(),
 });
 
+export const styleCopyEarnSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  confirmTitle: z.string(),
+  confirmBody: z.string(),
+  depositTabLabel: z.string(),
+  withdrawTabLabel: z.string(),
+  vaultLabel: z.string(),
+  apyLabel: z.string(),
+  availableLabel: z.string(),
+  earningLabel: z.string(),
+  amountLabel: z.string(),
+  amountPlaceholder: z.string(),
+  maxLabel: z.string(),
+  getQuoteLabel: z.string(),
+  quotingLabel: z.string(),
+  cancelLabel: z.string(),
+  depositAmountLabel: z.string(),
+  withdrawAmountLabel: z.string(),
+  sharesLabel: z.string(),
+  confirmLabel: z.string(),
+  backLabel: z.string(),
+  submittingLabel: z.string(),
+  successTitle: z.string(),
+  successBody: z.string(),
+  hashLabel: z.string(),
+  viewOnExplorerLabel: z.string(),
+  doneLabel: z.string(),
+  quoteFailedError: z.string(),
+  submitFailedError: z.string(),
+  invalidAmountError: z.string(),
+});
+
 export const styleCopyGrantExecutionPermissionSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
@@ -475,6 +508,8 @@ export const styleCopyBalancesSchema = z.strictObject({
   receiveCloseLabel: z.string(),
   sendLabel: z.string(),
   bridgeLabel: z.string(),
+  earnLabel: z.string(),
+  earningLabel: z.string(),
 });
 
 export const styleCopyExportPrivateKeySchema = z.strictObject({
@@ -538,6 +573,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   transferTokens: styleCopyTransferTokensSchema,
   sendNativeToken: styleCopySendNativeTokenSchema,
   cctpBridge: styleCopyCctpBridgeSchema,
+  earn: styleCopyEarnSchema,
   grantExecutionPermission: styleCopyGrantExecutionPermissionSchema,
   grantLiFiSwapPermission: styleCopyGrantLiFiSwapPermissionSchema,
   grantLiFiApprovePermission: styleCopyGrantLiFiApprovePermissionSchema,
@@ -587,6 +623,7 @@ export const styleCopyPatchSchema = z.strictObject({
   transferTokens: styleCopyTransferTokensSchema.partial().optional(),
   sendNativeToken: styleCopySendNativeTokenSchema.partial().optional(),
   cctpBridge: styleCopyCctpBridgeSchema.partial().optional(),
+  earn: styleCopyEarnSchema.partial().optional(),
   grantExecutionPermission:
     styleCopyGrantExecutionPermissionSchema.partial().optional(),
   grantLiFiSwapPermission:
@@ -656,6 +693,7 @@ export type IStyleCopySendNativeToken = z.infer<
   typeof styleCopySendNativeTokenSchema
 >;
 export type IStyleCopyCctpBridge = z.infer<typeof styleCopyCctpBridgeSchema>;
+export type IStyleCopyEarn = z.infer<typeof styleCopyEarnSchema>;
 export type IStyleCopyGrantExecutionPermission = z.infer<
   typeof styleCopyGrantExecutionPermissionSchema
 >;

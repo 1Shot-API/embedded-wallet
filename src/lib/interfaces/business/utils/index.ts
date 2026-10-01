@@ -17,5 +17,12 @@ export type {
   IEncodeDepositForBurnWithHookParams,
 } from "./ICCTPUtils";
 export { ICCTPUtilsType } from "./ICCTPUtils";
+export type {
+  Earn4626Abi,
+  IBuildEarnDepositWorkParams,
+  IBuildEarnWithdrawWorkParams,
+  IEarnUtils,
+} from "./IEarnUtils";
+export { earn4626Abi, IEarnUtilsType } from "./IEarnUtils";
 export type { ILiFiSwapTerms, ILiFiUtils } from "./ILiFiUtils";
 export { ILiFiUtilsType } from "./ILiFiUtils";
