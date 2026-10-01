@@ -3,7 +3,7 @@ name: oneshot-embedded-wallet
 description: >-
   Integrate the 1Shot embedded wallet (OWS Host Layer) with @1shotapi/ows-provider.
   Use when embedding wallet.1shotapi.com, wiring OWSProxy, EIP-1193, credentials,
-  or custom RPC such as configure / switchChain / focusWallet / addAsset / createAccount / onramp / bridge / getUpgraded / requestCancelDelegations for
+  or custom RPC such as configure / switchChain / focusWallet / addAsset / createAccount / onramp / bridge / getUpgraded / getBitcoinBalance / requestCancelDelegations for
   theming, host-driven focus mode, tracked assets, and first-party Safari create.
 license: MIT
 metadata:
@@ -238,6 +238,60 @@ const { chainId } = await proxy.rpc("getChainId");
 |--------|--------|----------|
 | `getChainId` | none | Returns `{ chainId }` from the wallet session store |
 
+## EVM balances (EIP-1193)
+
+Native and ERC-20 balances use the standard provider — no custom RPC. Branding
+proxies read methods (`eth_getBalance`, `eth_call`, …) to the active EVM chain
+JSON-RPC URL via `RpcHelper`.
+
+```ts
+// Native (wei hex string)
+const wei = await proxy.ethereum.request({
+  method: "eth_getBalance",
+  params: [address, "latest"],
+});
+
+// ERC-20 — encode balanceOf(address) calldata yourself (viem `encodeFunctionData`, etc.)
+const data = await proxy.ethereum.request({
+  method: "eth_call",
+  params: [{ to: tokenAddress, data: balanceOfCalldata }, "latest"],
+});
+```
+
+Notes:
+
+- Reads do **not** require unlock or `eth_requestAccounts`.
+- They use `RpcHelper`'s current **EVM** chain. If the session is on Bitcoin
+  (`getChainId` / `switchChain`), call `switchChain` to an EVM id first when you
+  care which chain is queried. Prefer custom `getChainId` for the session chain.
+- JSON-RPC `fetch` runs from the Branding origin (`wallet.1shotapi.com`); the
+  chain RPC must allow CORS from that origin.
+
+## Custom RPC — `getBitcoinBalance`
+
+There is no EIP-1193 equivalent for Bitcoin. Read confirmed + pending (mempool)
+satoshi balances for the unlocked wallet on Bitcoin mainnet or testnet.
+
+```ts
+const { chainId, address, confirmed, unconfirmed } = await proxy.rpc(
+  "getBitcoinBalance",
+  {}, // or omit; defaults to "Bitcoin"
+);
+// or: await proxy.rpc("getBitcoinBalance", { chainId: "BitcoinTestnet" });
+```
+
+| Method | Params | Behavior |
+|--------|--------|----------|
+| `getBitcoinBalance` | `{ chainId?: "Bitcoin" \| "BitcoinTestnet" }` (default `"Bitcoin"`) | Resolves the wallet SegWit address (session → cache → signer), returns satoshi balances |
+
+Returns `{ chainId, address, confirmed, unconfirmed }`:
+
+- `confirmed` — known on-chain balance (satoshi decimal string)
+- `unconfirmed` — pending mempool delta (satoshi decimal string; may be negative)
+
+Requires unlock/setup (`ensureReady`). Address is always the wallet’s — hosts
+cannot query arbitrary addresses.
+
 ## Custom RPC — `focusWallet` / `unfocusWallet`
 
 Host-controlled shell modes. Callers (not end users) switch between **General** (multi-chain tabs) and **Focused** (single chain + asset detail view).
@@ -374,7 +428,7 @@ Product analytics: `BridgeOpened`, `BridgeCompleted`, `BridgeFailed`, `BridgeCan
 
 Batch on-chain revoke for permissions this host previously received from `wallet_requestExecutionPermissions`. Pass the grant response `context` values as `permissionContexts`. Opens the cancel confirm modal (same UI as the Delegations tab). Same-chain contexts are disabled in one relayer transaction; multi-chain selections submit one batched send per chain.
 
-Only vault rows whose `hostDomain` matches the calling host are accepted. Unknown contexts or permissions granted to another host throw `OwsInvalidParamsError` before the flyout opens.
+Only vault rows whose `hostDomain` matches the calling host are accepted. If a `permissionContext` is missing locally (e.g. granted on another device), the wallet recovers credentials/delegations from the relayer once and retries the lookup before failing. Still-unknown contexts or permissions granted to another host throw `OwsInvalidParamsError` before the flyout opens. Unlock and interactive `eth_requestAccounts` also warm the vault from the relayer so cross-device grants are usually already present.
 
 ```typescript
 // After wallet_requestExecutionPermissions → responses[].context
