@@ -2857,7 +2857,7 @@ function approveTransactionCeremony(includeUpgrade: boolean): CeremonyUiParams {
   return {
     explanationHeader: prompts.approveTransaction.title,
     explanationText: includeUpgrade
-      ? `${prompts.approveTransaction.body} This includes a one-time wallet upgrade authorization.`
+      ? `${prompts.approveTransaction.body} This includes a one-time account upgrade authorization.`
       : prompts.approveTransaction.body,
   };
 }

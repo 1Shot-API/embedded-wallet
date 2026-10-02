@@ -285,6 +285,9 @@ export function useWalletBoot({
       const signerPromise = OWSSigner.create(container, signerUrl, {
         hidden: true,
         credentialId: loadCredentialId(),
+        onCeremonyPanel: (open) => {
+          useWalletSessionStore.getState().setSignerCeremonyOpen(open);
+        },
       });
       let wrappedSigner: OWSSigner | null = null;
       const awaitSigner = async (): Promise<OWSSigner> => {
