@@ -14,7 +14,7 @@ import {
 import { useStyle } from "../../style/StyleProvider";
 import { Modal } from "../Modal";
 import { PaymentFeePicker } from "../PaymentFeePicker";
-import { isSignDenied } from "../useRelayerConfirmSubmit";
+import { isSignCeremonyDenied } from "../../lib/utils/isSignCeremonyDenied";
 
 type CancelPhase = "confirm" | "signing" | "finalFee" | "submitting";
 
@@ -185,7 +185,7 @@ export function CancelDelegationModal({
       .catch((err: unknown) => {
         if (abortedRef.current) return;
         finalFeeGateRef.current = null;
-        if (isSignDenied(err)) {
+        if (isSignCeremonyDenied(err)) {
           setPhase(showedFinalFeeRef.current ? "finalFee" : "confirm");
           return;
         }

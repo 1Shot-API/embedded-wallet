@@ -20,7 +20,9 @@ export type IRelayerSendUiCallbacks = {
   /**
    * Keep the flyout open through submit/poll and on error.
    * Use for in-wallet flows (TransferTokensModal, cancel); omit for host
-   * eth_sendTransaction so the wallet collapses after the last passkey.
+   * eth_sendTransaction so the wallet collapses after the last passkey and on
+   * terminal failures. Signing Layer cancel does not hide the flyout (Branding
+   * returns to confirm).
    */
   retainDisplayDuringSubmit?: boolean;
 };

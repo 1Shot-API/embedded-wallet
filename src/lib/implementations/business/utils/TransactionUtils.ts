@@ -63,6 +63,7 @@ import {
   idbGetString,
   idbSetString,
 } from "../../../utils/idbStringStore";
+import { shouldHideDisplayOnRelayerError } from "../../../utils/isSignCeremonyDenied";
 import { withCeremonyUiReason } from "../../../../wallet/ceremonyUiOverrideStore";
 import { withCoalescedSignDigest } from "../../../../wallet/withCoalescedSignDigest";
 import type { CoalesceSignDigestOptions } from "../../../../wallet/withCoalescedSignDigest";
@@ -1019,7 +1020,7 @@ export class TransactionUtils implements ITransactionUtils {
         throw pollError;
       }
     } catch (error) {
-      if (!retainDisplayDuringSubmit) {
+      if (shouldHideDisplayOnRelayerError(error, retainDisplayDuringSubmit)) {
         await this.options.owsProvider.hideDisplay();
       }
       throw error;
@@ -1475,7 +1476,7 @@ export class TransactionUtils implements ITransactionUtils {
         throw pollError;
       }
     } catch (error) {
-      if (!retainDisplayDuringSubmit) {
+      if (shouldHideDisplayOnRelayerError(error, retainDisplayDuringSubmit)) {
         await this.options.owsProvider.hideDisplay();
       }
       throw error;
@@ -1885,9 +1886,7 @@ export class TransactionUtils implements ITransactionUtils {
         throw pollError;
       }
     } catch (error) {
-      // Host-initiated sends collapse the flyout on failure; in-wallet flows
-      // (TransferTokensModal, cancel) keep the open display.
-      if (!retainDisplayDuringSubmit) {
+      if (shouldHideDisplayOnRelayerError(error, retainDisplayDuringSubmit)) {
         await this.options.owsProvider.hideDisplay();
       }
       throw error;
@@ -2252,7 +2251,7 @@ export class TransactionUtils implements ITransactionUtils {
         throw pollError;
       }
     } catch (error) {
-      if (!retainDisplayDuringSubmit) {
+      if (shouldHideDisplayOnRelayerError(error, retainDisplayDuringSubmit)) {
         await this.options.owsProvider.hideDisplay();
       }
       throw error;
