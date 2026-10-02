@@ -12,21 +12,18 @@ const siblingSignerSrc = path.resolve(
   __dirname,
   "../prf-wallet/packages/ows-signer/src",
 );
-const siblingTypesEntry = path.resolve(
-  __dirname,
-  "../prf-wallet/packages/ows-types/dist/index.js",
-);
 const siblingSignerUtilsEntry = path.resolve(
   __dirname,
   "../prf-wallet/packages/ows-signer-utils/dist/index.js",
 );
-const siblingWalletUtilsEntry = path.resolve(
+/** Keep npm copies for deps of aliased sibling packages (see localOwsAliases). */
+const npmOwsTypesEntry = path.resolve(
   __dirname,
-  "../prf-wallet/packages/ows-wallet-utils/dist/index.js",
+  "node_modules/@1shotapi/ows-types/dist/index.js",
 );
-const siblingOid4Entry = path.resolve(
+const npmOwsWalletUtilsEntry = path.resolve(
   __dirname,
-  "../prf-wallet/packages/ows-oid4/dist/index.js",
+  "node_modules/@1shotapi/ows-wallet-utils/dist/index.js",
 );
 const signerPkgSrc = fs.existsSync(siblingSignerSrc)
   ? siblingSignerSrc
@@ -43,24 +40,32 @@ const useLocalOwsPackages = ["1", "true", "yes"].includes(
   (process.env.OWS_LOCAL_PACKAGES ?? "").trim().toLowerCase(),
 );
 
+/**
+ * Only alias ows-signer-utils locally (ceremony host strip / OWSSigner hooks).
+ * Sibling dist still imports @1shotapi/ows-types; without pinning, Node resolves
+ * that from ../prf-wallet and Vite dev dies (z.uuid is not a function).
+ */
 const localOwsAliases: Record<string, string> = {};
 if (useLocalOwsPackages) {
-  if (fs.existsSync(siblingTypesEntry)) {
-    localOwsAliases["@1shotapi/ows-types"] = siblingTypesEntry;
+  if (fs.existsSync(npmOwsTypesEntry)) {
+    localOwsAliases["@1shotapi/ows-types"] = npmOwsTypesEntry;
+  }
+  if (fs.existsSync(npmOwsWalletUtilsEntry)) {
+    localOwsAliases["@1shotapi/ows-wallet-utils"] = npmOwsWalletUtilsEntry;
   }
   if (fs.existsSync(siblingSignerUtilsEntry)) {
     localOwsAliases["@1shotapi/ows-signer-utils"] = siblingSignerUtilsEntry;
   }
-  if (fs.existsSync(siblingWalletUtilsEntry)) {
-    localOwsAliases["@1shotapi/ows-wallet-utils"] = siblingWalletUtilsEntry;
-  }
-  if (fs.existsSync(siblingOid4Entry)) {
-    localOwsAliases["@1shotapi/ows-oid4"] = siblingOid4Entry;
-  }
   if (Object.keys(localOwsAliases).length > 0) {
     console.warn(
-      "[vite] OWS_LOCAL_PACKAGES enabled — aliasing to sibling prf-wallet. " +
+      "[vite] OWS_LOCAL_PACKAGES enabled — aliasing @1shotapi/ows-signer-utils to sibling prf-wallet. " +
         "Firefox may fail /@fs/C: module loads; use Chrome or unset the flag for ngrok.",
+    );
+  } else if (useLocalOwsPackages) {
+    console.warn(
+      "[vite] OWS_LOCAL_PACKAGES is set but no sibling prf-wallet dist was found. " +
+        "Run `npm run build` in ../prf-wallet (at least ows-signer-utils). " +
+        "Falling back to npm @1shotapi/* — ceremony host strip may be outdated.",
     );
   }
 }

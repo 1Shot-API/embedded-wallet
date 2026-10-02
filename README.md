@@ -75,7 +75,7 @@ npm run dev:extension # Browser extension (side panel + EIP-1193 shim)
 
 Passkeys need HTTPS — use the printed ngrok wallet URL as the host iframe source (`NGROK_DOMAIN` in `.env` is picked up by `dev:host`).
 
-By default Vite uses published `@1shotapi/ows-*` from `node_modules`. To point at a sibling `../prf-wallet` checkout, set `OWS_LOCAL_PACKAGES=1` (Firefox often breaks on the resulting `/@fs/C:` module URLs — prefer Chrome, or leave the flag unset for ngrok).
+By default Vite uses published `@1shotapi/ows-*` from `node_modules`. Unreleased ceremony UX (bottom sheet) lives in sibling `../prf-wallet` until `@1shotapi/ows-signer` / `ows-signer-utils` are published — then bump those versions in `package.json` and run `npm install`. For local testing before publish: run `npm run build` in `prf-wallet` (at least `packages/ows-signer-utils`), set `OWS_LOCAL_PACKAGES=1` in `.env`, and restart `npm run dev`. Vite aliases `@1shotapi/ows-signer-utils` from the sibling build and **pins** `@1shotapi/ows-types` / `ows-wallet-utils` to this repo’s `node_modules` (otherwise Node resolves types from `../prf-wallet` and the app fails to boot). Vite warns if the flag is set but sibling `dist/` is missing (falls back to npm). `tsconfig.json` resolves `@1shotapi/ows-signer-utils` from sibling `dist/` when present. Firefox often breaks on `/@fs/C:` module URLs — prefer Chrome for ngrok.
 
 Style testing: use the **Style (configure RPC)** panel on the test host (`host/`), not in-wallet debug UI. See [host/README.md](host/README.md).
 

@@ -5,6 +5,7 @@ import { MainPanel } from "./components/MainPanel";
 import { ModalHost } from "./components/ModalHost";
 import { PasskeyPromptModal } from "./components/modals/PasskeyPromptModal";
 import { OnboardingPanel } from "./components/OnboardingPanel";
+import { SignerCeremonyScrim } from "./components/SignerCeremonyScrim";
 import { SignerHost } from "./components/SignerHost";
 import { WalletChrome } from "./components/WalletChrome";
 import { useStyle } from "./style/StyleProvider";
@@ -70,6 +71,7 @@ export function App() {
         )}
       </div>
 
+      <SignerCeremonyScrim />
       <SignerHost />
       <ModalHost />
       <PasskeyPromptModal />
