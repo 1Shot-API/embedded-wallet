@@ -2,29 +2,23 @@ import { useRef, useState } from "react";
 import { useStyle } from "../../style/StyleProvider";
 import type { IStyleCopyImportPrivateKey } from "../../style/types";
 import { Modal } from "../Modal";
+import { isSignCeremonyDenied } from "../../lib/utils/isSignCeremonyDenied";
 import { useWallet } from "../../wallet/WalletProvider";
 
 function formatImportError(
   error: unknown,
   copy: IStyleCopyImportPrivateKey,
 ): string {
+  if (isSignCeremonyDenied(error)) {
+    return copy.cancelledError;
+  }
   if (error instanceof Error) {
     const message = error.message;
-    if (
-      error.name === "OwsSignDeniedError" ||
-      message.includes("signDenied") ||
-      message.includes("SignDenied")
-    ) {
-      return copy.cancelledError;
-    }
     if (
       message.includes("invalidPrivateKey") ||
       message.includes("InvalidRequest")
     ) {
       return copy.invalidKeyError;
-    }
-    if (message.includes("NotAllowed") || message.includes("not allowed")) {
-      return copy.cancelledError;
     }
     return message || copy.failedError;
   }
