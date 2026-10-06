@@ -21,7 +21,8 @@
     "test": "tsx --tsconfig tsconfig.test.json --test \"test/**/*.test.ts\"",
     "preview": "vite preview",
     "dockerize": "docker build -t oneshot-wallet .",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "skills:install": "npx skills add 1Shot-API/skills --skill 1shot-wallet --skill ows-branding-layer --skill public-relayer -g -a cursor -y"
   },
   "dependencies": {
     "@1shotapi/ows-oid4": "^0.4.0",
