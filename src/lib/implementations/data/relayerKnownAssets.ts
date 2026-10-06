@@ -119,6 +119,24 @@ const SEED_ROWS: readonly ISeedRow[] = [
     name: "mUSD",
     decimals: 6,
   },
+  {
+    chainId: EChain.Ethereum,
+    address: EVMContractAddress(
+      "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8",
+    ),
+    symbol: "PYUSD",
+    name: "PayPal USD",
+    decimals: 6,
+  },
+  {
+    chainId: EChain.Ethereum,
+    address: EVMContractAddress(
+      "0x45804880De22913dAFE09f4980848ECE6EcbAf78",
+    ),
+    symbol: "PAXG",
+    name: "PAX Gold",
+    decimals: 18,
+  },
   // Optimism (10)
   {
     chainId: EChain.Optimism,
@@ -275,6 +293,15 @@ const SEED_ROWS: readonly ISeedRow[] = [
     ),
     symbol: "USDT",
     name: "Tether USD",
+    decimals: 6,
+  },
+  {
+    chainId: EChain.Arbitrum,
+    address: EVMContractAddress(
+      "0x46850aD61C2B7d64d08c9C754F45254596696984",
+    ),
+    symbol: "PYUSD",
+    name: "PayPal USD",
     decimals: 6,
   },
   // Celo (42220)
