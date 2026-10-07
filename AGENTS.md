@@ -86,3 +86,14 @@ Wire at the composition root (e.g. `WalletProvider`) with positional args: `new 
 Prefer branded primitives from `@1shotapi/ows-types` when a shared type already exists. For **wallet-local** branded types (e.g. `TrackedAssetId`), put each brand in its **own file** under `src/lib/types/primitives/` (type alias + `make()` constructor, same pattern as `ows-types` primitives) — do not declare brands inline in DTO modules.
 
 **Trust brands after construction.** Validate shape (`string` / `number` / `boolean`, regex, etc.) **before** wrapping with a branded constructor (`EVMAccountAddress(...)`, `makeTrackedAssetId(...)`, …). Once a value is branded, compare and pass it as that type — do **not** coerce with `String(...)`, `Number(...)`, or similar for identity checks (`===`) or Map/Set keys. Coercion hides type changes (e.g. id becoming a `number`) and creates runtime bugs that are hard to track down. Brand subtypes of `string`/`number` remain assignable to the underlying primitive where an API truly needs it (display, JSON fields typed as `string`).
+
+## Agent Skills
+
+Host / Branding integrator skills live in [1Shot-API/skills](https://github.com/1Shot-API/skills) — not in this repo, and not project-installed under `.agents/skills/`. Install globally for local Cursor:
+
+```bash
+npm run skills:install
+# 1shot-wallet + ows-branding-layer + public-relayer → ~/.cursor/skills
+```
+
+When you change Host RPC (`configure`, `focusWallet`, `onramp`, `bridge`, …), EIP-1193 surface, or other integrator-facing behavior, update **`1shot-wallet`** in `1Shot-API/skills` in the same effort. When Branding Layer conventions change in ways that affect custom branding apps, also update **`ows-branding-layer`**.
