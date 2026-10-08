@@ -1,4 +1,5 @@
 export { AssetActivity } from "./AssetActivity";
+export type { IRelayerPayment } from "./RelayerPayment";
 export { BitcoinUtxo } from "./BitcoinUtxo";
 export { KnownAsset } from "./KnownAsset";
 export { NewTrackedAsset, TrackedAsset } from "./TrackedAsset";
@@ -13,7 +14,10 @@ export type {
 export type {
   IWebAuthnAssertionRequest,
   IWalletCredentialChallengeResponse,
+  ICredentialStoreItem,
   IRecoveredCredentialBlob,
   IRelayerCredentialsErrorBody,
 } from "./RelayerCredentials";
+export type { ISiweFields } from "./SiweFields";
+export type { IWalletUpgradeStatus } from "./WalletUpgradeStatus";
 export { WalletConfig } from "./WalletConfig";

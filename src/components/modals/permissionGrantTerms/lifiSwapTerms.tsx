@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { EVMAccountAddress, type IExecutionPermissionRequest } from "@1shotapi/ows-types";
-import { formatUnits, getAddress } from "viem";
+import {
+  ChainUtils,
+  type IExecutionPermissionRequest,
+} from "@1shotapi/ows-types";
+import { formatUnits } from "viem";
 import { parseLiFiSwapData } from "../../../lib/implementations/business/DelegationService";
 import { LIFI_SWAP_PERIODIC } from "../../../lib/interfaces/business/IDelegationService";
 import { EAssetType } from "../../../lib/types/enum/EAssetType";
@@ -78,24 +81,16 @@ export function LiFiSwapPermissionTerms({
     }
   }, [liFiUtils.defaultSlippageBps, permissionData]);
 
-  const tokenAddress = parsedSwap
-    ? getAddress(parsedSwap.tokenAddress)
-    : readString(permissionData, "tokenAddress", "inputToken");
+  const token = parsedSwap?.tokenAddress;
 
   const [tokenSymbol, setTokenSymbol] = useState("TOKEN");
   const [tokenDecimals, setTokenDecimals] = useState(6);
   const [tokenIconUrl, setTokenIconUrl] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!tokenAddress) return;
+    if (!token) return;
     let cancelled = false;
     const chainId = executionRequest.chainId;
-    let checksummed: `0x${string}`;
-    try {
-      checksummed = getAddress(tokenAddress as `0x${string}`);
-    } catch {
-      return;
-    }
 
     void (async () => {
       const assets = await listTrackedAssets();
@@ -103,8 +98,8 @@ export function LiFiSwapPermissionTerms({
       const tracked = assets.find(
         (a) =>
           a.type === EAssetType.Erc20 &&
-          String(a.chainId).toLowerCase() === String(chainId).toLowerCase() &&
-          getAddress(String(a.address)).toLowerCase() === checksummed.toLowerCase(),
+          a.chainId === chainId &&
+          a.address === token,
       );
       if (tracked) {
         setTokenSymbol(tracked.symbol);
@@ -112,7 +107,7 @@ export function LiFiSwapPermissionTerms({
         setTokenIconUrl(
           resolveAssetIconUrl(
             chainId,
-            EVMAccountAddress(checksummed),
+            token,
             tracked.symbol,
             tracked.iconUrl,
           ),
@@ -120,10 +115,7 @@ export function LiFiSwapPermissionTerms({
         return;
       }
       try {
-        const known = await getKnownAsset(
-          chainId,
-          EVMAccountAddress(checksummed),
-        );
+        const known = await getKnownAsset(chainId, token);
         if (cancelled) return;
         if (known) {
           setTokenSymbol(known.symbol);
@@ -131,7 +123,7 @@ export function LiFiSwapPermissionTerms({
           setTokenIconUrl(
             resolveAssetIconUrl(
               chainId,
-              EVMAccountAddress(checksummed),
+              token,
               known.symbol,
               known.iconUrl,
             ),
@@ -147,7 +139,7 @@ export function LiFiSwapPermissionTerms({
     return () => {
       cancelled = true;
     };
-  }, [executionRequest.chainId, getKnownAsset, listTrackedAssets, tokenAddress]);
+  }, [executionRequest.chainId, getKnownAsset, listTrackedAssets, token]);
 
   const summaryAmount = useMemo(() => {
     if (!parsedSwap || parsedSwap.periodAmount <= 0n) return null;
@@ -181,14 +173,14 @@ export function LiFiSwapPermissionTerms({
   const sourceChain = resolveChain(executionRequest.chainId);
 
   const destChainIdRaw = readString(permissionData, "destinationChainId");
-  const destChainHex =
-    destChainIdRaw === ""
-      ? null
-      : destChainIdRaw.startsWith("0x") || destChainIdRaw.startsWith("0X")
-        ? destChainIdRaw
-        : /^\d+$/.test(destChainIdRaw)
-          ? `0x${BigInt(destChainIdRaw).toString(16)}`
-          : null;
+  let destChainHex: string | null = null;
+  if (destChainIdRaw !== "") {
+    try {
+      destChainHex = ChainUtils.asEVMChainId(destChainIdRaw);
+    } catch {
+      destChainHex = null;
+    }
+  }
   const destChain = destChainHex
     ? resolveChain(destChainHex as never)
     : undefined;

@@ -21,6 +21,12 @@ export type RegisterAccountConnectOptions = {
   storage: AccountConnectStorage;
   ensureReady: () => Promise<void>;
   requestConnectApproval: () => Promise<boolean>;
+  /**
+   * After interactive connect approval, warm credentials/delegations from the
+   * relayer. Not called on silent reconnect (grant + cache). Failures should
+   * be swallowed by the caller so connect still succeeds.
+   */
+  warmVaultFromRelayer?: () => Promise<void>;
   /** Optional — used for EIP-1193 `connect` event payload. */
   getChainId?: () => Promise<string> | string;
 };
@@ -32,6 +38,7 @@ type WalletPermission = {
 
 type DisplayHandle = {
   hide: () => Promise<void>;
+  release?: () => void;
 };
 
 /** Host Inline (extension side panel) can miss a second displayReady; don't block connect UX. */
@@ -88,9 +95,13 @@ export function registerAccountConnect(
       markAccountsGranted();
 
       if (cached) {
+        // Returning session with address cache — unlock may have been skipped.
+        // Warm vault so cross-device credentials/delegations are available.
+        await options.warmVaultFromRelayer?.();
         return announceConnected(cached);
       }
 
+      // ensureReady → unlock/login already recovers from the relayer.
       await options.ensureReady();
       const evm = await signer.evm.getAccountAddress();
       const solana = await signer.solana.getAccountAddress();
@@ -145,9 +156,10 @@ export function registerAccountConnect(
 }
 
 async function acquireDisplay(wallet: OWSWallet): Promise<DisplayHandle> {
+  const pending = wallet.requestDisplay();
   try {
     const session = await Promise.race([
-      wallet.requestDisplay(),
+      pending,
       new Promise<null>((resolve) => {
         setTimeout(() => resolve(null), DISPLAY_ACQUIRE_TIMEOUT_MS);
       }),
@@ -156,8 +168,28 @@ async function acquireDisplay(wallet: OWSWallet): Promise<DisplayHandle> {
       return session;
     }
   } catch {
-    // Fall through to a no-op handle — panel may already be Inline-visible.
+    // Fall through — panel may already be Inline-visible.
   }
+
+  // Race lost or threw: still release a late-arriving session so host
+  // childDisplayId / branding displayDepth cannot leak into later RPCs (e.g. SIWE).
+  void pending.then(
+    (session) => {
+      try {
+        if ("release" in session && typeof session.release === "function") {
+          session.release();
+        } else {
+          void session.hide();
+        }
+      } catch {
+        // Best-effort cleanup.
+      }
+    },
+    () => {
+      // requestDisplay rejected — nothing to release.
+    },
+  );
+
   return {
     hide: async () => {},
   };

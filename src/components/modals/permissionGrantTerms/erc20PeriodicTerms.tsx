@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { EVMAccountAddress, type IExecutionPermissionRequest } from "@1shotapi/ows-types";
+import { EVMContractAddress, type IExecutionPermissionRequest } from "@1shotapi/ows-types";
 import { formatUnits, getAddress } from "viem";
 import { ERC20_TOKEN_PERIODIC } from "../../../lib/interfaces/business/IDelegationService";
 import { EAssetType } from "../../../lib/types/enum/EAssetType";
@@ -20,7 +20,6 @@ import { useWallet } from "../../../wallet/WalletProvider";
 import { ConsentSummaryRow } from "../../ConsentSummaryRow";
 import { SafeAssetImage } from "../../SafeAssetImage";
 import { PermissionGrantTermsCard } from "../PermissionGrantConsentLayout";
-import { isAppendedCaveatValid } from "./appendedCaveatUtils";
 
 function readTokenAddress(data: Record<string, unknown>): string | null {
   const raw = data.tokenAddress ?? data.token;
@@ -36,14 +35,12 @@ export function isErc20PeriodicPermissionValid(
   const durationSeconds = parsePeriodDurationSeconds(
     readPermissionPeriodDurationText(permissionData),
   );
-  const scopeValid =
+  return (
     Boolean(tokenAddress) &&
     amountAtoms !== null &&
     amountAtoms > 0n &&
-    durationSeconds !== null;
-  if (!scopeValid) return false;
-  const appendedCaveats = executionRequest.caveats ?? [];
-  return appendedCaveats.every((caveat) => isAppendedCaveatValid(caveat));
+    durationSeconds !== null
+  );
 }
 
 export function buildErc20PeriodicGrantResult(
@@ -78,7 +75,12 @@ export function Erc20PeriodicPermissionTerms({
     if (!tokenAddress) return;
     let cancelled = false;
     const chainId = executionRequest.chainId;
-    const checksummed = getAddress(tokenAddress as `0x${string}`);
+    let token: EVMContractAddress;
+    try {
+      token = EVMContractAddress(getAddress(tokenAddress));
+    } catch {
+      return;
+    }
 
     void (async () => {
       const assets = await listTrackedAssets();
@@ -86,8 +88,8 @@ export function Erc20PeriodicPermissionTerms({
       const tracked = assets.find(
         (a) =>
           a.type === EAssetType.Erc20 &&
-          String(a.chainId).toLowerCase() === String(chainId).toLowerCase() &&
-          getAddress(String(a.address)).toLowerCase() === checksummed.toLowerCase(),
+          a.chainId === chainId &&
+          a.address === token,
       );
       if (tracked) {
         setTokenSymbol(tracked.symbol);
@@ -95,7 +97,7 @@ export function Erc20PeriodicPermissionTerms({
         setTokenIconUrl(
           resolveAssetIconUrl(
             chainId,
-            EVMAccountAddress(checksummed),
+            token,
             tracked.symbol,
             tracked.iconUrl,
           ),
@@ -103,10 +105,7 @@ export function Erc20PeriodicPermissionTerms({
         return;
       }
       try {
-        const known = await getKnownAsset(
-          chainId,
-          EVMAccountAddress(checksummed),
-        );
+        const known = await getKnownAsset(chainId, token);
         if (cancelled) return;
         if (known) {
           setTokenSymbol(known.symbol);
@@ -114,7 +113,7 @@ export function Erc20PeriodicPermissionTerms({
           setTokenIconUrl(
             resolveAssetIconUrl(
               chainId,
-              EVMAccountAddress(checksummed),
+              token,
               known.symbol,
               known.iconUrl,
             ),

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  EVMAccountAddress,
+  EVMContractAddress,
   type IExecutionPermissionRequest,
 } from "@1shotapi/ows-types";
 import { formatUnits, getAddress } from "viem";
@@ -153,7 +153,7 @@ export function useErc20TokenDisplay(
         setTokenIconUrl(
           resolveAssetIconUrl(
             chainId,
-            EVMAccountAddress(checksummed),
+            EVMContractAddress(checksummed),
             tracked.symbol,
             tracked.iconUrl,
           ),
@@ -163,7 +163,7 @@ export function useErc20TokenDisplay(
       try {
         const known = await getKnownAsset(
           chainId,
-          EVMAccountAddress(checksummed),
+          EVMContractAddress(checksummed),
         );
         if (cancelled) return;
         if (known) {
@@ -172,7 +172,7 @@ export function useErc20TokenDisplay(
           setTokenIconUrl(
             resolveAssetIconUrl(
               chainId,
-              EVMAccountAddress(checksummed),
+              EVMContractAddress(checksummed),
               known.symbol,
               known.iconUrl,
             ),

@@ -1,4 +1,7 @@
-import { EVMChainId } from "@1shotapi/ows-types";
+import {
+  ChainUtils,
+  type EVMChainId,
+} from "@1shotapi/ows-types";
 
 /** Lowercase host for SIWE origin comparison (strips port). */
 export function normalizeSiweHost(value: string): string {
@@ -32,16 +35,9 @@ export function resolveSiweEvmChainId(chainIdRaw: string): EVMChainId | null {
   if (!trimmed) {
     return null;
   }
-  let decimal: number;
-  if (/^0x[0-9a-fA-F]+$/i.test(trimmed)) {
-    decimal = Number(BigInt(trimmed));
-  } else if (/^\d+$/.test(trimmed)) {
-    decimal = Number(trimmed);
-  } else {
+  try {
+    return ChainUtils.asEVMChainId(trimmed);
+  } catch {
     return null;
   }
-  if (!Number.isFinite(decimal) || decimal < 0) {
-    return null;
-  }
-  return EVMChainId(`0x${decimal.toString(16)}` as `0x${string}`);
 }

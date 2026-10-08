@@ -44,18 +44,8 @@ import {
 import { ConsentSummaryRow } from "../ConsentSummaryRow";
 import { Eip712FieldTree } from "../Eip712FieldTree";
 import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
+import { isSignCeremonyDenied } from "../../lib/utils/isSignCeremonyDenied";
 import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
-
-function isSignDenied(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  return (
-    error.name === "OwsSignDeniedError" ||
-    error.message.includes("signDenied") ||
-    error.message.includes("SignDenied") ||
-    error.message.includes("NotAllowed") ||
-    error.message.includes("not allowed")
-  );
-}
 
 export function PersonalSignModal({
   request,
@@ -91,7 +81,7 @@ export function PersonalSignModal({
       onResolve(signature!);
     })().catch((error: unknown) => {
       if (signGenerationRef.current !== generation) return;
-      if (isSignDenied(error)) {
+      if (isSignCeremonyDenied(error)) {
         setPhase("confirm");
         return;
       }
@@ -202,7 +192,7 @@ export function SiweModal({
       onResolve(signature);
     })().catch((error: unknown) => {
       if (signGenerationRef.current !== generation) return;
-      if (isSignDenied(error)) {
+      if (isSignCeremonyDenied(error)) {
         setPhase("confirm");
         return;
       }
@@ -472,7 +462,7 @@ export function TypedDataModal({
       onResolve(signature!);
     })().catch((error: unknown) => {
       if (signGenerationRef.current !== generation) return;
-      if (isSignDenied(error)) {
+      if (isSignCeremonyDenied(error)) {
         setPhase("confirm");
         return;
       }
@@ -622,6 +612,7 @@ export function SendTransactionModal({
         {
           paymentToken: payment.paymentToken,
           feeAtoms: payment.feeAtoms,
+          paymentChainId: payment.paymentChainId,
         },
         ui,
       ),
@@ -667,7 +658,7 @@ export function SendTransactionModal({
       })
       .catch((err: unknown) => {
         if (abortedRef.current) return;
-        if (isSignDenied(err)) {
+        if (isSignCeremonyDenied(err)) {
           setLegacyPhase("confirm");
           return;
         }
@@ -773,6 +764,7 @@ export function ConfirmTransferModal({
         {
           paymentToken: payment.paymentToken,
           feeAtoms: payment.feeAtoms,
+          paymentChainId: payment.paymentChainId,
         },
         ui,
       ),
@@ -812,7 +804,7 @@ export function ConfirmTransferModal({
       })
       .catch((err: unknown) => {
         if (abortedRef.current) return;
-        if (isSignDenied(err)) {
+        if (isSignCeremonyDenied(err)) {
           setLegacyPhase("confirm");
           return;
         }

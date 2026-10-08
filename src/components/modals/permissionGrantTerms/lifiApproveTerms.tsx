@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { EVMAccountAddress, type IExecutionPermissionRequest } from "@1shotapi/ows-types";
-import { getAddress } from "viem";
+import { type IExecutionPermissionRequest } from "@1shotapi/ows-types";
 import {
   parseLiFiApproveData,
 } from "../../../lib/implementations/business/DelegationService";
@@ -58,24 +57,16 @@ export function LiFiApprovePermissionTerms({
     }
   }, [permissionData]);
 
-  const tokenAddress = parsedApprove
-    ? String(parsedApprove.tokenAddress)
-    : "";
+  const token = parsedApprove?.tokenAddress;
   const spender = parsedApprove ? String(parsedApprove.spender) : "";
 
   const [tokenSymbol, setTokenSymbol] = useState("TOKEN");
   const [tokenIconUrl, setTokenIconUrl] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!tokenAddress) return;
+    if (!token) return;
     let cancelled = false;
     const chainId = executionRequest.chainId;
-    let checksummed: `0x${string}`;
-    try {
-      checksummed = getAddress(tokenAddress as `0x${string}`);
-    } catch {
-      return;
-    }
 
     void (async () => {
       const assets = await listTrackedAssets();
@@ -83,15 +74,15 @@ export function LiFiApprovePermissionTerms({
       const tracked = assets.find(
         (a) =>
           a.type === EAssetType.Erc20 &&
-          String(a.chainId).toLowerCase() === String(chainId).toLowerCase() &&
-          getAddress(String(a.address)).toLowerCase() === checksummed.toLowerCase(),
+          a.chainId === chainId &&
+          a.address === token,
       );
       if (tracked) {
         setTokenSymbol(tracked.symbol);
         setTokenIconUrl(
           resolveAssetIconUrl(
             chainId,
-            EVMAccountAddress(checksummed),
+            token,
             tracked.symbol,
             tracked.iconUrl,
           ),
@@ -99,17 +90,14 @@ export function LiFiApprovePermissionTerms({
         return;
       }
       try {
-        const known = await getKnownAsset(
-          chainId,
-          EVMAccountAddress(checksummed),
-        );
+        const known = await getKnownAsset(chainId, token);
         if (cancelled) return;
         if (known) {
           setTokenSymbol(known.symbol);
           setTokenIconUrl(
             resolveAssetIconUrl(
               chainId,
-              EVMAccountAddress(checksummed),
+              token,
               known.symbol,
               known.iconUrl,
             ),
@@ -125,7 +113,7 @@ export function LiFiApprovePermissionTerms({
     return () => {
       cancelled = true;
     };
-  }, [executionRequest.chainId, getKnownAsset, listTrackedAssets, tokenAddress]);
+  }, [executionRequest.chainId, getKnownAsset, listTrackedAssets, token]);
 
   const chain = resolveChain(executionRequest.chainId);
   const spenderExplorerUrl = spender
@@ -145,7 +133,7 @@ export function LiFiApprovePermissionTerms({
           />
         ) : null}
         <span className="truncate text-sm font-medium">
-          {tokenAddress ? tokenSymbol : "—"}
+          {token ? tokenSymbol : "—"}
         </span>
       </ConsentSummaryRow>
       <ConsentSummaryRow label={copy.spenderLabel}>

@@ -1,14 +1,17 @@
 import { useShallow } from "zustand/react/shallow";
 import { useWalletSessionStore } from "./wallet/sessionStore";
-import { WalletChrome } from "./components/WalletChrome";
-import { OnboardingPanel } from "./components/OnboardingPanel";
+import { CreateHostPlaceholder } from "./components/CreateHostPlaceholder";
 import { MainPanel } from "./components/MainPanel";
-import { SignerHost } from "./components/SignerHost";
 import { ModalHost } from "./components/ModalHost";
 import { PasskeyPromptModal } from "./components/modals/PasskeyPromptModal";
+import { OnboardingPanel } from "./components/OnboardingPanel";
+import { SignerCeremonyScrim } from "./components/SignerCeremonyScrim";
+import { SignerHost } from "./components/SignerHost";
+import { WalletChrome } from "./components/WalletChrome";
 import { useStyle } from "./style/StyleProvider";
-import { useWallet } from "./wallet/WalletProvider";
+import { isCreateHostEmbed } from "./wallet/createHostEmbed";
 import { useSwipeDownToDismiss } from "./wallet/useSwipeDownToDismiss";
+import { useWallet } from "./wallet/WalletProvider";
 
 export function App() {
   const { bootError, ready, unlocked, walletCreated, embedded } =
@@ -26,7 +29,9 @@ export function App() {
 
   // Returning sessions with a complete address cache skip Login.
   // Incomplete `ows-wallet-created` (no evm/solana cache) is cleared on hydrate.
+  const createHost = isCreateHostEmbed();
   const showOnboarding = !unlocked && !walletCreated;
+  const showCreateHostShell = createHost && showOnboarding;
   const swipeDismissEnabled =
     embedded && !style.features.hideCloseBox;
   const swipeHandlers = useSwipeDownToDismiss(swipeDismissEnabled, () => {
@@ -51,10 +56,14 @@ export function App() {
           <p className="text-destructive px-5 py-4 text-sm">
             Failed to start: {bootError}
           </p>
+        ) : !ready && createHost ? (
+          <CreateHostPlaceholder />
         ) : !ready ? (
           <p className="text-muted-foreground px-5 py-4 font-mono text-sm">
             Loading…
           </p>
+        ) : showCreateHostShell ? (
+          <CreateHostPlaceholder />
         ) : showOnboarding ? (
           <OnboardingPanel />
         ) : (
@@ -62,6 +71,7 @@ export function App() {
         )}
       </div>
 
+      <SignerCeremonyScrim />
       <SignerHost />
       <ModalHost />
       <PasskeyPromptModal />

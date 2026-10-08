@@ -1,26 +1,36 @@
 import type {
   EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   HexString,
 } from "@1shotapi/ows-types";
 import type {
   IRelayerAuthorizationEntry,
   ISendTransactionResult,
 } from "../data/IOneshotRelayerRepository";
+import type { IRelayerPayment } from "../../types/domain/RelayerPayment";
 import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
+import type { IWalletUpgradeStatus } from "../../types/domain/WalletUpgradeStatus";
 import type { TokenAmount } from "../../types/primitives";
 
 export interface IPaymentTokenOption {
-  address: EVMAccountAddress;
+  /** ERC-20 (or other) payment token contract. */
+  address: EVMContractAddress;
   symbol: string;
   name?: string;
   decimals: number;
   balance: TokenAmount;
+  /** Chain this payment token lives on (fee ExactCalldata chain). */
+  chainId: EVMChainId;
+  chainName: string;
 }
 
 export interface IPaymentQuote {
   tokens: IPaymentTokenOption[];
-  selectedToken: EVMAccountAddress;
+  selectedToken: EVMContractAddress;
+  /** Chain where the fee ExactCalldata runs (may differ from the work chain). */
+  paymentChainId: EVMChainId;
+  paymentChainName: string;
   feeAtoms: TokenAmount;
   feeFormatted: string;
   feeCollector: EVMAccountAddress;
@@ -29,19 +39,24 @@ export interface IPaymentQuote {
 }
 
 export interface ITransactionWork {
-  to: EVMAccountAddress;
+  to: EVMAccountAddress | EVMContractAddress;
   data: HexString;
   value?: bigint;
 }
 
-export interface ISendViaRelayerParams {
+export type ISendViaRelayerParams = {
   chainId: EVMChainId;
   work: ITransactionWork | ITransactionWork[];
-  paymentToken: EVMAccountAddress;
+  paymentToken: EVMContractAddress;
   /** Fee atoms from the confirm UI quote; may be adjusted after estimate. */
   feeAtoms: TokenAmount;
+  /**
+   * Chain that pays the relayer fee. Defaults to `chainId`. When different,
+   * fee runs on this chain and work on `chainId` (multichain 7710).
+   */
+  paymentChainId?: EVMChainId;
   authorizationList?: IRelayerAuthorizationEntry[];
-}
+};
 
 /**
  * Orchestrates EIP-7702 upgrade, fee quotes, ExactCalldata delegations,
@@ -53,22 +68,56 @@ export interface ITransactionService {
     address: EVMAccountAddress,
   ): Promise<boolean>;
 
+  getWalletUpgradeStatus(
+    chainId: EVMChainId,
+    address: EVMAccountAddress,
+  ): Promise<IWalletUpgradeStatus>;
+
   signWalletUpgradeAuthorization(
     chainId: EVMChainId,
   ): Promise<IRelayerAuthorizationEntry>;
 
   /**
-   * Prefer USDC with balance, then USDT, else first token with balance.
-   * When `preferredToken` is set, use it if present in capabilities.
-   * Quotes via unsigned `relayer_estimate7710Transaction` (placeholder
-   * signatures) so confirm UI shows an accurate fee before passkey sign.
+   * Resolve fee payment for work on `chainId` (local-first, Arc USDC fallback),
+   * then unsigned estimate — single-chain or multichain when payment ≠ work.
    */
   quotePayment(
     chainId: EVMChainId,
     owner: EVMAccountAddress,
     work: ITransactionWork | ITransactionWork[],
-    preferredToken?: EVMAccountAddress,
+    preferredToken?: EVMContractAddress,
   ): Promise<IPaymentQuote>;
+
+  /** Unsigned fee quote for multi/single-chain EIP-7702 activation. */
+  quoteActivation(
+    owner: EVMAccountAddress,
+    upgradeChainIds: readonly EVMChainId[],
+    payment: IRelayerPayment,
+  ): Promise<IPaymentQuote>;
+
+  /**
+   * Combined unsigned fee quote for ExactCalldata work across one or more
+   * chains (local-first payment, then Arc USDC).
+   */
+  quotePaymentMultichain(
+    owner: EVMAccountAddress,
+    workByChain: readonly {
+      chainId: EVMChainId;
+      work: ITransactionWork | ITransactionWork[];
+    }[],
+    preferredToken?: EVMContractAddress,
+  ): Promise<IPaymentQuote>;
+
+  /**
+   * Submit EIP-7702 activation (no-op work + USDC fee) and poll to confirm.
+   */
+  activateDelegations(
+    args: {
+      upgradeChainIds: readonly EVMChainId[];
+      payment: IRelayerPayment;
+      feeAtoms: TokenAmount;
+    } & IRelayerSendUiCallbacks,
+  ): Promise<ISendTransactionResult[]>;
 
   /**
    * Branch on `SupportedChain.useRelayer`:
@@ -79,8 +128,9 @@ export interface ITransactionService {
     chainId: EVMChainId,
     work: ITransactionWork,
     options?: {
-      paymentToken?: EVMAccountAddress;
+      paymentToken?: EVMContractAddress;
       feeAtoms?: TokenAmount;
+      paymentChainId?: EVMChainId;
       authorizationList?: IRelayerAuthorizationEntry[];
     } & IRelayerSendUiCallbacks,
   ): Promise<ISendTransactionResult>;

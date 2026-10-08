@@ -301,6 +301,40 @@ export function useHostTestActions({
     })();
   };
 
+  const handleGetBitcoinBalance = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    setBusy(true);
+    const btcChainId = ChainUtils.isBitcoinChainId(chainId)
+      ? ChainUtils.asBitcoinChainId(chainId)
+      : "Bitcoin";
+    reportStatus(`Fetching Bitcoin balance (${btcChainId})…`);
+    void (async () => {
+      try {
+        const result = (await proxy.rpc("getBitcoinBalance", {
+          chainId: btcChainId,
+        })) as {
+          chainId?: string;
+          address?: string;
+          confirmed?: string;
+          unconfirmed?: string;
+        };
+        reportStatus(
+          `BTC ${result.chainId ?? btcChainId}: confirmed=${result.confirmed ?? "?"} unconfirmed=${result.unconfirmed ?? "?"} @ ${result.address ?? "?"}`,
+        );
+      } catch (error) {
+        reportStatus(
+          error instanceof Error
+            ? error.message
+            : "getBitcoinBalance failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
   const handleUsdcModeChange = (next: UsdcMode) => {
     setUsdcMode(next);
     clearUsdcOutputs();
@@ -920,9 +954,8 @@ export function useHostTestActions({
       try {
         proxy.showWallet();
         setWalletVisible(true);
-        await proxy.ethereum.request({
-          method: "wallet_revokeExecutionPermission",
-          params: [{ permissionContext: grant.response.context }],
+        await proxy.rpc("requestCancelDelegations", {
+          permissionContexts: [grant.response.context],
         });
         setSessionGrants((prev) => prev.filter((g) => g.id !== id));
         reportStatus("Permission canceled on-chain and removed from memory.");
@@ -930,7 +963,43 @@ export function useHostTestActions({
         reportStatus(
           error instanceof Error
             ? error.message
-            : "revokeExecutionPermission failed",
+            : "requestCancelDelegations failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleCancelSelectedDelegations = (ids: string[]) => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    const grants = sessionGrants.filter((g) => ids.includes(g.id));
+    if (grants.length === 0) {
+      reportStatus("No matching grants selected.", true);
+      return;
+    }
+    setBusy(true);
+    setDelegationsOutput(null);
+    reportStatus(`Canceling ${grants.length} EIP-7715 permission(s)…`);
+    void (async () => {
+      try {
+        proxy.showWallet();
+        setWalletVisible(true);
+        await proxy.rpc("requestCancelDelegations", {
+          permissionContexts: grants.map((g) => g.response.context),
+        });
+        const idSet = new Set(ids);
+        setSessionGrants((prev) => prev.filter((g) => !idSet.has(g.id)));
+        reportStatus(
+          `${grants.length} permission(s) canceled on-chain and removed from memory.`,
+        );
+      } catch (error) {
+        reportStatus(
+          error instanceof Error
+            ? error.message
+            : "requestCancelDelegations failed",
           true,
         );
       } finally {
@@ -1013,6 +1082,7 @@ export function useHostTestActions({
     onConnect: handleConnect,
     onChainChange: handleChainChange,
     onRefreshChain: handleRefreshChain,
+    onGetBitcoinBalance: handleGetBitcoinBalance,
     onMessageChange: setMessage,
     onSignModeChange: handleSignModeChange,
     onTypedDataJsonChange: setTypedDataJson,
@@ -1047,6 +1117,7 @@ export function useHostTestActions({
     onRequestDelegation: handleRequestDelegation,
     onRequestLiFiDelegation: handleRequestLiFiDelegation,
     onCancelDelegation: handleCancelDelegation,
+    onCancelSelectedDelegations: handleCancelSelectedDelegations,
     onGetSupportedPermissions: handleGetSupportedPermissions,
     onGetGrantedPermissions: handleGetGrantedPermissions,
   };

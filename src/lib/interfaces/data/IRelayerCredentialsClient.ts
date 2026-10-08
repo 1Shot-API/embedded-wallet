@@ -4,6 +4,7 @@ import type {
   WebAuthnAssertionFields,
 } from "@1shotapi/ows-types";
 import type {
+  ICredentialStoreItem,
   IRecoveredCredentialBlob,
   IWalletCredentialChallengeResponse,
   IWebAuthnAssertionRequest,
@@ -46,10 +47,9 @@ export interface IRelayerCredentialsClient {
     body: IWebAuthnAssertionRequest & { publicKey: COSEPublicKey },
   ): Promise<{ credentialId: string }>;
 
-  storeCredential(
+  storeCredentials(
     body: IWebAuthnAssertionRequest & {
-      ciphertext?: string;
-      ciphertexts?: string[];
+      items: ICredentialStoreItem[];
     },
   ): Promise<{ id: string; ids: string[] }>;
 
@@ -59,7 +59,7 @@ export interface IRelayerCredentialsClient {
 
   deleteCredentials(
     body: IWebAuthnAssertionRequest & {
-      credentialBlobId?: string;
+      credentialBlobIds?: string[];
       deleteAll?: boolean;
     },
   ): Promise<{ deleted: number }>;

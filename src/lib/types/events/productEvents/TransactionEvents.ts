@@ -3,6 +3,7 @@ import {
   EVMAccountAddress,
   OWSAnalyticsEvent,
   type EVMChainId,
+  type EVMContractAddress,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import { EAnalyticsEventName } from "../../enum/EAnalyticsEventName";
@@ -12,7 +13,7 @@ export class TransactionSubmittedEvent extends OWSAnalyticsEvent {
     hostDomain: DomainString,
     public readonly accountAddress: EVMAccountAddress,
     public readonly chainId: EVMChainId,
-    public readonly to: EVMAccountAddress,
+    public readonly to: EVMAccountAddress | EVMContractAddress,
     public readonly txHash: EVMTransactionHash,
     public readonly durationMs: number,
     public readonly methodId: string | null = null,
@@ -28,7 +29,7 @@ export class TransactionSubmitFailedEvent extends OWSAnalyticsEvent {
     public readonly chainId: EVMChainId,
     public readonly errorCode: string,
     public readonly durationMs: number,
-    public readonly to: EVMAccountAddress | null = null,
+    public readonly to: EVMAccountAddress | EVMContractAddress | null = null,
   ) {
     super(EAnalyticsEventName.TransactionSubmitFailed, hostDomain);
   }
@@ -40,7 +41,7 @@ export class TransactionSubmitCancelledEvent extends OWSAnalyticsEvent {
     public readonly accountAddress: EVMAccountAddress,
     public readonly chainId: EVMChainId,
     public readonly durationMs: number,
-    public readonly to: EVMAccountAddress | null = null,
+    public readonly to: EVMAccountAddress | EVMContractAddress | null = null,
   ) {
     super(EAnalyticsEventName.TransactionSubmitCancelled, hostDomain);
   }

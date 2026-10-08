@@ -1,11 +1,11 @@
-import type { EVMAccountAddress } from "@1shotapi/ows-types";
+import type { EVMContractAddress } from "@1shotapi/ows-types";
 import type { TokenAmount } from "../primitives";
 
 /** Relayer-settled fee shown between prepare and submit. */
 export type IFinalRelayerFee = {
   feeAtoms: TokenAmount;
   feeFormatted: string;
-  paymentToken: EVMAccountAddress;
+  paymentToken: EVMContractAddress;
 };
 
 /** Branding-layer hooks for {@link ITransactionUtils.sendViaRelayer}. */
@@ -20,7 +20,9 @@ export type IRelayerSendUiCallbacks = {
   /**
    * Keep the flyout open through submit/poll and on error.
    * Use for in-wallet flows (TransferTokensModal, cancel); omit for host
-   * eth_sendTransaction so the wallet collapses after the last passkey.
+   * eth_sendTransaction so the wallet collapses after the last passkey and on
+   * terminal failures. Signing Layer cancel does not hide the flyout (Branding
+   * returns to confirm).
    */
   retainDisplayDuringSubmit?: boolean;
 };

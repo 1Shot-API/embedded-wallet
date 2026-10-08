@@ -7,6 +7,7 @@ import {
 } from "viem";
 import {
   EVMAccountAddress,
+  EVMContractAddress,
   type EVMChainId,
   type HexString,
 } from "@1shotapi/ows-types";
@@ -18,7 +19,7 @@ import type {
 /** EVM transfer helpers (decode, amount formatting, host/chain labels). */
 export class TransactionUtils implements ITransactionUtils {
   tryDecodeErc20Transfer(
-    to: EVMAccountAddress | null,
+    to: EVMContractAddress | null,
     data: HexString,
   ): IDecodedErc20Transfer | null {
     if (!to || !data || String(data) === "0x" || data.length < 10) {

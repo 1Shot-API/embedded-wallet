@@ -2,8 +2,8 @@ import { erc20Abi, zeroAddress } from "viem";
 import {
   ChainUtils,
   EVMAccountAddress,
-  type EVMAccountAddress as EVMAccountAddressType,
-  type EVMChainId as EVMChainIdType,
+  EVMContractAddress,
+  type EVMChainId,
 } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import type { IKnownAssetRepository } from "../../interfaces/data/IKnownAssetRepository";
@@ -20,7 +20,7 @@ import {
 import { HardcodedChainRepository } from "./HardcodedChainRepository";
 import { registerKnownAssetIconResolver } from "../../utils/tokenIcons";
 
-const NATIVE_ADDRESS = EVMAccountAddress(zeroAddress);
+const NATIVE_ADDRESS = EVMContractAddress(zeroAddress);
 const NATIVE_WEIGHT = 50;
 
 /** Arc gas is the pinned USDC ERC-20 — do not also show a zero-address Native row. */
@@ -104,8 +104,8 @@ const DEFAULT_TRACKED_KEYS = new Set(
 );
 
 export function isDefaultTrackedAsset(
-  chainId: EVMChainIdType,
-  address: EVMAccountAddressType,
+  chainId: EVMChainId,
+  address: EVMContractAddress,
 ): boolean {
   return DEFAULT_TRACKED_KEYS.has(makeTrackedAssetId(chainId, address));
 }
@@ -114,29 +114,29 @@ export class HardcodedKnownAssetRepository implements IKnownAssetRepository {
   constructor(private readonly blockchain: IBlockchainProvider) {}
 
   async getKnownAsset(
-    chainId: EVMChainIdType,
-    address: EVMAccountAddressType,
+    chainId: EVMChainId,
+    address: EVMContractAddress,
   ): Promise<KnownAsset | null> {
     return BY_KEY.get(makeTrackedAssetId(chainId, address)) ?? null;
   }
 
   async getCctpBridgeAsset(
-    chainId: EVMChainIdType,
+    chainId: EVMChainId,
   ): Promise<KnownAsset | null> {
     return lookupCctpBridgeAsset(chainId);
   }
 
   async getOnrampAsset(
-    chainId: EVMChainIdType,
+    chainId: EVMChainId,
     symbol?: string,
   ): Promise<KnownAsset | null> {
     return lookupOnrampAsset(chainId, symbol);
   }
 
   async resolveForTracking(
-    chainId: EVMChainIdType,
-    address: EVMAccountAddressType,
-    owner: EVMAccountAddressType,
+    chainId: EVMChainId,
+    address: EVMContractAddress,
+    owner: EVMAccountAddress,
   ): Promise<NewTrackedAsset> {
     const known = await this.getKnownAsset(chainId, address);
     if (

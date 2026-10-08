@@ -1,11 +1,12 @@
-import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
+import type { EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
 import type { EAssetType } from "../enum/EAssetType";
 
 /** Catalog metadata for a known token (hardcoded registry). */
 export class KnownAsset {
   constructor(
     public readonly chainId: EVMChainId,
-    public readonly address: EVMAccountAddress,
+    /** Token contract, or zero address for native. */
+    public readonly address: EVMContractAddress,
     public readonly type: EAssetType,
     public readonly name: string,
     public readonly symbol: string,

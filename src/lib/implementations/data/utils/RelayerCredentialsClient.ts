@@ -9,6 +9,7 @@ import type { IRelayerCredentialsClient } from "../../../interfaces/data/IRelaye
 import type { IConfigProvider } from "../../../interfaces/utils/IConfigProvider";
 import type { IOWSProvider } from "../../../interfaces/utils/IOWSProvider";
 import type {
+  ICredentialStoreItem,
   IRecoveredCredentialBlob,
   IRelayerCredentialsErrorBody,
   IWalletCredentialChallengeResponse,
@@ -106,10 +107,9 @@ export class RelayerCredentialsClient implements IRelayerCredentialsClient {
     );
   }
 
-  async storeCredential(
+  async storeCredentials(
     body: IWebAuthnAssertionRequest & {
-      ciphertext?: string;
-      ciphertexts?: string[];
+      items: ICredentialStoreItem[];
     },
   ): Promise<{ id: string; ids: string[] }> {
     return this.postJson<{ id: string; ids: string[] }>(
@@ -121,15 +121,28 @@ export class RelayerCredentialsClient implements IRelayerCredentialsClient {
   async recoverCredentials(
     body: IWebAuthnAssertionRequest,
   ): Promise<{ credentials: IRecoveredCredentialBlob[] }> {
-    return this.postJson<{ credentials: IRecoveredCredentialBlob[] }>(
-      "/wallet/credentials/recover",
-      body,
-    );
+    const wire = await this.postJson<{
+      credentials: Array<{
+        id: string;
+        payload?: string;
+        ciphertext?: string;
+        encrypted?: boolean;
+        createdTimestamp: number;
+      }>;
+    }>("/wallet/credentials/recover", body);
+    return {
+      credentials: wire.credentials.map((item) => ({
+        id: item.id,
+        payload: item.payload ?? item.ciphertext ?? "",
+        encrypted: item.encrypted ?? true,
+        createdTimestamp: item.createdTimestamp,
+      })),
+    };
   }
 
   async deleteCredentials(
     body: IWebAuthnAssertionRequest & {
-      credentialBlobId?: string;
+      credentialBlobIds?: string[];
       deleteAll?: boolean;
     },
   ): Promise<{ deleted: number }> {

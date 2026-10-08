@@ -40,3 +40,13 @@ export type { IDelegationRepository } from "./IDelegationRepository";
 export { IDelegationRepositoryType } from "./IDelegationRepository";
 export type { IRelayerCredentialsClient } from "./IRelayerCredentialsClient";
 export { IRelayerCredentialsClientType } from "./IRelayerCredentialsClient";
+export type {
+  IPendingEncryptedBlob,
+  IVaultPendingDecrypt,
+} from "./IVaultPendingDecrypt";
+export { IVaultPendingDecryptType } from "./IVaultPendingDecrypt";
+export type {
+  IVaultTrackedAssetRow,
+  IVaultTrackedAssetSync,
+} from "./IVaultTrackedAssetSync";
+export { IVaultTrackedAssetSyncType } from "./IVaultTrackedAssetSync";

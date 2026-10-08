@@ -86,6 +86,10 @@ export function mergeStyle(
         ...current.copy.cancelDelegation,
         ...patch.copy?.cancelDelegation,
       },
+      activateOfflinePermissions: {
+        ...current.copy.activateOfflinePermissions,
+        ...patch.copy?.activateOfflinePermissions,
+      },
       relayerSubmit: {
         ...current.copy.relayerSubmit,
         ...patch.copy?.relayerSubmit,
@@ -242,6 +246,9 @@ function cloneDefaultStyle(): IResolvedStyle {
         ...DEFAULT_STYLE.copy.grantLiFiApprovePermission,
       },
       cancelDelegation: { ...DEFAULT_STYLE.copy.cancelDelegation },
+      activateOfflinePermissions: {
+        ...DEFAULT_STYLE.copy.activateOfflinePermissions,
+      },
       relayerSubmit: { ...DEFAULT_STYLE.copy.relayerSubmit },
       passkeyPrompt: {
         unlock: { ...DEFAULT_STYLE.copy.passkeyPrompt.unlock },

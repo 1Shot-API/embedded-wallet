@@ -354,10 +354,25 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       skipOnchainLabel: "Skip onchain cancellation",
       skipOnchainAcknowledgement:
         "I acknowledge that this delegation may still be used onchain by anybody that holds it, and that canceling it without submitting an onchain cancellation will only remove it from my wallet",
+      insufficientBalanceError:
+        "Insufficient balance to pay the network fee on {chainName}. Choose another payment token.",
+    },
+    activateOfflinePermissions: {
+      title: "Activate offline permissions",
+      body: "This is your first time using account permissions. You must activate the feature on your account with a one-time transaction.",
+      chainsLabel: "Networks to activate",
+      payFromLabel: "Pay fee from",
+      feeLabel: "Activation fee",
+      insufficientBalanceError:
+        "Insufficient USDC to pay the activation fee on {chainName}.",
+      noUsdcError:
+        "Hold USDC on Arc or a requested network to activate offline permissions.",
+      rejectLabel: "Cancel",
+      confirmLabel: "Activate",
     },
     relayerSubmit: {
       finalFeeNotice:
-        "The relayer fee changed after signing. Review the final fee before submitting.",
+        "The transaction fee changed after signing. Review the final fee before submitting.",
       signingMessage: "Confirm in the signing panel…",
       waitingMessage: "Waiting for on-chain confirmation…",
     },
@@ -384,15 +399,15 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       },
       relayerAuth: {
         title: "Authenticate with passkey",
-        body: "Confirm with your passkey to authenticate with the 1Shot Relayer.",
+        body: "Confirm with your passkey to authenticate.",
       },
       walletUpgrade: {
         title: "Authorize upgrading your wallet",
-        body: "Confirm with your passkey for a one-time network upgrade so the 1Shot Relayer can submit gas-abstracted transactions for you.",
+        body: "Confirm with your passkey for a one-time smart account upgrade.",
       },
       approveTransaction: {
         title: "Approve transaction",
-        body: "Confirm with your passkey to authorize this transaction for the 1Shot Relayer.",
+        body: "Confirm with your passkey to authorize this transaction.",
       },
       adjustFee: {
         title: "Confirm fee update",

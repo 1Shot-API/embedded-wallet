@@ -4,6 +4,7 @@ import { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
 import {
   ChainUtils,
   EVMAccountAddress,
+  EVMContractAddress,
   OwsInvalidParamsError,
   OwsUserRejectedError,
   type CredentialOfferApprovalRequest,
@@ -33,7 +34,9 @@ import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
 import { registerConfigureRpc } from "../style/registerConfigure";
 import { wrapSignerWithCeremonyCopy } from "./wrapSignerWithCeremonyCopy";
+import { wrapSignerWithVaultDecrypt } from "./wrapSignerWithVaultDecrypt";
 import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
+import { styleController } from "../style/styleController";
 import {
   analyticsErrorCode,
   isAnalyticsCancelled,
@@ -46,6 +49,7 @@ import type {
 } from "../lib/interfaces/data";
 import type {
   IDelegationService,
+  IBitcoinService,
   ITransactionService,
 } from "../lib/interfaces/business";
 import {
@@ -63,6 +67,7 @@ import type {
 } from "../lib/interfaces/utils";
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
+import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPaymentTokenUtils";
 import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type { SupportedChain } from "../lib/types/domain";
 import type { TokenAmount } from "../lib/types/primitives";
@@ -90,6 +95,9 @@ import { registerFocusModeRpc } from "./registerFocusMode";
 import { registerSwitchChainRpc } from "./registerSwitchChain";
 import { registerOnrampRpc } from "./registerOnramp";
 import { registerBridgeRpc } from "./registerBridge";
+import { registerGetUpgradedRpc } from "./registerGetUpgraded";
+import { registerGetBitcoinBalanceRpc } from "./registerGetBitcoinBalance";
+import { registerRequestCancelDelegationsRpc } from "./registerRequestCancelDelegations";
 import { registerBitcoinProvider } from "../ows/registerBitcoinProvider";
 import { loadCachedEvmAddress, loadCredentialId } from "../storage";
 import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
@@ -162,17 +170,24 @@ function createDeferredSigner(
 }
 
 function requireRelayerConfirmPayment(confirmed: {
-  paymentToken?: EVMAccountAddress;
+  paymentToken?: EVMContractAddress;
   feeAtoms?: TokenAmount;
+  paymentChainId?: EVMChainId;
 }): IRelayerConfirmSendResult {
   if (!confirmed.paymentToken || confirmed.feeAtoms === undefined) {
     throw new OwsInvalidParamsError(
       "Select a relayer payment token and fee before confirming the transaction",
     );
   }
+  if (!confirmed.paymentChainId) {
+    throw new OwsInvalidParamsError(
+      "Missing paymentChainId from the fee quote",
+    );
+  }
   return {
     paymentToken: confirmed.paymentToken,
     feeAtoms: confirmed.feeAtoms,
+    paymentChainId: confirmed.paymentChainId,
   };
 }
 
@@ -197,6 +212,8 @@ export interface IUseWalletBootParams {
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   transactionService: ITransactionService;
+  bitcoinService: IBitcoinService;
+  paymentTokenUtils: IPaymentTokenUtils;
   delegationService: IDelegationService;
   transactionUtils: ITransactionUtils;
   cctpUtils: ICCTPUtils;
@@ -228,6 +245,8 @@ export function useWalletBoot({
   knownAssetRepository,
   trackedAssetRepository,
   transactionService,
+  bitcoinService,
+  paymentTokenUtils,
   delegationService,
   transactionUtils,
   cctpUtils,
@@ -267,9 +286,22 @@ export function useWalletBoot({
       const signerPromise = OWSSigner.create(container, signerUrl, {
         hidden: true,
         credentialId: loadCredentialId(),
+        onCeremonyPanel: (open) => {
+          useWalletSessionStore.getState().setSignerCeremonyOpen(open);
+        },
       });
+      let wrappedSigner: OWSSigner | null = null;
       const awaitSigner = async (): Promise<OWSSigner> => {
-        const loaded = wrapSignerWithCeremonyCopy(await signerPromise);
+        // Wrap once — re-wrapping nests vault-decrypt / ceremony handlers and
+        // can leave pendingEncrypted uncleared after piggyback decrypt.
+        if (wrappedSigner) {
+          return wrappedSigner;
+        }
+        const loaded = wrapSignerWithVaultDecrypt(
+          wrapSignerWithCeremonyCopy(await signerPromise),
+          credentialRepository,
+        );
+        wrappedSigner = loaded;
         signerRef.current = loaded;
         owsProvider.setSigner(loaded);
         return loaded;
@@ -291,9 +323,23 @@ export function useWalletBoot({
 
       registerConfigureRpc(wallet, chainRepository);
 
+      const warmVaultFromRelayer = async (): Promise<void> => {
+        try {
+          await credentialRepository.refreshFromRelayer();
+          const listed = await credentialRepository.list();
+          useWalletSessionStore.getState().setCredentialCount(listed.length);
+        } catch (error: unknown) {
+          console.warn(
+            "[credentials] recover after connect failed (passkey may be unregistered)",
+            error,
+          );
+        }
+      };
+
       registerAccountConnect(wallet, signer, {
         storage: walletStorage,
         ensureReady,
+        warmVaultFromRelayer,
         requestConnectApproval: () =>
           ask<boolean>(({ id, resolve }) => ({
             id,
@@ -375,6 +421,145 @@ export function useWalletBoot({
                 const { hostDomain } = await configProvider.getConfig();
                 const signStartedBatch = performance.now();
                 const account = analyticsAccountAddress();
+
+                const owner =
+                  useWalletSessionStore.getState().evmAddress ||
+                  loadCachedEvmAddress();
+                if (!owner) {
+                  throw new OwsInvalidParamsError(
+                    "Wallet address is required to grant execution permissions",
+                  );
+                }
+
+                const requestedChainIds = [
+                  ...new Map(
+                    prepared.map(({ request }) => [
+                      request.chainId,
+                      request.chainId,
+                    ] as const),
+                  ).values(),
+                ];
+
+                // Upgrade check is for grant/requested chains only. Arc is
+                // considered as a payment fallback inside PaymentTokenUtils —
+                // if the fee lands on Arc, we append it below when needed.
+                const upgradeChecks = await Promise.all(
+                  requestedChainIds.map(async (chainId) => ({
+                    chainId,
+                    needsUpgrade: await transactionService.needsWalletUpgrade(
+                      chainId,
+                      owner,
+                    ),
+                  })),
+                );
+                const upgradeChainIds = upgradeChecks
+                  .filter((row) => row.needsUpgrade)
+                  .map((row) => row.chainId);
+
+                if (upgradeChainIds.length > 0) {
+                  const payment = await paymentTokenUtils.resolvePayment(
+                    owner,
+                    upgradeChainIds,
+                  );
+                  if (!payment) {
+                    throw new OwsInvalidParamsError(
+                      styleController.get().copy.activateOfflinePermissions
+                        .noUsdcError,
+                    );
+                  }
+
+                  // Payment chain must be upgraded too (fee ExactCalldata).
+                  if (
+                    !upgradeChainIds.some(
+                      (id) => id === payment.paymentChainId,
+                    )
+                  ) {
+                    const paymentNeedsUpgrade =
+                      await transactionService.needsWalletUpgrade(
+                        payment.paymentChainId,
+                        owner,
+                      );
+                    if (paymentNeedsUpgrade) {
+                      upgradeChainIds.push(payment.paymentChainId);
+                    }
+                  }
+
+                  const upgradeChains = upgradeChainIds.map((chainId) => {
+                    const preparedItem = prepared.find(
+                      (item) => item.request.chainId === chainId,
+                    );
+                    return {
+                      chainId,
+                      chainName:
+                        preparedItem?.chain.label ??
+                        resolveChain(chainId)?.label ??
+                        String(chainId),
+                    };
+                  });
+
+                  try {
+                    await ask<EVMTransactionHash>(
+                      ({ id, resolve, reject }) => ({
+                        id,
+                        kind: "activateOfflinePermissions",
+                        request: {
+                          domain,
+                          ownerAddress: owner,
+                          upgradeChains,
+                          payment,
+                        },
+                        execute: async (
+                          confirmPayment: IRelayerConfirmSendResult,
+                          ui,
+                        ) => {
+                          const results =
+                            await transactionService.activateDelegations({
+                              upgradeChainIds,
+                              payment,
+                              feeAtoms: confirmPayment.feeAtoms,
+                              ...ui,
+                            });
+                          const last = results[results.length - 1];
+                          if (!last) {
+                            throw new Error(
+                              "Activation returned no transaction results",
+                            );
+                          }
+                          return last.transactionHash;
+                        },
+                        resolve,
+                        reject,
+                      }),
+                    );
+                  } catch (error: unknown) {
+                    const durationMs = Math.round(
+                      performance.now() - signStartedBatch,
+                    );
+                    const chainId = upgradeChainIds[0] ?? requestedChainIds[0]!;
+                    if (isAnalyticsCancelled(error)) {
+                      eventBus.emitAnalytics(
+                        new DelegationCreateCancelledEvent(
+                          hostDomain,
+                          account,
+                          chainId,
+                          durationMs,
+                        ),
+                      );
+                    } else {
+                      eventBus.emitAnalytics(
+                        new DelegationCreateFailedEvent(
+                          hostDomain,
+                          account,
+                          chainId,
+                          analyticsErrorCode(error),
+                          durationMs,
+                        ),
+                      );
+                    }
+                    throw error;
+                  }
+                }
+
                 let approvedResults: IGrantExecutionPermissionResult[];
                 try {
                   approvedResults =
@@ -518,28 +703,39 @@ export function useWalletBoot({
                 await runWithAnalytics(
                   (event) => eventBus.emitAnalytics(event),
                   async () => {
-                    const txHash = await ask<EVMTransactionHash | null>(
+                    const txHashes = await ask<EVMTransactionHash[] | null>(
                       ({ id, resolve, reject }) => ({
                         id,
                         kind: "cancelDelegation",
                         request: {
                           domain: String(domain),
-                          chainName: chain.label,
-                          chainId,
                           ownerAddress: owner,
-                          work: cancelWork,
+                          items: [
+                            {
+                              memo: stored?.memo ?? "",
+                              chainName: chain.label,
+                              chainId,
+                              work: cancelWork,
+                            },
+                          ],
                           allowSkipOnchain: Boolean(stored),
                         },
-                        execute: async (payment: IRelayerConfirmSendResult, ui) => {
-                          const result = await delegationService.cancelDelegation({
-                            chainId,
-                            paymentToken: payment.paymentToken,
-                            feeAtoms: payment.feeAtoms,
-                            ...(stored ? { stored } : {}),
-                            permissionContext: params.permissionContext,
-                            ...ui,
-                          });
-                          return result.transactionHash;
+                        execute: async (payment, ui) => {
+                          const batch =
+                            await delegationService.cancelDelegations({
+                              items: [
+                                {
+                                  chainId,
+                                  ...(stored ? { stored } : {}),
+                                  permissionContext: params.permissionContext,
+                                },
+                              ],
+                              paymentToken: payment.paymentToken,
+                              feeAtoms: payment.feeAtoms,
+                              paymentChainId: payment.paymentChainId,
+                              ...ui,
+                            });
+                          return batch.results.map((r) => r.transactionHash);
                         },
                         executeLocal: async () => {
                           if (!stored) {
@@ -547,13 +743,15 @@ export function useWalletBoot({
                               "Skip onchain cancellation requires a stored permission",
                             );
                           }
-                          await delegationService.removeStoredDelegation(stored);
+                          await delegationService.removeStoredDelegation(
+                            stored,
+                          );
                         },
                         resolve,
                         reject,
                       }),
                     );
-                    return txHash;
+                    return txHashes?.[0] ?? null;
                   },
                   {
                     success: (txHash) =>
@@ -604,6 +802,7 @@ export function useWalletBoot({
       registerFocusModeRpc(wallet, rpcHelper);
 
       registerOnrampRpc(wallet, {
+        ensureReady,
         getOwnerAddress: () => {
           const address = useWalletSessionStore.getState().evmAddress;
           if (!address || String(address).toLowerCase() === "0x0") {
@@ -613,7 +812,39 @@ export function useWalletBoot({
         },
       });
 
+      registerGetUpgradedRpc(wallet, {
+        ensureReady,
+        getOwnerAddress: () => {
+          const address = useWalletSessionStore.getState().evmAddress;
+          if (!address || String(address).toLowerCase() === "0x0") {
+            return null;
+          }
+          return address;
+        },
+        transactionService,
+      });
+
+      registerGetBitcoinBalanceRpc(wallet, {
+        ensureReady,
+        bitcoinService,
+        owsProvider,
+      });
+
+      registerRequestCancelDelegationsRpc(wallet, {
+        configProvider,
+        delegationService,
+        ensureOnboardedForSigning,
+        refreshVaultFromRelayer: async () => {
+          await credentialRepository.refreshFromRelayer();
+          const listed = await credentialRepository.list();
+          useWalletSessionStore.getState().setCredentialCount(listed.length);
+        },
+        resolveChain,
+        ask,
+      });
+
       registerBridgeRpc(wallet, {
+        ensureReady,
         getOwnerAddress: () => {
           const address = useWalletSessionStore.getState().evmAddress;
           if (!address || String(address).toLowerCase() === "0x0") {
@@ -634,6 +865,7 @@ export function useWalletBoot({
       });
 
       registerAddAssetRpc(wallet, {
+        ensureReady,
         knownAssetRepository,
         trackedAssetRepository,
         getOwnerAddress: () => useWalletSessionStore.getState().evmAddress,
@@ -786,21 +1018,23 @@ export function useWalletBoot({
               const useRelayer = chain?.useRelayer === true;
 
               const transfer = transactionUtils.tryDecodeErc20Transfer(
-                request.to,
+                request.to ? EVMContractAddress(request.to) : null,
                 request.data,
               );
 
               const executeSend = async (
                 payment: {
-                  paymentToken?: EVMAccountAddress;
+                  paymentToken?: EVMContractAddress;
                   feeAtoms?: TokenAmount;
+                  paymentChainId?: EVMChainId;
                 },
                 ui?: import("../lib/types/domain/RelayerSendUi").IRelayerSendUiCallbacks,
               ) => {
                 let relayerOptions:
                   | {
-                      paymentToken: EVMAccountAddress;
+                      paymentToken: EVMContractAddress;
                       feeAtoms: TokenAmount;
+                      paymentChainId: EVMChainId;
                     }
                   | undefined;
                 if (useRelayer) {
@@ -808,6 +1042,7 @@ export function useWalletBoot({
                   relayerOptions = {
                     paymentToken: confirmed.paymentToken,
                     feeAtoms: confirmed.feeAtoms,
+                    paymentChainId: confirmed.paymentChainId,
                   };
                 }
 
@@ -902,7 +1137,6 @@ export function useWalletBoot({
                 );
               }
 
-              await onSigningAuthenticated();
               return hash;
             },
             {
@@ -945,6 +1179,7 @@ export function useWalletBoot({
         trust: issuerTrust,
         attestationProvider,
         ensureReady,
+        ensureDecrypted: () => credentialRepository.ensureDecrypted(),
         ensureOnboarded: ensureOnboardedForSigning,
         onAuthenticated: onSigningAuthenticated,
         emitAnalytics: (event) => eventBus.emitAnalytics(event),

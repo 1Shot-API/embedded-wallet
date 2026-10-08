@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatUnits, parseUnits, erc20Abi } from "viem";
 import {
+  ChainUtils,
   DomainString,
-  EVMChainId,
   OwsUserRejectedError,
   type EVMChainId as EVMChainIdType,
   type EVMTransactionHash,
@@ -163,7 +163,7 @@ export function CCTPBridge({
   const resolvedDestChainId = useMemo((): EVMChainIdType | null => {
     if (!destChainId) return null;
     try {
-      return EVMChainId(destChainId as `0x${string}`);
+      return ChainUtils.asEVMChainId(destChainId);
     } catch {
       return null;
     }
@@ -348,7 +348,7 @@ export function CCTPBridge({
         const parsed = parseUnits(opts.amountRaw.trim(), decimals);
         const next = await bridgeService.quote({
           sourceChainId: request.sourceChainId,
-          destChainId: EVMChainId(opts.dest as `0x${string}`),
+          destChainId: ChainUtils.asEVMChainId(opts.dest),
           amountAtoms: parsed,
           speed: opts.transferSpeed,
           owner: request.ownerAddress,
@@ -426,8 +426,8 @@ export function CCTPBridge({
     if (!irisQuote || !paymentQuote || !sourceUsdc) return null;
     const burn = usdcAmountFromAtoms(irisQuote.totalBurn);
     const same =
-      String(paymentQuote.selectedToken).toLowerCase() ===
-      String(sourceUsdc.address).toLowerCase();
+      paymentQuote.selectedToken ===
+      sourceUsdc.address;
     if (!same) {
       return burn;
     }
@@ -514,6 +514,7 @@ export function CCTPBridge({
         {
           paymentToken: paymentQuote.selectedToken,
           feeAtoms: paymentQuote.feeAtoms,
+          paymentChainId: paymentQuote.paymentChainId,
         },
         (progress) => {
           setBurnTxHash(progress.burnTxHash);
@@ -885,9 +886,7 @@ function ConfirmSummary({
           <dd>
             {payment.feeFormatted}{" "}
             {payment.tokens.find(
-              (token) =>
-                String(token.address).toLowerCase() ===
-                String(payment.selectedToken).toLowerCase(),
+              (token) => token.address === payment.selectedToken,
             )?.symbol ?? "USDC"}
           </dd>
         </div>

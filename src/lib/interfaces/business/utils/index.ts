@@ -1,3 +1,5 @@
+export type { IPaymentTokenUtils } from "./IPaymentTokenUtils";
+export { IPaymentTokenUtilsType } from "./IPaymentTokenUtils";
 export type { ITransactionUtils } from "./ITransactionUtils";
 export {
   ITransactionUtilsType,

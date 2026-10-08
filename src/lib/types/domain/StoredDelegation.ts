@@ -59,7 +59,7 @@ export interface IDelegationSummary {
   permissionType: string;
   to: EVMAccountAddress;
   /** ERC-20 / LiFi input token when present on the stored permission. */
-  tokenAddress?: EVMAccountAddress;
+  tokenAddress?: EVMContractAddress;
   /** Hex atom amount per period (`0x…`). */
   periodAmount?: HexString;
   /** Period length in seconds. */

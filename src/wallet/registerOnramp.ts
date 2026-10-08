@@ -5,6 +5,7 @@ import {
   type EVMAccountAddress,
 } from "@1shotapi/ows-types";
 import { openOnramp } from "../circle/openOnramp";
+import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 
 /** Custom RPC — host: `await proxy.rpc("onramp", { chainId?, amount? })`. */
 export const ONRAMP_RPC_METHOD = "onramp";
@@ -19,6 +20,7 @@ const onrampParamsSchema = z
 export type IOnrampParams = z.infer<typeof onrampParamsSchema>;
 
 export type RegisterOnrampOptions = {
+  ensureReady: WalletReadyGate;
   getOwnerAddress: () => EVMAccountAddress | null;
 };
 
@@ -32,7 +34,7 @@ export function registerOnrampRpc(
 ): void {
   wallet.registerRpc(
     ONRAMP_RPC_METHOD,
-    async (params) => {
+    withWalletReady(options.ensureReady, async (params) => {
       const { chainId, amount } = params as IOnrampParams;
       const owner = options.getOwnerAddress();
       if (!owner) {
@@ -60,7 +62,7 @@ export function registerOnrampRpc(
       } finally {
         await display.hide();
       }
-    },
+    }),
     onrampParamsSchema,
   );
 }

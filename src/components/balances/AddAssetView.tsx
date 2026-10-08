@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { getAddress } from "viem";
 import {
   ChainUtils,
-  EVMAccountAddress,
+  EVMContractAddress,
+  type EVMContractAddress as EVMContractAddressType,
 } from "@1shotapi/ows-types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,8 +11,6 @@ import { Modal } from "../Modal";
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
-
-const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
 export interface IAddAssetViewProps {
   onClose: () => void;
@@ -32,18 +32,17 @@ export function AddAssetView({ onClose }: IAddAssetViewProps) {
       setError(copy.addFailedError);
       return;
     }
-    const trimmed = addressInput.trim();
-    if (!ADDRESS_RE.test(trimmed)) {
+    let address: EVMContractAddressType;
+    try {
+      address = EVMContractAddress(getAddress(addressInput.trim()));
+    } catch {
       setError(copy.invalidAddressError);
       return;
     }
     setAdding(true);
     setError(null);
     try {
-      await addTrackedAsset(
-        chainId,
-        EVMAccountAddress(trimmed as `0x${string}`),
-      );
+      await addTrackedAsset(chainId, address);
       onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : copy.addFailedError);

@@ -1,6 +1,6 @@
 import type {
-  EVMAccountAddress,
   EVMChainId,
+  EVMContractAddress,
   HexString,
   IExecutionPermission,
   IExecutionPermissionRequest,
@@ -78,8 +78,10 @@ export interface ICreateExecutionPermissionsParams {
 
 export interface ICancelDelegationParams extends IRelayerSendUiCallbacks {
   chainId: EVMChainId;
-  paymentToken: EVMAccountAddress;
+  paymentToken: EVMContractAddress;
   feeAtoms: TokenAmount;
+  /** Fee payment chain — defaults to `chainId`. */
+  paymentChainId?: EVMChainId;
   /** Vault row when canceling from the Delegations tab. */
   stored?: IStoredDelegation;
   /**
@@ -87,6 +89,21 @@ export interface ICancelDelegationParams extends IRelayerSendUiCallbacks {
    * the host. Used when `stored` is omitted; also drives hash lookup.
    */
   permissionContext?: HexString;
+}
+
+/** One row in a batch cancel (vault and/or host permissionContext). */
+export type ICancelDelegationItem = {
+  chainId: EVMChainId;
+  stored?: IStoredDelegation;
+  permissionContext?: HexString;
+};
+
+export interface ICancelDelegationsParams extends IRelayerSendUiCallbacks {
+  items: readonly ICancelDelegationItem[];
+  /** Fee token (local-first / Arc USDC) — one payment for the whole batch. */
+  paymentToken: EVMContractAddress;
+  feeAtoms: TokenAmount;
+  paymentChainId: EVMChainId;
 }
 
 export type IBuildCancelWorkParams = {
@@ -98,6 +115,10 @@ export type IBuildCancelWorkParams = {
 export interface ICancelDelegationResult extends ISendTransactionResult {
   /** Set when a known vault entry was deleted after on-chain cancel. */
   deletedDelegationId?: DelegationId;
+}
+
+export interface ICancelDelegationsResult {
+  results: Array<ICancelDelegationResult & { chainId: EVMChainId }>;
 }
 
 /**
@@ -114,6 +135,16 @@ export interface IDelegationService {
   /** ExactCalldata work for unsigned fee estimate before cancel confirm. */
   buildCancelWork(params: IBuildCancelWorkParams): Promise<ITransactionWork>;
 
+  /**
+   * Disable one or more delegations. Groups ExactCalldata work by execution
+   * chain and submits one Multichain (or single-chain) 7710 send — one fee,
+   * one passkey. Returns one result per execution chain.
+   */
+  cancelDelegations(
+    params: ICancelDelegationsParams,
+  ): Promise<ICancelDelegationsResult>;
+
+  /** Single-delegation cancel — thin wrapper over {@link cancelDelegations}. */
   cancelDelegation(
     params: ICancelDelegationParams,
   ): Promise<ICancelDelegationResult>;
@@ -124,6 +155,13 @@ export interface IDelegationService {
    * by anyone who still holds it.
    */
   removeStoredDelegation(stored: IStoredDelegation): Promise<DelegationId>;
+
+  /**
+   * Remove multiple vault rows without on-chain `disableDelegation`.
+   */
+  removeStoredDelegations(
+    storedList: readonly IStoredDelegation[],
+  ): Promise<DelegationId[]>;
 
   getSupportedExecutionPermissions(): Promise<SupportedExecutionPermissions>;
 

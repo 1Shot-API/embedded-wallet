@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import type {
   CredentialId,
   EVMAccountAddress,
+  EVMContractAddress,
   EVMChainId,
 } from "@1shotapi/ows-types";
 import { ChainUtils } from "@1shotapi/ows-types";
@@ -47,35 +48,44 @@ export function useWalletAssets({
     useWalletSessionStore.getState().setTrackedAssetCount(listed.length);
   }, [trackedAssetRepository]);
 
+  const ensureVaultDecrypted = useCallback(async () => {
+    await awaitSignerReady();
+    await credentialRepository.ensureDecrypted();
+  }, [awaitSignerReady, credentialRepository]);
+
   const listCredentials = useCallback(async () => {
+    await ensureVaultDecrypted();
     return credentialRepository.list();
-  }, [credentialRepository]);
+  }, [credentialRepository, ensureVaultDecrypted]);
 
   const getCredential = useCallback(
     async (credentialId: CredentialId) => {
+      await ensureVaultDecrypted();
       return credentialRepository.get(credentialId);
     },
-    [credentialRepository],
+    [credentialRepository, ensureVaultDecrypted],
   );
 
   const refreshCredentialsFromRelayer = useCallback(async () => {
     // Do not call ensureReady/unlock first — that can nest unlock + recover.
-    // Empty vault: one signer assert (or cached unlock assertion). Blobs:
-    // assert + Decrypt (PRF inside decryptAES256).
+    // Recover queues encrypted blobs; ensureDecrypted runs only when listing.
     await awaitSignerReady();
     await credentialRepository.refreshFromRelayer();
+    await credentialRepository.ensureDecrypted();
     await refreshCredentialCount();
   }, [awaitSignerReady, credentialRepository, refreshCredentialCount]);
 
   const listDelegations = useCallback(async () => {
+    await ensureVaultDecrypted();
     return credentialRepository.listDelegations();
-  }, [credentialRepository]);
+  }, [credentialRepository, ensureVaultDecrypted]);
 
   const getDelegation = useCallback(
     async (delegationId: DelegationId) => {
+      await ensureVaultDecrypted();
       return credentialRepository.getDelegation(delegationId);
     },
-    [credentialRepository],
+    [credentialRepository, ensureVaultDecrypted],
   );
 
   const refreshDelegationsFromRelayer = useCallback(async () => {
@@ -90,7 +100,7 @@ export function useWalletAssets({
   );
 
   const addTrackedAsset = useCallback(
-    async (chainId: EVMChainId, address: EVMAccountAddress) => {
+    async (chainId: EVMChainId, address: EVMContractAddress) => {
       const owner = useWalletSessionStore.getState().evmAddress;
       const resolved = await knownAssetRepository.resolveForTracking(
         chainId,
@@ -109,7 +119,7 @@ export function useWalletAssets({
   );
 
   const removeTrackedAsset = useCallback(
-    async (chainId: EVMChainId, address: EVMAccountAddress) => {
+    async (chainId: EVMChainId, address: EVMContractAddress) => {
       await trackedAssetRepository.remove(chainId, address);
       await refreshTrackedAssetCount();
     },
@@ -117,14 +127,14 @@ export function useWalletAssets({
   );
 
   const getKnownAsset = useCallback(
-    async (chainId: EVMChainId, address: EVMAccountAddress) => {
+    async (chainId: EVMChainId, address: EVMContractAddress) => {
       return knownAssetRepository.getKnownAsset(chainId, address);
     },
     [knownAssetRepository],
   );
 
   const resolveTrackedAsset = useCallback(
-    async (chainId: EVMChainId, address: EVMAccountAddress) => {
+    async (chainId: EVMChainId, address: EVMContractAddress) => {
       const owner = useWalletSessionStore.getState().evmAddress;
       const listed = await trackedAssetRepository.list(chainId);
       const existing = listed.find(

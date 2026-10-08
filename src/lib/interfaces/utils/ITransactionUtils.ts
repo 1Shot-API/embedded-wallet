@@ -1,11 +1,12 @@
 import type {
   EVMAccountAddress,
+  EVMContractAddress,
   HexString,
   OWSChainId,
 } from "@1shotapi/ows-types";
 
 export interface IDecodedErc20Transfer {
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   recipient: EVMAccountAddress;
   amount: bigint;
 }
@@ -13,7 +14,7 @@ export interface IDecodedErc20Transfer {
 export interface ITransactionUtils {
   /** Decode ERC-20 `transfer(address,uint256)` when calldata matches. */
   tryDecodeErc20Transfer(
-    to: EVMAccountAddress | null,
+    to: EVMContractAddress | null,
     data: HexString,
   ): IDecodedErc20Transfer | null;
 

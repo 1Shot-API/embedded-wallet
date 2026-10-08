@@ -3,23 +3,13 @@ import { OwsUserRejectedError, type EVMTransactionHash } from "@1shotapi/ows-typ
 import type { IPaymentQuote } from "../lib/interfaces/business";
 import type { IFinalRelayerFee, IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 import type { IRelayerConfirmSendResult } from "../wallet/modalTypes";
+import { isSignCeremonyDenied } from "../lib/utils/isSignCeremonyDenied";
 
 export type RelayerConfirmPhase =
   | "confirm"
   | "signing"
   | "finalFee"
   | "submitting";
-
-function isSignDenied(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  return (
-    error.name === "OwsSignDeniedError" ||
-    error.message.includes("signDenied") ||
-    error.message.includes("SignDenied") ||
-    error.message.includes("NotAllowed") ||
-    error.message.includes("not allowed")
-  );
-}
 
 export type IUseRelayerConfirmSubmitOptions = {
   execute: (
@@ -111,7 +101,7 @@ export function useRelayerConfirmSubmit({
         .catch((err: unknown) => {
           if (abortedRef.current) return;
           finalFeeGateRef.current = null;
-          if (isSignDenied(err)) {
+          if (isSignCeremonyDenied(err)) {
             setPhase(showedFinalFeeRef.current ? "finalFee" : "confirm");
             return;
           }
@@ -127,6 +117,7 @@ export function useRelayerConfirmSubmit({
     runExecute({
       paymentToken: quote.selectedToken,
       feeAtoms: quote.feeAtoms,
+      paymentChainId: quote.paymentChainId,
     });
   }, [quote, runExecute]);
 
@@ -163,5 +154,3 @@ export function useRelayerConfirmSubmit({
     feePickerMode: phase === "finalFee" ? ("final" as const) : ("estimate" as const),
   };
 }
-
-export { isSignDenied };

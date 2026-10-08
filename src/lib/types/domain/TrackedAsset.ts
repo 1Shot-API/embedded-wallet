@@ -1,4 +1,4 @@
-import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
+import type { EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
 import {
   makeTrackedAssetId,
   type TrackedAssetId,
@@ -13,7 +13,8 @@ import type { KnownAsset } from "./KnownAsset";
 export class NewTrackedAsset {
   constructor(
     public readonly chainId: EVMChainId,
-    public readonly address: EVMAccountAddress,
+    /** Token contract, or zero address for native. */
+    public readonly address: EVMContractAddress,
     public readonly type: EAssetType,
     public readonly name: string,
     public readonly symbol: string,
@@ -59,7 +60,7 @@ export class NewTrackedAsset {
 export class TrackedAsset extends NewTrackedAsset {
   constructor(
     chainId: EVMChainId,
-    address: EVMAccountAddress,
+    address: EVMContractAddress,
     type: EAssetType,
     name: string,
     symbol: string,

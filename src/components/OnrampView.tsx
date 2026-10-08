@@ -6,9 +6,9 @@ import type {
 } from "@circle-fin/app-kit";
 import {
   ChainUtils,
-  EVMAccountAddress,
-  EVMChainId,
-  type EVMAccountAddress as EVMAccountAddressType,
+  EVMContractAddress,
+  type EVMAccountAddress,
+  type EVMChainId,
 } from "@1shotapi/ows-types";
 import { zeroAddress } from "viem";
 import { Modal, type ModalAction } from "./Modal";
@@ -27,7 +27,7 @@ export type IOnrampViewProps = IOnrampOpenRequest & {
   onClose: () => void;
 };
 
-const PLACEHOLDER_TOKEN_ADDRESS = EVMAccountAddress(zeroAddress);
+const PLACEHOLDER_TOKEN_ADDRESS = EVMContractAddress(zeroAddress);
 
 /**
  * Full-screen Circle AppKit onramp inside the Branding Layer shell.
@@ -61,7 +61,7 @@ export function OnrampView({
   const [popupReady, setPopupReady] = useState(false);
   const [popupOpened, setPopupOpened] = useState(false);
   const [catalogTokenAddress, setCatalogTokenAddress] = useState<
-    EVMAccountAddressType | null
+    EVMContractAddress | null
   >(null);
   const [catalogIconUrl, setCatalogIconUrl] = useState<string | undefined>();
 
@@ -388,8 +388,12 @@ function resolveEffectiveEvmChainId(
   chainIdProp: number | undefined,
   sessionChainId: ReturnType<typeof useWalletSessionStore.getState>["chainId"],
 ): EVMChainId | null {
-  if (chainIdProp != null && Number.isFinite(chainIdProp)) {
-    return EVMChainId(`0x${chainIdProp.toString(16)}` as `0x${string}`);
+  if (
+    chainIdProp != null &&
+    Number.isInteger(chainIdProp) &&
+    chainIdProp >= 0
+  ) {
+    return ChainUtils.asEVMChainId(chainIdProp);
   }
   if (ChainUtils.isEVMChainId(sessionChainId)) {
     return sessionChainId;

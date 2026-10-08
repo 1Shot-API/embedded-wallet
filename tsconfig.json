@@ -20,7 +20,13 @@
     "paths": {
       "@/*": ["./src/*"],
       "viem": ["./node_modules/viem"],
-      "viem/*": ["./node_modules/viem/*"]
+      "viem/*": ["./node_modules/viem/*"],
+      "@1shotapi/ows-signer-utils": [
+        "../prf-wallet/packages/ows-signer-utils/dist/index.d.ts"
+      ],
+      "@1shotapi/ows-signer-utils/*": [
+        "../prf-wallet/packages/ows-signer-utils/dist/*"
+      ]
     }
   },
   "include": ["src/**/*", "create/**/*", "mobile/**/*", "vite.config.ts"]

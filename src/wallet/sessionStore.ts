@@ -4,6 +4,7 @@ import {
   type BitcoinChainId,
   type BitcoinSegwitAccountAddress,
   EVMAccountAddress,
+  EVMContractAddress,
   type OWSChainId,
   SolanaAccountAddress,
 } from "@1shotapi/ows-types";
@@ -20,6 +21,8 @@ export interface IWalletSessionState {
   ready: boolean;
   /** Signing Layer iframe loaded (`OWSSigner.create` resolved). */
   signerReady: boolean;
+  /** Passkey ceremony host strip is visible (`showSignerCeremonyPanel`). */
+  signerCeremonyOpen: boolean;
   bootError: string | null;
   embedded: boolean;
   unlocked: boolean;
@@ -33,10 +36,11 @@ export interface IWalletSessionState {
   /** Bumped on tracked-asset add/remove so Balances tab reloads. */
   trackedAssetCount: number;
   mode: EWalletMode;
-  focusedAssetAddress: EVMAccountAddress | null;
+  focusedAssetAddress: EVMContractAddress | null;
 
   setReady: (ready: boolean) => void;
   setSignerReady: (ready: boolean) => void;
+  setSignerCeremonyOpen: (open: boolean) => void;
   setBootError: (error: string | null) => void;
   setUnlocked: (unlocked: boolean) => void;
   setWalletCreated: (created: boolean) => void;
@@ -55,10 +59,10 @@ export interface IWalletSessionState {
   setCredentialCount: (count: number) => void;
   setTrackedAssetCount: (count: number) => void;
   setMode: (mode: EWalletMode) => void;
-  setFocusedAssetAddress: (address: EVMAccountAddress | null) => void;
+  setFocusedAssetAddress: (address: EVMContractAddress | null) => void;
   focusWallet: (
     chainId: OWSChainId,
-    assetAddress: EVMAccountAddress,
+    assetAddress: EVMContractAddress | null,
   ) => void;
   unfocusWallet: () => void;
 }
@@ -101,6 +105,7 @@ const hydratedSession = hydrateSessionFromCache();
 export const useWalletSessionStore = create<IWalletSessionState>((set) => ({
   ready: false,
   signerReady: false,
+  signerCeremonyOpen: false,
   bootError: null,
   embedded: initialEmbedded(),
   unlocked: hydratedSession.unlocked,
@@ -117,6 +122,7 @@ export const useWalletSessionStore = create<IWalletSessionState>((set) => ({
 
   setReady: (ready) => set({ ready }),
   setSignerReady: (signerReady) => set({ signerReady }),
+  setSignerCeremonyOpen: (signerCeremonyOpen) => set({ signerCeremonyOpen }),
   setBootError: (bootError) => set({ bootError }),
   setUnlocked: (unlocked) => set({ unlocked }),
   setWalletCreated: (walletCreated) => set({ walletCreated }),

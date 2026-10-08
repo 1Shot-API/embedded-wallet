@@ -1,10 +1,12 @@
 import { z } from "zod";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
-  EVMAccountAddress,
-  EVMChainId,
+  EVMContractAddress,
+  EVMChainIdSchema,
   OwsUserRejectedError,
   type EVMAccountAddress as EVMAccountAddressType,
+  type EVMChainId,
+  EVMContractAddressSchema,
 } from "@1shotapi/ows-types";
 import type {
   IKnownAssetRepository,
@@ -12,19 +14,14 @@ import type {
 } from "../lib/interfaces/data";
 import { isSafeHttpsIconUrl } from "../lib/utils/tokenIcons";
 import { useWalletSessionStore } from "./sessionStore";
+import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 
 /** Custom RPC — host: `await proxy.rpc("addAsset", { chainId, assetAddress, iconUrl? })`. */
 export const ADD_ASSET_RPC_METHOD = "addAsset";
 
 const addAssetParamsSchema = z.strictObject({
-  chainId: z
-    .string()
-    .regex(/^0x[0-9a-fA-F]+$/)
-    .transform((value) => EVMChainId(value as `0x${string}`)),
-  assetAddress: z
-    .string()
-    .regex(/^0x[0-9a-fA-F]{40}$/)
-    .transform((value) => EVMAccountAddress(value as `0x${string}`)),
+  chainId: EVMChainIdSchema,
+  assetAddress: EVMContractAddressSchema,
   iconUrl: z
     .url()
     .refine((url) => isSafeHttpsIconUrl(url), {
@@ -37,7 +34,7 @@ export type IAddAssetParams = z.infer<typeof addAssetParamsSchema>;
 
 export interface IAddAssetApprovalRequest {
   chainId: EVMChainId;
-  assetAddress: EVMAccountAddress;
+  assetAddress: EVMContractAddress;
   /** Resolved token name for the confirm modal. */
   assetName: string;
   assetSymbol: string;
@@ -46,6 +43,7 @@ export interface IAddAssetApprovalRequest {
 }
 
 export type RegisterAddAssetOptions = {
+  ensureReady: WalletReadyGate;
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   getOwnerAddress: () => EVMAccountAddressType;
@@ -64,7 +62,7 @@ export function registerAddAssetRpc(
 ): void {
   wallet.registerRpc(
     ADD_ASSET_RPC_METHOD,
-    async (params) => {
+    withWalletReady(options.ensureReady, async (params) => {
       const { chainId, assetAddress, iconUrl } = params as IAddAssetParams;
       const owner = options.getOwnerAddress();
       const [resolved, display] = await Promise.all([
@@ -102,7 +100,7 @@ export function registerAddAssetRpc(
       } finally {
         await display.hide();
       }
-    },
+    }),
     addAssetParamsSchema,
   );
 }

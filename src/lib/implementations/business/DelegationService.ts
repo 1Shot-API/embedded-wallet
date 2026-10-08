@@ -45,6 +45,8 @@ import type {
   IBuildCancelWorkParams,
   ICancelDelegationParams,
   ICancelDelegationResult,
+  ICancelDelegationsParams,
+  ICancelDelegationsResult,
   ICreateExecutionPermissionsParams,
   IDelegationService,
 } from "../../interfaces/business/IDelegationService";
@@ -243,33 +245,116 @@ export class DelegationService implements IDelegationService {
     return resolved.work;
   }
 
-  async cancelDelegation(
-    params: ICancelDelegationParams,
-  ): Promise<ICancelDelegationResult> {
-    const chain = await this.requireRelayerChain(params.chainId);
-    const { stored, work } = await this.resolveCancelDelegation(params);
+  async cancelDelegations(
+    params: ICancelDelegationsParams,
+  ): Promise<ICancelDelegationsResult> {
+    if (params.items.length === 0) {
+      throw new Error("cancelDelegations requires at least one item");
+    }
 
-    const result = await this.transactionUtils.sendViaRelayer({
-      chainId: params.chainId,
-      work,
+    const resolvedItems = await Promise.all(
+      params.items.map(async (item) => {
+        const resolved = await this.resolveCancelDelegation(item);
+        return {
+          chainId: item.chainId,
+          stored: resolved.stored,
+          work: resolved.work,
+        };
+      }),
+    );
+
+    const byChain = new Map<
+      EVMChainId,
+      {
+        chainId: EVMChainId;
+        work: ITransactionWork[];
+        stored: IStoredDelegation[];
+      }
+    >();
+    for (const item of resolvedItems) {
+      let group = byChain.get(item.chainId);
+      if (!group) {
+        group = { chainId: item.chainId, work: [], stored: [] };
+        byChain.set(item.chainId, group);
+      }
+      group.work.push(item.work);
+      if (item.stored) group.stored.push(item.stored);
+    }
+
+    const workByChain = [...byChain.values()].map((group) => ({
+      chainId: group.chainId,
+      work: group.work,
+    }));
+
+    const sendResults = await this.transactionUtils.sendViaRelayerMultichain({
+      workByChain,
       paymentToken: params.paymentToken,
       feeAtoms: params.feeAtoms,
-      relayerUrl: chain.relayerUrl,
+      paymentChainId: params.paymentChainId,
       prefetchRelayerVaultAssertion: true,
       retainDisplayDuringSubmit: true,
       onAwaitingConfirmation: params.onAwaitingConfirmation,
       onFinalFeeRequired: params.onFinalFeeRequired,
     });
 
-    let deletedDelegationId: ICancelDelegationResult["deletedDelegationId"];
-    if (stored) {
-      await this.delegationRepository.deleteDelegation(
-        stored.delegationId,
-      );
-      deletedDelegationId = stored.delegationId;
+    const results: ICancelDelegationsResult["results"] = [];
+    let index = 0;
+    const allStoredIds: DelegationId[] = [];
+    for (const group of byChain.values()) {
+      const result = sendResults[index];
+      if (!result) {
+        throw new Error(
+          `cancelDelegations missing relayer result for chain ${group.chainId}`,
+        );
+      }
+      index += 1;
+
+      const deletedIds: DelegationId[] = [];
+      for (const stored of group.stored) {
+        deletedIds.push(stored.delegationId);
+        allStoredIds.push(stored.delegationId);
+      }
+
+      results.push({
+        ...result,
+        chainId: group.chainId,
+        deletedDelegationId: deletedIds[0],
+      });
     }
 
-    return { ...result, deletedDelegationId };
+    // One assert (reuses executeBatch-cached assertion) for all remote blobs.
+    if (allStoredIds.length > 0) {
+      await this.delegationRepository.deleteDelegations(allStoredIds);
+    }
+
+    return { results };
+  }
+
+  async cancelDelegation(
+    params: ICancelDelegationParams,
+  ): Promise<ICancelDelegationResult> {
+    const batch = await this.cancelDelegations({
+      items: [
+        {
+          chainId: params.chainId,
+          ...(params.stored ? { stored: params.stored } : {}),
+          ...(params.permissionContext
+            ? { permissionContext: params.permissionContext }
+            : {}),
+        },
+      ],
+      paymentToken: params.paymentToken,
+      feeAtoms: params.feeAtoms,
+      paymentChainId: params.paymentChainId ?? params.chainId,
+      onAwaitingConfirmation: params.onAwaitingConfirmation,
+      onFinalFeeRequired: params.onFinalFeeRequired,
+      retainDisplayDuringSubmit: params.retainDisplayDuringSubmit,
+    });
+    const first = batch.results[0];
+    if (!first) {
+      throw new Error("cancelDelegation returned no results");
+    }
+    return first;
   }
 
   async removeStoredDelegation(
@@ -277,6 +362,15 @@ export class DelegationService implements IDelegationService {
   ): Promise<DelegationId> {
     await this.delegationRepository.deleteDelegation(stored.delegationId);
     return stored.delegationId;
+  }
+
+  async removeStoredDelegations(
+    storedList: readonly IStoredDelegation[],
+  ): Promise<DelegationId[]> {
+    if (storedList.length === 0) return [];
+    const ids = storedList.map((stored) => stored.delegationId);
+    await this.delegationRepository.deleteDelegations(ids);
+    return [...ids];
   }
 
   private async resolveCancelDelegation(params: {
@@ -642,7 +736,7 @@ export class DelegationService implements IDelegationService {
 }
 
 type Erc20PeriodData = {
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   periodAmount: bigint;
   periodDuration: number;
   startDate?: number;
@@ -651,7 +745,7 @@ type Erc20PeriodData = {
 
 type LiFiSwapData = {
   lifiDiamond: EVMAccountAddress;
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   outputAssetId: Hex;
   outputRecipient: Hex;
   destinationChainId: bigint;
@@ -663,7 +757,7 @@ type LiFiSwapData = {
 };
 
 type LiFiApproveData = {
-  tokenAddress: EVMAccountAddress;
+  tokenAddress: EVMContractAddress;
   spender: EVMAccountAddress;
 };
 
@@ -684,7 +778,7 @@ function parseErc20PeriodData(
   }
   const startRaw = data.startDate ?? data.start;
   return {
-    tokenAddress: EVMAccountAddress(getAddress(tokenRaw as `0x${string}`)),
+    tokenAddress: EVMContractAddress(getAddress(tokenRaw as `0x${string}`)),
     periodAmount: toBigIntAmount(amountRaw),
     periodDuration: Number(durationRaw),
     ...(typeof startRaw === "number" || typeof startRaw === "string"
@@ -701,7 +795,7 @@ export function parseLiFiSwapData(
   defaultSlippageBps: number,
 ): LiFiSwapData {
   const lifiDiamond = requireAddress(data.lifiDiamond, "lifiDiamond");
-  const tokenAddress = requireAddress(
+  const tokenAddress = requireContractAddress(
     data.tokenAddress ?? data.inputToken,
     "tokenAddress",
   );
@@ -764,7 +858,7 @@ export function parseLiFiApproveData(
   data: Record<string, unknown>,
 ): LiFiApproveData {
   return {
-    tokenAddress: requireAddress(
+    tokenAddress: requireContractAddress(
       data.tokenAddress ?? data.inputToken,
       "tokenAddress",
     ),
@@ -780,6 +874,16 @@ function requireAddress(
     throw new Error(`${field} is required`);
   }
   return EVMAccountAddress(getAddress(value as `0x${string}`));
+}
+
+function requireContractAddress(
+  value: unknown,
+  field: string,
+): EVMContractAddress {
+  if (typeof value !== "string") {
+    throw new Error(`${field} is required`);
+  }
+  return EVMContractAddress(getAddress(value as `0x${string}`));
 }
 
 function requireBytes32(value: unknown, field: string): Hex {

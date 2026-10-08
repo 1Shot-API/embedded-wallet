@@ -51,7 +51,9 @@ function groupByHost(rows: IDelegationSummary[]): IDelegationGroup[] {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([hostDomain, groupRows]) => ({
       hostDomain,
-      rows: [...groupRows].sort((a, b) => Number(b.createdAt) - Number(a.createdAt)),
+      rows: [...groupRows].sort(
+        (a, b) => Number(b.createdAt) - Number(a.createdAt),
+      ),
     }));
 }
 
@@ -159,16 +161,21 @@ function DelegationRowSummary({ row }: { row: IDelegationSummary }) {
 
 export function DelegationsList({
   rows,
-  cancelingId,
-  onCancel,
+  selectedIds,
+  canceling,
+  onToggle,
+  onCancelSelected,
 }: {
   rows: IDelegationSummary[];
-  cancelingId: DelegationId | null;
-  onCancel: (delegationId: DelegationId) => void;
+  selectedIds: ReadonlySet<DelegationId>;
+  canceling: boolean;
+  onToggle: (delegationId: DelegationId) => void;
+  onCancelSelected: () => void;
 }) {
   const { style } = useStyle();
   const copy = style.copy.delegations;
   const groups = useMemo(() => groupByHost(rows), [rows]);
+  const selectedCount = selectedIds.size;
 
   return (
     <div className="flex flex-col gap-4">
@@ -187,26 +194,46 @@ export function DelegationsList({
             </h3>
           </header>
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
-            {group.rows.map((row) => (
-              <li
-                key={row.delegationId}
-                className="border-border flex items-start justify-between gap-2 border-b pb-2 last:border-b-0 last:pb-0"
-              >
-                <DelegationRowSummary row={row} />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={cancelingId === row.delegationId}
-                  onClick={() => onCancel(row.delegationId)}
+            {group.rows.map((row) => {
+              const checked = selectedIds.has(row.delegationId);
+              return (
+                <li
+                  key={row.delegationId}
+                  className="border-border flex items-start gap-2 border-b pb-2 last:border-b-0 last:pb-0"
                 >
-                  {copy.cancelLabel}
-                </Button>
-              </li>
-            ))}
+                  <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      className="border-input bg-background text-primary mt-1 size-4 shrink-0 rounded border accent-[var(--primary)]"
+                      checked={checked}
+                      disabled={canceling}
+                      onChange={() => onToggle(row.delegationId)}
+                    />
+                    <DelegationRowSummary row={row} />
+                  </label>
+                </li>
+              );
+            })}
           </ul>
         </section>
       ))}
+
+      {selectedCount > 0 ? (
+        <div className="border-border flex items-center justify-between gap-2 border-t pt-3">
+          <p className="text-muted-foreground m-0 text-xs">
+            {selectedCount} selected
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={canceling}
+            onClick={onCancelSelected}
+          >
+            {copy.cancelLabel}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

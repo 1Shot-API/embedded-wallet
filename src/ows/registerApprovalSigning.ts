@@ -11,12 +11,13 @@ import type { EVMSignatureHex, EVMTransactionHash } from "@1shotapi/ows-types";
 
 export type RegisterApprovalSigningOptions = {
   /**
-   * Setup-only gate before signed actions: run onboarding when no credential
-   * exists. With a known credential, skip unlock — the signing ceremony
-   * authenticates. Pair with {@link onAuthenticated}.
+   * Readiness gate before signed actions. Prefer `ensureOnboardedForSigning`:
+   * no-op when the session is already unlocked; otherwise full unlock/setup
+   * so host-driven SIWE (`personal_sign` / typed data) does not fail while
+   * locked. Pair with {@link onAuthenticated}.
    */
   ensureReady?: () => Promise<void>;
-  /** Mark unlocked + refresh addresses after a successful message/typed-data ceremony. */
+  /** Mark unlocked + refresh addresses after a successful signing ceremony. */
   onAuthenticated?: () => void | Promise<void>;
   chainRpc: SignHelperChainRpc;
   /**
@@ -45,8 +46,10 @@ export type RegisterApprovalSigningOptions = {
 /**
  * Build SignHelper handlers and register them on the wallet (pre-`start()`).
  *
- * SignHelper only adapts EIP-1193 ↔ `approveAndSign*`. Setup / unlock live here
- * so branding owns the link to `OWSSigner`.
+ * SignHelper adapts EIP-1193 ↔ `approveAndSign*`. Readiness (`ensureReady`) runs
+ * inside approve callbacks (while the display session is held). Unlock
+ * (`onAuthenticated`) is passed through to SignHelper so it runs after
+ * display release — post-sign address refresh must not keep the flyout open.
  */
 export function registerApprovalSigning(
   wallet: OWSWallet,
@@ -55,17 +58,16 @@ export function registerApprovalSigning(
 ): SignHelper {
   const helper = new SignHelper(signer, wallet, {
     getChainId: () => options.chainRpc.getChainId(),
+    // Runs after SignHelper releases the display session so address refresh
+    // cannot keep the flyout open after consent/passkey finishes.
+    onAuthenticated: options.onAuthenticated,
     approveAndSignPersonalMessage: async (request) => {
       await options.ensureReady?.();
-      const signature = await options.approveAndSignPersonalMessage(request);
-      await options.onAuthenticated?.();
-      return signature;
+      return options.approveAndSignPersonalMessage(request);
     },
     approveAndSignTypedData: async (request) => {
       await options.ensureReady?.();
-      const signature = await options.approveAndSignTypedData(request);
-      await options.onAuthenticated?.();
-      return signature;
+      return options.approveAndSignTypedData(request);
     },
     approveAndSignTransaction: async (request) => {
       await options.ensureReady?.();

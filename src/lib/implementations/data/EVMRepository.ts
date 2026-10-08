@@ -1,12 +1,13 @@
 import { prepareEvmTransaction } from "@1shotapi/ows-signer-utils";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import {
+  EVMAccountAddress,
   EVMTransactionHash,
   HexString,
   OwsInvalidParamsError,
   RelayerTransactionId,
-  type EVMAccountAddress,
   type EVMChainId,
+  type EVMContractAddress,
 } from "@1shotapi/ows-types";
 import type {
   IEVMRepository,
@@ -29,7 +30,7 @@ export class EVMRepository implements IEVMRepository {
 
   async broadcastRawTransaction(
     chainId: EVMChainId,
-    to: EVMAccountAddress,
+    to: EVMAccountAddress | EVMContractAddress,
     data: HexString,
     value?: bigint,
     gasOverrides?: IEvmGasOverrides,
@@ -57,7 +58,8 @@ export class EVMRepository implements IEVMRepository {
 
     const prepared = await prepareEvmTransaction(chainRpc, from, {
       from,
-      to,
+      // Tx `to` is polymorphic (EOA or contract); EIP-1193 request type uses account brand.
+      to: EVMAccountAddress(to),
       data: txData,
       value: valueHex,
       chainId,
@@ -96,8 +98,9 @@ export class EVMRepository implements IEVMRepository {
     }
 
     return {
+      // Interim local id: 0x-prefixed hex slice of the broadcast hash.
       relayerTransactionId: RelayerTransactionId(
-        `interim-${hash.slice(2, 18)}`,
+        `0x${hash.slice(2, 18)}` as `0x${string}`,
       ),
       transactionHash: EVMTransactionHash(hash as `0x${string}`),
     };

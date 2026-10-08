@@ -355,6 +355,19 @@ export const styleCopyCancelDelegationSchema = z.strictObject({
   waitingMessage: z.string(),
   skipOnchainLabel: z.string(),
   skipOnchainAcknowledgement: z.string(),
+  insufficientBalanceError: z.string(),
+});
+
+export const styleCopyActivateOfflinePermissionsSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  chainsLabel: z.string(),
+  payFromLabel: z.string(),
+  feeLabel: z.string(),
+  insufficientBalanceError: z.string(),
+  noUsdcError: z.string(),
+  rejectLabel: z.string(),
+  confirmLabel: z.string(),
 });
 
 /** Shared relayer TX confirm phases (estimate → sign → final fee → submit). */
@@ -558,6 +571,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   grantLiFiSwapPermission: styleCopyGrantLiFiSwapPermissionSchema,
   grantLiFiApprovePermission: styleCopyGrantLiFiApprovePermissionSchema,
   cancelDelegation: styleCopyCancelDelegationSchema,
+  activateOfflinePermissions: styleCopyActivateOfflinePermissionsSchema,
   relayerSubmit: styleCopyRelayerSubmitSchema,
   passkeyPrompt: styleCopyPasskeyPromptSchema,
   credentialOffer: styleCopyCredentialOfferSchema,
@@ -610,6 +624,8 @@ export const styleCopyPatchSchema = z.strictObject({
   grantLiFiApprovePermission:
     styleCopyGrantLiFiApprovePermissionSchema.partial().optional(),
   cancelDelegation: styleCopyCancelDelegationSchema.partial().optional(),
+  activateOfflinePermissions:
+    styleCopyActivateOfflinePermissionsSchema.partial().optional(),
   relayerSubmit: styleCopyRelayerSubmitSchema.partial().optional(),
   passkeyPrompt: passkeyPromptPatchSchema.optional(),
   credentialOffer: styleCopyCredentialOfferSchema.partial().optional(),
@@ -684,6 +700,9 @@ export type IStyleCopyGrantLiFiApprovePermission = z.infer<
 >;
 export type IStyleCopyCancelDelegation = z.infer<
   typeof styleCopyCancelDelegationSchema
+>;
+export type IStyleCopyActivateOfflinePermissions = z.infer<
+  typeof styleCopyActivateOfflinePermissionsSchema
 >;
 export type IStyleCopyRelayerSubmit = z.infer<
   typeof styleCopyRelayerSubmitSchema

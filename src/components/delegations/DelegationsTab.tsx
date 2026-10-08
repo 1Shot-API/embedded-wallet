@@ -25,13 +25,16 @@ export function DelegationsTab() {
   const {
     listDelegations,
     refreshDelegationsFromRelayer,
-    cancelStoredDelegation,
+    cancelStoredDelegations,
   } = useWallet();
 
   const [rows, setRows] = useState<IDelegationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [cancelingId, setCancelingId] = useState<DelegationId | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<DelegationId>>(
+    () => new Set(),
+  );
+  const [canceling, setCanceling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<{
     chainId: EVMChainId;
@@ -44,6 +47,14 @@ export function DelegationsTab() {
     try {
       const listed = await listDelegations();
       setRows(listed);
+      setSelectedIds((prev) => {
+        if (prev.size === 0) return prev;
+        const next = new Set<DelegationId>();
+        for (const row of listed) {
+          if (prev.has(row.delegationId)) next.add(row.delegationId);
+        }
+        return next;
+      });
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : copy.loadFailedError,
@@ -72,17 +83,30 @@ export function DelegationsTab() {
     }
   };
 
-  const onCancel = async (delegationId: DelegationId) => {
-    setCancelingId(delegationId);
+  const onToggle = (delegationId: DelegationId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(delegationId)) next.delete(delegationId);
+      else next.add(delegationId);
+      return next;
+    });
+  };
+
+  const onCancelSelected = async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setCanceling(true);
     setError(null);
     try {
-      const result = await cancelStoredDelegation(delegationId);
-      if (result.transactionHash) {
+      const result = await cancelStoredDelegations(ids);
+      const last = result.results[result.results.length - 1];
+      if (last) {
         setSent({
-          chainId: result.chainId,
-          transactionHash: result.transactionHash,
+          chainId: last.chainId,
+          transactionHash: last.transactionHash,
         });
       }
+      setSelectedIds(new Set());
       await reload();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -96,7 +120,7 @@ export function DelegationsTab() {
         err instanceof Error ? err.message : copy.cancelFailedError,
       );
     } finally {
-      setCancelingId(null);
+      setCanceling(false);
     }
   };
 
@@ -137,9 +161,11 @@ export function DelegationsTab() {
       ) : (
         <DelegationsList
           rows={rows}
-          cancelingId={cancelingId}
-          onCancel={(id) => {
-            void onCancel(id);
+          selectedIds={selectedIds}
+          canceling={canceling}
+          onToggle={onToggle}
+          onCancelSelected={() => {
+            void onCancelSelected();
           }}
         />
       )}
