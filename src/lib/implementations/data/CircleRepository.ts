@@ -5,13 +5,13 @@ import {
   type EVMAccountAddress as EVMAccountAddressType,
   type EVMTransactionHash as EVMTransactionHashType,
 } from "@1shotapi/ows-types";
+
+import {
+  type ICctpInFlightBurn,
+  type ICircleRepository,
+  type IIrisCctpMessage,
+type  IIrisForwardingFee } from "../../interfaces/data/ICircleRepository";
 import type { ECircleDomainId } from "../../types/enum/ECircleDomainId";
-import type {
-  ICctpInFlightBurn,
-  ICircleRepository,
-  IIrisCctpMessage,
-} from "../../interfaces/data/ICircleRepository";
-import type { IIrisForwardingFee } from "../../interfaces/data/ICircleRepository";
 
 export const CCTP_IN_FLIGHT_KEY_PREFIX = "oneshot.cctpInFlight.";
 

@@ -4,6 +4,7 @@ import {
   PaletteIcon,
   PlugZapIcon,
 } from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,

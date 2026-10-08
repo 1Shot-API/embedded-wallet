@@ -1,5 +1,5 @@
-import type { TrackedAssetId } from "../primitives/TrackedAssetId";
 import { EWalletEventKind } from "../enum/EWalletEventKind";
+import type { TrackedAssetId } from "../primitives/TrackedAssetId";
 
 export class RefreshBalanceRequestedEvent {
   readonly kind = EWalletEventKind.RefreshBalanceRequested as const;

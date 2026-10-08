@@ -1,5 +1,4 @@
 import { prepareEvmTransaction } from "@1shotapi/ows-signer-utils";
-import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import {
   EVMAccountAddress,
   EVMTransactionHash,
@@ -9,6 +8,8 @@ import {
   type EVMChainId,
   type EVMContractAddress,
 } from "@1shotapi/ows-types";
+import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
+
 import type {
   IEVMRepository,
   IEvmGasOverrides,

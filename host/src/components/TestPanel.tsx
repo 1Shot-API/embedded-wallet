@@ -1,3 +1,5 @@
+import { WalletActions, type IWalletActionsProps } from "./WalletActions";
+
 import {
   Card,
   CardContent,
@@ -5,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { WalletActions, type IWalletActionsProps } from "./WalletActions";
 
 /** Test mode: EIP-1193 actions with the branding wallet hidden. */
 export function TestPanel(props: IWalletActionsProps) {

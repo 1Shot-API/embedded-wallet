@@ -1,4 +1,5 @@
 import type { OWSAnalyticsEvent } from "@1shotapi/ows-types";
+
 import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
 import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+
 import type { EPasskeyPromptReason } from "../lib/types/enum";
 
 type PasskeyPromptEntry = {

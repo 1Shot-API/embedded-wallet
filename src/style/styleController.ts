@@ -1,5 +1,5 @@
-import type { IResolvedStyle, IStyleOptions } from "./types";
 import { applyStyleToDocument, createInitialStyle, mergeStyle } from "./applyStyle";
+import type { IResolvedStyle, IStyleOptions } from "./types";
 
 type StyleListener = (style: IResolvedStyle) => void;
 

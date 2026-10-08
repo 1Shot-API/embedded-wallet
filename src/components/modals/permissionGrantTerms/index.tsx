@@ -1,4 +1,5 @@
 import type { IExecutionPermissionRequest } from "@1shotapi/ows-types";
+
 import {
   LIFI_SWAP_APPROVE,
   LIFI_SWAP_PERIODIC,
@@ -9,6 +10,7 @@ import type {
   IGrantExecutionPermissionResult,
 } from "../../../wallet/modalTypes";
 import { useWallet } from "../../../wallet/WalletProvider";
+
 import { AppendedCaveatTerms } from "./appendedCaveatTerms";
 import { isAppendedCaveatValid } from "./appendedCaveatUtils";
 import {

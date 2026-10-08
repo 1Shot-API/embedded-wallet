@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import type { IAppendedCaveatConfiguration } from "@1shotapi/ows-types";
 import { createDelegation, getSmartAccountsEnvironment } from "@metamask/smart-accounts-kit";
 import { getAddress } from "viem";
-import type { IAppendedCaveatConfiguration } from "@1shotapi/ows-types";
+
 import { buildAppendedCaveatBuilder } from "@/lib/implementations/business/DelegationService.ts";
 import {
   buildKitScopeAttenuatedPermission,

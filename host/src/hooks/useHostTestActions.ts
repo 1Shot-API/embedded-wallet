@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { OWSProxy } from "@1shotapi/ows-provider";
+import type { OWSProxy } from "@1shotapi/ows-provider";
 import {
   ChainUtils,
   ConversionUtils,
@@ -10,6 +9,7 @@ import {
   type IExecutionPermissionResponse,
   type OWSChainId,
 } from "@1shotapi/ows-types";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import {
   createPublicClient,
   custom,
@@ -22,20 +22,7 @@ import {
   type Address,
   type Hex,
 } from "viem";
-import {
-  buildSiwePersonalMessage,
-  buildSiweTypedData,
-  defaultTypedDataJsonForChain,
-  parseTypedDataJson,
-  randomSiweNonce,
-  syncDemoTypedDataChainId,
-  type SignMode,
-} from "../constants/signDemo";
-import {
-  BRIDGE_SESSION_SOURCE,
-  chainIdToNumber,
-  type BridgeSpeedOption,
-} from "../constants/bridgeDemo";
+
 import {
   DEMO_EXECUTION_DELEGATEE,
   DEMO_LIFI_DIAMOND_BASE,
@@ -47,6 +34,20 @@ import {
   hostChainMeta,
   type UsdcMode,
 } from "../components/hostChains";
+import {
+  BRIDGE_SESSION_SOURCE,
+  chainIdToNumber,
+  type BridgeSpeedOption,
+} from "../constants/bridgeDemo";
+import {
+  buildSiwePersonalMessage,
+  buildSiweTypedData,
+  defaultTypedDataJsonForChain,
+  parseTypedDataJson,
+  randomSiweNonce,
+  syncDemoTypedDataChainId,
+  type SignMode,
+} from "../constants/signDemo";
 import { mergeConfigurePayload } from "../styleForm";
 
 const USDC_DECIMALS = 6;

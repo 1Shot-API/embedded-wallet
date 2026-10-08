@@ -1,10 +1,11 @@
-import type { IAppendedCaveatConfiguration, IExecutionPermission } from "@1shotapi/ows-types";
-import { EVMAccountAddress } from "@1shotapi/ows-types";
+import { type IAppendedCaveatConfiguration, type IExecutionPermission , EVMAccountAddress } from "@1shotapi/ows-types";
 import {
-  createDelegation,
+  type createDelegation,
   ScopeType,
 } from "@metamask/smart-accounts-kit";
 import { getAddress, isHex, type Hex } from "viem";
+
+import type { GrantPermissionModalKind } from "../../../wallet/modalTypes";
 import {
   ERC20_STREAMING,
   ERC20_TRANSFER_AMOUNT,
@@ -16,7 +17,6 @@ import {
   NATIVE_TRANSFER_AMOUNT,
   OWNERSHIP_TRANSFER,
 } from "../../interfaces/business/IDelegationService";
-import type { GrantPermissionModalKind } from "../../../wallet/modalTypes";
 export function grantKindForPermissionType(
   permissionType: string,
 ): GrantPermissionModalKind | null {

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
 import type { SignTypedDataPayload } from "@1shotapi/ows-signer-utils";
+
 import { SIWEUtils } from "@/lib/implementations/utils/SIWEUtils.ts";
 
 const siweUtils = new SIWEUtils();

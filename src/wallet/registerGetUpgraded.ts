@@ -1,11 +1,13 @@
-import { z } from "zod";
-import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
   ChainUtils,
   type EVMAccountAddress,
   type EVMContractAddress,
 } from "@1shotapi/ows-types";
+import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+import { z } from "zod";
+
 import type { ITransactionService } from "../lib/interfaces/business";
+
 import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 
 /** Custom RPC — host: `await proxy.rpc("getUpgraded", { chainId })`. */

@@ -4,6 +4,7 @@ import type {
   EVMTransactionHash,
   UriString,
 } from "@1shotapi/ows-types";
+
 import type { ECircleDomainId } from "../../types/enum/ECircleDomainId";
 
 /** Iris `forward=true` fee row used to size `depositForBurnWithHook`. */

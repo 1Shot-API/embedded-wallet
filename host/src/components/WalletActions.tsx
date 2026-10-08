@@ -1,5 +1,14 @@
 import { RefreshCwIcon } from "lucide-react";
 import { useMemo, useState } from "react";
+
+import { ChainSelector, type IChainSelectorOption } from "./ChainSelector";
+import {
+  DEMO_ADD_ASSET_ICON_URL,
+  FOCUS_USDT_BASE,
+  hostChainMeta,
+  type UsdcMode,
+} from "./hostChains";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import type { SignMode } from "@/constants/signDemo";
 import {
   BRIDGE_SESSION_SOURCE,
   BRIDGE_SOURCE_CHAINS,
@@ -22,13 +30,7 @@ import {
   isBridgeAmountValid,
   type BridgeSpeedOption,
 } from "@/constants/bridgeDemo";
-import { ChainSelector, type IChainSelectorOption } from "./ChainSelector";
-import {
-  DEMO_ADD_ASSET_ICON_URL,
-  FOCUS_USDT_BASE,
-  hostChainMeta,
-  type UsdcMode,
-} from "./hostChains";
+import type { SignMode } from "@/constants/signDemo";
 
 export type { UsdcMode } from "./hostChains";
 export type { SignMode } from "@/constants/signDemo";

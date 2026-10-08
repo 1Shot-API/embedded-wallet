@@ -1,0 +1,9 @@
+dist
+node_modules
+coverage
+.git
+*.min.js
+*.bundle.js
+host/dist
+extension/dist
+package-lock.json

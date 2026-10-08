@@ -1,7 +1,9 @@
 import type { IAppendedCaveatConfiguration } from "@1shotapi/ows-types";
+
 import { useStyle } from "../../../style/StyleProvider";
 import { ConsentSummaryRow } from "../../ConsentSummaryRow";
 import { PermissionGrantTermsCard } from "../PermissionGrantConsentLayout";
+
 import {
   CAVEAT_DISPLAY_NAME,
   resolveAppendedCaveatRows,

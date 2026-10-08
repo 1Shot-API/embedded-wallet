@@ -1,13 +1,14 @@
 import type { BitcoinSegwitAccountAddress } from "@1shotapi/ows-types";
-import type {
-  IBitcoinBalance,
-  IBitcoinRpc,
-} from "../../interfaces/data/IBitcoinRpc";
+
 import type {
   IBitcoinSendParams,
   IBitcoinSendResult,
   IBitcoinService,
 } from "../../interfaces/business/IBitcoinService";
+import type {
+  IBitcoinBalance,
+  IBitcoinRpc,
+} from "../../interfaces/data/IBitcoinRpc";
 import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
 import type { BitcoinUtxo } from "../../types/domain/BitcoinUtxo";
 import {

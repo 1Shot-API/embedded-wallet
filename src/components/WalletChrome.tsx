@@ -1,9 +1,13 @@
 import { SettingsIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+
 import { useStyle } from "../style/StyleProvider";
 import { useWallet } from "../wallet/WalletProvider";
+
 import { BrandLogo } from "./BrandLogo";
 import { CloseWalletButton } from "./CloseWalletButton";
+
 
 /**
  * Top shell bar: brand logo + product name + settings / close.

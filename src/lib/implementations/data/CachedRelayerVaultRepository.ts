@@ -17,8 +17,13 @@ import {
   type StoredCredential,
   type WebAuthnAssertionFields,
 } from "@1shotapi/ows-types";
+import { getAddress } from "viem";
 import { z } from "zod";
+
+import { loadCosePublicKey, loadCredentialId } from "../../../storage";
+import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
 import type { IDelegationRepository } from "../../interfaces/data/IDelegationRepository";
+import type { IRelayerCredentialsClient } from "../../interfaces/data/IRelayerCredentialsClient";
 import type {
   IPendingEncryptedBlob,
   IVaultPendingDecrypt,
@@ -28,6 +33,7 @@ import type {
   IVaultTrackedAssetSync,
 } from "../../interfaces/data/IVaultTrackedAssetSync";
 import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
+import type { IWalletCredentialChallengeResponse } from "../../types/domain/RelayerCredentials";
 import type {
   IDelegationCaveat,
   IDelegationSummary,
@@ -35,20 +41,12 @@ import type {
   IStoredDelegation,
 } from "../../types/domain/StoredDelegation";
 import { EAssetType } from "../../types/enum/EAssetType";
+import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
+import type { ChallengeId } from "../../types/primitives/ChallengeId";
 import {
   DelegationId,
   type DelegationId as DelegationIdType,
 } from "../../types/primitives/DelegationId";
-import type { ChallengeId } from "../../types/primitives/ChallengeId";
-import type { IWalletCredentialChallengeResponse } from "../../types/domain/RelayerCredentials";
-import {
-  RelayerCredentialsError,
-  toRelayerAssertionRequest,
-} from "./utils/RelayerCredentialsClient";
-import type { IRelayerCredentialsClient } from "../../interfaces/data/IRelayerCredentialsClient";
-import { loadCosePublicKey, loadCredentialId } from "../../../storage";
-import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
-import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
 import {
   cloneVaultSnapshot,
   createIdbVaultStore,
@@ -57,7 +55,12 @@ import {
   type IVaultSnapshot,
   type IVaultStore,
 } from "../../utils/idbVaultStore";
-import { getAddress } from "viem";
+
+import {
+  RelayerCredentialsError,
+  toRelayerAssertionRequest,
+} from "./utils/RelayerCredentialsClient";
+
 
 export type { IVaultStore, IVaultSnapshot };
 

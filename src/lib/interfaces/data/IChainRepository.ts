@@ -1,4 +1,5 @@
 import type { EVMAccountAddress, EVMChainId, OWSChainId } from "@1shotapi/ows-types";
+
 import type { SupportedChain } from "../../types/domain/SupportedChain";
 
 export interface IChainRepository {

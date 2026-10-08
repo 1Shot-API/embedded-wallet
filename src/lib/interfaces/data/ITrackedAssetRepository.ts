@@ -1,6 +1,7 @@
 import type { EVMAccountAddress, EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
-import type { TrackedAssetId } from "../../types/primitives";
+
 import type { NewTrackedAsset, TrackedAsset } from "../../types/domain";
+import type { TrackedAssetId } from "../../types/primitives";
 
 export interface ITrackedAssetRepository {
   /**

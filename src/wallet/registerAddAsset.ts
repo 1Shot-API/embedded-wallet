@@ -1,18 +1,20 @@
-import { z } from "zod";
-import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
-  EVMContractAddress,
+  type EVMContractAddress,
   EVMChainIdSchema,
   OwsUserRejectedError,
   type EVMAccountAddress as EVMAccountAddressType,
   type EVMChainId,
   EVMContractAddressSchema,
 } from "@1shotapi/ows-types";
+import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+import { z } from "zod";
+
 import type {
   IKnownAssetRepository,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
 import { isSafeHttpsIconUrl } from "../lib/utils/tokenIcons";
+
 import { useWalletSessionStore } from "./sessionStore";
 import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 

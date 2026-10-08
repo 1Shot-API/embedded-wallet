@@ -1,10 +1,11 @@
+import type { OWSAnalyticsEvent } from "@1shotapi/ows-types";
+
 import type {
   BalanceUpdatedEvent,
   RefreshBalanceRequestedEvent,
   TransactionHistoryUpdatedEvent,
   WalletDomainEvent,
 } from "../../types/events";
-import type { OWSAnalyticsEvent } from "@1shotapi/ows-types";
 
 export interface IEventBus {
   emit(event: WalletDomainEvent): void;

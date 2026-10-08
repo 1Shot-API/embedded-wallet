@@ -14,17 +14,19 @@ import type {
   IExecutionPermission,
   IExecutionPermissionRequest,
 } from "@1shotapi/ows-types";
-import type { IRelayerPayment } from "../lib/types/domain/RelayerPayment";
-import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
-import type { ISiweFields } from "../lib/types/domain/SiweFields";
-import type { IAddAssetApprovalRequest } from "./registerAddAsset";
-import type { IOnrampOpenRequest } from "../circle/onrampTypes";
+
 import type {
   ICctpBridgeModalResult,
   ICctpBridgeOpenRequest,
 } from "../circle/cctpBridgeTypes";
-import type { TokenAmount } from "../lib/types/primitives";
+import type { IOnrampOpenRequest } from "../circle/onrampTypes";
 import type { ITransactionWork } from "../lib/interfaces/business/ITransactionService";
+import type { IRelayerPayment } from "../lib/types/domain/RelayerPayment";
+import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
+import type { ISiweFields } from "../lib/types/domain/SiweFields";
+import type { TokenAmount } from "../lib/types/primitives";
+
+import type { IAddAssetApprovalRequest } from "./registerAddAsset";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 

@@ -6,12 +6,8 @@ import {
   type EVMChainId,
   type UriString,
 } from "@1shotapi/ows-types";
-import {
-  createIdbKvBackend,
-  createMemoryAsyncKvStore,
-  migrateLocalStorageKeyToIdb,
-  type AsyncKvStore,
-} from "../../utils/idbStringStore";
+import { getAddress } from "viem";
+
 import type {
   IAssetActivityRepository,
   IListAssetActivityParams,
@@ -27,7 +23,13 @@ import {
   makeTrackedAssetId,
   type TrackedAssetId,
 } from "../../types/primitives";
-import { getAddress } from "viem";
+import {
+  createIdbKvBackend,
+  createMemoryAsyncKvStore,
+  migrateLocalStorageKeyToIdb,
+  type AsyncKvStore,
+} from "../../utils/idbStringStore";
+
 
 type StoredOptimistic = {
   hash: string;

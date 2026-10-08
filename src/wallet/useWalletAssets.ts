@@ -1,11 +1,11 @@
+import {
+  type CredentialId,
+  type EVMAccountAddress,
+  type EVMContractAddress,
+  type EVMChainId,
+ ChainUtils } from "@1shotapi/ows-types";
 import { useCallback } from "react";
-import type {
-  CredentialId,
-  EVMAccountAddress,
-  EVMContractAddress,
-  EVMChainId,
-} from "@1shotapi/ows-types";
-import { ChainUtils } from "@1shotapi/ows-types";
+
 import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import type {
   IAssetActivityRepository,
@@ -18,9 +18,10 @@ import type {
   AssetActivity,
   TrackedAsset,
 } from "../lib/types/domain";
-import type { DelegationId } from "../lib/types/primitives/DelegationId";
 import { RefreshBalanceRequestedEvent } from "../lib/types/events/RefreshBalanceRequestedEvent";
 import type { TrackedAssetId } from "../lib/types/primitives";
+import type { DelegationId } from "../lib/types/primitives/DelegationId";
+
 import { useWalletSessionStore } from "./sessionStore";
 
 export interface IUseWalletAssetsParams {

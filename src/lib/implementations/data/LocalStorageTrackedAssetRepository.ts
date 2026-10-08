@@ -1,28 +1,19 @@
-import { erc20Abi, type Address } from "viem";
 import {
+  type EVMChainId,
   ChainUtils,
   EVMAccountAddress,
-  EVMContractAddress,
-  EVMChainId,
+  EVMContractAddress
 } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
-import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
-import type { IEventBus } from "../../interfaces/utils/IEventBus";
+import { erc20Abi, type Address } from "viem";
+
 import type { ITrackedAssetRepository } from "../../interfaces/data/ITrackedAssetRepository";
 import type {
   IVaultTrackedAssetRow,
   IVaultTrackedAssetSync,
 } from "../../interfaces/data/IVaultTrackedAssetSync";
-import {
-  createIdbKvBackend,
-  createMemoryAsyncKvStore,
-  migrateLocalStorageKeyToIdb,
-  type AsyncKvStore,
-} from "../../utils/idbStringStore";
-import {
-  DEFAULT_TRACKED_ASSETS,
-  isDefaultTrackedAsset,
-} from "./HardcodedKnownAssetRepository";
+import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
+import type { IEventBus } from "../../interfaces/utils/IEventBus";
 import { NewTrackedAsset, TrackedAsset } from "../../types/domain/TrackedAsset";
 import { EAssetType } from "../../types/enum/EAssetType";
 import { BalanceUpdatedEvent } from "../../types/events/BalanceUpdatedEvent";
@@ -31,10 +22,21 @@ import {
   type TrackedAssetId,
 } from "../../types/primitives";
 import {
+  createIdbKvBackend,
+  createMemoryAsyncKvStore,
+  migrateLocalStorageKeyToIdb,
+  type AsyncKvStore,
+} from "../../utils/idbStringStore";
+import {
   registerTrackedAssetIconUrl,
   unregisterTrackedAssetIconUrl,
   syncTrackedAssetIconUrls,
 } from "../../utils/tokenIcons";
+
+import {
+  DEFAULT_TRACKED_ASSETS,
+  isDefaultTrackedAsset,
+} from "./HardcodedKnownAssetRepository";
 
 type StoredBlob = {
   assets: Array<{

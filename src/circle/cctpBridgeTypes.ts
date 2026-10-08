@@ -3,8 +3,9 @@ import type {
   EVMChainId,
   EVMContractAddress,
 } from "@1shotapi/ows-types";
-import type { ICctpInFlightBurn } from "../lib/interfaces/data/ICircleRepository";
+
 import type { ICctpBridgeResult } from "../lib/interfaces/business/IBridgeService";
+import type { ICctpInFlightBurn } from "../lib/interfaces/data/ICircleRepository";
 import type { ECctpTransferSpeed } from "../lib/types/enum/ECctpTransferSpeed";
 
 /** Params for opening the shared CCTP bridge modal (in-wallet + host `bridge`). */

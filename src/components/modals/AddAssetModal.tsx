@@ -1,10 +1,11 @@
 import { InfoIcon } from "lucide-react";
-import { Modal } from "../Modal";
-import { AssetIdentityMark } from "../AssetIdentityMark";
+
 import { useStyle } from "../../style/StyleProvider";
-import { useWallet } from "../../wallet/WalletProvider";
 import type { IAddAssetApprovalRequest } from "../../wallet/registerAddAsset";
+import { useWallet } from "../../wallet/WalletProvider";
+import { AssetIdentityMark } from "../AssetIdentityMark";
 import { CopyableText } from "../CopyableText";
+import { Modal } from "../Modal";
 
 export function AddAssetModal({
   request,

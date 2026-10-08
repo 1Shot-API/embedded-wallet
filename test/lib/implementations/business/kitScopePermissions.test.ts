@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
 import { ScopeType } from "@metamask/smart-accounts-kit";
 import { getAddress } from "viem";
+
 import {
   buildKitScopeAttenuatedPermission,
   buildKitScopeConfig,

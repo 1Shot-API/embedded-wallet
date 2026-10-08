@@ -1,9 +1,11 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
 import dotenv from "dotenv";
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
+
 import { resolveHttpsOptions, walletIframeUrl } from "./wallet-url.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

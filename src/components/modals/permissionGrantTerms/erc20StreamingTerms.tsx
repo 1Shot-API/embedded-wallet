@@ -1,10 +1,12 @@
-import { useMemo } from "react";
 import type { IExecutionPermissionRequest } from "@1shotapi/ows-types";
+import { useMemo } from "react";
+
 import { ERC20_STREAMING } from "../../../lib/interfaces/business/IDelegationService";
 import { useStyle } from "../../../style/StyleProvider";
 import { ConsentSummaryRow } from "../../ConsentSummaryRow";
 import { SafeAssetImage } from "../../SafeAssetImage";
 import { PermissionGrantTermsCard } from "../PermissionGrantConsentLayout";
+
 import {
   buildKitScopePermissionGrantResult,
   formatBigIntAmountDisplay,

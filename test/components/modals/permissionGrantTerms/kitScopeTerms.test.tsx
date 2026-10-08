@@ -1,16 +1,18 @@
 import assert from "node:assert/strict";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { mock, describe, it } from "node:test";
-import { renderToStaticMarkup } from "react-dom/server";
-import React from "react";
+import { pathToFileURL } from "node:url";
+
 import type { IExecutionPermissionRequest } from "@1shotapi/ows-types";
-import { StyleProvider } from "@/style/StyleProvider.tsx";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
 import {
   ERC20_TRANSFER_AMOUNT,
   FUNCTION_CALL,
   OWNERSHIP_TRANSFER,
 } from "@/lib/interfaces/business/IDelegationService.ts";
+import { StyleProvider } from "@/style/StyleProvider.tsx";
 
 const walletProvider = pathToFileURL(
   path.resolve("src/wallet/WalletProvider.tsx"),

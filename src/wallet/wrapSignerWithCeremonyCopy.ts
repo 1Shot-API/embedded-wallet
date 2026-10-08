@@ -1,8 +1,10 @@
-import type { CeremonyUiParams } from "@1shotapi/ows-types";
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
+import type { CeremonyUiParams } from "@1shotapi/ows-types";
+
+import { EPasskeyPromptReason } from "../lib/types/enum/EPasskeyPromptReason";
 import { styleController } from "../style/styleController";
 import type { IStyleCopyPasskeyPromptEntry } from "../style/types";
-import { EPasskeyPromptReason } from "../lib/types/enum/EPasskeyPromptReason";
+
 import { useCeremonyUiOverrideStore } from "./ceremonyUiOverrideStore";
 
 function ceremonyFromEntry(

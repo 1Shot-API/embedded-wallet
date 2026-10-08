@@ -1,5 +1,5 @@
-import type { IResolvedStyle, IStyleOptions } from "./types";
 import { DEFAULT_STYLE } from "./defaults";
+import type { IResolvedStyle, IStyleOptions } from "./types";
 
 export function mergeStyle(
   current: IResolvedStyle,

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Hex, SmartAccountsEnvironment } from "@metamask/smart-accounts-kit";
+
 import type { IAppendedCaveatConfiguration } from "@1shotapi/ows-types";
+import type { Hex, SmartAccountsEnvironment } from "@metamask/smart-accounts-kit";
+
 import {
   APPENDED_CAVEAT_TYPES,
   HOST_RULE_TYPES,

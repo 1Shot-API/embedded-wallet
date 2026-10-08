@@ -1,4 +1,5 @@
 import type { SignTypedDataPayload } from "@1shotapi/ows-signer-utils";
+
 import type { ISiweFields } from "../../types/domain/SiweFields";
 
 /** Heuristic EIP-4361 / SIWE parsers for branding consent UI. */

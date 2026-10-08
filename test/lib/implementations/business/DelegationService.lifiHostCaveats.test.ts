@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import type { IAppendedCaveatConfiguration } from "@1shotapi/ows-types";
 import {
   createCaveat,
   type Hex,
   type SmartAccountsEnvironment,
 } from "@metamask/smart-accounts-kit";
 import { createCaveatBuilder } from "@metamask/smart-accounts-kit/utils";
-import type { IAppendedCaveatConfiguration } from "@1shotapi/ows-types";
+
 import { appendHostCaveatsToBuilder } from "@/lib/implementations/business/DelegationService.ts";
 import {
   CHAINLINK_PRICE_RULE,

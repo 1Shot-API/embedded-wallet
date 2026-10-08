@@ -1,10 +1,11 @@
+import { BodyField, TextField } from "./configuratorFields";
+import type { IWalletConfiguratorTextTabSectionProps } from "./walletConfiguratorTextTabTypes";
+
 import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { BodyField, TextField } from "./configuratorFields";
-import type { IWalletConfiguratorTextTabSectionProps } from "./walletConfiguratorTextTabTypes";
 
 export function WalletConfiguratorTextTabSigningSections({
   form,

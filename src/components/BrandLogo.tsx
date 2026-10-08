@@ -1,6 +1,9 @@
 import { cn } from "@/lib/utils";
+
 import defaultLogoUrl from "../assets/1Shot-Icon-New.svg";
+
 import { SafeAssetImage } from "./SafeAssetImage";
+
 
 export interface IBrandLogoProps {
   /** Host `configure` logo URL; falls back to the bundled 1Shot icon. */

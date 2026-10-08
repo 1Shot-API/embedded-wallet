@@ -1,16 +1,18 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
 import {
   EVMAccountAddress,
   EVMTransactionHash,
 } from "@1shotapi/ows-types";
-import { EChain } from "@/lib/types/enum/EChain.ts";
-import { ECircleDomainId } from "@/lib/types/enum/ECircleDomainId.ts";
+
 import {
   parseInFlight,
   serializeInFlight,
 } from "@/lib/implementations/data/CircleRepository.ts";
 import type { ICctpInFlightBurn } from "@/lib/interfaces/data/ICircleRepository.ts";
+import { EChain } from "@/lib/types/enum/EChain.ts";
+import { ECircleDomainId } from "@/lib/types/enum/ECircleDomainId.ts";
 
 describe("CCTP in-flight persist/resume", () => {
   const record: ICctpInFlightBurn = {

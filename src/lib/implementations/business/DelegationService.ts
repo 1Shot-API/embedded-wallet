@@ -1,4 +1,20 @@
 import {
+  ConversionUtils,
+  ChainUtils,
+  DomainString,
+  EVMAccountAddress,
+  EVMContractAddress,
+  HexString,
+  UnixTimestamp,
+  type CeremonyUiParams,
+  type EVMChainId,
+  type IExecutionPermission,
+  type IExecutionPermissionResponse,
+  type IAppendedCaveatConfiguration,
+  type SupportedExecutionPermissions,
+} from "@1shotapi/ows-types";
+import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
+import {
   createCaveat,
   createDelegation,
   Implementation,
@@ -15,22 +31,6 @@ import {
   encodeDelegations,
   hashDelegation,
 } from "@metamask/smart-accounts-kit/utils";
-import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
-import {
-  ConversionUtils,
-  ChainUtils,
-  DomainString,
-  EVMAccountAddress,
-  EVMContractAddress,
-  HexString,
-  UnixTimestamp,
-  type CeremonyUiParams,
-  type EVMChainId,
-  type IExecutionPermission,
-  type IExecutionPermissionResponse,
-  type IAppendedCaveatConfiguration,
-  type SupportedExecutionPermissions,
-} from "@1shotapi/ows-types";
 import {
   encodeFunctionData,
   erc20Abi,
@@ -39,19 +39,20 @@ import {
   type Hex,
 } from "viem";
 import type { LocalAccount } from "viem/accounts";
-import type { IChainRepository } from "../../interfaces/data/IChainRepository";
-import type { IDelegationRepository } from "../../interfaces/data/IDelegationRepository";
-import type {
-  IBuildCancelWorkParams,
-  ICancelDelegationParams,
-  ICancelDelegationResult,
-  ICancelDelegationsParams,
-  ICancelDelegationsResult,
-  ICreateExecutionPermissionsParams,
-  IDelegationService,
-} from "../../interfaces/business/IDelegationService";
-import type { ITransactionWork } from "../../interfaces/business/ITransactionService";
+
+import { loadCachedEvmAddress } from "../../../storage";
+import { styleController } from "../../../style/styleController";
+import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
+import { withCoalescedSignDigest } from "../../../wallet/withCoalescedSignDigest";
 import {
+  type IBuildCancelWorkParams,
+  type ICancelDelegationParams,
+  type ICancelDelegationResult,
+  type ICancelDelegationsParams,
+  type ICancelDelegationsResult,
+  type ICreateExecutionPermissionsParams,
+  type IDelegationService,
+
   ERC20_STREAMING,
   ERC20_TOKEN_PERIODIC,
   ERC20_TRANSFER_AMOUNT,
@@ -62,27 +63,26 @@ import {
   NATIVE_PERIOD_TRANSFER,
   NATIVE_STREAMING,
   NATIVE_TRANSFER_AMOUNT,
-  OWNERSHIP_TRANSFER,
-} from "../../interfaces/business/IDelegationService";
+  OWNERSHIP_TRANSFER} from "../../interfaces/business/IDelegationService";
+import type { ITransactionWork } from "../../interfaces/business/ITransactionService";
+import type { ILiFiUtils } from "../../interfaces/business/utils/ILiFiUtils";
+import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
+import type { IChainRepository } from "../../interfaces/data/IChainRepository";
+import type { IDelegationRepository } from "../../interfaces/data/IDelegationRepository";
+import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
+import type { ITransactionUtils as IPresentationTransactionUtils } from "../../interfaces/utils/ITransactionUtils";
+import type {
+  ISignedDelegation,
+  IStoredDelegation,
+} from "../../types/domain/StoredDelegation";
+import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
+import { makeDelegationId, type DelegationId } from "../../types/primitives/DelegationId";
+
 import {
   buildKitScopeAttenuatedPermission,
   buildKitScopeConfig,
   grantKindForPermissionType,
 } from "./kitScopePermissions";
-import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
-import type { ILiFiUtils } from "../../interfaces/business/utils/ILiFiUtils";
-import type { ITransactionUtils as IPresentationTransactionUtils } from "../../interfaces/utils/ITransactionUtils";
-import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
-import type {
-  ISignedDelegation,
-  IStoredDelegation,
-} from "../../types/domain/StoredDelegation";
-import { makeDelegationId, type DelegationId } from "../../types/primitives/DelegationId";
-import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
-import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
-import { withCoalescedSignDigest } from "../../../wallet/withCoalescedSignDigest";
-import { loadCachedEvmAddress } from "../../../storage";
-import { styleController } from "../../../style/styleController";
 import {
   CHAINLINK_PRICE_RULE,
   CHAINLINK_PRICE_RULE_ENFORCER,

@@ -5,12 +5,14 @@ import type {
   EVMTransactionHash,
   HexString,
 } from "@1shotapi/ows-types";
-import type { ECctpTransferSpeed } from "../../types/enum/ECctpTransferSpeed";
+
 import type { KnownAsset } from "../../types/domain/KnownAsset";
 import type { SupportedChain } from "../../types/domain/SupportedChain";
-import type { ICctpInFlightBurn } from "../data/ICircleRepository";
-import type { IPaymentQuote, ITransactionWork } from "./ITransactionService";
+import type { ECctpTransferSpeed } from "../../types/enum/ECctpTransferSpeed";
 import type { TokenAmount } from "../../types/primitives";
+import type { ICctpInFlightBurn } from "../data/ICircleRepository";
+
+import type { IPaymentQuote, ITransactionWork } from "./ITransactionService";
 
 export interface ICctpQuoteParams {
   sourceChainId: EVMChainId;

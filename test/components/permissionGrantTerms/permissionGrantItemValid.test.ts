@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
 import { EVMAccountAddress, EVMChainId, type IExecutionPermissionRequest } from "@1shotapi/ows-types";
+
 import { isPermissionGrantItemValid } from "@/components/modals/permissionGrantTerms/index.tsx";
 import { CHAINLINK_PRICE_RULE } from "@/lib/implementations/business/utils/ChainlinkPriceRuleUtils.ts";
 import {

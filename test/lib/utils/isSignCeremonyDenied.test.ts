@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
 import { OwsNotAllowedError, OwsSignDeniedError } from "@1shotapi/ows-types";
+
 import {
   isSignCeremonyDenied,
   shouldHideDisplayOnRelayerError,

@@ -1,4 +1,5 @@
-import { DomainString, OWSAnalyticsEvent } from "@1shotapi/ows-types";
+import { type DomainString, OWSAnalyticsEvent } from "@1shotapi/ows-types";
+
 import { EAnalyticsEventName } from "../../enum/EAnalyticsEventName";
 
 export class CredentialIssuedEvent extends OWSAnalyticsEvent {

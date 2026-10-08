@@ -1,5 +1,6 @@
 import type { IAppendedCaveatConfiguration } from "@1shotapi/ows-types";
 import { formatUnits } from "viem";
+
 import {
   CHAINLINK_PRICE_RULE,
   parseChainlinkPriceRuleData,

@@ -1,6 +1,5 @@
 import type { EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
-import type { TrackedAssetId } from "../types/primitives/TrackedAssetId";
-import { makeTrackedAssetId } from "../types/primitives/TrackedAssetId";
+
 
 import usdcIcon from "../../assets/images/tokens/CircleUSDC.svg";
 import usdgIcon from "../../assets/images/tokens/GlobalDollarUSDG.svg";
@@ -8,6 +7,8 @@ import musdIcon from "../../assets/images/tokens/mUSD-icon.svg";
 import paxgIcon from "../../assets/images/tokens/PAXG.svg";
 import pyusdIcon from "../../assets/images/tokens/PYUSD.svg";
 import usdtIcon from "../../assets/images/tokens/tetherUSD.svg";
+import { makeTrackedAssetId ,type  TrackedAssetId } from "../types/primitives/TrackedAssetId";
+
 
 const ICON_BY_SYMBOL: Readonly<Record<string, string>> = {
   USDC: usdcIcon,

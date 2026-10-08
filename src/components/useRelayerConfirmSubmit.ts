@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { OwsUserRejectedError, type EVMTransactionHash } from "@1shotapi/ows-types";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import type { IPaymentQuote } from "../lib/interfaces/business";
 import type { IFinalRelayerFee, IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
-import type { IRelayerConfirmSendResult } from "../wallet/modalTypes";
 import { isSignCeremonyDenied } from "../lib/utils/isSignCeremonyDenied";
+import type { IRelayerConfirmSendResult } from "../wallet/modalTypes";
 
 export type RelayerConfirmPhase =
   | "confirm"

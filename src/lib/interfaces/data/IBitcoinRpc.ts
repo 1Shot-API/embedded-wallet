@@ -3,6 +3,7 @@ import type {
   BitcoinSegwitAccountAddress,
   BitcoinTransactionHash,
 } from "@1shotapi/ows-types";
+
 import type { BitcoinUtxo } from "../../types/domain/BitcoinUtxo";
 import type { BitcoinSatoshiAmount } from "../../types/primitives/BitcoinSatoshiAmount";
 import type { BitcoinTransactionData } from "../../types/primitives/BitcoinTransactionData";

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
 import type { IAppendedCaveatConfiguration } from "@1shotapi/ows-types";
+
 import {
   isAppendedCaveatValid,
   resolveAppendedCaveatRows,

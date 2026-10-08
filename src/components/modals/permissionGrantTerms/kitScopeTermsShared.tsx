@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
 import {
   EVMContractAddress,
   type IExecutionPermissionRequest,
 } from "@1shotapi/ows-types";
+import { useEffect, useState } from "react";
 import { formatUnits, getAddress } from "viem";
-import type { ExecutionPermissionType } from "../../../lib/interfaces/business/IDelegationService";
+
 import { validateKitScopeRequest } from "../../../lib/implementations/business/kitScopePermissions";
+import type { ExecutionPermissionType } from "../../../lib/interfaces/business/IDelegationService";
 import { EAssetType } from "../../../lib/types/enum/EAssetType";
 import {
   formatUnixSecondsLabel,
@@ -19,6 +20,7 @@ import {
 import { resolveAssetIconUrl } from "../../../lib/utils/tokenIcons";
 import type { IGrantExecutionPermissionResult } from "../../../wallet/modalTypes";
 import { useWallet } from "../../../wallet/WalletProvider";
+
 import { isAppendedCaveatValid } from "./appendedCaveatUtils";
 
 export function isKitScopePermissionGrantValid(

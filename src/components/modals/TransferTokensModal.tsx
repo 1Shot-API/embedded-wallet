@@ -1,3 +1,9 @@
+import {
+  EChainTechnology,
+  HexString,
+  type EVMAccountAddress,
+  type EVMTransactionHash,
+} from "@1shotapi/ows-types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   encodeFunctionData,
@@ -5,28 +11,24 @@ import {
   parseUnits,
   type Hex,
 } from "viem";
-import {
-  EChainTechnology,
-  HexString,
-  type EVMAccountAddress,
-  type EVMTransactionHash,
-} from "@1shotapi/ows-types";
+
+import type { IPaymentQuote, ITransactionWork } from "../../lib/interfaces/business";
 import type { TrackedAsset } from "../../lib/types/domain";
 import { EAssetType } from "../../lib/types/enum/EAssetType";
-import type { IPaymentQuote, ITransactionWork } from "../../lib/interfaces/business";
 import { useStyle } from "../../style/StyleProvider";
 import { chainTechnologyFor } from "../../wallet/activeAddress";
+import { useWalletSessionStore } from "../../wallet/sessionStore";
 import { useLiveTrackedBalance } from "../../wallet/useLiveTrackedBalance";
 import { useWallet } from "../../wallet/WalletProvider";
-import { useWalletSessionStore } from "../../wallet/sessionStore";
-import { Modal } from "../Modal";
 import {
   AddressInput,
   type AddressInputValue,
 } from "../AddressInput";
+import { Modal } from "../Modal";
 import { PaymentFeePicker } from "../PaymentFeePicker";
-import { SentTransactionModal } from "./SentTransactionModal";
 import { TokenAmountInput } from "../TokenAmountInput";
+
+import { SentTransactionModal } from "./SentTransactionModal";
 
 export interface ITransferTokensModalProps {
   asset: TrackedAsset;
