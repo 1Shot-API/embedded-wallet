@@ -83,6 +83,12 @@ import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
 import { withCoalescedSignDigest } from "../../../wallet/withCoalescedSignDigest";
 import { loadCachedEvmAddress } from "../../../storage";
 import { styleController } from "../../../style/styleController";
+import {
+  CHAINLINK_PRICE_RULE,
+  CHAINLINK_PRICE_RULE_ENFORCER,
+  encodeChainlinkPriceRuleTerms,
+  parseChainlinkPriceRuleData,
+} from "./utils/ChainlinkPriceRuleUtils";
 
 /**
  * MetaMask StatelessDelegator grants + on-chain disable via public relayer.
@@ -426,51 +432,52 @@ export class DelegationService implements IDelegationService {
     const lifiChainIds = relayerChainIds.filter(
       (id) => this.liFiUtils.resolveSwapEnforcer(id) !== null,
     );
+    // Same host-appended caveat allowlist for every permission type.
+    const ruleTypes = [...HOST_RULE_TYPES];
     return {
       [ERC20_TOKEN_PERIODIC]: {
         chainIds: relayerChainIds,
-        // Accepted on the wire; period scope is what phase 1 enforces on-chain.
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
       [ERC20_TRANSFER_AMOUNT]: {
         chainIds: relayerChainIds,
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
       [ERC20_STREAMING]: {
         chainIds: relayerChainIds,
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
       [NATIVE_TRANSFER_AMOUNT]: {
         chainIds: relayerChainIds,
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
       [NATIVE_STREAMING]: {
         chainIds: relayerChainIds,
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
       [NATIVE_PERIOD_TRANSFER]: {
         chainIds: relayerChainIds,
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
       [ERC721_TRANSFER]: {
         chainIds: relayerChainIds,
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
       [OWNERSHIP_TRANSFER]: {
         chainIds: relayerChainIds,
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
       [FUNCTION_CALL]: {
         chainIds: relayerChainIds,
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
       [LIFI_SWAP_PERIODIC]: {
         chainIds: lifiChainIds,
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
       [LIFI_SWAP_APPROVE]: {
         chainIds: lifiChainIds,
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
     };
   }
@@ -606,6 +613,7 @@ export class DelegationService implements IDelegationService {
         getAddress(swap.lifiDiamond),
         getAddress(enforcer),
         termsBytes as Hex,
+        args.caveats,
       );
       return {
         delegate: getAddress(requestTo),
@@ -626,6 +634,7 @@ export class DelegationService implements IDelegationService {
         ConversionUtils.addressToBytes32Hex(
           getAddress(approve.spender),
         ) as Hex,
+        args.caveats,
       );
       return {
         delegate: getAddress(requestTo),
@@ -679,6 +688,7 @@ export class DelegationService implements IDelegationService {
           startDate: swap.startDate,
           slippageBps: swap.slippageBps,
           delegationHash,
+          ...(caveats && caveats.length > 0 ? { caveats } : {}),
         },
       };
     }
@@ -692,6 +702,7 @@ export class DelegationService implements IDelegationService {
           tokenAddress: approve.tokenAddress,
           spender: approve.spender,
           delegationHash,
+          ...(caveats && caveats.length > 0 ? { caveats } : {}),
         },
       };
     }
@@ -905,14 +916,16 @@ function buildSwapCaveats(
   lifiDiamond: Hex,
   enforcer: Hex,
   termsBytes: Hex,
+  hostCaveats?: IAppendedCaveatConfiguration[],
 ) {
-  return createCaveatBuilder(environment, {
+  const builder = createCaveatBuilder(environment, {
     allowInsecureUnrestrictedDelegation: true,
   })
     .addCaveat("allowedTargets", { targets: [lifiDiamond] })
     .addCaveat("valueLte", { maxValue: 0n })
-    .addCaveat(createCaveat(enforcer, termsBytes, "0x"))
-    .build();
+    .addCaveat(createCaveat(enforcer, termsBytes, "0x"));
+  appendHostCaveatsToBuilder(builder, hostCaveats);
+  return builder.build();
 }
 
 function buildApproveCaveats(
@@ -920,6 +933,7 @@ function buildApproveCaveats(
   inputToken: Hex,
   lifiDiamond: Hex,
   spenderBytes32: Hex,
+  hostCaveats?: IAppendedCaveatConfiguration[],
 ) {
   const approveSelector = encodeFunctionData({
     abi: erc20Abi,
@@ -927,7 +941,7 @@ function buildApproveCaveats(
     args: [lifiDiamond, 0n],
   }).slice(0, 10) as Hex;
 
-  return createCaveatBuilder(environment, {
+  const builder = createCaveatBuilder(environment, {
     allowInsecureUnrestrictedDelegation: true,
   })
     .addCaveat("allowedTargets", { targets: [inputToken] })
@@ -936,16 +950,17 @@ function buildApproveCaveats(
       startIndex: 4,
       value: spenderBytes32,
     })
-    .addCaveat("valueLte", { maxValue: 0n })
-    .build();
+    .addCaveat("valueLte", { maxValue: 0n });
+  appendHostCaveatsToBuilder(builder, hostCaveats);
+  return builder.build();
 }
 
 /**
  * Caveat `type` values the wallet will merge onto a top-level scope.
  *
- * Curated to the enforcers deployed in the MetaMask delegation environment and
- * exposed by `@metamask/smart-accounts-kit`'s `CoreCaveatBuilder`. Any other
- * `type` is rejected before signing so unknown enforcers never reach the kit.
+ * Includes MetaMask kit enforcers exposed by `CoreCaveatBuilder`, plus the
+ * custom `chainlink-price-rule` (packed via {@link encodeChainlinkPriceRuleTerms}).
+ * Any other `type` is rejected before signing.
  */
 export const APPENDED_CAVEAT_TYPES = [
   "allowedCalldata",
@@ -957,9 +972,17 @@ export const APPENDED_CAVEAT_TYPES = [
   "limitedCalls",
   "nonce",
   "id",
+  CHAINLINK_PRICE_RULE,
 ] as const;
 
 export type AppendedCaveatType = (typeof APPENDED_CAVEAT_TYPES)[number];
+
+/**
+ * EIP-7715 `ruleTypes` advertised by `getSupportedExecutionPermissions`.
+ * Matches the host `caveats[]` allowlist — same for every permission type.
+ */
+export const HOST_RULE_TYPES: readonly AppendedCaveatType[] =
+  APPENDED_CAVEAT_TYPES;
 
 const APPENDED_CAVEAT_TYPE_SET: ReadonlySet<string> = new Set(
   APPENDED_CAVEAT_TYPES,
@@ -968,12 +991,12 @@ const APPENDED_CAVEAT_TYPE_SET: ReadonlySet<string> = new Set(
 /**
  * Validate appended caveats on an EIP-7715 permission request.
  *
- * Rejects unknown `type` values and non-array inputs. Per-caveat config shape
- * validation is delegated to the kit's `addCaveat` at sign time; this helper
- * only enforces the allowlist so unknown enforcers never reach the kit.
+ * Rejects unknown `type` values and non-array inputs. Kit caveat config shape
+ * is left to `addCaveat` at sign time; `chainlink-price-rule` is fully validated
+ * here (trusted feed + terms fields).
  *
  * @returns The validated caveats (empty array if `undefined`).
- * @throws if any caveat has an unknown `type` or missing `data`.
+ * @throws if any caveat has an unknown `type` or missing/invalid `data`.
  */
 export function validateAppendedCaveats(
   caveats: IAppendedCaveatConfiguration[] | undefined,
@@ -1000,8 +1023,40 @@ export function validateAppendedCaveats(
         `Appended caveat ${caveat.type} requires a config object in \`data\``,
       );
     }
+    if (caveat.type === CHAINLINK_PRICE_RULE) {
+      parseChainlinkPriceRuleData(caveat.data as Record<string, unknown>);
+    }
   }
   return caveats;
+}
+
+/**
+ * Append validated host caveats onto an existing caveat builder (kit types via
+ * `addCaveat(type, data)`; Chainlink via packed `createCaveat`).
+ */
+export function appendHostCaveatsToBuilder(
+  builder: ReturnType<typeof createCaveatBuilder>,
+  caveats: IAppendedCaveatConfiguration[] | undefined,
+): ReturnType<typeof createCaveatBuilder> {
+  const validated = validateAppendedCaveats(caveats);
+  for (const { type, data } of validated) {
+    if (type === CHAINLINK_PRICE_RULE) {
+      const terms = encodeChainlinkPriceRuleTerms(
+        data as Record<string, unknown>,
+      );
+      builder.addCaveat(
+        createCaveat(
+          getAddress(CHAINLINK_PRICE_RULE_ENFORCER) as Hex,
+          terms,
+          "0x",
+        ),
+      );
+      continue;
+    }
+    // `as never` is safe: validateAppendedCaveats guarantees kit `type` + `data`.
+    builder.addCaveat(type as never, data as never);
+  }
+  return builder;
 }
 
 /**
@@ -1015,17 +1070,10 @@ export function buildAppendedCaveatBuilder(
   environment: SmartAccountsEnvironment,
   caveats: IAppendedCaveatConfiguration[] | undefined,
 ): ReturnType<typeof createCaveatBuilder> {
-  const validated = validateAppendedCaveats(caveats);
   const builder = createCaveatBuilder(environment, {
     allowInsecureUnrestrictedDelegation: true,
   });
-  // `as never` is safe: validateAppendedCaveats guarantees `type` is a known
-  // CaveatType and `data` is its config object. The kit's `addCaveat` is typed
-  // per-caveat-type, so a runtime string can't satisfy it without the cast.
-  for (const { type, data } of validated) {
-    builder.addCaveat(type as never, data as never);
-  }
-  return builder;
+  return appendHostCaveatsToBuilder(builder, caveats);
 }
 
 function toSignedDelegation(delegation: Delegation): ISignedDelegation {

@@ -1,4 +1,15 @@
 import type { IAppendedCaveatConfiguration } from "@1shotapi/ows-types";
+import { formatUnits } from "viem";
+import {
+  CHAINLINK_PRICE_RULE,
+  parseChainlinkPriceRuleData,
+  resolveTrustedFeed,
+  RULE_KIND_ABSOLUTE_GTE,
+  RULE_KIND_ABSOLUTE_LTE,
+  RULE_KIND_DIP,
+  RULE_KIND_RISE,
+  ruleKindDisplayLabel,
+} from "../../../lib/implementations/business/utils/ChainlinkPriceRuleUtils";
 import {
   formatUnixSecondsLabel,
   truncateMiddle,
@@ -8,7 +19,7 @@ import { truncateAddress } from "../../../lib/utils/identityDisplay";
 /**
  * User-facing display name for each appended caveat `type`.
  *
- * Curated to match the 9-type allowlist in `DelegationService.validateAppendedCaveats`.
+ * Curated to match the allowlist in `DelegationService.validateAppendedCaveats`.
  * Unknown types are rejected before signing, so the UI only sees these keys.
  */
 export const CAVEAT_DISPLAY_NAME: Record<string, string> = {
@@ -21,6 +32,7 @@ export const CAVEAT_DISPLAY_NAME: Record<string, string> = {
   limitedCalls: "Redemption Limit",
   nonce: "Revocation Nonce",
   id: "One-Time ID",
+  [CHAINLINK_PRICE_RULE]: "Price Rule (Chainlink)",
 };
 
 /** A resolved, user-facing row for an appended caveat parameter. */
@@ -85,6 +97,14 @@ export function isAppendedCaveatValid(
     Array.isArray(caveat.data)
   ) {
     return false;
+  }
+  if (caveat.type === CHAINLINK_PRICE_RULE) {
+    try {
+      parseChainlinkPriceRuleData(caveat.data as Record<string, unknown>);
+      return true;
+    } catch {
+      return false;
+    }
   }
   return true;
 }
@@ -159,6 +179,62 @@ export function resolveAppendedCaveatRows(
     case "id": {
       const id = readBigInt(data, "id");
       return [{ label: "One-time ID", value: id !== null ? id.toString() : "—" }];
+    }
+    case CHAINLINK_PRICE_RULE: {
+      try {
+        const parsed = parseChainlinkPriceRuleData(data);
+        const trusted = resolveTrustedFeed(parsed.priceFeed);
+        const pair = trusted?.pair ?? "Chainlink";
+        const rows: IAppendedCaveatRow[] = [
+          {
+            label: "Price source",
+            value: `${pair} (${truncateAddress(parsed.priceFeed)})`,
+          },
+          {
+            label: "Rule",
+            value: ruleKindDisplayLabel(parsed.ruleKind),
+          },
+        ];
+        if (
+          parsed.ruleKind === RULE_KIND_DIP ||
+          parsed.ruleKind === RULE_KIND_RISE
+        ) {
+          const pct = (parsed.thresholdBps / 100).toFixed(
+            parsed.thresholdBps % 100 === 0 ? 0 : 2,
+          );
+          rows.push({
+            label: "Trigger",
+            value: `≥ ${pct}% within ${parsed.windowSeconds}s`,
+          });
+        } else if (
+          parsed.ruleKind === RULE_KIND_ABSOLUTE_GTE ||
+          parsed.ruleKind === RULE_KIND_ABSOLUTE_LTE
+        ) {
+          const usd = formatUnits(
+            BigInt(parsed.triggerPrice),
+            parsed.expectedDecimals,
+          );
+          const cmp =
+            parsed.ruleKind === RULE_KIND_ABSOLUTE_GTE ? "≥" : "≤";
+          rows.push({
+            label: "Trigger",
+            value: `Price ${cmp} $${usd}`,
+          });
+        }
+        rows.push(
+          {
+            label: "Max oracle staleness",
+            value: `${parsed.maxStaleSeconds}s`,
+          },
+          {
+            label: "Reference min age",
+            value: `${parsed.minGapSeconds}s`,
+          },
+        );
+        return rows;
+      } catch {
+        return [{ label: "Price rule", value: "Invalid configuration" }];
+      }
     }
     default:
       return [];

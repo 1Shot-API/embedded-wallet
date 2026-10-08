@@ -10,6 +10,7 @@ import type {
 } from "../../../wallet/modalTypes";
 import { useWallet } from "../../../wallet/WalletProvider";
 import { AppendedCaveatTerms } from "./appendedCaveatTerms";
+import { isAppendedCaveatValid } from "./appendedCaveatUtils";
 import {
   buildErc20PeriodicGrantResult,
   Erc20PeriodicPermissionTerms,
@@ -150,43 +151,57 @@ export function isPermissionGrantItemValid(
   defaultSlippageBps: number,
 ): boolean {
   const permissionType = executionRequest.permission.type;
+  let scopeValid: boolean;
   switch (grantKind) {
     case "grantExecutionPermission":
-      return (
+      scopeValid =
         permissionType === ERC20_TOKEN_PERIODIC &&
-        isErc20PeriodicPermissionValid(executionRequest)
-      );
+        isErc20PeriodicPermissionValid(executionRequest);
+      break;
     case "grantErc20TransferPermission":
-      return isErc20TransferPermissionValid(executionRequest);
+      scopeValid = isErc20TransferPermissionValid(executionRequest);
+      break;
     case "grantErc20StreamingPermission":
-      return isErc20StreamingPermissionValid(executionRequest);
+      scopeValid = isErc20StreamingPermissionValid(executionRequest);
+      break;
     case "grantNativeTransferPermission":
-      return isNativeTransferPermissionValid(executionRequest);
+      scopeValid = isNativeTransferPermissionValid(executionRequest);
+      break;
     case "grantNativeStreamingPermission":
-      return isNativeStreamingPermissionValid(executionRequest);
+      scopeValid = isNativeStreamingPermissionValid(executionRequest);
+      break;
     case "grantNativePeriodTransferPermission":
-      return isNativePeriodTransferPermissionValid(executionRequest);
+      scopeValid = isNativePeriodTransferPermissionValid(executionRequest);
+      break;
     case "grantErc721TransferPermission":
-      return isErc721TransferPermissionValid(executionRequest);
+      scopeValid = isErc721TransferPermissionValid(executionRequest);
+      break;
     case "grantOwnershipTransferPermission":
-      return isOwnershipTransferPermissionValid(executionRequest);
+      scopeValid = isOwnershipTransferPermissionValid(executionRequest);
+      break;
     case "grantFunctionCallPermission":
-      return isFunctionCallPermissionValid(executionRequest);
+      scopeValid = isFunctionCallPermissionValid(executionRequest);
+      break;
     case "grantLiFiSwapPermission":
-      return (
+      scopeValid =
         permissionType === LIFI_SWAP_PERIODIC &&
-        isLiFiSwapPermissionValid(executionRequest, defaultSlippageBps)
-      );
+        isLiFiSwapPermissionValid(executionRequest, defaultSlippageBps);
+      break;
     case "grantLiFiApprovePermission":
-      return (
+      scopeValid =
         permissionType === LIFI_SWAP_APPROVE &&
-        isLiFiApprovePermissionValid(executionRequest)
-      );
+        isLiFiApprovePermissionValid(executionRequest);
+      break;
     default: {
       const _exhaustive: never = grantKind;
       return _exhaustive;
     }
   }
+  // Host caveats[] are validated identically for every permission type.
+  return (
+    scopeValid &&
+    (executionRequest.caveats ?? []).every(isAppendedCaveatValid)
+  );
 }
 
 export function buildPermissionGrantResult(

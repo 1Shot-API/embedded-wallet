@@ -4,10 +4,12 @@ import type { Hex, SmartAccountsEnvironment } from "@metamask/smart-accounts-kit
 import type { IAppendedCaveatConfiguration } from "@1shotapi/ows-types";
 import {
   APPENDED_CAVEAT_TYPES,
+  HOST_RULE_TYPES,
   buildAppendedCaveatBuilder,
   buildErc20PeriodicAttenuatedPermission,
   validateAppendedCaveats,
 } from "@/lib/implementations/business/DelegationService.ts";
+import { CHAINLINK_PRICE_RULE } from "@/lib/implementations/business/utils/ChainlinkPriceRuleUtils.ts";
 import { ERC20_TOKEN_PERIODIC } from "@/lib/interfaces/business/IDelegationService.ts";
 
 const enforcer = (n: number): Hex =>
@@ -27,7 +29,7 @@ const environment = {
   },
 } as unknown as SmartAccountsEnvironment;
 
-const ALL_9: IAppendedCaveatConfiguration[] = [
+const KIT_9: IAppendedCaveatConfiguration[] = [
   { type: "allowedCalldata", data: { startIndex: 4, value: "0xdeadbeef" } },
   { type: "allowedTargets", data: { targets: ["0x" + "1".repeat(40)] } },
   { type: "allowedMethods", data: { selectors: ["0x12345678"] } },
@@ -39,17 +41,57 @@ const ALL_9: IAppendedCaveatConfiguration[] = [
   { type: "id", data: { id: 1 } },
 ];
 
+const CHAINLINK_DIP: IAppendedCaveatConfiguration = {
+  type: CHAINLINK_PRICE_RULE,
+  data: {
+    priceFeed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+    ruleKind: 0,
+    expectedDecimals: 8,
+    windowSeconds: 86400,
+    thresholdBps: 1000,
+    maxStaleSeconds: 3600,
+    minGapSeconds: 60,
+    triggerPrice: "0",
+  },
+};
+
+const ALL_10: IAppendedCaveatConfiguration[] = [...KIT_9, CHAINLINK_DIP];
+
+describe("HOST_RULE_TYPES discovery", () => {
+  it("matches the full appended caveat allowlist (no fake expiry)", () => {
+    assert.deepEqual([...HOST_RULE_TYPES], [...APPENDED_CAVEAT_TYPES]);
+    assert.ok(HOST_RULE_TYPES.includes(CHAINLINK_PRICE_RULE));
+    assert.equal(HOST_RULE_TYPES.includes("expiry" as never), false);
+  });
+});
+
 describe("validateAppendedCaveats", () => {
   it("returns [] for undefined", () => {
     assert.deepEqual(validateAppendedCaveats(undefined), []);
   });
 
-  it("accepts all 9 allowlisted types", () => {
-    const result = validateAppendedCaveats(ALL_9);
-    assert.equal(result.length, 9);
+  it("accepts all allowlisted types including chainlink-price-rule", () => {
+    const result = validateAppendedCaveats(ALL_10);
+    assert.equal(result.length, 10);
     assert.deepEqual(
       result.map((c) => c.type),
       [...APPENDED_CAVEAT_TYPES],
+    );
+  });
+
+  it("rejects chainlink-price-rule with untrusted feed", () => {
+    assert.throws(
+      () =>
+        validateAppendedCaveats([
+          {
+            type: CHAINLINK_PRICE_RULE,
+            data: {
+              ...CHAINLINK_DIP.data,
+              priceFeed: "0x" + "1".repeat(40),
+            },
+          },
+        ]),
+      /not a trusted Chainlink feed/,
     );
   });
 
@@ -86,9 +128,9 @@ describe("validateAppendedCaveats", () => {
 
 describe("buildAppendedCaveatBuilder", () => {
   it("builds caveats with the right enforcer addresses for each type", () => {
-    const builder = buildAppendedCaveatBuilder(environment, ALL_9);
+    const builder = buildAppendedCaveatBuilder(environment, ALL_10);
     const built = builder.build();
-    assert.equal(built.length, 9);
+    assert.equal(built.length, 10);
     const enforcers = new Set(built.map((c) => c.enforcer));
     for (const addr of [
       enforcer(1), enforcer(2), enforcer(3), enforcer(4),
@@ -96,6 +138,14 @@ describe("buildAppendedCaveatBuilder", () => {
     ]) {
       assert.ok(enforcers.has(addr), `missing enforcer ${addr}`);
     }
+    const chainlink = built.find(
+      (c) =>
+        c.enforcer.toLowerCase() ===
+        "0x4daebf9c5813eff2606acd41ba25e57841e7cb75",
+    );
+    assert.ok(chainlink, "missing ChainlinkPriceRuleEnforcer");
+    assert.equal((chainlink!.terms.length - 2) / 2, 68);
+    assert.equal(chainlink!.args, "0x");
   });
 
   it("allowedCalldata caveat resolves to AllowedCalldataEnforcer", () => {

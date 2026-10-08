@@ -5,11 +5,26 @@ import {
   isAppendedCaveatValid,
   resolveAppendedCaveatRows,
 } from "@/components/modals/permissionGrantTerms/appendedCaveatUtils.ts";
+import { CHAINLINK_PRICE_RULE } from "@/lib/implementations/business/utils/ChainlinkPriceRuleUtils.ts";
 
 const addr = (n: number) => "0x" + String(n).toString(16).padStart(40, "0");
 
+const chainlinkDip: IAppendedCaveatConfiguration = {
+  type: CHAINLINK_PRICE_RULE,
+  data: {
+    priceFeed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+    ruleKind: 0,
+    expectedDecimals: 8,
+    windowSeconds: 86400,
+    thresholdBps: 1000,
+    maxStaleSeconds: 3600,
+    minGapSeconds: 60,
+    triggerPrice: "0",
+  },
+};
+
 describe("isAppendedCaveatValid", () => {
-  it("accepts each of the 9 allowlisted types", () => {
+  it("accepts each allowlisted type including chainlink-price-rule", () => {
     const cases: IAppendedCaveatConfiguration[] = [
       { type: "allowedCalldata", data: { startIndex: 4, value: "0xab" } },
       { type: "allowedTargets", data: { targets: [addr(1)] } },
@@ -20,10 +35,21 @@ describe("isAppendedCaveatValid", () => {
       { type: "limitedCalls", data: { limit: 1 } },
       { type: "nonce", data: { nonce: "0xabc" } },
       { type: "id", data: { id: 1 } },
+      chainlinkDip,
     ];
     for (const c of cases) {
       assert.equal(isAppendedCaveatValid(c), true, `expected valid: ${c.type}`);
     }
+  });
+
+  it("rejects chainlink-price-rule with bad feed", () => {
+    assert.equal(
+      isAppendedCaveatValid({
+        type: CHAINLINK_PRICE_RULE,
+        data: { ...chainlinkDip.data, priceFeed: addr(9) },
+      }),
+      false,
+    );
   });
 
   it("rejects an unknown type", () => {
@@ -102,5 +128,12 @@ describe("resolveAppendedCaveatRows", () => {
       data: {},
     } as unknown as IAppendedCaveatConfiguration);
     assert.deepEqual(rows, []);
+  });
+
+  it("chainlink-price-rule shows pair, rule, and trigger", () => {
+    const rows = resolveAppendedCaveatRows(chainlinkDip);
+    assert.ok(rows.some((r) => r.label === "Price source" && r.value.includes("ETH/USD")));
+    assert.ok(rows.some((r) => r.label === "Rule" && r.value === "Buy the dip"));
+    assert.ok(rows.some((r) => r.label === "Trigger" && r.value.includes("10%")));
   });
 });
