@@ -1,4 +1,5 @@
 import { pushModal } from "../wallet/pushModal";
+
 import type { IOnrampOpenRequest } from "./onrampTypes";
 
 /** Open the shared fullscreen Circle onramp (Buy + host `onramp` RPC). */

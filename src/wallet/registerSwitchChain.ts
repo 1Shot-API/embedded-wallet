@@ -1,11 +1,12 @@
-import { z } from "zod";
-import type { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
 import {
   BITCOIN_MAINNET_CHAIN_ID,
   BITCOIN_TESTNET_CHAIN_ID,
   ChainUtils,
   type OWSChainId,
 } from "@1shotapi/ows-types";
+import type { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
+import { z } from "zod";
+
 import { useWalletSessionStore } from "./sessionStore";
 
 /** Custom RPC — host: `await proxy.rpc("switchChain", { chainId })`. */

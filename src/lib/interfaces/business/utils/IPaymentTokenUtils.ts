@@ -3,8 +3,9 @@ import type {
   EVMChainId,
   EVMContractAddress,
 } from "@1shotapi/ows-types";
-import type { IPaymentTokenOption } from "../ITransactionService";
+
 import type { IRelayerPayment } from "../../../types/domain/RelayerPayment";
+import type { IPaymentTokenOption } from "../ITransactionService";
 
 export const IPaymentTokenUtilsType = Symbol.for("IPaymentTokenUtils");
 

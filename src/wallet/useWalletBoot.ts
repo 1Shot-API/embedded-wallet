@@ -1,6 +1,15 @@
-import { useEffect, type RefObject } from "react";
-import { OWSSigner } from "@1shotapi/ows-signer-utils";
-import { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
+import {
+  DemoWalletAttestationProvider,
+  FetchUtils,
+  HttpOid4vciClient,
+  HttpOid4vpClient,
+  ParseUtils,
+} from "@1shotapi/ows-oid4";
+import { OWSSigner ,type 
+  PersonalSignApprovalRequest,type 
+  SendTransactionApprovalRequest,type 
+  SignTypedDataApprovalRequest,
+} from "@1shotapi/ows-signer-utils";
 import {
   ChainUtils,
   EVMAccountAddress,
@@ -12,51 +21,37 @@ import {
   type EVMChainId,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
-import type {
-  PersonalSignApprovalRequest,
-  SendTransactionApprovalRequest,
-  SignTypedDataApprovalRequest,
-} from "@1shotapi/ows-signer-utils";
+import { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
+import { useEffect, type RefObject } from "react";
+
+import { DEMO_HOLDER_PRIVATE_JWK } from "../demo/demo-keys";
 import { InMemoryIssuerTrustRegistry } from "../demo/in-memory-trust-registry";
+import { grantKindForPermissionType } from "../lib/implementations/business/kitScopePermissions";
 import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
-import {
-  DemoWalletAttestationProvider,
-  FetchUtils,
-  HttpOid4vciClient,
-  HttpOid4vpClient,
-  ParseUtils,
-} from "@1shotapi/ows-oid4";
-import {
-  registerAccountConnect,
-  type AccountConnectStorage,
-} from "../ows/registerAccountConnect";
-import { registerApprovalSigning } from "../ows/registerApprovalSigning";
-import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
-import { registerConfigureRpc } from "../style/registerConfigure";
-import { wrapSignerWithCeremonyCopy } from "./wrapSignerWithCeremonyCopy";
-import { wrapSignerWithVaultDecrypt } from "./wrapSignerWithVaultDecrypt";
 import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
-import { styleController } from "../style/styleController";
 import {
   analyticsErrorCode,
   isAnalyticsCancelled,
   runWithAnalytics,
 } from "../lib/implementations/utils";
-import type {
-  IChainRepository,
-  IKnownAssetRepository,
-  ITrackedAssetRepository,
-} from "../lib/interfaces/data";
+import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type {
   IDelegationService,
   IBitcoinService,
   ITransactionService,
 } from "../lib/interfaces/business";
 import {
-  ERC20_TOKEN_PERIODIC,
   LIFI_SWAP_APPROVE,
   LIFI_SWAP_PERIODIC,
 } from "../lib/interfaces/business/IDelegationService";
+import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
+import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
+import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPaymentTokenUtils";
+import type {
+  IChainRepository,
+  IKnownAssetRepository,
+  ITrackedAssetRepository,
+} from "../lib/interfaces/data";
 import type {
   IConfigProvider,
   IEventBus,
@@ -64,12 +59,7 @@ import type {
   ISIWEUtils,
   ITransactionUtils,
 } from "../lib/interfaces/utils";
-import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
-import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
-import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPaymentTokenUtils";
-import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type { SupportedChain } from "../lib/types/domain";
-import type { TokenAmount } from "../lib/types/primitives";
 import {
   DelegationCancelAbortedEvent,
   DelegationCancelledEvent,
@@ -87,27 +77,37 @@ import {
   TypedSignEvent,
   TypedSignFailedEvent,
 } from "../lib/types/events/productEvents";
-import { registerAddAssetRpc } from "./registerAddAsset";
-import { registerCreateAccountRpc } from "./registerCreateAccount";
-import type { IPasskeyRegistrationResult } from "./registerCreateAccount";
-import { registerFocusModeRpc } from "./registerFocusMode";
-import { registerSwitchChainRpc } from "./registerSwitchChain";
-import { registerOnrampRpc } from "./registerOnramp";
-import { registerBridgeRpc } from "./registerBridge";
-import { registerGetUpgradedRpc } from "./registerGetUpgraded";
-import { registerGetBitcoinBalanceRpc } from "./registerGetBitcoinBalance";
-import { registerRequestCancelDelegationsRpc } from "./registerRequestCancelDelegations";
+import type { TokenAmount } from "../lib/types/primitives";
+import {
+  registerAccountConnect,
+  type AccountConnectStorage,
+} from "../ows/registerAccountConnect";
+import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerBitcoinProvider } from "../ows/registerBitcoinProvider";
+import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
 import { loadCachedEvmAddress, loadCredentialId } from "../storage";
+import { registerConfigureRpc } from "../style/registerConfigure";
+import { styleController } from "../style/styleController";
+
 import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
-import { pushModal } from "./pushModal";
-import type {
-  ActiveModal,
-  IGrantExecutionPermissionResult,
+import { type GrantPermissionModalKind ,type 
+  ActiveModal,type 
+  IGrantExecutionPermissionResult,type 
   IRelayerConfirmSendResult,
 } from "./modalTypes";
+import { pushModal } from "./pushModal";
+import { registerAddAssetRpc } from "./registerAddAsset";
+import { registerBridgeRpc } from "./registerBridge";
+import { type IPasskeyRegistrationResult , registerCreateAccountRpc } from "./registerCreateAccount";
+import { registerFocusModeRpc } from "./registerFocusMode";
+import { registerGetBitcoinBalanceRpc } from "./registerGetBitcoinBalance";
+import { registerGetUpgradedRpc } from "./registerGetUpgraded";
+import { registerOnrampRpc } from "./registerOnramp";
+import { registerRequestCancelDelegationsRpc } from "./registerRequestCancelDelegations";
+import { registerSwitchChainRpc } from "./registerSwitchChain";
 import { useWalletSessionStore } from "./sessionStore";
-import { DEMO_HOLDER_PRIVATE_JWK } from "../demo/demo-keys";
+import { wrapSignerWithCeremonyCopy } from "./wrapSignerWithCeremonyCopy";
+import { wrapSignerWithVaultDecrypt } from "./wrapSignerWithVaultDecrypt";
 
 function analyticsAccountAddress(
   fallback?: EVMAccountAddress,
@@ -384,15 +384,9 @@ export function useWalletBoot({
 
                 const prepared = requests.map((request) => {
                   const permissionType = request.permission.type;
-                  const isErc20Periodic =
-                    permissionType === ERC20_TOKEN_PERIODIC;
                   const isLiFiSwap = permissionType === LIFI_SWAP_PERIODIC;
                   const isLiFiApprove = permissionType === LIFI_SWAP_APPROVE;
-                  if (!isErc20Periodic && !isLiFiSwap && !isLiFiApprove) {
-                    throw new OwsInvalidParamsError(
-                      `Unsupported execution permission type: ${permissionType}`,
-                    );
-                  }
+                  const kitGrantKind = grantKindForPermissionType(permissionType);
                   const chain = resolveChain(request.chainId);
                   if (!chain?.useRelayer) {
                     throw new OwsInvalidParamsError(
@@ -407,11 +401,18 @@ export function useWalletBoot({
                       `LiFi swap permissions are not supported on chain ${request.chainId}`,
                     );
                   }
-                  const grantKind = isLiFiSwap
-                    ? ("grantLiFiSwapPermission" as const)
-                    : isLiFiApprove
-                      ? ("grantLiFiApprovePermission" as const)
-                      : ("grantExecutionPermission" as const);
+                  let grantKind: GrantPermissionModalKind;
+                  if (isLiFiSwap) {
+                    grantKind = "grantLiFiSwapPermission";
+                  } else if (isLiFiApprove) {
+                    grantKind = "grantLiFiApprovePermission";
+                  } else if (kitGrantKind) {
+                    grantKind = kitGrantKind;
+                  } else {
+                    throw new OwsInvalidParamsError(
+                      `Unsupported execution permission type: ${permissionType}`,
+                    );
+                  }
                   return { request, chain, grantKind };
                 });
 

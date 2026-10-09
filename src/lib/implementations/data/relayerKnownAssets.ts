@@ -2,9 +2,10 @@ import {
   EVMContractAddress,
   type EVMChainId as EVMChainIdType,
 } from "@1shotapi/ows-types";
-import { EChain } from "../../types/enum/EChain";
+
 import { KnownAsset } from "../../types/domain/KnownAsset";
 import { EAssetType } from "../../types/enum/EAssetType";
+import { EChain } from "../../types/enum/EChain";
 import { makeTrackedAssetId } from "../../types/primitives";
 import {
   iconUrlForSymbol,

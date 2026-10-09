@@ -1,6 +1,3 @@
-import { useEffect, useId, useState } from "react";
-import { ScanLineIcon } from "lucide-react";
-import { AddressUtils } from "@1shotapi/ows-wallet-utils";
 import {
   EChainTechnology,
   type BitcoinChainId,
@@ -10,8 +7,12 @@ import {
   type OWSChainId,
   type SolanaAccountAddress,
 } from "@1shotapi/ows-types";
-import { Input } from "@/components/ui/input";
+import type { AddressUtils } from "@1shotapi/ows-wallet-utils";
+import { ScanLineIcon } from "lucide-react";
+import { useEffect, useId, useState } from "react";
+
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 type BarcodeDetectorLike = {

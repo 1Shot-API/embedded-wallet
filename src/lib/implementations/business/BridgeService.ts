@@ -1,20 +1,13 @@
 import {
-  EVMContractAddress,
+  type EVMContractAddress,
+  type UriString,
   EVMTransactionHash,
-  UriString,
   type EVMAccountAddress,
   type EVMChainId,
 } from "@1shotapi/ows-types";
-import { erc20Abi } from "viem";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
-import type { IChainRepository } from "../../interfaces/data/IChainRepository";
-import type {
-  ICctpInFlightBurn,
-  ICircleRepository,
-} from "../../interfaces/data/ICircleRepository";
-import type { IKnownAssetRepository } from "../../interfaces/data/IKnownAssetRepository";
-import type { ICCTPUtils } from "../../interfaces/business/utils/ICCTPUtils";
-import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
+import { erc20Abi } from "viem";
+
 import type {
   IBridgeService,
   ICctpBridgePayment,
@@ -23,6 +16,14 @@ import type {
   ICctpPollProgress,
   ICctpQuoteParams,
 } from "../../interfaces/business/IBridgeService";
+import type { ICCTPUtils } from "../../interfaces/business/utils/ICCTPUtils";
+import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
+import type { IChainRepository } from "../../interfaces/data/IChainRepository";
+import type {
+  ICctpInFlightBurn,
+  ICircleRepository,
+} from "../../interfaces/data/ICircleRepository";
+import type { IKnownAssetRepository } from "../../interfaces/data/IKnownAssetRepository";
 import type { ECircleDomainId } from "../../types/enum/ECircleDomainId";
 
 const POLL_MS = 3000;

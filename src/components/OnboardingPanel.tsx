@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from "react";
+
 import { Button } from "@/components/ui/button";
-import { useWallet } from "../wallet/WalletProvider";
-import { useWalletSessionStore } from "../wallet/sessionStore";
-import { formatWalletSetupError } from "../wallet/formatWalletSetupError";
+
 import { useStyle } from "../style/StyleProvider";
+import { formatWalletSetupError } from "../wallet/formatWalletSetupError";
+import { useWalletSessionStore } from "../wallet/sessionStore";
+import { useWallet } from "../wallet/WalletProvider";
+
 import { BrandLogo } from "./BrandLogo";
 import { CloseWalletButton } from "./CloseWalletButton";
+
 
 function taglineLines(tagline: string): string[] {
   return tagline

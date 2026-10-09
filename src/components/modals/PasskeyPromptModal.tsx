@@ -1,7 +1,7 @@
-import { usePasskeyPromptStore } from "../../wallet/passkeyPromptStore";
 import { EPasskeyPromptReason } from "../../lib/types/enum/EPasskeyPromptReason";
-import type { IStyleCopyPasskeyPrompt } from "../../style/types";
 import { useStyle } from "../../style/StyleProvider";
+import type { IStyleCopyPasskeyPrompt } from "../../style/types";
+import { usePasskeyPromptStore } from "../../wallet/passkeyPromptStore";
 import { Modal } from "../Modal";
 
 function copyForReason(

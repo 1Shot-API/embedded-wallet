@@ -1,5 +1,3 @@
-import { z } from "zod";
-import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
   ChainUtils,
   EVMContractAddress,
@@ -9,12 +7,16 @@ import {
   type EVMChainId as EVMChainIdType,
   type EVMContractAddress as EVMContractAddressType,
 } from "@1shotapi/ows-types";
+import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import { getAddress, parseUnits } from "viem";
+import { z } from "zod";
+
 import { openCctpBridge } from "../circle/openCctpBridge";
+import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import type { IChainRepository } from "../lib/interfaces/data/IChainRepository";
 import type { IKnownAssetRepository } from "../lib/interfaces/data/IKnownAssetRepository";
-import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import { ECctpTransferSpeed } from "../lib/types/enum/ECctpTransferSpeed";
+
 import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 
 /** Custom RPC — host: `await proxy.rpc("bridge", { amount?, sourceChainId?, destinationChainId?, speed?, tokenAddress? })`. */

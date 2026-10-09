@@ -1,4 +1,4 @@
-import { COSEPublicKey, CredentialId } from "@1shotapi/ows-types";
+import type { COSEPublicKey, CredentialId } from "@1shotapi/ows-types";
 
 export const OWS_ACCOUNT_CREATED = "ows:accountCreated" as const;
 export const OWS_ACCOUNT_CREATE_FAILED = "ows:accountCreateFailed" as const;

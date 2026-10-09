@@ -1,4 +1,20 @@
 import {
+  ConversionUtils,
+  ChainUtils,
+  DomainString,
+  EVMAccountAddress,
+  EVMContractAddress,
+  HexString,
+  UnixTimestamp,
+  type CeremonyUiParams,
+  type EVMChainId,
+  type IExecutionPermission,
+  type IExecutionPermissionResponse,
+  type IAppendedCaveatConfiguration,
+  type SupportedExecutionPermissions,
+} from "@1shotapi/ows-types";
+import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
+import {
   createCaveat,
   createDelegation,
   Implementation,
@@ -15,21 +31,6 @@ import {
   encodeDelegations,
   hashDelegation,
 } from "@metamask/smart-accounts-kit/utils";
-import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
-import {
-  ConversionUtils,
-  ChainUtils,
-  DomainString,
-  EVMAccountAddress,
-  EVMContractAddress,
-  HexString,
-  UnixTimestamp,
-  type CeremonyUiParams,
-  type EVMChainId,
-  type IExecutionPermission,
-  type IExecutionPermissionResponse,
-  type SupportedExecutionPermissions,
-} from "@1shotapi/ows-types";
 import {
   encodeFunctionData,
   erc20Abi,
@@ -38,37 +39,56 @@ import {
   type Hex,
 } from "viem";
 import type { LocalAccount } from "viem/accounts";
-import type { IChainRepository } from "../../interfaces/data/IChainRepository";
-import type { IDelegationRepository } from "../../interfaces/data/IDelegationRepository";
-import type {
-  IBuildCancelWorkParams,
-  ICancelDelegationParams,
-  ICancelDelegationResult,
-  ICancelDelegationsParams,
-  ICancelDelegationsResult,
-  ICreateExecutionPermissionsParams,
-  IDelegationService,
-} from "../../interfaces/business/IDelegationService";
-import type { ITransactionWork } from "../../interfaces/business/ITransactionService";
+
+import { loadCachedEvmAddress } from "../../../storage";
+import { styleController } from "../../../style/styleController";
+import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
+import { withCoalescedSignDigest } from "../../../wallet/withCoalescedSignDigest";
 import {
+  type IBuildCancelWorkParams,
+  type ICancelDelegationParams,
+  type ICancelDelegationResult,
+  type ICancelDelegationsParams,
+  type ICancelDelegationsResult,
+  type ICreateExecutionPermissionsParams,
+  type IDelegationService,
+
+  ERC20_STREAMING,
   ERC20_TOKEN_PERIODIC,
+  ERC20_TRANSFER_AMOUNT,
+  ERC721_TRANSFER,
+  FUNCTION_CALL,
   LIFI_SWAP_APPROVE,
   LIFI_SWAP_PERIODIC,
-} from "../../interfaces/business/IDelegationService";
-import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
+  NATIVE_PERIOD_TRANSFER,
+  NATIVE_STREAMING,
+  NATIVE_TRANSFER_AMOUNT,
+  OWNERSHIP_TRANSFER} from "../../interfaces/business/IDelegationService";
+import type { ITransactionWork } from "../../interfaces/business/ITransactionService";
 import type { ILiFiUtils } from "../../interfaces/business/utils/ILiFiUtils";
-import type { ITransactionUtils as IPresentationTransactionUtils } from "../../interfaces/utils/ITransactionUtils";
+import type { ITransactionUtils } from "../../interfaces/business/utils/ITransactionUtils";
+import type { IChainRepository } from "../../interfaces/data/IChainRepository";
+import type { IDelegationRepository } from "../../interfaces/data/IDelegationRepository";
 import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
+import type { ITransactionUtils as IPresentationTransactionUtils } from "../../interfaces/utils/ITransactionUtils";
 import type {
   ISignedDelegation,
   IStoredDelegation,
 } from "../../types/domain/StoredDelegation";
-import { makeDelegationId, type DelegationId } from "../../types/primitives/DelegationId";
 import { EPasskeyPromptReason } from "../../types/enum/EPasskeyPromptReason";
-import { withCeremonyUiReason } from "../../../wallet/ceremonyUiOverrideStore";
-import { withCoalescedSignDigest } from "../../../wallet/withCoalescedSignDigest";
-import { loadCachedEvmAddress } from "../../../storage";
-import { styleController } from "../../../style/styleController";
+import { makeDelegationId, type DelegationId } from "../../types/primitives/DelegationId";
+
+import {
+  buildKitScopeAttenuatedPermission,
+  buildKitScopeConfig,
+  grantKindForPermissionType,
+} from "./kitScopePermissions";
+import {
+  CHAINLINK_PRICE_RULE,
+  CHAINLINK_PRICE_RULE_ENFORCER,
+  encodeChainlinkPriceRuleTerms,
+  parseChainlinkPriceRuleData,
+} from "./utils/ChainlinkPriceRuleUtils";
 
 /**
  * MetaMask StatelessDelegator grants + on-chain disable via public relayer.
@@ -150,6 +170,7 @@ export class DelegationService implements IDelegationService {
                     environment,
                     salt: randomSalt32(),
                     chainId: item.request.chainId,
+                    caveats: item.request.caveats,
                   });
                   const signature = await smartAccount.signDelegation({
                     delegation: unsigned,
@@ -192,6 +213,7 @@ export class DelegationService implements IDelegationService {
         const attenuatedPermission = this.buildAttenuatedPermission(
           item.permission,
           delegationHash,
+          item.request.caveats,
         );
         const permissionResponse: IExecutionPermissionResponse = {
           chainId: item.request.chainId,
@@ -410,19 +432,52 @@ export class DelegationService implements IDelegationService {
     const lifiChainIds = relayerChainIds.filter(
       (id) => this.liFiUtils.resolveSwapEnforcer(id) !== null,
     );
+    // Same host-appended caveat allowlist for every permission type.
+    const ruleTypes = [...HOST_RULE_TYPES];
     return {
       [ERC20_TOKEN_PERIODIC]: {
         chainIds: relayerChainIds,
-        // Accepted on the wire; period scope is what phase 1 enforces on-chain.
-        ruleTypes: ["expiry"],
+        ruleTypes,
+      },
+      [ERC20_TRANSFER_AMOUNT]: {
+        chainIds: relayerChainIds,
+        ruleTypes,
+      },
+      [ERC20_STREAMING]: {
+        chainIds: relayerChainIds,
+        ruleTypes,
+      },
+      [NATIVE_TRANSFER_AMOUNT]: {
+        chainIds: relayerChainIds,
+        ruleTypes,
+      },
+      [NATIVE_STREAMING]: {
+        chainIds: relayerChainIds,
+        ruleTypes,
+      },
+      [NATIVE_PERIOD_TRANSFER]: {
+        chainIds: relayerChainIds,
+        ruleTypes,
+      },
+      [ERC721_TRANSFER]: {
+        chainIds: relayerChainIds,
+        ruleTypes,
+      },
+      [OWNERSHIP_TRANSFER]: {
+        chainIds: relayerChainIds,
+        ruleTypes,
+      },
+      [FUNCTION_CALL]: {
+        chainIds: relayerChainIds,
+        ruleTypes,
       },
       [LIFI_SWAP_PERIODIC]: {
         chainIds: lifiChainIds,
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
       [LIFI_SWAP_APPROVE]: {
         chainIds: lifiChainIds,
-        ruleTypes: ["expiry"],
+        ruleTypes,
       },
     };
   }
@@ -462,7 +517,7 @@ export class DelegationService implements IDelegationService {
     permission: IExecutionPermission,
     chainId: EVMChainId,
   ): void {
-    if (permission.type === ERC20_TOKEN_PERIODIC) return;
+    if (grantKindForPermissionType(permission.type)) return;
     if (
       permission.type === LIFI_SWAP_PERIODIC ||
       permission.type === LIFI_SWAP_APPROVE
@@ -486,6 +541,7 @@ export class DelegationService implements IDelegationService {
     environment: SmartAccountsEnvironment;
     salt: Hex;
     chainId: EVMChainId;
+    caveats?: IAppendedCaveatConfiguration[];
   }): Delegation {
     const { permission, requestTo, smartAccountAddress, environment, salt } =
       args;
@@ -493,6 +549,10 @@ export class DelegationService implements IDelegationService {
     if (permission.type === ERC20_TOKEN_PERIODIC) {
       const period = parseErc20PeriodData(permission.data);
       const startDate = period.startDate ?? Math.floor(Date.now() / 1000);
+      const appendedCaveats = buildAppendedCaveatBuilder(
+        environment,
+        args.caveats,
+      );
       return createDelegation({
         to: getAddress(requestTo),
         from: getAddress(smartAccountAddress),
@@ -505,6 +565,23 @@ export class DelegationService implements IDelegationService {
           periodDuration: period.periodDuration,
           startDate,
         },
+        caveats: appendedCaveats,
+      });
+    }
+
+    if (grantKindForPermissionType(permission.type)) {
+      const appendedCaveats = buildAppendedCaveatBuilder(
+        environment,
+        args.caveats,
+      );
+      const scope = buildKitScopeConfig(permission);
+      return createDelegation({
+        to: getAddress(requestTo),
+        from: getAddress(smartAccountAddress),
+        environment,
+        salt,
+        scope,
+        caveats: appendedCaveats,
       });
     }
 
@@ -536,6 +613,7 @@ export class DelegationService implements IDelegationService {
         getAddress(swap.lifiDiamond),
         getAddress(enforcer),
         termsBytes as Hex,
+        args.caveats,
       );
       return {
         delegate: getAddress(requestTo),
@@ -556,6 +634,7 @@ export class DelegationService implements IDelegationService {
         ConversionUtils.addressToBytes32Hex(
           getAddress(approve.spender),
         ) as Hex,
+        args.caveats,
       );
       return {
         delegate: getAddress(requestTo),
@@ -575,23 +654,18 @@ export class DelegationService implements IDelegationService {
   private buildAttenuatedPermission(
     permission: IExecutionPermission,
     delegationHash: HexString,
+    caveats: IAppendedCaveatConfiguration[] | undefined,
   ): IExecutionPermission {
     if (permission.type === ERC20_TOKEN_PERIODIC) {
-      const period = parseErc20PeriodData(permission.data);
-      const startDate = period.startDate ?? Math.floor(Date.now() / 1000);
-      return {
-        type: ERC20_TOKEN_PERIODIC,
-        isAdjustmentAllowed: permission.isAdjustmentAllowed,
-        data: {
-          tokenAddress: period.tokenAddress,
-          periodAmount: `0x${period.periodAmount.toString(16)}`,
-          periodDuration: period.periodDuration,
-          startDate,
-          ...(period.justification
-            ? { justification: period.justification }
-            : {}),
-        },
-      };
+      return buildErc20PeriodicAttenuatedPermission(
+        permission,
+        delegationHash,
+        caveats,
+      );
+    }
+
+    if (grantKindForPermissionType(permission.type)) {
+      return buildKitScopeAttenuatedPermission(permission, caveats);
     }
 
     if (permission.type === LIFI_SWAP_PERIODIC) {
@@ -614,6 +688,7 @@ export class DelegationService implements IDelegationService {
           startDate: swap.startDate,
           slippageBps: swap.slippageBps,
           delegationHash,
+          ...(caveats && caveats.length > 0 ? { caveats } : {}),
         },
       };
     }
@@ -627,6 +702,7 @@ export class DelegationService implements IDelegationService {
           tokenAddress: approve.tokenAddress,
           spender: approve.spender,
           delegationHash,
+          ...(caveats && caveats.length > 0 ? { caveats } : {}),
         },
       };
     }
@@ -840,14 +916,16 @@ function buildSwapCaveats(
   lifiDiamond: Hex,
   enforcer: Hex,
   termsBytes: Hex,
+  hostCaveats?: IAppendedCaveatConfiguration[],
 ) {
-  return createCaveatBuilder(environment, {
+  const builder = createCaveatBuilder(environment, {
     allowInsecureUnrestrictedDelegation: true,
   })
     .addCaveat("allowedTargets", { targets: [lifiDiamond] })
     .addCaveat("valueLte", { maxValue: 0n })
-    .addCaveat(createCaveat(enforcer, termsBytes, "0x"))
-    .build();
+    .addCaveat(createCaveat(enforcer, termsBytes, "0x"));
+  appendHostCaveatsToBuilder(builder, hostCaveats);
+  return builder.build();
 }
 
 function buildApproveCaveats(
@@ -855,6 +933,7 @@ function buildApproveCaveats(
   inputToken: Hex,
   lifiDiamond: Hex,
   spenderBytes32: Hex,
+  hostCaveats?: IAppendedCaveatConfiguration[],
 ) {
   const approveSelector = encodeFunctionData({
     abi: erc20Abi,
@@ -862,7 +941,7 @@ function buildApproveCaveats(
     args: [lifiDiamond, 0n],
   }).slice(0, 10) as Hex;
 
-  return createCaveatBuilder(environment, {
+  const builder = createCaveatBuilder(environment, {
     allowInsecureUnrestrictedDelegation: true,
   })
     .addCaveat("allowedTargets", { targets: [inputToken] })
@@ -871,8 +950,130 @@ function buildApproveCaveats(
       startIndex: 4,
       value: spenderBytes32,
     })
-    .addCaveat("valueLte", { maxValue: 0n })
-    .build();
+    .addCaveat("valueLte", { maxValue: 0n });
+  appendHostCaveatsToBuilder(builder, hostCaveats);
+  return builder.build();
+}
+
+/**
+ * Caveat `type` values the wallet will merge onto a top-level scope.
+ *
+ * Includes MetaMask kit enforcers exposed by `CoreCaveatBuilder`, plus the
+ * custom `chainlink-price-rule` (packed via {@link encodeChainlinkPriceRuleTerms}).
+ * Any other `type` is rejected before signing.
+ */
+export const APPENDED_CAVEAT_TYPES = [
+  "allowedCalldata",
+  "allowedTargets",
+  "allowedMethods",
+  "valueLte",
+  "timestamp",
+  "redeemer",
+  "limitedCalls",
+  "nonce",
+  "id",
+  CHAINLINK_PRICE_RULE,
+] as const;
+
+export type AppendedCaveatType = (typeof APPENDED_CAVEAT_TYPES)[number];
+
+/**
+ * EIP-7715 `ruleTypes` advertised by `getSupportedExecutionPermissions`.
+ * Matches the host `caveats[]` allowlist — same for every permission type.
+ */
+export const HOST_RULE_TYPES: readonly AppendedCaveatType[] =
+  APPENDED_CAVEAT_TYPES;
+
+const APPENDED_CAVEAT_TYPE_SET: ReadonlySet<string> = new Set(
+  APPENDED_CAVEAT_TYPES,
+);
+
+/**
+ * Validate appended caveats on an EIP-7715 permission request.
+ *
+ * Rejects unknown `type` values and non-array inputs. Kit caveat config shape
+ * is left to `addCaveat` at sign time; `chainlink-price-rule` is fully validated
+ * here (trusted feed + terms fields).
+ *
+ * @returns The validated caveats (empty array if `undefined`).
+ * @throws if any caveat has an unknown `type` or missing/invalid `data`.
+ */
+export function validateAppendedCaveats(
+  caveats: IAppendedCaveatConfiguration[] | undefined,
+): IAppendedCaveatConfiguration[] {
+  if (caveats === undefined) return [];
+  if (!Array.isArray(caveats)) {
+    throw new Error("Appended caveats must be an array");
+  }
+  for (const caveat of caveats) {
+    if (
+      typeof caveat !== "object" ||
+      caveat === null ||
+      typeof caveat.type !== "string" ||
+      !APPENDED_CAVEAT_TYPE_SET.has(caveat.type)
+    ) {
+      throw new Error(`Unsupported appended caveat type: ${String(caveat?.type)}`);
+    }
+    if (
+      typeof caveat.data !== "object" ||
+      caveat.data === null ||
+      Array.isArray(caveat.data)
+    ) {
+      throw new Error(
+        `Appended caveat ${caveat.type} requires a config object in \`data\``,
+      );
+    }
+    if (caveat.type === CHAINLINK_PRICE_RULE) {
+      parseChainlinkPriceRuleData(caveat.data as Record<string, unknown>);
+    }
+  }
+  return caveats;
+}
+
+/**
+ * Append validated host caveats onto an existing caveat builder (kit types via
+ * `addCaveat(type, data)`; Chainlink via packed `createCaveat`).
+ */
+export function appendHostCaveatsToBuilder(
+  builder: ReturnType<typeof createCaveatBuilder>,
+  caveats: IAppendedCaveatConfiguration[] | undefined,
+): ReturnType<typeof createCaveatBuilder> {
+  const validated = validateAppendedCaveats(caveats);
+  for (const { type, data } of validated) {
+    if (type === CHAINLINK_PRICE_RULE) {
+      const terms = encodeChainlinkPriceRuleTerms(
+        data as Record<string, unknown>,
+      );
+      builder.addCaveat(
+        createCaveat(
+          getAddress(CHAINLINK_PRICE_RULE_ENFORCER) as Hex,
+          terms,
+          "0x",
+        ),
+      );
+      continue;
+    }
+    // `as never` is safe: validateAppendedCaveats guarantees kit `type` + `data`.
+    builder.addCaveat(type as never, data as never);
+  }
+  return builder;
+}
+
+/**
+ * Convert wire-format appended caveats (`{ type, data }`) into a kit
+ * `CoreCaveatBuilder` whose built caveats are merged onto the scope by
+ * `createDelegation({ scope, caveats })`. Validates the allowlist up front via
+ * {@link validateAppendedCaveats}. Returns a builder with no added caveats when
+ * `caveats` is empty/undefined, so the scope-only delegation path is unchanged.
+ */
+export function buildAppendedCaveatBuilder(
+  environment: SmartAccountsEnvironment,
+  caveats: IAppendedCaveatConfiguration[] | undefined,
+): ReturnType<typeof createCaveatBuilder> {
+  const builder = createCaveatBuilder(environment, {
+    allowInsecureUnrestrictedDelegation: true,
+  });
+  return appendHostCaveatsToBuilder(builder, caveats);
 }
 
 function toSignedDelegation(delegation: Delegation): ISignedDelegation {
@@ -887,6 +1088,35 @@ function toSignedDelegation(delegation: Delegation): ISignedDelegation {
     })),
     salt: HexString(delegation.salt as `0x${string}`),
     signature: HexString(delegation.signature),
+  };
+}
+
+/**
+ * Build the attenuated `IExecutionPermission` returned to the host for an
+ * `erc20-token-periodic` grant. Echoes appended caveats onto `permission.data`
+ * (under a `caveats` key) so the host can see exactly what was signed.
+ *
+ * Exported for unit testing the attenuation echo without constructing the
+ * full `DelegationService` DI graph.
+ */
+export function buildErc20PeriodicAttenuatedPermission(
+  permission: IExecutionPermission,
+  _delegationHash: HexString,
+  caveats: IAppendedCaveatConfiguration[] | undefined,
+): IExecutionPermission {
+  const period = parseErc20PeriodData(permission.data);
+  const startDate = period.startDate ?? Math.floor(Date.now() / 1000);
+  return {
+    type: ERC20_TOKEN_PERIODIC,
+    isAdjustmentAllowed: permission.isAdjustmentAllowed,
+    data: {
+      tokenAddress: period.tokenAddress,
+      periodAmount: `0x${period.periodAmount.toString(16)}`,
+      periodDuration: period.periodDuration,
+      startDate,
+      ...(period.justification ? { justification: period.justification } : {}),
+      ...(caveats && caveats.length > 0 ? { caveats } : {}),
+    },
   };
 }
 

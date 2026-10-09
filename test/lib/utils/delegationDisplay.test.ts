@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
 import {
   datetimeLocalInputToUnixSeconds,
   formatPermissionAmount,
   formatSlippageBpsLabel,
   formatUnixSecondsLabel,
   humanizePeriodDuration,
+  humanizeStreamDuration,
   parsePeriodDurationSeconds,
   resolvePermissionEndUnixSeconds,
   unixSecondsToDatetimeLocalInput,
@@ -19,6 +21,17 @@ describe("humanizePeriodDuration", () => {
 
   it("handles multi-day periods", () => {
     assert.equal(humanizePeriodDuration(172_800), "Every 2 days");
+  });
+});
+
+describe("humanizeStreamDuration", () => {
+  it("formats hours without Every prefix", () => {
+    assert.equal(humanizeStreamDuration(10_000), "2.8 hours");
+  });
+
+  it("formats whole days and hours with singular labels", () => {
+    assert.equal(humanizeStreamDuration(86_400), "1 day");
+    assert.equal(humanizeStreamDuration(3600), "1 hour");
   });
 });
 

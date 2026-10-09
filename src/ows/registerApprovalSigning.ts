@@ -1,13 +1,12 @@
-import { SignHelper } from "@1shotapi/ows-signer-utils";
-import type {
-  OWSSigner,
-  PersonalSignApprovalRequest,
-  SendTransactionApprovalRequest,
-  SignHelperChainRpc,
+import { SignHelper ,type 
+  OWSSigner,type 
+  PersonalSignApprovalRequest,type 
+  SendTransactionApprovalRequest,type 
+  SignHelperChainRpc,type 
   SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
-import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import type { EVMSignatureHex, EVMTransactionHash } from "@1shotapi/ows-types";
+import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 
 export type RegisterApprovalSigningOptions = {
   /**

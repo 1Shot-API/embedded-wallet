@@ -1,3 +1,4 @@
+import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import {
   AES256CipherTextEnvelope,
   type DigestSignedData,
@@ -5,7 +6,7 @@ import {
   type ExecuteBatchResult,
   type HexString,
 } from "@1shotapi/ows-types";
-import type { OWSSigner } from "@1shotapi/ows-signer-utils";
+
 import type { IVaultPendingDecrypt } from "../lib/interfaces/data/IVaultPendingDecrypt";
 import type { ChallengeId } from "../lib/types/primitives/ChallengeId";
 

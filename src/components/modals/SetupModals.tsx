@@ -1,9 +1,13 @@
 import { useState } from "react";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
 import { useStyle } from "../../style/StyleProvider";
-import { Modal } from "../Modal";
 import type { WalletSetupChoice } from "../../wallet/modalTypes";
+import { Modal } from "../Modal";
+
+
 
 export function WalletSetupModal({
   onResolve,

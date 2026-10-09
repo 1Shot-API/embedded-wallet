@@ -1,10 +1,10 @@
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
-import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
-  EVMAccountAddress,
+  type EVMAccountAddress,
   OwsUserRejectedError,
   type SolanaAccountAddress,
 } from "@1shotapi/ows-types";
+import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 
 export type AccountConnectStorage = {
   loadCachedEvmAddress: () => EVMAccountAddress | undefined;

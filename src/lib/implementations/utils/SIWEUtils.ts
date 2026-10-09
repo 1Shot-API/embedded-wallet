@@ -1,5 +1,6 @@
 import type { SignTypedDataPayload } from "@1shotapi/ows-signer-utils";
 import { ConversionUtils, HexString } from "@1shotapi/ows-types";
+
 import type { ISIWEUtils } from "../../interfaces/utils/ISIWEUtils";
 import type { ISiweFields } from "../../types/domain/SiweFields";
 

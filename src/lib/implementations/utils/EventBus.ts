@@ -1,4 +1,5 @@
 import type { OWSAnalyticsEvent } from "@1shotapi/ows-types";
+
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
 import { EWalletEventKind } from "../../types/enum/EWalletEventKind";
 import type { BalanceUpdatedEvent } from "../../types/events/BalanceUpdatedEvent";

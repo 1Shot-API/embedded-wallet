@@ -10,25 +10,12 @@ import {
   type EVMSignatureHex,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
-import { useEffect, useRef, useState } from "react";
 import { ExternalLinkIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { TypedDataDefinition } from "viem";
-import type { ISiweFields } from "../../lib/types/domain/SiweFields";
-import type {
-  IConfirmSendPayment,
-  IConfirmTransferRequest,
-} from "../../wallet/modalTypes";
+
 import type { IRelayerSendUiCallbacks } from "../../lib/types/domain/RelayerSendUi";
-import { useStyle } from "../../style/StyleProvider";
-import { useWallet } from "../../wallet/WalletProvider";
-import { Modal } from "../Modal";
-import { AssetIdentityMark } from "../AssetIdentityMark";
-import { CopyableText } from "../CopyableText";
-import { SafeAssetImage } from "../SafeAssetImage";
-import {
-  isSiweUriRedundant,
-  resolveSiweEvmChainId,
-} from "../../lib/utils/siweDisplay";
+import type { ISiweFields } from "../../lib/types/domain/SiweFields";
 import {
   domainFieldEntries,
   formatEip712Primitive,
@@ -41,10 +28,24 @@ import {
   faviconUrl,
   truncateAddress,
 } from "../../lib/utils/identityDisplay";
-import { ConsentSummaryRow } from "../ConsentSummaryRow";
-import { Eip712FieldTree } from "../Eip712FieldTree";
-import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
 import { isSignCeremonyDenied } from "../../lib/utils/isSignCeremonyDenied";
+import {
+  isSiweUriRedundant,
+  resolveSiweEvmChainId,
+} from "../../lib/utils/siweDisplay";
+import { useStyle } from "../../style/StyleProvider";
+import type {
+  IConfirmSendPayment,
+  IConfirmTransferRequest,
+} from "../../wallet/modalTypes";
+import { useWallet } from "../../wallet/WalletProvider";
+import { AssetIdentityMark } from "../AssetIdentityMark";
+import { ConsentSummaryRow } from "../ConsentSummaryRow";
+import { CopyableText } from "../CopyableText";
+import { Eip712FieldTree } from "../Eip712FieldTree";
+import { Modal } from "../Modal";
+import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
+import { SafeAssetImage } from "../SafeAssetImage";
 import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
 
 export function PersonalSignModal({

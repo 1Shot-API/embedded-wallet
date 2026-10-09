@@ -1,5 +1,6 @@
-import { useMemo } from "react";
 import { OwsUserRejectedError } from "@1shotapi/ows-types";
+import { useMemo } from "react";
+
 import { readHostMemoOrJustification } from "../../lib/utils/delegationDisplay";
 import { useStyle } from "../../style/StyleProvider";
 import type {
@@ -8,6 +9,7 @@ import type {
 } from "../../wallet/modalTypes";
 import { useWallet } from "../../wallet/WalletProvider";
 import { Modal } from "../Modal";
+
 import {
   PermissionGrantHostCard,
   PermissionGrantHostContextRows,
@@ -34,16 +36,6 @@ export function GrantPermissionConsentModal({
   const shellCopy = style.copy.grantExecutionPermission;
   const { resolveChain } = useWallet();
 
-  const hostContext = request.items[0];
-  if (!hostContext) {
-    return null;
-  }
-
-  const chain = resolveChain(hostContext.request.chainId);
-  const chainLabel = chain?.label ?? hostContext.chainName;
-  const delegateAddress = String(hostContext.request.to);
-  const delegateExplorerUrl = chain?.addressExplorerUrl(delegateAddress);
-
   const hostMessage = useMemo(() => {
     for (const item of request.items) {
       const message = readHostMemoOrJustification(
@@ -55,6 +47,16 @@ export function GrantPermissionConsentModal({
   }, [request.items]);
 
   const allValid = usePermissionBatchAllValid(request.items);
+
+  const hostContext = request.items[0];
+  if (!hostContext) {
+    return null;
+  }
+
+  const chain = resolveChain(hostContext.request.chainId);
+  const chainLabel = chain?.label ?? hostContext.chainName;
+  const delegateAddress = String(hostContext.request.to);
+  const delegateExplorerUrl = chain?.addressExplorerUrl(delegateAddress);
 
   const reject = () => {
     onReject(new OwsUserRejectedError("User rejected the permission request"));

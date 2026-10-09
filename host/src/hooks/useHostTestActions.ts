@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { OWSProxy } from "@1shotapi/ows-provider";
+import type { OWSProxy } from "@1shotapi/ows-provider";
 import {
   ChainUtils,
   ConversionUtils,
@@ -10,6 +9,7 @@ import {
   type IExecutionPermissionResponse,
   type OWSChainId,
 } from "@1shotapi/ows-types";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import {
   createPublicClient,
   custom,
@@ -22,19 +22,7 @@ import {
   type Address,
   type Hex,
 } from "viem";
-import {
-  buildSiwePersonalMessage,
-  buildSiweTypedData,
-  DEFAULT_TYPED_DATA_JSON,
-  parseTypedDataJson,
-  randomSiweNonce,
-  type SignMode,
-} from "../constants/signDemo";
-import {
-  BRIDGE_SESSION_SOURCE,
-  chainIdToNumber,
-  type BridgeSpeedOption,
-} from "../constants/bridgeDemo";
+
 import {
   DEMO_EXECUTION_DELEGATEE,
   DEMO_LIFI_DIAMOND_BASE,
@@ -46,6 +34,20 @@ import {
   hostChainMeta,
   type UsdcMode,
 } from "../components/hostChains";
+import {
+  BRIDGE_SESSION_SOURCE,
+  chainIdToNumber,
+  type BridgeSpeedOption,
+} from "../constants/bridgeDemo";
+import {
+  buildSiwePersonalMessage,
+  buildSiweTypedData,
+  defaultTypedDataJsonForChain,
+  parseTypedDataJson,
+  randomSiweNonce,
+  syncDemoTypedDataChainId,
+  type SignMode,
+} from "../constants/signDemo";
 import { mergeConfigurePayload } from "../styleForm";
 
 const USDC_DECIMALS = 6;
@@ -133,7 +135,9 @@ export function useHostTestActions({
   const [chainId, setChainId] = useState<string>(DEFAULT_HOST_CHAIN_ID);
   const [message, setMessage] = useState("Hello from 1Shot Wallet");
   const [signMode, setSignMode] = useState<SignMode>("message");
-  const [typedDataJson, setTypedDataJson] = useState(DEFAULT_TYPED_DATA_JSON);
+  const [typedDataJson, setTypedDataJson] = useState(() =>
+    defaultTypedDataJsonForChain(DEFAULT_HOST_CHAIN_ID),
+  );
   const [usdcMode, setUsdcMode] = useState<UsdcMode>("balance");
   const [usdcDestination, setUsdcDestination] = useState("");
   const [usdcAmount, setUsdcAmount] = useState("");
@@ -203,6 +207,21 @@ export function useHostTestActions({
       proxy.ethereum.removeListener("accountsChanged", onAccountsChanged);
     };
   }, [ready, proxyRef]);
+
+  useEffect(() => {
+    setTypedDataJson((prev) => syncDemoTypedDataChainId(prev, chainId));
+  }, [chainId]);
+
+  const handleSignModeChange = useCallback(
+    (mode: SignMode) => {
+      setSignMode(mode);
+      if (mode === "typedData") {
+        setTypedDataJson(defaultTypedDataJsonForChain(chainId));
+        reportStatus("EIP-712 demo typed data loaded — click Sign to approve.");
+      }
+    },
+    [chainId, reportStatus],
+  );
 
   const resolveAndStoreAccount = useCallback(
     async (proxy: OWSProxy): Promise<EVMAccountAddress> => {
@@ -1066,7 +1085,7 @@ export function useHostTestActions({
     onRefreshChain: handleRefreshChain,
     onGetBitcoinBalance: handleGetBitcoinBalance,
     onMessageChange: setMessage,
-    onSignModeChange: setSignMode,
+    onSignModeChange: handleSignModeChange,
     onTypedDataJsonChange: setTypedDataJson,
     onUsdcModeChange: handleUsdcModeChange,
     onUsdcDestinationChange: setUsdcDestination,

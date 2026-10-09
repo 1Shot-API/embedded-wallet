@@ -6,8 +6,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { IResolvedStyle } from "./types";
+
 import { styleController } from "./styleController";
+import type { IResolvedStyle } from "./types";
 
 export interface IStyleContextValue {
   style: IResolvedStyle;

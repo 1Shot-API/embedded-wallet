@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
 import { ExternalLinkIcon } from "lucide-react";
+import type { ReactNode } from "react";
+
 import { faviconUrl, truncateAddress } from "../../lib/utils/identityDisplay";
 import { ConsentSummaryRow } from "../ConsentSummaryRow";
 import { SafeAssetImage } from "../SafeAssetImage";

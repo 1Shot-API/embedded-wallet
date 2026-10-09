@@ -4,6 +4,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
+
 import type { ICircleProvider } from "../lib/interfaces/utils/ICircleProvider";
 
 const CircleContext = createContext<ICircleProvider | null>(null);

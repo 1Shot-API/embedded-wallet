@@ -1,10 +1,11 @@
-import path from "node:path";
 import fs from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig, type Plugin } from "vite";
-import react from "@vitejs/plugin-react";
+
 import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig, type Plugin } from "vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** Prefer sibling open-wallet checkout when developing packages locally. */

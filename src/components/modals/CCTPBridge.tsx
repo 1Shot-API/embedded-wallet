@@ -1,21 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatUnits, parseUnits, erc20Abi } from "viem";
 import {
+  type DomainString,
   ChainUtils,
-  DomainString,
   OwsUserRejectedError,
   type EVMChainId as EVMChainIdType,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { formatUnits, parseUnits, erc20Abi } from "viem";
+
 import {
   isCctpBridgeParamsComplete,
   type ICctpBridgeOpenRequest,
 } from "../../circle/cctpBridgeTypes";
+import { analyticsErrorCode } from "../../lib/implementations/utils";
+import type { IPaymentQuote } from "../../lib/interfaces/business";
 import type {
   ICctpBridgeQuote,
   ICctpBridgeResult,
 } from "../../lib/interfaces/business/IBridgeService";
-import type { IPaymentQuote } from "../../lib/interfaces/business";
 import type { ICctpInFlightBurn } from "../../lib/interfaces/data/ICircleRepository";
 import type { KnownAsset } from "../../lib/types/domain/KnownAsset";
 import type { SupportedChain } from "../../lib/types/domain/SupportedChain";
@@ -32,16 +34,15 @@ import {
   usdcAmountFromTokenAmount,
   usdcAmountToAtoms,
 } from "../../lib/types/primitives/USDCAmount";
-import { analyticsErrorCode } from "../../lib/implementations/utils";
 import { useStyle } from "../../style/StyleProvider";
 import type { IStyleCopyCctpBridge } from "../../style/types";
 import { useWallet } from "../../wallet/WalletProvider";
-import { Modal } from "../Modal";
 import { ChainSelector } from "../ChainSelector";
+import { CopyableText } from "../CopyableText";
+import { Modal } from "../Modal";
 import { PaymentFeePicker } from "../PaymentFeePicker";
 import { QuoteCountdown } from "../QuoteCountdown";
 import { TokenAmountInput } from "../TokenAmountInput";
-import { CopyableText } from "../CopyableText";
 import {
   Select,
   SelectContent,

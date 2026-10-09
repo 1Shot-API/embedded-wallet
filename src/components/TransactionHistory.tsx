@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import type { EVMAccountAddress } from "@1shotapi/ows-types";
 import {
   ArrowDownLeftIcon,
   ArrowUpRightIcon,
 } from "lucide-react";
-import type { EVMAccountAddress } from "@1shotapi/ows-types";
+import { useCallback, useEffect, useState } from "react";
+
+import { FormatUtils } from "../lib/implementations/utils/FormatUtils";
 import type { AssetActivity, TrackedAsset } from "../lib/types/domain";
 import { EAssetActivityKind } from "../lib/types/enum/EAssetActivityKind";
 import { EAssetActivityStatus } from "../lib/types/enum/EAssetActivityStatus";
-import { FormatUtils } from "../lib/implementations/utils/FormatUtils";
-import { useWallet } from "../wallet/WalletProvider";
 import { useTransactionHistoryUpdated } from "../wallet/useWalletEvent";
+import { useWallet } from "../wallet/WalletProvider";
 
 const RECENT_LIMIT = 10;
 const TRUNCATE_CHARS = 5;

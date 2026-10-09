@@ -1,11 +1,12 @@
 import type { HexString, WebAuthnAssertionFields } from "@1shotapi/ows-types";
-import type { DelegationId } from "../../types/primitives/DelegationId";
-import type { ChallengeId } from "../../types/primitives/ChallengeId";
+
+import type { IWalletCredentialChallengeResponse } from "../../types/domain/RelayerCredentials";
 import type {
   IDelegationSummary,
   IStoredDelegation,
 } from "../../types/domain/StoredDelegation";
-import type { IWalletCredentialChallengeResponse } from "../../types/domain/RelayerCredentials";
+import type { ChallengeId } from "../../types/primitives/ChallengeId";
+import type { DelegationId } from "../../types/primitives/DelegationId";
 
 /**
  * Branding-owned persistence for ERC-7715 / MetaMask delegations.

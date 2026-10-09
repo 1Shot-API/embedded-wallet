@@ -1,4 +1,5 @@
 import type { EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
+
 import type { EAssetType } from "../../types/enum/EAssetType";
 
 /** Persistable user-added tracked asset row (vault / localStorage). */

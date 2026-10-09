@@ -1,4 +1,5 @@
 import type { BitcoinTransactionHash } from "@1shotapi/ows-types";
+
 import type { BitcoinOutputIndex } from "../primitives/BitcoinOutputIndex";
 import type { BitcoinSatoshiAmount } from "../primitives/BitcoinSatoshiAmount";
 

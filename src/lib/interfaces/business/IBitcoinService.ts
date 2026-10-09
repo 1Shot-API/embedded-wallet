@@ -3,9 +3,10 @@ import type {
   BitcoinSegwitAccountAddress,
   BitcoinTransactionHash,
 } from "@1shotapi/ows-types";
-import type { IBitcoinBalance } from "../data/IBitcoinRpc";
+
 import type { BitcoinSatoshiAmount } from "../../types/primitives/BitcoinSatoshiAmount";
 import type { BitcoinTransactionData } from "../../types/primitives/BitcoinTransactionData";
+import type { IBitcoinBalance } from "../data/IBitcoinRpc";
 
 export interface IBitcoinSendParams {
   chainId: BitcoinChainId;

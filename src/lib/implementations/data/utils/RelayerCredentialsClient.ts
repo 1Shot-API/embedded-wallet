@@ -5,6 +5,7 @@ import {
   type CredentialId,
   type WebAuthnAssertionFields,
 } from "@1shotapi/ows-types";
+
 import type { IRelayerCredentialsClient } from "../../../interfaces/data/IRelayerCredentialsClient";
 import type { IConfigProvider } from "../../../interfaces/utils/IConfigProvider";
 import type { IOWSProvider } from "../../../interfaces/utils/IOWSProvider";

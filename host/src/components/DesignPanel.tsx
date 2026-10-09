@@ -1,4 +1,5 @@
 import type { RefCallback } from "react";
+
 import { WalletConfigurator } from "./WalletConfigurator";
 
 export interface IDesignPanelProps {
