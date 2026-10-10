@@ -54,8 +54,13 @@ const USDC_DECIMALS = 6;
 
 /** Ten USDC in atoms (6 decimals), as hex for EIP-7715 periodAmount. */
 const TEN_USDC_ATOMS_HEX = HexString(`0x${(10_000_000).toString(16)}`);
+/** ~10 USDC / day in atoms/sec (6 decimals). */
+const STREAM_AMOUNT_PER_SECOND_HEX = HexString(
+  `0x${Math.floor(10_000_000 / 86_400).toString(16)}`,
+);
 
 const BASE_CHAIN_ID = "0x2105";
+const BASE_SEPOLIA_CHAIN_ID = "0x14a34";
 
 type SessionGrant = {
   id: string;
@@ -786,7 +791,7 @@ export function useHostTestActions({
     if (!proxy) return;
     setBusy(true);
     setDelegationsOutput(null);
-    reportStatus("Requesting EIP-7715 execution permission…");
+    reportStatus("Requesting EIP-7715 execution permissions…");
     void (async () => {
       try {
         proxy.showWallet();
@@ -804,6 +809,10 @@ export function useHostTestActions({
             `No USDC fixture for chain ${activeChain}. Switch to a listed chain.`,
           );
         }
+        const baseSepoliaMeta = hostChainMeta(BASE_SEPOLIA_CHAIN_ID);
+        if (!baseSepoliaMeta) {
+          throw new Error("Missing Base Sepolia USDC fixture.");
+        }
         const responses = await proxy.ethereum.request({
           method: "wallet_requestExecutionPermissions",
           params: [
@@ -818,6 +827,32 @@ export function useHostTestActions({
                   tokenAddress: meta.usdc,
                   periodAmount: TEN_USDC_ATOMS_HEX,
                   periodDuration: 86_400,
+                },
+              },
+              // Stacked host rule — exercises appended-rule grant UX.
+              rules: [
+                {
+                  type: "allowedTargets",
+                  data: {
+                    targets: [
+                      "0x3e6a2f0CBA03d293B54c9fCF354948903007a798",
+                    ],
+                  },
+                },
+              ],
+            },
+            {
+              chainId: EVMChainId(BASE_SEPOLIA_CHAIN_ID),
+              from: account,
+              to: EVMAccountAddress(DEMO_EXECUTION_DELEGATEE),
+              permission: {
+                type: "erc20-streaming",
+                isAdjustmentAllowed: true,
+                data: {
+                  tokenAddress: baseSepoliaMeta.usdc,
+                  initialAmount: "0x0",
+                  maxAmount: TEN_USDC_ATOMS_HEX,
+                  amountPerSecond: STREAM_AMOUNT_PER_SECOND_HEX,
                 },
               },
             },

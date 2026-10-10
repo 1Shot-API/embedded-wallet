@@ -170,7 +170,7 @@ export class DelegationService implements IDelegationService {
                     environment,
                     salt: randomSalt32(),
                     chainId: item.request.chainId,
-                    caveats: item.request.caveats,
+                    caveats: item.request.rules,
                   });
                   const signature = await smartAccount.signDelegation({
                     delegation: unsigned,
@@ -213,7 +213,7 @@ export class DelegationService implements IDelegationService {
         const attenuatedPermission = this.buildAttenuatedPermission(
           item.permission,
           delegationHash,
-          item.request.caveats,
+          item.request.rules,
         );
         const permissionResponse: IExecutionPermissionResponse = {
           chainId: item.request.chainId,

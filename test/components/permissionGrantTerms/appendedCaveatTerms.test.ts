@@ -93,7 +93,7 @@ describe("resolveAppendedCaveatRows", () => {
       data: { targets: [addr(1), addr(2)] },
     });
     assert.equal(rows.length, 1);
-    assert.equal(rows[0]!.label, "Allowed targets");
+    assert.equal(rows[0]!.label, "Contracts");
     assert.ok(rows[0]!.value.includes(","));
   });
 

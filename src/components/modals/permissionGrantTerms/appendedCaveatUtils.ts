@@ -134,11 +134,11 @@ export function resolveAppendedCaveatRows(
     }
     case "allowedTargets": {
       const targets = readStringArray(data, "targets");
-      return [{ label: "Allowed targets", value: joinAddresses(targets) }];
+      return [{ label: "Contracts", value: joinAddresses(targets) }];
     }
     case "allowedMethods": {
       const selectors = readStringArray(data, "selectors");
-      return [{ label: "Allowed methods", value: joinStrings(selectors) }];
+      return [{ label: "Selectors", value: joinStrings(selectors) }];
     }
     case "valueLte": {
       const maxValue = readBigInt(data, "maxValue");

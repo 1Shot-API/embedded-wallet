@@ -46,7 +46,7 @@ const goodChainlink = {
 };
 
 function erc20PeriodicRequest(
-  caveats?: IExecutionPermissionRequest["caveats"],
+  rules?: IExecutionPermissionRequest["rules"],
 ): IExecutionPermissionRequest {
   return {
     chainId: EVMChainId("0x2105"),
@@ -60,12 +60,12 @@ function erc20PeriodicRequest(
         periodDuration: 86400,
       },
     },
-    ...(caveats ? { caveats } : {}),
+    ...(rules ? { rules } : {}),
   };
 }
 
 function functionCallRequest(
-  caveats?: IExecutionPermissionRequest["caveats"],
+  rules?: IExecutionPermissionRequest["rules"],
 ): IExecutionPermissionRequest {
   return {
     chainId: EVMChainId("0x2105"),
@@ -78,12 +78,12 @@ function functionCallRequest(
         selectors: ["0xa9059cbb"],
       },
     },
-    ...(caveats ? { caveats } : {}),
+    ...(rules ? { rules } : {}),
   };
 }
 
 function lifiSwapRequest(
-  caveats?: IExecutionPermissionRequest["caveats"],
+  rules?: IExecutionPermissionRequest["rules"],
 ): IExecutionPermissionRequest {
   return {
     chainId: EVMChainId("0x2105"),
@@ -103,11 +103,11 @@ function lifiSwapRequest(
         slippageBps: 50,
       },
     },
-    ...(caveats ? { caveats } : {}),
+    ...(rules ? { rules } : {}),
   };
 }
 
-describe("isPermissionGrantItemValid host caveats", () => {
+describe("isPermissionGrantItemValid host rules", () => {
   it("rejects bad chainlink-price-rule for erc20-token-periodic", () => {
     assert.equal(
       isPermissionGrantItemValid(
@@ -174,7 +174,7 @@ describe("isPermissionGrantItemValid host caveats", () => {
     );
   });
 
-  it("accepts scope-valid requests with no caveats", () => {
+  it("accepts scope-valid requests with no rules", () => {
     assert.equal(
       isPermissionGrantItemValid(
         "grantExecutionPermission",

@@ -133,7 +133,7 @@ export function PermissionGrantTermsSection({
   executionRequest: IExecutionPermissionRequest;
 }) {
   const scopeTerms = renderScopeTerms(grantKind, executionRequest);
-  const appendedCaveats = executionRequest.caveats ?? [];
+  const appendedCaveats = executionRequest.rules ?? [];
   return (
     <>
       {scopeTerms}
@@ -199,10 +199,10 @@ export function isPermissionGrantItemValid(
       return _exhaustive;
     }
   }
-  // Host caveats[] are validated identically for every permission type.
+  // Host rules[] are validated identically for every permission type.
   return (
     scopeValid &&
-    (executionRequest.caveats ?? []).every(isAppendedCaveatValid)
+    (executionRequest.rules ?? []).every(isAppendedCaveatValid)
   );
 }
 

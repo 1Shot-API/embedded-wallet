@@ -38,7 +38,7 @@ export function AppendedCaveatTerms({
     <PermissionGrantTermsCard kindLabel={kindLabel}>
       {rows.map((row) => (
         <ConsentSummaryRow key={row.label} label={row.label}>
-          <span className="truncate text-sm font-medium" title={row.value}>
+          <span className="truncate font-mono text-sm" title={row.value}>
             {row.value}
           </span>
         </ConsentSummaryRow>

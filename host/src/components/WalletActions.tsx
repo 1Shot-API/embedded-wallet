@@ -658,9 +658,10 @@ export function WalletActions({
       <div className="flex flex-col gap-1.5">
         <Label>Delegations (EIP-7715)</Label>
         <p className="text-muted-foreground text-xs">
-          Request a periodic USDC spending permission for the current chain
-          (session key held in memory only). Relayer-enabled chains only. LiFi
-          approve + swap batch requires Base.
+          Batch of two grants: (1) periodic USDC + allowedTargets on the
+          selected chain, (2) ERC-20 streaming USDC on Base Sepolia with no
+          extra rules (session grants held in memory only). Relayer-enabled
+          chains only. LiFi approve + swap batch requires Base.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -669,7 +670,7 @@ export function WalletActions({
             disabled={!ready || busy}
             onClick={onRequestDelegation}
           >
-            Request permission
+            Request permissions
           </Button>
           <Button
             type="button"

@@ -29,7 +29,7 @@ export function isKitScopePermissionGrantValid(
 ): boolean {
   const data = executionRequest.permission.data as Record<string, unknown>;
   if (!validateKitScopeRequest(permissionType, data)) return false;
-  const appendedCaveats = executionRequest.caveats ?? [];
+  const appendedCaveats = executionRequest.rules ?? [];
   return appendedCaveats.every((caveat) => isAppendedCaveatValid(caveat));
 }
 

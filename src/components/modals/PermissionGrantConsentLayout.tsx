@@ -8,16 +8,13 @@ import { SafeAssetImage } from "../SafeAssetImage";
 const grantCardClassName =
   "border-border flex flex-col gap-2.5 rounded-md border px-3 py-2.5";
 
-/** Host context: requesting app URL and optional justification. */
+/** Host context: requesting app URL and optional shared justification. */
 export function PermissionGrantHostCard({
   domain,
   message,
-  children,
 }: {
   domain: string;
   message?: string;
-  /** Request-level rows (e.g. delegate account, network). */
-  children?: ReactNode;
 }) {
   return (
     <div className={grantCardClassName}>
@@ -35,11 +32,56 @@ export function PermissionGrantHostCard({
           {message}
         </p>
       ) : null}
-      {children ? (
-        <dl className="border-border m-0 flex flex-col gap-2.5 border-t pt-2.5">
-          {children}
-        </dl>
+    </div>
+  );
+}
+
+/**
+ * One EIP-7715 param entry: delegate + chain, then nested permission / rule cards.
+ */
+export function PermissionGrantDelegationCard({
+  toLabel,
+  chainLabel,
+  viewOnExplorerLabel,
+  delegateAddress,
+  delegateExplorerUrl,
+  chainLogoUrl,
+  chainDisplayLabel,
+  message,
+  children,
+}: {
+  toLabel: string;
+  chainLabel: string;
+  viewOnExplorerLabel: string;
+  delegateAddress: string;
+  delegateExplorerUrl: string | undefined;
+  chainLogoUrl: string | undefined;
+  chainDisplayLabel: string;
+  /** Optional per-delegation host justification. */
+  message?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={grantCardClassName}>
+      <dl className="m-0 flex flex-col gap-2.5">
+        <PermissionGrantHostContextRows
+          toLabel={toLabel}
+          chainLabel={chainLabel}
+          viewOnExplorerLabel={viewOnExplorerLabel}
+          delegateAddress={delegateAddress}
+          delegateExplorerUrl={delegateExplorerUrl}
+          chainLogoUrl={chainLogoUrl}
+          chainDisplayLabel={chainDisplayLabel}
+        />
+      </dl>
+      {message ? (
+        <p className="text-muted-foreground m-0 text-sm leading-snug text-pretty">
+          {message}
+        </p>
       ) : null}
+      <div className="border-border flex flex-col gap-2.5 border-t pt-2.5">
+        {children}
+      </div>
     </div>
   );
 }
@@ -94,7 +136,7 @@ export function PermissionGrantHostContextRows({
   );
 }
 
-/** Permission terms: user-facing permission name and read-only summary rows. */
+/** Permission / rule terms: kind label and read-only summary rows. */
 export function PermissionGrantTermsCard({
   kindLabel,
   intro,
@@ -105,7 +147,7 @@ export function PermissionGrantTermsCard({
   children: ReactNode;
 }) {
   return (
-    <div className={grantCardClassName}>
+    <div className={`${grantCardClassName} bg-muted/30`}>
       <p className="text-primary m-0 text-[0.65rem] font-semibold tracking-wide uppercase">
         {kindLabel}
       </p>

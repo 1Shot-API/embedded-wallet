@@ -63,7 +63,8 @@ function baseRequest(
   return {
     chainId: "0x2105",
     permission,
-    caveats: [],
+    to: "0x1111111111111111111111111111111111111111" as IExecutionPermissionRequest["to"],
+    rules: [],
   };
 }
 

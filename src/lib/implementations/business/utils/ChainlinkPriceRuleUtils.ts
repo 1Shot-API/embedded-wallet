@@ -88,7 +88,7 @@ function readTriggerPrice(value: unknown): bigint {
 }
 
 /**
- * Parse and validate host `caveats[].data` for {@link CHAINLINK_PRICE_RULE}.
+ * Parse and validate host `rules[].data` for {@link CHAINLINK_PRICE_RULE}.
  */
 export function parseChainlinkPriceRuleData(
   data: Record<string, unknown>,
