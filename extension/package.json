@@ -20,10 +20,10 @@
   },
   "dependencies": {
     "@1shotapi/ows-provider": "^0.5.1",
-    "@1shotapi/ows-types": "^0.8.0"
+    "@1shotapi/ows-types": "^0.12.0"
   },
   "devDependencies": {
-    "@types/chrome": "^0.2.7",
+    "@types/chrome": "^0.3.4",
     "typescript": "~5.8.0",
     "wxt": "^0.21.4"
   }
