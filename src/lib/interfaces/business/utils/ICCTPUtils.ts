@@ -5,6 +5,7 @@ import type {
   HexString,
   UriString,
 } from "@1shotapi/ows-types";
+
 import type { SupportedChain } from "../../../types/domain/SupportedChain";
 import type { ECctpTransferSpeed } from "../../../types/enum/ECctpTransferSpeed";
 import type { EChainNetworkType } from "../../../types/enum/EChainNetworkType";

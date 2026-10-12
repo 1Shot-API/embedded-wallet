@@ -4,6 +4,7 @@ import type {
   EVMContractAddress,
   EVMTransactionHash,
 } from "@1shotapi/ows-types";
+
 import type { EAssetActivityKind } from "../enum/EAssetActivityKind";
 import type { EAssetActivityStatus } from "../enum/EAssetActivityStatus";
 import type { TrackedAssetId } from "../primitives/TrackedAssetId";

@@ -1,10 +1,10 @@
+import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import type {
   CeremonyUiParams,
   DigestSignedData,
   ExecuteBatchParams,
   WebAuthnAssertionFields,
 } from "@1shotapi/ows-types";
-import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 
 type SignDigestFn = OWSSigner["signDigest"];
 type Digests = Parameters<SignDigestFn>[0];

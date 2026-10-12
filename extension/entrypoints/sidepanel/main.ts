@@ -2,6 +2,7 @@ import {
   EWalletPresentationMode,
   OWSProxy,
 } from "@1shotapi/ows-provider";
+
 import { queryActiveDappTab } from "../../src/shared/activeTab";
 import type {
   ExtEip1193ResponseMessage,

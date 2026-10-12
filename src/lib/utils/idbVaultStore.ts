@@ -6,8 +6,10 @@
  */
 
 import type { StoredCredential } from "@1shotapi/ows-types";
+
 import type { IPendingEncryptedBlob } from "../interfaces/data/IVaultPendingDecrypt";
 import type { IStoredDelegation } from "../types/domain/StoredDelegation";
+
 import {
   CREDENTIALS_STORE_NAME,
   DELEGATIONS_STORE_NAME,

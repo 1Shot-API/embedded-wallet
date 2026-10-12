@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
 import {
   EWalletPresentationMode,
   OWSProxy,
 } from "@1shotapi/ows-provider";
 import type { IOWSAnalyticsEvent } from "@1shotapi/ows-types";
+import { useEffect, useRef, useState } from "react";
+
 import { AnalyticsPanel } from "./components/AnalyticsPanel";
 import { AppHeader } from "./components/AppHeader";
 import { AppSidebar, type HostMode } from "./components/AppSidebar";

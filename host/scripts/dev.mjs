@@ -4,8 +4,10 @@
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
+
 import dotenv from "dotenv";
+import { createServer } from "vite";
+
 import { resolveHttpsOptions, walletIframeUrl } from "../wallet-url.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

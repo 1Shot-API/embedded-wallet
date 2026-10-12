@@ -1,16 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
 import type {
   EVMChainId,
   EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import { RefreshCwIcon } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+
+
 import { Button } from "@/components/ui/button";
+
 import type { IDelegationSummary } from "../../lib/types/domain/StoredDelegation";
 import type { DelegationId } from "../../lib/types/primitives/DelegationId";
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { SentTransactionModal } from "../modals/SentTransactionModal";
+
 import { DelegationsList } from "./DelegationsList";
+
 
 function fillTemplate(
   template: string,

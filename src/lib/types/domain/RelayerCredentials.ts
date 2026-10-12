@@ -1,9 +1,10 @@
 import {
-  Base64UrlEncodedString,
-  CredentialId,
+  type Base64UrlEncodedString,
+  type CredentialId,
   type HexString,
 } from "@1shotapi/ows-types";
-import { ChallengeId } from "../primitives";
+
+import type { ChallengeId } from "../primitives";
 
 /** Relayer HTTP body — SimpleWebAuthn-style base64url assertion fields. */
 export interface IWebAuthnAssertionRequest {

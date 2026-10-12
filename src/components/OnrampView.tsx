@@ -1,27 +1,30 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import type {
-  AppKitOnrampOperations,
-  OnrampSession,
-  OnrampWidget,
-} from "@circle-fin/app-kit";
 import {
   ChainUtils,
   EVMContractAddress,
   type EVMAccountAddress,
   type EVMChainId,
 } from "@1shotapi/ows-types";
+import type {
+  AppKitOnrampOperations,
+  OnrampSession,
+  OnrampWidget,
+} from "@circle-fin/app-kit";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { zeroAddress } from "viem";
-import { Modal, type ModalAction } from "./Modal";
-import { useCircle } from "../circle/CircleContext";
+
+import circleLogoStacked from "../assets/images/platforms/circle-logo-stacked.svg";
 import { circleChainLabelFromChainId } from "../circle/circleChains";
+import { useCircle } from "../circle/CircleContext";
 import { isCirclePopupPreferred } from "../circle/circlePopup";
 import type { IOnrampOpenRequest } from "../circle/onrampTypes";
 import { useStyle } from "../style/StyleProvider";
-import { useWallet } from "../wallet/WalletProvider";
 import { useWalletSessionStore } from "../wallet/sessionStore";
+import { useWallet } from "../wallet/WalletProvider";
+
 import { AssetIdentityMark } from "./AssetIdentityMark";
 import { CopyableText } from "./CopyableText";
-import circleLogoStacked from "../assets/images/platforms/circle-logo-stacked.svg";
+import { Modal, type ModalAction } from "./Modal";
+
 
 export type IOnrampViewProps = IOnrampOpenRequest & {
   onClose: () => void;

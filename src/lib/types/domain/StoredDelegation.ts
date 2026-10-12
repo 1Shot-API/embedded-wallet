@@ -7,6 +7,7 @@ import type {
   IExecutionPermissionResponse,
   UnixTimestamp,
 } from "@1shotapi/ows-types";
+
 import type { DelegationId } from "../primitives/DelegationId";
 
 /** One MetaMask Delegation Framework caveat (enforcer + terms + args). */

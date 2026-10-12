@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import type { CredentialId, CredentialSummary, StoredCredential } from "@1shotapi/ows-types";
 import {
   flexRender,
   getCoreRowModel,
@@ -6,8 +6,9 @@ import {
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import type { CredentialId, CredentialSummary, StoredCredential } from "@1shotapi/ows-types";
 import { RefreshCwIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Pagination,
@@ -24,10 +25,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
 import { useStyle } from "../../style/StyleProvider";
-import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
+import { useWallet } from "../../wallet/WalletProvider";
+
 import { CredentialDetailDialog } from "./CredentialDetailDialog";
+
 
 const PAGE_SIZE = 5;
 

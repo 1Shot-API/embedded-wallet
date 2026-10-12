@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
 import type { IOWSAnalyticsEvent } from "@1shotapi/ows-types";
+import { useMemo, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,

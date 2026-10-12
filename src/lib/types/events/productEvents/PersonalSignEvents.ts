@@ -1,8 +1,9 @@
 import {
-  DomainString,
-  EVMAccountAddress,
+  type DomainString,
+  type EVMAccountAddress,
   OWSAnalyticsEvent,
 } from "@1shotapi/ows-types";
+
 import { EAnalyticsEventName } from "../../enum/EAnalyticsEventName";
 
 export class PersonalSignEvent extends OWSAnalyticsEvent {

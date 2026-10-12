@@ -1,10 +1,12 @@
-import { z } from "zod";
-import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
   OwsUserRejectedError,
   type EVMAccountAddress,
 } from "@1shotapi/ows-types";
+import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+import { z } from "zod";
+
 import { openOnramp } from "../circle/openOnramp";
+
 import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 
 /** Custom RPC — host: `await proxy.rpc("onramp", { chainId?, amount? })`. */

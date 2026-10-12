@@ -1,24 +1,28 @@
-import { erc20Abi, zeroAddress } from "viem";
 import {
+  type EVMAccountAddress,
   ChainUtils,
-  EVMAccountAddress,
   EVMContractAddress,
   type EVMChainId,
 } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
+import { erc20Abi, zeroAddress } from "viem";
+
+import { makeTrackedAssetId } from "@/lib/types/primitives";
+
 import type { IKnownAssetRepository } from "../../interfaces/data/IKnownAssetRepository";
 import { KnownAsset } from "../../types/domain/KnownAsset";
 import { NewTrackedAsset } from "../../types/domain/TrackedAsset";
 import { EAssetType } from "../../types/enum/EAssetType";
 import { EChain } from "../../types/enum/EChain";
-import { makeTrackedAssetId } from "@/lib/types/primitives";
+import { registerKnownAssetIconResolver } from "../../utils/tokenIcons";
+
+import { HardcodedChainRepository } from "./HardcodedChainRepository";
 import {
   RELAYER_KNOWN_ASSETS,
   getCctpBridgeAsset as lookupCctpBridgeAsset,
   getOnrampAsset as lookupOnrampAsset,
 } from "./relayerKnownAssets";
-import { HardcodedChainRepository } from "./HardcodedChainRepository";
-import { registerKnownAssetIconResolver } from "../../utils/tokenIcons";
+
 
 const NATIVE_ADDRESS = EVMContractAddress(zeroAddress);
 const NATIVE_WEIGHT = 50;

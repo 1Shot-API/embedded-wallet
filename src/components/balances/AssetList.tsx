@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChainUtils } from "@1shotapi/ows-types";
 import {
   flexRender,
   getCoreRowModel,
@@ -7,6 +7,8 @@ import {
   type ColumnDef,
 } from "@tanstack/react-table";
 import { RefreshCwIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Pagination,
@@ -23,14 +25,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TrackedAsset } from "../../lib/types/domain";
+
+import type { TrackedAsset } from "../../lib/types/domain";
 import { EAssetType } from "../../lib/types/enum/EAssetType";
-import { ChainUtils } from "@1shotapi/ows-types";
 import { useStyle } from "../../style/StyleProvider";
-import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
+import { useWallet } from "../../wallet/WalletProvider";
 import { AssetIcon } from "../AssetIcon";
 import { BalanceDisplay } from "../BalanceDisplay";
+
 
 const PAGE_SIZE = 5;
 

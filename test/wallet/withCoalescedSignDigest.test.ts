@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { CeremonyUiParams, DigestSignedData } from "@1shotapi/ows-types";
+
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
+import type { CeremonyUiParams, DigestSignedData } from "@1shotapi/ows-types";
+
 import { withCoalescedSignDigest } from "@/wallet/withCoalescedSignDigest.ts";
 
 function mockSigner(onCall?: (digests: Array<{ digestData: string }>) => void) {

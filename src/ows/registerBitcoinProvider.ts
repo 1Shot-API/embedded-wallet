@@ -1,4 +1,3 @@
-import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
   BITCOIN_MAINNET_CHAIN_ID,
   BITCOIN_TESTNET_CHAIN_ID,
@@ -7,6 +6,8 @@ import {
   type IBitcoinGetAccountAddressesParams,
   type IOpenWalletBitcoinProvider,
 } from "@1shotapi/ows-types";
+import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+
 import type { IOWSProvider } from "../lib/interfaces/utils/IOWSProvider";
 import {
   loadCachedBitcoinAddress,

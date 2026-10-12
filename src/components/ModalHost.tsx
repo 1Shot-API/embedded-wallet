@@ -1,4 +1,18 @@
 import { useModalStore } from "../wallet/modalStore";
+
+import { ActivateOfflinePermissionsModal } from "./modals/ActivateOfflinePermissionsModal";
+import { AddAssetModal } from "./modals/AddAssetModal";
+import { AdvancedOptionsModal } from "./modals/AdvancedOptionsModal";
+import { CancelDelegationModal } from "./modals/CancelDelegationModal";
+import { CCTPBridge } from "./modals/CCTPBridge";
+import {
+  CredentialOfferModal,
+  CredentialPresentationModal,
+} from "./modals/CredentialModals";
+import { ExportPrivateKeyModal } from "./modals/ExportPrivateKeyModal";
+import { GrantPermissionConsentModal } from "./modals/GrantPermissionConsentModal";
+import { ImportPrivateKeyModal } from "./modals/ImportPrivateKeyModal";
+import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
 import {
   ConnectModal,
   PasskeyNameModal,
@@ -11,20 +25,7 @@ import {
   SiweModal,
   TypedDataModal,
 } from "./modals/SignModals";
-import {
-  CredentialOfferModal,
-  CredentialPresentationModal,
-} from "./modals/CredentialModals";
-import { ExportPrivateKeyModal } from "./modals/ExportPrivateKeyModal";
-import { ImportPrivateKeyModal } from "./modals/ImportPrivateKeyModal";
-import { AdvancedOptionsModal } from "./modals/AdvancedOptionsModal";
-import { AddAssetModal } from "./modals/AddAssetModal";
-import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
 import { OnrampView } from "./OnrampView";
-import { CCTPBridge } from "./modals/CCTPBridge";
-import { GrantPermissionConsentModal } from "./modals/GrantPermissionConsentModal";
-import { CancelDelegationModal } from "./modals/CancelDelegationModal";
-import { ActivateOfflinePermissionsModal } from "./modals/ActivateOfflinePermissionsModal";
 
 export function ModalHost() {
   const activeModal = useModalStore((state) => state.activeModal);

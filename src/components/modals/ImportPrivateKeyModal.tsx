@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
+
+import { isSignCeremonyDenied } from "../../lib/utils/isSignCeremonyDenied";
 import { useStyle } from "../../style/StyleProvider";
 import type { IStyleCopyImportPrivateKey } from "../../style/types";
-import { Modal } from "../Modal";
-import { isSignCeremonyDenied } from "../../lib/utils/isSignCeremonyDenied";
 import { useWallet } from "../../wallet/WalletProvider";
+import { Modal } from "../Modal";
 
 function formatImportError(
   error: unknown,

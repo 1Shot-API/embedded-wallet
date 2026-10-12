@@ -1,9 +1,10 @@
-import { Accordion } from "@/components/ui/accordion";
-import { TabsContent } from "@/components/ui/tabs";
 import { WalletConfiguratorTextTabCredentialSections } from "./WalletConfiguratorTextTabCredentialSections";
 import { WalletConfiguratorTextTabSigningSections } from "./WalletConfiguratorTextTabSigningSections";
-import { WalletConfiguratorTextTabWalletSections } from "./WalletConfiguratorTextTabWalletSections";
 import type { IWalletConfiguratorTextTabSectionProps } from "./walletConfiguratorTextTabTypes";
+import { WalletConfiguratorTextTabWalletSections } from "./WalletConfiguratorTextTabWalletSections";
+
+import { Accordion } from "@/components/ui/accordion";
+import { TabsContent } from "@/components/ui/tabs";
 
 export type { IWalletConfiguratorTextTabSectionProps as IWalletConfiguratorTextTabProps };
 

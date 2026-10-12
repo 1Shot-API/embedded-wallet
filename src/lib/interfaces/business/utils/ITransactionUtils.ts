@@ -1,17 +1,18 @@
-import type { LocalAccount } from "viem/accounts";
 import type {
   EVMAccountAddress,
   EVMChainId,
   EVMContractAddress,
 } from "@1shotapi/ows-types";
-import type {
-  IRelayerAuthorizationEntry,
-  ISendTransactionResult,
-} from "../../data/IOneshotRelayerRepository";
+import type { LocalAccount } from "viem/accounts";
+
 import type { IRelayerPayment } from "../../../types/domain/RelayerPayment";
 import type { IRelayerSendUiCallbacks } from "../../../types/domain/RelayerSendUi";
 import type { IWalletUpgradeStatus } from "../../../types/domain/WalletUpgradeStatus";
 import type { TokenAmount } from "../../../types/primitives";
+import type {
+  IRelayerAuthorizationEntry,
+  ISendTransactionResult,
+} from "../../data/IOneshotRelayerRepository";
 import type {
   IPaymentQuote,
   ITransactionWork,

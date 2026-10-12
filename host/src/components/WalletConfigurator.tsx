@@ -1,11 +1,5 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ColorPickerField } from "./ColorPickerField";
-import { TextField } from "./configuratorFields";
-import { WalletConfiguratorTextTab } from "./WalletConfiguratorTextTab";
+
 import {
   ACME_PRESET,
   CATALOG_CHAIN_OPTIONS,
@@ -15,6 +9,16 @@ import {
   type ConfigurePayloadSection,
   type IStyleFormState,
 } from "../styleForm";
+
+import { ColorPickerField } from "./ColorPickerField";
+import { TextField } from "./configuratorFields";
+import { WalletConfiguratorTextTab } from "./WalletConfiguratorTextTab";
+
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 export interface IWalletConfiguratorProps {
   /** When false, apply/presets are disabled (wallet not connected yet). */

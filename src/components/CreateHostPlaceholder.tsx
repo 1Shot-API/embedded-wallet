@@ -1,5 +1,5 @@
-import { useWalletSessionStore } from "../wallet/sessionStore";
 import { useStyle } from "../style/StyleProvider";
+import { useWalletSessionStore } from "../wallet/sessionStore";
 
 const FALLBACK_TITLE = "Name your passkey";
 const FALLBACK_BODY =

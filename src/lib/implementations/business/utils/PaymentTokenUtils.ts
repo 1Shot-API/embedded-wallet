@@ -1,15 +1,16 @@
 import {
+  type EVMContractAddress,
   ChainUtils,
-  EVMContractAddress,
   type EVMAccountAddress,
   type EVMChainId,
 } from "@1shotapi/ows-types";
 import { parseUnits } from "viem";
+
+import type { IPaymentTokenOption } from "../../../interfaces/business/ITransactionService";
+import type { IPaymentTokenUtils } from "../../../interfaces/business/utils/IPaymentTokenUtils";
 import type { IChainRepository } from "../../../interfaces/data/IChainRepository";
 import type { IOneshotRelayerRepository } from "../../../interfaces/data/IOneshotRelayerRepository";
 import type { ITrackedAssetRepository } from "../../../interfaces/data/ITrackedAssetRepository";
-import type { IPaymentTokenUtils } from "../../../interfaces/business/utils/IPaymentTokenUtils";
-import type { IPaymentTokenOption } from "../../../interfaces/business/ITransactionService";
 import type { IRelayerPayment } from "../../../types/domain/RelayerPayment";
 import { EAssetType } from "../../../types/enum/EAssetType";
 import { makeTokenAmount } from "../../../types/primitives";

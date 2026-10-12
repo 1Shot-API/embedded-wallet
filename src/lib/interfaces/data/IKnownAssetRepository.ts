@@ -1,4 +1,5 @@
 import type { EVMAccountAddress, EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
+
 import type { KnownAsset, NewTrackedAsset } from "../../types/domain";
 
 export interface IKnownAssetRepository {

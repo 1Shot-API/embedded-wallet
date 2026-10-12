@@ -1,10 +1,13 @@
-import { CheckIcon } from "lucide-react";
 import type { OWSChainId } from "@1shotapi/ows-types";
-import type { SupportedChain } from "../../lib/types/domain";
+import { CheckIcon } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+
 import { ChainDisplayUtils } from "../../lib/implementations/utils/ChainDisplayUtils";
+import type { SupportedChain } from "../../lib/types/domain";
 import { useStyle } from "../../style/StyleProvider";
 import { Modal } from "../Modal";
-import { cn } from "@/lib/utils";
+
 
 export interface ISelectNetworkModalProps {
   chains: readonly SupportedChain[];

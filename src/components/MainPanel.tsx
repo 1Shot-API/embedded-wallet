@@ -1,29 +1,33 @@
-import { useEffect, useRef, useState } from "react";
-import { useShallow } from "zustand/react/shallow";
-import { CheckIcon, CopyIcon, XIcon } from "lucide-react";
 import {
   BITCOIN_MAINNET_CHAIN_ID,
   ChainUtils,
   type OWSChainId,
 } from "@1shotapi/ows-types";
+import { CheckIcon, CopyIcon, XIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
+
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { copyText } from "@/lib/clipboard";
+
 import type { TrackedAsset } from "../lib/types/domain";
-import { useWallet } from "../wallet/WalletProvider";
+import { useStyle } from "../style/StyleProvider";
+import { resolveActiveAddress } from "../wallet/activeAddress";
 import {
   EWalletMode,
   useWalletSessionStore,
 } from "../wallet/sessionStore";
-import { resolveActiveAddress } from "../wallet/activeAddress";
-import { useStyle } from "../style/StyleProvider";
+import { useWallet } from "../wallet/WalletProvider";
+
 import { AccountMetaChip } from "./AccountMetaChip";
 import { AssetDetails } from "./AssetDetails";
-import { BitcoinDetails } from "./BitcoinDetails";
 import { BalancesTab } from "./balances/BalancesTab";
+import { BitcoinDetails } from "./BitcoinDetails";
 import { CredentialsTab } from "./credentials/CredentialsTab";
 import { DelegationsTab } from "./delegations/DelegationsTab";
 import { SelectNetworkModal } from "./modals/SelectNetworkModal";
+
 
 const TRUNCATE_CHARS = 5;
 const COPY_FEEDBACK_MS = 1500;

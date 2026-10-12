@@ -8,8 +8,9 @@
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
+
 import dotenv from "dotenv";
+import { createServer } from "vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");

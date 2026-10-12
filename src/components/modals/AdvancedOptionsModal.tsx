@@ -1,6 +1,6 @@
 import { useStyle } from "../../style/StyleProvider";
-import { Modal } from "../Modal";
 import type { AdvancedOptionsChoice } from "../../wallet/modalTypes";
+import { Modal } from "../Modal";
 
 /**
  * Chooser for export / import private key / change account.

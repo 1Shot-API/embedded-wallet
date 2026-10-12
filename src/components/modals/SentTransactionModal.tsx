@@ -3,6 +3,7 @@ import type {
   EVMTransactionHash,
   OWSChainId,
 } from "@1shotapi/ows-types";
+
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { CopyableText } from "../CopyableText";

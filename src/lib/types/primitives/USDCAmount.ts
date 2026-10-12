@@ -1,5 +1,6 @@
 import { type Brand, make } from "ts-brand";
 import { formatUnits, parseUnits } from "viem";
+
 import type { TokenAmount } from "./TokenAmount";
 
 /** Atomic USDC at 6 decimals (`1_000_000` = $1). */

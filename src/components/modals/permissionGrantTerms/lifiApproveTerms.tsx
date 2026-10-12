@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
 import { type IExecutionPermissionRequest } from "@1shotapi/ows-types";
+import { useEffect, useMemo, useState } from "react";
+
 import {
   parseLiFiApproveData,
 } from "../../../lib/implementations/business/DelegationService";
@@ -13,6 +14,7 @@ import { useWallet } from "../../../wallet/WalletProvider";
 import { ConsentSummaryRow } from "../../ConsentSummaryRow";
 import { SafeAssetImage } from "../../SafeAssetImage";
 import { PermissionGrantTermsCard } from "../PermissionGrantConsentLayout";
+
 import { ExplorerAddressLink } from "./ExplorerAddressLink";
 
 export function isLiFiApprovePermissionValid(

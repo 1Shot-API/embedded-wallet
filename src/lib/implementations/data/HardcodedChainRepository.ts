@@ -3,21 +3,14 @@ import {
   type EVMChainId as EVMChainIdType,
   type OWSChainId,
 } from "@1shotapi/ows-types";
-import type { IChainRepository } from "../../interfaces/data/IChainRepository";
-import {
-  type INativeCurrency,
-  SupportedChain,
-} from "../../types/domain/SupportedChain";
-import { EChain } from "../../types/enum/EChain";
-import { EChainNetworkType } from "../../types/enum/EChainNetworkType";
-import { ChainDisplayUtils } from "../utils/ChainDisplayUtils";
 
-import bitcoinLogo from "../../../assets/images/chains/bitcoin-logo.svg";
-import arcLogo from "../../../assets/images/chains/arc-logo.png";
+
 import arbitrumLogo from "../../../assets/images/chains/arbitrum-logo.png";
+import arcLogo from "../../../assets/images/chains/arc-logo.png";
 import binanceLogo from "../../../assets/images/chains/binance-logo.png";
-import baseLogo from "../../../assets/images/chains/coinbase-base-logo.png";
+import bitcoinLogo from "../../../assets/images/chains/bitcoin-logo.svg";
 import celoLogo from "../../../assets/images/chains/celo-logo.png";
+import baseLogo from "../../../assets/images/chains/coinbase-base-logo.png";
 import ethereumLogo from "../../../assets/images/chains/ethereum-eth-logo.png";
 import lineaLogo from "../../../assets/images/chains/linea-logo.png";
 import monadLogo from "../../../assets/images/chains/monad-logo.png";
@@ -26,6 +19,14 @@ import polygonLogo from "../../../assets/images/chains/polygon-logo.png";
 import robinhoodLogo from "../../../assets/images/chains/robinhood-logo.png";
 import sonicLogo from "../../../assets/images/chains/sonic-logo.png";
 import unichainLogo from "../../../assets/images/chains/unichain-logo.png";
+import type { IChainRepository } from "../../interfaces/data/IChainRepository";
+import {
+  type INativeCurrency,
+  SupportedChain,
+} from "../../types/domain/SupportedChain";
+import { EChain } from "../../types/enum/EChain";
+import { EChainNetworkType } from "../../types/enum/EChainNetworkType";
+import { ChainDisplayUtils } from "../utils/ChainDisplayUtils";
 
 const PRODUCTION_RELAYER_URL = "https://relayer.1shotapi.com";
 const DEVELOPMENT_RELAYER_URL = "https://relayer.1shotapi.dev";

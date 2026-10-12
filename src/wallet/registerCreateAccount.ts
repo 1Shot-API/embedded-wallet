@@ -1,7 +1,9 @@
-import { z } from "zod";
-import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import type { COSEPublicKey, CredentialId, EVMAccountAddress } from "@1shotapi/ows-types";
+import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+import { z } from "zod";
+
 import { loadCredentialId } from "../storage";
+
 import { useWalletSessionStore } from "./sessionStore";
 
 /** Custom RPC — host: `await proxy.rpc("createAccount", { accountName? })`. */

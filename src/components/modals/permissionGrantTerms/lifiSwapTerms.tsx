@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
 import {
   ChainUtils,
   type IExecutionPermissionRequest,
 } from "@1shotapi/ows-types";
+import { useEffect, useMemo, useState } from "react";
 import { formatUnits } from "viem";
+
 import { parseLiFiSwapData } from "../../../lib/implementations/business/DelegationService";
 import { LIFI_SWAP_PERIODIC } from "../../../lib/interfaces/business/IDelegationService";
 import { EAssetType } from "../../../lib/types/enum/EAssetType";
@@ -23,6 +24,7 @@ import { useWallet } from "../../../wallet/WalletProvider";
 import { ConsentSummaryRow } from "../../ConsentSummaryRow";
 import { SafeAssetImage } from "../../SafeAssetImage";
 import { PermissionGrantTermsCard } from "../PermissionGrantConsentLayout";
+
 import { ExplorerAddressLink } from "./ExplorerAddressLink";
 
 function readString(data: Record<string, unknown>, ...keys: string[]): string {

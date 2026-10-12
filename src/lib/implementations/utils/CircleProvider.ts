@@ -1,4 +1,5 @@
 import { AppKit } from "@circle-fin/app-kit";
+
 import type { ICircleProvider } from "../../interfaces/utils/ICircleProvider";
 import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 

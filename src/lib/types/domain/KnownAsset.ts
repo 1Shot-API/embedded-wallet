@@ -1,4 +1,5 @@
 import type { EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
+
 import type { EAssetType } from "../enum/EAssetType";
 
 /** Catalog metadata for a known token (hardcoded registry). */

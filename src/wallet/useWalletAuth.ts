@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useRef, type RefObject } from "react";
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
-import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
+  type CredentialId,
   BITCOIN_MAINNET_CHAIN_ID,
   BITCOIN_TESTNET_CHAIN_ID,
   COSEPublicKey,
-  CredentialId,
   OwsUserRejectedError,
   type HexString,
 } from "@1shotapi/ows-types";
+import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+import { useCallback, useEffect, useRef, type RefObject } from "react";
+
 import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import {
   analyticsErrorCode,
@@ -30,13 +31,14 @@ import {
   saveCosePublicKey,
   saveWalletCreated,
 } from "../storage";
-import { pushModal } from "./pushModal";
-import type { WalletSetupChoice } from "./modalTypes";
-import { useWalletSessionStore } from "./sessionStore";
-import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
-import { needsFirstPartyPasskeyCreate } from "./passkeyCreateSupport";
+
 import { createAccountViaFirstPartyTab } from "./createAccountHandoff";
+import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
+import type { WalletSetupChoice } from "./modalTypes";
+import { needsFirstPartyPasskeyCreate } from "./passkeyCreateSupport";
+import { pushModal } from "./pushModal";
 import type { IPasskeyRegistrationResult } from "./registerCreateAccount";
+import { useWalletSessionStore } from "./sessionStore";
 
 export interface IUseWalletAuthParams {
   signerRef: RefObject<OWSSigner | null>;

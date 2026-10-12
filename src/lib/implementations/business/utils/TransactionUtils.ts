@@ -1,3 +1,14 @@
+import { toViemLocalAccount } from "@1shotapi/ows-signer-utils";
+import {
+  type EVMTransactionHash,
+  EVMAccountAddress,
+  EVMContractAddress,
+  type CeremonyUiParams,
+  type EVMChainId,
+  type HexString,
+  type RelayerTransactionId,
+} from "@1shotapi/ows-types";
+import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import {
   createDelegation,
   getSmartAccountsEnvironment,
@@ -5,17 +16,6 @@ import {
   ScopeType,
   toMetaMaskSmartAccount,
 } from "@metamask/smart-accounts-kit";
-import { toViemLocalAccount } from "@1shotapi/ows-signer-utils";
-import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
-import {
-  EVMAccountAddress,
-  EVMContractAddress,
-  EVMTransactionHash,
-  type CeremonyUiParams,
-  type EVMChainId,
-  type HexString,
-  type RelayerTransactionId,
-} from "@1shotapi/ows-types";
 import {
   encodeFunctionData,
   erc20Abi,
@@ -24,8 +24,28 @@ import {
   parseUnits,
   type Hex,
 } from "viem";
-import { recoverAuthorizationAddress } from "viem/utils";
 import type { LocalAccount } from "viem/accounts";
+import { recoverAuthorizationAddress } from "viem/utils";
+
+import {
+  loadCachedEvmAddress,
+  loadCachedSecp256k1PublicKey,
+} from "../../../../storage";
+import { styleController } from "../../../../style/styleController";
+import { withCeremonyUiReason } from "../../../../wallet/ceremonyUiOverrideStore";
+import { withCoalescedSignDigest ,type  CoalesceSignDigestOptions } from "../../../../wallet/withCoalescedSignDigest";
+import type {
+  IPaymentQuote,
+  IPaymentTokenOption,
+  ITransactionWork,
+} from "../../../interfaces/business/ITransactionService";
+import type { IPaymentTokenUtils } from "../../../interfaces/business/utils/IPaymentTokenUtils";
+import {
+  NATIVE_TRANSFER_GAS,
+  maxNativeSendable,
+  withNativeFeeHeadroom,
+  type ITransactionUtils,
+} from "../../../interfaces/business/utils/ITransactionUtils";
 import type { IChainRepository } from "../../../interfaces/data/IChainRepository";
 import type { IDelegationRepository } from "../../../interfaces/data/IDelegationRepository";
 import type {
@@ -35,20 +55,8 @@ import type {
   ISendTransactionResult,
 } from "../../../interfaces/data/IOneshotRelayerRepository";
 import type { ITrackedAssetRepository } from "../../../interfaces/data/ITrackedAssetRepository";
-import type {
-  IPaymentQuote,
-  IPaymentTokenOption,
-  ITransactionWork,
-} from "../../../interfaces/business/ITransactionService";
-import {
-  NATIVE_TRANSFER_GAS,
-  maxNativeSendable,
-  withNativeFeeHeadroom,
-  type ITransactionUtils,
-} from "../../../interfaces/business/utils/ITransactionUtils";
-import type { ITransactionUtils as IPresentationTransactionUtils } from "../../../interfaces/utils/ITransactionUtils";
 import type { IOWSProvider } from "../../../interfaces/utils/IOWSProvider";
-import type { IPaymentTokenUtils } from "../../../interfaces/business/utils/IPaymentTokenUtils";
+import type { ITransactionUtils as IPresentationTransactionUtils } from "../../../interfaces/utils/ITransactionUtils";
 import type { IRelayerPayment } from "../../../types/domain/RelayerPayment";
 import type { IFinalRelayerFee } from "../../../types/domain/RelayerSendUi";
 import type { IWalletUpgradeStatus } from "../../../types/domain/WalletUpgradeStatus";
@@ -64,14 +72,6 @@ import {
   idbSetString,
 } from "../../../utils/idbStringStore";
 import { shouldHideDisplayOnRelayerError } from "../../../utils/isSignCeremonyDenied";
-import { withCeremonyUiReason } from "../../../../wallet/ceremonyUiOverrideStore";
-import { withCoalescedSignDigest } from "../../../../wallet/withCoalescedSignDigest";
-import type { CoalesceSignDigestOptions } from "../../../../wallet/withCoalescedSignDigest";
-import {
-  loadCachedEvmAddress,
-  loadCachedSecp256k1PublicKey,
-} from "../../../../storage";
-import { styleController } from "../../../../style/styleController";
 // Ensure Arc mainnet Smart Accounts env is registered before any kit lookups.
 import "../../utils/registerSmartAccountsEnvironments";
 
@@ -896,7 +896,7 @@ export class TransactionUtils implements ITransactionUtils {
       };
 
       let params = await buildChainParams(feeAtoms);
-      let estimate = useMultichain
+      const estimate = useMultichain
         ? await this.options.relayerRepository.estimate7710TransactionMultichain(
             paymentChain.relayerUrl,
             params,
@@ -1344,7 +1344,7 @@ export class TransactionUtils implements ITransactionUtils {
       };
 
       let params = buildChainParams(feeAtoms);
-      let estimate = useMultichain
+      const estimate = useMultichain
         ? await this.options.relayerRepository.estimate7710TransactionMultichain(
             paymentChain.relayerUrl,
             params,
@@ -1776,7 +1776,7 @@ export class TransactionUtils implements ITransactionUtils {
           authorizationAddress: authorizationList?.[0]?.address,
         },
       );
-      let estimate =
+      const estimate =
         await this.options.relayerRepository.estimate7710Transaction(
           relayerUrl,
           params,
@@ -2148,7 +2148,7 @@ export class TransactionUtils implements ITransactionUtils {
       };
 
       let params = buildParams(feeDelegation, feeAtoms);
-      let estimate =
+      const estimate =
         await this.options.relayerRepository.estimate7710TransactionMultichain(
           paymentChain.relayerUrl,
           params,

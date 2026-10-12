@@ -4,14 +4,15 @@ import type {
   EVMContractAddress,
   HexString,
 } from "@1shotapi/ows-types";
-import type {
-  IRelayerAuthorizationEntry,
-  ISendTransactionResult,
-} from "../data/IOneshotRelayerRepository";
+
 import type { IRelayerPayment } from "../../types/domain/RelayerPayment";
 import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
 import type { IWalletUpgradeStatus } from "../../types/domain/WalletUpgradeStatus";
 import type { TokenAmount } from "../../types/primitives";
+import type {
+  IRelayerAuthorizationEntry,
+  ISendTransactionResult,
+} from "../data/IOneshotRelayerRepository";
 
 export interface IPaymentTokenOption {
   /** ERC-20 (or other) payment token contract. */

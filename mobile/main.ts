@@ -2,6 +2,7 @@ import {
   EWalletPresentationMode,
   OWSProxy,
 } from "@1shotapi/ows-provider";
+
 import {
   readWalletConnectUriFromLocation,
   startWalletConnectBridge,

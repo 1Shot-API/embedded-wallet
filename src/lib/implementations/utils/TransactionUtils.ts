@@ -1,16 +1,17 @@
 import {
+  type EVMContractAddress,
+  EVMAccountAddress,
+  type EVMChainId,
+  type HexString,
+} from "@1shotapi/ows-types";
+import {
   decodeFunctionData,
   erc20Abi,
   formatUnits,
   getAddress,
   type Hex,
 } from "viem";
-import {
-  EVMAccountAddress,
-  EVMContractAddress,
-  type EVMChainId,
-  type HexString,
-} from "@1shotapi/ows-types";
+
 import type {
   IDecodedErc20Transfer,
   ITransactionUtils,

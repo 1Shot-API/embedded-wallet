@@ -1,5 +1,7 @@
 import { useCallback, useState } from "react";
+
 import type { TrackedAssetId } from "../lib/types/primitives";
+
 import { useBalanceUpdated } from "./useWalletEvent";
 
 /**

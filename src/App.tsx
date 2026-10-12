@@ -1,5 +1,5 @@
 import { useShallow } from "zustand/react/shallow";
-import { useWalletSessionStore } from "./wallet/sessionStore";
+
 import { CreateHostPlaceholder } from "./components/CreateHostPlaceholder";
 import { MainPanel } from "./components/MainPanel";
 import { ModalHost } from "./components/ModalHost";
@@ -10,6 +10,7 @@ import { SignerHost } from "./components/SignerHost";
 import { WalletChrome } from "./components/WalletChrome";
 import { useStyle } from "./style/StyleProvider";
 import { isCreateHostEmbed } from "./wallet/createHostEmbed";
+import { useWalletSessionStore } from "./wallet/sessionStore";
 import { useSwipeDownToDismiss } from "./wallet/useSwipeDownToDismiss";
 import { useWallet } from "./wallet/WalletProvider";
 
