@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CheckIcon, CopyIcon } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { copyText } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";

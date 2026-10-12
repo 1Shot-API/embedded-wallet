@@ -1,4 +1,5 @@
 import type { OWSChainId } from "@1shotapi/ows-types";
+
 import type { EChainNetworkType } from "../enum/EChainNetworkType";
 
 /** Native gas / payment currency for a catalog chain. */

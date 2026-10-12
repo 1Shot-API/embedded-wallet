@@ -1,7 +1,8 @@
 import { createRoot } from "react-dom/client";
+
 import { App } from "./App";
-import { StyleProvider } from "./style/StyleProvider";
 import { styleController } from "./style/styleController";
+import { StyleProvider } from "./style/StyleProvider";
 import { WalletProvider } from "./wallet/WalletProvider";
 // Registers Arc mainnet Smart Accounts env (missing from kit deployments registry).
 import "./lib/implementations/utils/registerSmartAccountsEnvironments";

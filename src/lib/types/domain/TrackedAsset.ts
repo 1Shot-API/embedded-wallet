@@ -1,9 +1,11 @@
 import type { EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
+
+import type { EAssetType } from "../enum/EAssetType";
 import {
   makeTrackedAssetId,
   type TrackedAssetId,
 } from "../primitives/TrackedAssetId";
-import type { EAssetType } from "../enum/EAssetType";
+
 import type { KnownAsset } from "./KnownAsset";
 
 /**

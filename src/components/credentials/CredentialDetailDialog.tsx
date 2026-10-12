@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
 import { PresentationUtils, type StoredCredential } from "@1shotapi/ows-types";
+import { useEffect, useState } from "react";
+
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,7 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
 import { useStyle } from "../../style/StyleProvider";
+
 
 function formatClaimValue(value: unknown): string {
   if (value === null || value === undefined) return "—";

@@ -23,6 +23,31 @@ export function humanizePeriodDuration(seconds: number): string {
   return `Every ${seconds} seconds`;
 }
 
+function pluralUnit(value: number, singular: string, plural: string): string {
+  const rounded = Math.trunc(value);
+  const label = rounded === 1 ? singular : plural;
+  return `${value === rounded ? rounded : value.toFixed(1)} ${label}`;
+}
+
+/** Human-readable elapsed time until a streaming cap is fully unlocked. */
+export function humanizeStreamDuration(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 1) return "—";
+  if (seconds >= SECONDS_PER_DAY) {
+    const days = seconds / SECONDS_PER_DAY;
+    return pluralUnit(days, "day", "days");
+  }
+  if (seconds >= SECONDS_PER_HOUR) {
+    const hours = seconds / SECONDS_PER_HOUR;
+    return pluralUnit(hours, "hour", "hours");
+  }
+  if (seconds >= 60) {
+    const mins = Math.round(seconds / 60);
+    return mins === 1 ? "1 minute" : `${mins} minutes`;
+  }
+  const secs = Math.round(seconds);
+  return secs === 1 ? "1 second" : `${secs} seconds`;
+}
+
 /** Summary amount for grant UI; null when input is empty or invalid. */
 export function formatPermissionAmount(
   amountText: string,

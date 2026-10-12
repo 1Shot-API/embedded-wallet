@@ -1,9 +1,13 @@
 import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
+
 import type { TrackedAsset } from "../../lib/types/domain";
 import { useStyle } from "../../style/StyleProvider";
+
 import { AddAssetView } from "./AddAssetView";
 import { AssetList } from "./AssetList";
+
 
 export interface IBalancesTabProps {
   onView: (asset: TrackedAsset) => void;

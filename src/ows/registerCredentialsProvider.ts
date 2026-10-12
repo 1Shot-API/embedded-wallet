@@ -1,5 +1,3 @@
-import type { OWSSigner } from "@1shotapi/ows-signer-utils";
-import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
   CredentialsHelper,
   createCredentialsHolderSigner,
@@ -8,6 +6,7 @@ import {
   type ApproveAndAcceptOfferRequest,
   type ApproveAndPresentRequest,
 } from "@1shotapi/ows-oid4";
+import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import {
   OwsUserRejectedError,
   type CredentialOfferApprovalRequest,
@@ -24,6 +23,8 @@ import {
   type OWSAnalyticsEvent,
   type PresentationRequestInput,
 } from "@1shotapi/ows-types";
+import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+
 import { runWithAnalytics } from "../lib/implementations/utils";
 import type { IConfigProvider } from "../lib/interfaces/utils";
 import {

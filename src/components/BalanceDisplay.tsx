@@ -1,8 +1,10 @@
 import { cn } from "@/lib/utils";
-import type { TrackedAssetId } from "../lib/types/primitives";
+
 import { FormatUtils } from "../lib/implementations/utils/FormatUtils";
+import type { TrackedAssetId } from "../lib/types/primitives";
 import { useStyle } from "../style/StyleProvider";
 import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
+
 
 export interface IBalanceDisplayProps {
   trackedAssetId: TrackedAssetId;

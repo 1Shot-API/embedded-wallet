@@ -2,8 +2,9 @@ import {
   EWalletPresentationMode,
   OWSProxy,
 } from "@1shotapi/ows-provider";
-import { COSEPublicKey, CredentialId, OwsUserRejectedError } from "@1shotapi/ows-types";
-import { appendCreateHostQuery } from "@/wallet/createHostEmbed";
+import { type COSEPublicKey, type CredentialId, OwsUserRejectedError } from "@1shotapi/ows-types";
+
+
 import {
   OWS_ACCOUNT_CREATED,
   OWS_ACCOUNT_CREATE_CANCELLED,
@@ -11,6 +12,8 @@ import {
   postAccountCreateHandoff,
   type AccountCreateHandoffMessage,
 } from "@/wallet/createAccountHandoffMessages";
+import { appendCreateHostQuery } from "@/wallet/createHostEmbed";
+
 import {
   CREATE_PAGE_VIEWPORT_CHROME,
   CREATE_WALLET_MOUNT_MIN_HEIGHT_PX,

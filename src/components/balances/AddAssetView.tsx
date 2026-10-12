@@ -1,16 +1,20 @@
-import { useState } from "react";
-import { getAddress } from "viem";
 import {
   ChainUtils,
   EVMContractAddress,
   type EVMContractAddress as EVMContractAddressType,
 } from "@1shotapi/ows-types";
+import { useState } from "react";
+import { getAddress } from "viem";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Modal } from "../Modal";
+
 import { useStyle } from "../../style/StyleProvider";
-import { useWallet } from "../../wallet/WalletProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
+import { useWallet } from "../../wallet/WalletProvider";
+import { Modal } from "../Modal";
+
+
 
 export interface IAddAssetViewProps {
   onClose: () => void;

@@ -1,5 +1,5 @@
-import type { IResolvedStyle, IStyleOptions } from "./types";
 import { DEFAULT_STYLE } from "./defaults";
+import type { IResolvedStyle, IStyleOptions } from "./types";
 
 export function mergeStyle(
   current: IResolvedStyle,
@@ -69,6 +69,10 @@ export function mergeStyle(
       grantExecutionPermission: {
         ...current.copy.grantExecutionPermission,
         ...patch.copy?.grantExecutionPermission,
+      },
+      grantKitScopeTerms: {
+        ...current.copy.grantKitScopeTerms,
+        ...patch.copy?.grantKitScopeTerms,
       },
       grantLiFiSwapPermission: {
         ...current.copy.grantLiFiSwapPermission,
@@ -231,6 +235,9 @@ function cloneDefaultStyle(): IResolvedStyle {
       cctpBridge: { ...DEFAULT_STYLE.copy.cctpBridge },
       grantExecutionPermission: {
         ...DEFAULT_STYLE.copy.grantExecutionPermission,
+      },
+      grantKitScopeTerms: {
+        ...DEFAULT_STYLE.copy.grantKitScopeTerms,
       },
       grantLiFiSwapPermission: {
         ...DEFAULT_STYLE.copy.grantLiFiSwapPermission,

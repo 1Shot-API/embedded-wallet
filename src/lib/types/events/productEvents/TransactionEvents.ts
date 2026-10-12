@@ -1,11 +1,12 @@
 import {
-  DomainString,
-  EVMAccountAddress,
+  type DomainString,
+  type EVMAccountAddress,
   OWSAnalyticsEvent,
   type EVMChainId,
   type EVMContractAddress,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
+
 import { EAnalyticsEventName } from "../../enum/EAnalyticsEventName";
 
 export class TransactionSubmittedEvent extends OWSAnalyticsEvent {

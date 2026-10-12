@@ -1,14 +1,15 @@
 import type { OWSProxy } from "@1shotapi/ows-provider";
 import { EVMChainId } from "@1shotapi/ows-types";
-import { Core } from "@walletconnect/core";
 import { WalletKit, type WalletKitTypes } from "@reown/walletkit";
+import { Core } from "@walletconnect/core";
 import { getSdkError } from "@walletconnect/utils";
+
+import { REOWN_PROJECT_ID, walletMetadataForOrigin } from "./constants";
 import {
   buildApprovedNamespaces,
   hexChainIdToDecimal,
   NamespaceApprovalError,
 } from "./namespaces";
-import { REOWN_PROJECT_ID, walletMetadataForOrigin } from "./constants";
 
 export type WalletConnectBridge = {
   pair: (uri: string) => Promise<void>;

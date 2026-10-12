@@ -1,6 +1,5 @@
-import { COSEPublicKey, CredentialId, OwsUserRejectedError } from "@1shotapi/ows-types";
-import { createAccountPageUrl } from "./passkeyCreateSupport";
-import { pushModal } from "./pushModal";
+import { type COSEPublicKey, type CredentialId, OwsUserRejectedError } from "@1shotapi/ows-types";
+
 import {
   isAccountCreateHandoffMessage,
   newCreateHandoffNonce,
@@ -9,6 +8,8 @@ import {
   subscribeAccountCreateHandoff,
   type AccountCreateHandoffMessage,
 } from "./createAccountHandoffMessages";
+import { createAccountPageUrl } from "./passkeyCreateSupport";
+import { pushModal } from "./pushModal";
 
 export {
   OWS_ACCOUNT_CREATED,
@@ -48,7 +49,10 @@ export async function createAccountViaFirstPartyTab(): Promise<IFirstPartyCreate
     let settled = false;
     let popup: Window | null = null;
     let sawPopupOpen = false;
+    // Assigned once after listeners are wired; `let` keeps the binding mutable.
+    // eslint-disable-next-line prefer-const -- reassigned below before cleanup
     let pollId: ReturnType<typeof setInterval> | undefined;
+    // eslint-disable-next-line prefer-const -- reassigned below before cleanup
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     let closedGraceId: ReturnType<typeof setTimeout> | undefined;
     let unsubscribeBroadcast = () => {};

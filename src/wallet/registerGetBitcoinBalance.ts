@@ -1,5 +1,3 @@
-import { z } from "zod";
-import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
   BITCOIN_MAINNET_CHAIN_ID,
   BITCOIN_TESTNET_CHAIN_ID,
@@ -7,12 +5,16 @@ import {
   ChainUtils,
   type BitcoinChainId,
 } from "@1shotapi/ows-types";
+import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+import { z } from "zod";
+
 import type { IBitcoinService } from "../lib/interfaces/business";
 import type { IOWSProvider } from "../lib/interfaces/utils/IOWSProvider";
 import {
   loadCachedBitcoinAddress,
   saveCachedBitcoinAddress,
 } from "../storage";
+
 import { useWalletSessionStore } from "./sessionStore";
 import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 

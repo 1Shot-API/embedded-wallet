@@ -1,3 +1,23 @@
+import type { OWSSigner } from "@1shotapi/ows-signer-utils";
+import {
+  type EVMContractAddress,
+  type EVMChainId,
+  type HexString,
+  ChainUtils,
+  EVMAccountAddress,
+  SolanaAccountAddress,
+  type CredentialId,
+  type CredentialSummary,
+  type EVMTransactionHash,
+  type OWSChainId,
+  type StoredCredential,
+} from "@1shotapi/ows-types";
+import {
+  AddressUtils,
+  type IBlockchainProvider,
+type 
+  OWSWallet,type 
+  RpcHelper} from "@1shotapi/ows-wallet-utils";
 import {
   createContext,
   useCallback,
@@ -9,38 +29,9 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { OWSSigner } from "@1shotapi/ows-signer-utils";
-import {
-  AddressUtils,
-  OWSWallet,
-  RpcHelper,
-  type IBlockchainProvider,
-} from "@1shotapi/ows-wallet-utils";
-import {
-  ChainUtils,
-  EVMAccountAddress,
-  EVMContractAddress,
-  EVMChainId,
-  HexString,
-  SolanaAccountAddress,
-  type CredentialId,
-  type CredentialSummary,
-  type EVMTransactionHash,
-  type OWSChainId,
-  type StoredCredential,
-} from "@1shotapi/ows-types";
-import { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
-import { createIdbKvBackend } from "../lib/utils/idbStringStore";
-import type { AccountConnectStorage } from "../ows/registerAccountConnect";
-import { RelayerCredentialsClient } from "../lib/implementations/data/utils/RelayerCredentialsClient";
-import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
-import { AnkrBitcoinRpc } from "../lib/implementations/data/AnkrBitcoinRpc";
-import { CircleRepository } from "../lib/implementations/data/CircleRepository";
-import { HardcodedKnownAssetRepository } from "../lib/implementations/data/HardcodedKnownAssetRepository";
-import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
-import { BlockscoutAssetActivityRepository } from "../lib/implementations/data/BlockscoutAssetActivityRepository";
-import { OneshotRelayerRepository } from "../lib/implementations/data/OneshotRelayerRepository";
-import { EVMRepository } from "../lib/implementations/data/EVMRepository";
+
+import { CircleContextProvider } from "../circle/CircleContext";
+import { openCctpBridge } from "../circle/openCctpBridge";
 import {
   BitcoinService,
   BridgeService,
@@ -51,6 +42,16 @@ import {
   PaymentTokenUtils,
   TransactionService,
 } from "../lib/implementations/business";
+import { AnkrBitcoinRpc } from "../lib/implementations/data/AnkrBitcoinRpc";
+import { BlockscoutAssetActivityRepository } from "../lib/implementations/data/BlockscoutAssetActivityRepository";
+import { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
+import { CircleRepository } from "../lib/implementations/data/CircleRepository";
+import { EVMRepository } from "../lib/implementations/data/EVMRepository";
+import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
+import { HardcodedKnownAssetRepository } from "../lib/implementations/data/HardcodedKnownAssetRepository";
+import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
+import { OneshotRelayerRepository } from "../lib/implementations/data/OneshotRelayerRepository";
+import { RelayerCredentialsClient } from "../lib/implementations/data/utils/RelayerCredentialsClient";
 import {
   ConfigProvider,
   CircleProvider,
@@ -61,11 +62,15 @@ import {
   AnalyticsBridge,
   runWithAnalytics,
 } from "../lib/implementations/utils";
-import {
-  TransactionSubmitCancelledEvent,
-  TransactionSubmittedEvent,
-  TransactionSubmitFailedEvent,
-} from "../lib/types/events/productEvents";
+import type {
+  IBridgeService,
+  IBitcoinService,
+  IDelegationService,
+  ITransactionService,
+} from "../lib/interfaces/business";
+import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
+import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
+import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPaymentTokenUtils";
 import type {
   IAssetActivityRepository,
   IChainRepository,
@@ -76,15 +81,6 @@ import type {
   IRecordSentActivityParams,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
-import type {
-  IBridgeService,
-  IBitcoinService,
-  IDelegationService,
-  ITransactionService,
-} from "../lib/interfaces/business";
-import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
-import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
-import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPaymentTokenUtils";
 import type {
   ICircleProvider,
   IConfigProvider,
@@ -102,8 +98,15 @@ import type {
   IDelegationSummary,
   IStoredDelegation,
 } from "../lib/types/domain/StoredDelegation";
-import type { DelegationId } from "../lib/types/primitives/DelegationId";
+import {
+  TransactionSubmitCancelledEvent,
+  TransactionSubmittedEvent,
+  TransactionSubmitFailedEvent,
+} from "../lib/types/events/productEvents";
 import type { TrackedAssetId, TokenAmount } from "../lib/types/primitives";
+import type { DelegationId } from "../lib/types/primitives/DelegationId";
+import { createIdbKvBackend } from "../lib/utils/idbStringStore";
+import type { AccountConnectStorage } from "../ows/registerAccountConnect";
 import {
   loadCachedEvmAddress,
   loadAccountsPermissionGranted,
@@ -111,13 +114,13 @@ import {
   saveCachedAddresses,
   clearWalletStorage,
 } from "../storage";
+
 import { pushModal } from "./pushModal";
-import { useWalletAuth } from "./useWalletAuth";
-import { useWalletAssets } from "./useWalletAssets";
-import { useWalletBoot } from "./useWalletBoot";
 import { useWalletSessionStore } from "./sessionStore";
-import { CircleContextProvider } from "../circle/CircleContext";
-import { openCctpBridge } from "../circle/openCctpBridge";
+import { useWalletAssets } from "./useWalletAssets";
+import { useWalletAuth } from "./useWalletAuth";
+import { useWalletBoot } from "./useWalletBoot";
+
 /** Filled once the Signing Layer iframe finishes loading / wallet handshake. */
 const configProvider: IConfigProvider = new ConfigProvider();
 const circleProvider: ICircleProvider = new CircleProvider(configProvider);

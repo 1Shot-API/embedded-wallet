@@ -1,16 +1,18 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { decodeFunctionData, erc20Abi, pad, padHex } from "viem";
+
 import { EVMAccountAddress, type EVMChainId } from "@1shotapi/ows-types";
+import { decodeFunctionData, erc20Abi, pad, padHex } from "viem";
+
 import {
   CCTPUtils,
   tokenMessengerV2Abi,
 } from "@/lib/implementations/business/utils/CCTPUtils.ts";
 import { SupportedChain } from "@/lib/types/domain/SupportedChain.ts";
+import { ECctpTransferSpeed } from "@/lib/types/enum/ECctpTransferSpeed.ts";
 import { EChain } from "@/lib/types/enum/EChain.ts";
 import { EChainNetworkType } from "@/lib/types/enum/EChainNetworkType.ts";
 import { ECircleDomainId } from "@/lib/types/enum/ECircleDomainId.ts";
-import { ECctpTransferSpeed } from "@/lib/types/enum/ECctpTransferSpeed.ts";
 
 const cctp = new CCTPUtils();
 

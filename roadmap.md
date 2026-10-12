@@ -77,7 +77,7 @@ Relayer / credential fetch    →  TanStack Query (later phase)
 - [x] Register `wallet.registerRpc("configure", …)` **before** `wallet.start()` (merge + apply).
 - [x] Restore / merge shadcn theme into `src/index.css` (css variables + Tailwind) without breaking `/signer/` host styles.
 - [x] Smoke: call `configure` from a temporary button or host console; primary/background tokens update.
-- [x] Bootstrap Host integrator skill (`skills/oneshot-embedded-wallet`) documenting `configure` + wallet URL.
+- [x] Bootstrap Host integrator skill (`1shot-wallet` in 1Shot-API/skills) documenting `configure` + wallet URL.
 
 **Exit criteria:** Defaults render; RPC path works; no modal UI rewritten yet.
 

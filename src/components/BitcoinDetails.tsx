@@ -1,25 +1,31 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { QrCodeIcon, RefreshCwIcon, SendIcon } from "lucide-react";
-import { useShallow } from "zustand/react/shallow";
 import {
   BITCOIN_MAINNET_CHAIN_ID,
   ChainUtils,
   type BitcoinSegwitAccountAddress,
 } from "@1shotapi/ows-types";
+import { QrCodeIcon, RefreshCwIcon, SendIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { formatUnits } from "viem";
-import { useStyle } from "../style/StyleProvider";
-import { useWallet } from "../wallet/WalletProvider";
-import { hydrateBitcoinAddressesFromCachedSecp } from "../wallet/hydrateBitcoinAddresses";
-import { useWalletSessionStore } from "../wallet/sessionStore";
+import { useShallow } from "zustand/react/shallow";
+
+import { Button } from "@/components/ui/button";
+
+import bitcoinLogo from "../assets/images/chains/bitcoin-logo.svg";
 import {
   makeBitcoinSatoshiAmount,
   makeBitcoinSatoshiDelta,
   type BitcoinSatoshiAmount,
 } from "../lib/types/primitives/BitcoinSatoshiAmount";
-import { Button } from "@/components/ui/button";
-import { ReceiveModal } from "./modals/ReceiveModal";
+import { useStyle } from "../style/StyleProvider";
+import { hydrateBitcoinAddressesFromCachedSecp } from "../wallet/hydrateBitcoinAddresses";
+import { useWalletSessionStore } from "../wallet/sessionStore";
+import { useWallet } from "../wallet/WalletProvider";
+
+
 import { BitcoinSendModal } from "./modals/BitcoinSendModal";
-import bitcoinLogo from "../assets/images/chains/bitcoin-logo.svg";
+import { ReceiveModal } from "./modals/ReceiveModal";
+
+
 
 const BTC_DECIMALS = 8;
 

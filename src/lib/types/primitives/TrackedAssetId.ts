@@ -1,8 +1,8 @@
-import { type Brand, make } from "ts-brand";
 import type {
   EVMChainId,
   EVMContractAddress,
 } from "@1shotapi/ows-types";
+import { type Brand, make } from "ts-brand";
 
 /**
  * Deterministic tracked-asset id: `${chainId}:${address}` lowercased.

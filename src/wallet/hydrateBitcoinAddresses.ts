@@ -7,10 +7,12 @@ import {
   BITCOIN_TESTNET_CHAIN_ID,
   SECP256K1PublicKey,
 } from "@1shotapi/ows-types";
+
 import {
   loadCachedSecp256k1PublicKey,
   saveCachedAddresses,
 } from "../storage";
+
 import { useWalletSessionStore } from "./sessionStore";
 
 /**

@@ -1,31 +1,33 @@
-import { useCallback, useEffect, useState } from "react";
-import type { ReactNode } from "react";
-import { useShallow } from "zustand/react/shallow";
+import {
+  BITCOIN_MAINNET_CHAIN_ID,
+  ChainUtils,
+} from "@1shotapi/ows-types";
 import {
   ArrowLeftRightIcon,
   PlusIcon,
   QrCodeIcon,
   SendIcon,
 } from "lucide-react";
+import { useCallback, useEffect, useState ,type  ReactNode } from "react";
+import { useShallow } from "zustand/react/shallow";
+
+import { openCctpBridge } from "../circle/openCctpBridge";
+import { openOnramp } from "../circle/openOnramp";
 import { TrackedAsset } from "../lib/types/domain";
 import { EAssetType } from "../lib/types/enum/EAssetType";
 import { useStyle } from "../style/StyleProvider";
-import { useWallet } from "../wallet/WalletProvider";
 import { resolveActiveAddress } from "../wallet/activeAddress";
-import {
-  BITCOIN_MAINNET_CHAIN_ID,
-  ChainUtils,
-} from "@1shotapi/ows-types";
-import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
 import { useWalletSessionStore } from "../wallet/sessionStore";
-import { openOnramp } from "../circle/openOnramp";
-import { openCctpBridge } from "../circle/openCctpBridge";
+import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
+import { useWallet } from "../wallet/WalletProvider";
+
+
 import { AssetIdentityMark } from "./AssetIdentityMark";
 import { BalanceDisplay } from "./BalanceDisplay";
-import { TransactionHistory } from "./TransactionHistory";
 import { ReceiveModal } from "./modals/ReceiveModal";
 import { SendNativeTokenModal } from "./modals/SendNativeTokenModal";
 import { TransferTokensModal } from "./modals/TransferTokensModal";
+import { TransactionHistory } from "./TransactionHistory";
 
 export interface IAssetDetailsProps {
   asset: TrackedAsset;
@@ -133,7 +135,15 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
       .finally(() => {
         setBuyBusy(false);
       });
-  }, [asset.chainId, asset.symbol, buyBusy, canBuyAsset, evmAddress]);
+  }, [
+    asset.address,
+    asset.chainId,
+    asset.iconUrl,
+    asset.symbol,
+    buyBusy,
+    canBuyAsset,
+    evmAddress,
+  ]);
 
   const openBridge = useCallback(() => {
     if (!evmAddress || bridgeBusy || !canBridge) return;

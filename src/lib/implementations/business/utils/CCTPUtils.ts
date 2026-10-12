@@ -14,12 +14,7 @@ import {
   stringToHex,
   type Hex,
 } from "viem";
-import type { SupportedChain } from "../../../types/domain/SupportedChain";
-import { ECctpTransferSpeed } from "../../../types/enum/ECctpTransferSpeed";
-import { EChain } from "../../../types/enum/EChain";
-import { EChainNetworkType } from "../../../types/enum/EChainNetworkType";
-import { ECircleDomainId } from "../../../types/enum/ECircleDomainId";
-import type { IIrisForwardingFee } from "../../../interfaces/data/ICircleRepository";
+
 import type { ITransactionWork } from "../../../interfaces/business/ITransactionService";
 import type {
   IBuildCctpRelayerWorkParams,
@@ -29,6 +24,12 @@ import type {
   ICCTPUtils,
   IEncodeDepositForBurnWithHookParams,
 } from "../../../interfaces/business/utils/ICCTPUtils";
+import type { IIrisForwardingFee } from "../../../interfaces/data/ICircleRepository";
+import type { SupportedChain } from "../../../types/domain/SupportedChain";
+import { ECctpTransferSpeed } from "../../../types/enum/ECctpTransferSpeed";
+import { EChain } from "../../../types/enum/EChain";
+import { EChainNetworkType } from "../../../types/enum/EChainNetworkType";
+import { ECircleDomainId } from "../../../types/enum/ECircleDomainId";
 
 const IRIS_API_MAINNET = UriString("https://iris-api.circle.com");
 const IRIS_API_TESTNET = UriString("https://iris-api-sandbox.circle.com");

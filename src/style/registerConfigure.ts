@@ -3,7 +3,9 @@ import {
   type OWSChainId,
 } from "@1shotapi/ows-types";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+
 import type { IChainRepository } from "../lib/interfaces/data/IChainRepository";
+
 import {
   configureParamsSchema,
   type IConfigureParams,

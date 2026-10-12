@@ -1,12 +1,13 @@
+import { type EVMTransactionHash } from "@1shotapi/ows-types";
 import { useEffect, useRef } from "react";
 import { formatUnits } from "viem";
-import { type EVMTransactionHash } from "@1shotapi/ows-types";
+
+import type { IRelayerSendUiCallbacks } from "../../lib/types/domain/RelayerSendUi";
+import { useStyle } from "../../style/StyleProvider";
 import type {
   IActivateOfflinePermissionsRequest,
   IRelayerConfirmSendResult,
 } from "../../wallet/modalTypes";
-import type { IRelayerSendUiCallbacks } from "../../lib/types/domain/RelayerSendUi";
-import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { Modal } from "../Modal";
 import { QuoteCountdown } from "../QuoteCountdown";

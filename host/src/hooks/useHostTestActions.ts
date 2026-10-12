@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { OWSProxy } from "@1shotapi/ows-provider";
+import type { OWSProxy } from "@1shotapi/ows-provider";
 import {
   ChainUtils,
   ConversionUtils,
@@ -10,6 +9,7 @@ import {
   type IExecutionPermissionResponse,
   type OWSChainId,
 } from "@1shotapi/ows-types";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import {
   createPublicClient,
   custom,
@@ -22,19 +22,7 @@ import {
   type Address,
   type Hex,
 } from "viem";
-import {
-  buildSiwePersonalMessage,
-  buildSiweTypedData,
-  DEFAULT_TYPED_DATA_JSON,
-  parseTypedDataJson,
-  randomSiweNonce,
-  type SignMode,
-} from "../constants/signDemo";
-import {
-  BRIDGE_SESSION_SOURCE,
-  chainIdToNumber,
-  type BridgeSpeedOption,
-} from "../constants/bridgeDemo";
+
 import {
   DEMO_EXECUTION_DELEGATEE,
   DEMO_LIFI_DIAMOND_BASE,
@@ -46,14 +34,33 @@ import {
   hostChainMeta,
   type UsdcMode,
 } from "../components/hostChains";
+import {
+  BRIDGE_SESSION_SOURCE,
+  chainIdToNumber,
+  type BridgeSpeedOption,
+} from "../constants/bridgeDemo";
+import {
+  buildSiwePersonalMessage,
+  buildSiweTypedData,
+  defaultTypedDataJsonForChain,
+  parseTypedDataJson,
+  randomSiweNonce,
+  syncDemoTypedDataChainId,
+  type SignMode,
+} from "../constants/signDemo";
 import { mergeConfigurePayload } from "../styleForm";
 
 const USDC_DECIMALS = 6;
 
 /** Ten USDC in atoms (6 decimals), as hex for EIP-7715 periodAmount. */
 const TEN_USDC_ATOMS_HEX = HexString(`0x${(10_000_000).toString(16)}`);
+/** ~10 USDC / day in atoms/sec (6 decimals). */
+const STREAM_AMOUNT_PER_SECOND_HEX = HexString(
+  `0x${Math.floor(10_000_000 / 86_400).toString(16)}`,
+);
 
 const BASE_CHAIN_ID = "0x2105";
+const BASE_SEPOLIA_CHAIN_ID = "0x14a34";
 
 type SessionGrant = {
   id: string;
@@ -133,7 +140,9 @@ export function useHostTestActions({
   const [chainId, setChainId] = useState<string>(DEFAULT_HOST_CHAIN_ID);
   const [message, setMessage] = useState("Hello from 1Shot Wallet");
   const [signMode, setSignMode] = useState<SignMode>("message");
-  const [typedDataJson, setTypedDataJson] = useState(DEFAULT_TYPED_DATA_JSON);
+  const [typedDataJson, setTypedDataJson] = useState(() =>
+    defaultTypedDataJsonForChain(DEFAULT_HOST_CHAIN_ID),
+  );
   const [usdcMode, setUsdcMode] = useState<UsdcMode>("balance");
   const [usdcDestination, setUsdcDestination] = useState("");
   const [usdcAmount, setUsdcAmount] = useState("");
@@ -203,6 +212,21 @@ export function useHostTestActions({
       proxy.ethereum.removeListener("accountsChanged", onAccountsChanged);
     };
   }, [ready, proxyRef]);
+
+  useEffect(() => {
+    setTypedDataJson((prev) => syncDemoTypedDataChainId(prev, chainId));
+  }, [chainId]);
+
+  const handleSignModeChange = useCallback(
+    (mode: SignMode) => {
+      setSignMode(mode);
+      if (mode === "typedData") {
+        setTypedDataJson(defaultTypedDataJsonForChain(chainId));
+        reportStatus("EIP-712 demo typed data loaded — click Sign to approve.");
+      }
+    },
+    [chainId, reportStatus],
+  );
 
   const resolveAndStoreAccount = useCallback(
     async (proxy: OWSProxy): Promise<EVMAccountAddress> => {
@@ -767,7 +791,7 @@ export function useHostTestActions({
     if (!proxy) return;
     setBusy(true);
     setDelegationsOutput(null);
-    reportStatus("Requesting EIP-7715 execution permission…");
+    reportStatus("Requesting EIP-7715 execution permissions…");
     void (async () => {
       try {
         proxy.showWallet();
@@ -785,6 +809,10 @@ export function useHostTestActions({
             `No USDC fixture for chain ${activeChain}. Switch to a listed chain.`,
           );
         }
+        const baseSepoliaMeta = hostChainMeta(BASE_SEPOLIA_CHAIN_ID);
+        if (!baseSepoliaMeta) {
+          throw new Error("Missing Base Sepolia USDC fixture.");
+        }
         const responses = await proxy.ethereum.request({
           method: "wallet_requestExecutionPermissions",
           params: [
@@ -799,6 +827,32 @@ export function useHostTestActions({
                   tokenAddress: meta.usdc,
                   periodAmount: TEN_USDC_ATOMS_HEX,
                   periodDuration: 86_400,
+                },
+              },
+              // Stacked host rule — exercises appended-rule grant UX.
+              rules: [
+                {
+                  type: "allowedTargets",
+                  data: {
+                    targets: [
+                      "0x3e6a2f0CBA03d293B54c9fCF354948903007a798",
+                    ],
+                  },
+                },
+              ],
+            },
+            {
+              chainId: EVMChainId(BASE_SEPOLIA_CHAIN_ID),
+              from: account,
+              to: EVMAccountAddress(DEMO_EXECUTION_DELEGATEE),
+              permission: {
+                type: "erc20-streaming",
+                isAdjustmentAllowed: true,
+                data: {
+                  tokenAddress: baseSepoliaMeta.usdc,
+                  initialAmount: "0x0",
+                  maxAmount: TEN_USDC_ATOMS_HEX,
+                  amountPerSecond: STREAM_AMOUNT_PER_SECOND_HEX,
                 },
               },
             },
@@ -1066,7 +1120,7 @@ export function useHostTestActions({
     onRefreshChain: handleRefreshChain,
     onGetBitcoinBalance: handleGetBitcoinBalance,
     onMessageChange: setMessage,
-    onSignModeChange: setSignMode,
+    onSignModeChange: handleSignModeChange,
     onTypedDataJsonChange: setTypedDataJson,
     onUsdcModeChange: handleUsdcModeChange,
     onUsdcDestinationChange: setUsdcDestination,

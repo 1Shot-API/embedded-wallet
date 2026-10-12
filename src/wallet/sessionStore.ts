@@ -1,13 +1,14 @@
-import { create } from "zustand";
 import {
+  type EVMContractAddress,
   BITCOIN_MAINNET_CHAIN_ID,
   type BitcoinChainId,
   type BitcoinSegwitAccountAddress,
   EVMAccountAddress,
-  EVMContractAddress,
   type OWSChainId,
   SolanaAccountAddress,
 } from "@1shotapi/ows-types";
+import { create } from "zustand";
+
 import { DEFAULT_CHAIN_ID } from "../lib/implementations/data/HardcodedChainRepository";
 import { reconcileCachedWalletSession } from "../storage";
 

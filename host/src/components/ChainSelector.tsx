@@ -1,5 +1,6 @@
 import { WalletIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+
+import { HOST_CHAINS, type IHostChainMeta } from "./hostChains";
 import {
   Select,
   SelectContent,
@@ -9,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { HOST_CHAINS, type IHostChainMeta } from "./hostChains";
+
+import { cn } from "@/lib/utils";
 
 export interface IChainSelectorOption {
   value: string;

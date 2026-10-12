@@ -3,6 +3,7 @@ import type {
   CredentialId,
   WebAuthnAssertionFields,
 } from "@1shotapi/ows-types";
+
 import type {
   ICredentialStoreItem,
   IRecoveredCredentialBlob,

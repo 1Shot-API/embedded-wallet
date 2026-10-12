@@ -9,11 +9,12 @@ import {
   isHex,
   type Hex,
 } from "viem";
-import { EChain } from "../../../types/enum/EChain";
+
 import type {
   ILiFiSwapTerms,
   ILiFiUtils,
 } from "../../../interfaces/business/utils/ILiFiUtils";
+import { EChain } from "../../../types/enum/EChain";
 
 const TERMS_LENGTH = 284;
 const DEFAULT_SLIPPAGE_BPS = 50;

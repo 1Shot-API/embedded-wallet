@@ -1,4 +1,5 @@
 import type { WebAuthnAssertionFields } from "@1shotapi/ows-types";
+
 import type { IWalletCredentialChallengeResponse } from "../../types/domain/RelayerCredentials";
 import type { ChallengeId } from "../../types/primitives/ChallengeId";
 

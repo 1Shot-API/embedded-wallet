@@ -1,5 +1,3 @@
-import { z } from "zod";
-import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import {
   HexString,
   HexStringSchema,
@@ -9,12 +7,16 @@ import {
   type EVMChainId,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
-import type { IConfigProvider } from "../lib/interfaces/utils/IConfigProvider";
+import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
+import { z } from "zod";
+
 import type { IDelegationService } from "../lib/interfaces/business/IDelegationService";
+import type { IConfigProvider } from "../lib/interfaces/utils/IConfigProvider";
 import type { SupportedChain } from "../lib/types/domain";
 import type { IStoredDelegation } from "../lib/types/domain/StoredDelegation";
-import type { ActiveModal } from "./modalTypes";
 import { loadCachedEvmAddress } from "../storage";
+
+import type { ActiveModal } from "./modalTypes";
 import { useWalletSessionStore } from "./sessionStore";
 import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 

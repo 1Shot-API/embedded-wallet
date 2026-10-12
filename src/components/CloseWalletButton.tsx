@@ -1,7 +1,10 @@
 import { XIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+
 import { useStyle } from "../style/StyleProvider";
 import { useWallet } from "../wallet/WalletProvider";
+
 
 /**
  * Chrome Close (X) control — respects `features.hideCloseBox`.

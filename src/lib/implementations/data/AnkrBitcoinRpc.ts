@@ -4,6 +4,7 @@ import {
   type BitcoinChainId,
   type BitcoinSegwitAccountAddress,
 } from "@1shotapi/ows-types";
+
 import type {
   IBitcoinBalance,
   IBitcoinRpc,

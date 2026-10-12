@@ -1,4 +1,5 @@
 import type { EPasskeyPromptReason } from "../lib/types/enum";
+
 import { usePasskeyPromptStore } from "./passkeyPromptStore";
 
 /**

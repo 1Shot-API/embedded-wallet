@@ -1,20 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type {
-  ICancelDelegationConfirmRequest,
-  IRelayerConfirmSendResult,
-} from "../../wallet/modalTypes";
-import type { IPaymentQuote } from "../../lib/interfaces/business";
-import type { IRelayerSendUiCallbacks } from "../../lib/types/domain/RelayerSendUi";
-import type { ITransactionWork } from "../../lib/interfaces/business";
 import {
   OwsUserRejectedError,
   type EVMChainId,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { type IPaymentQuote ,type  ITransactionWork } from "../../lib/interfaces/business";
+import type { IRelayerSendUiCallbacks } from "../../lib/types/domain/RelayerSendUi";
+import { isSignCeremonyDenied } from "../../lib/utils/isSignCeremonyDenied";
 import { useStyle } from "../../style/StyleProvider";
+import type {
+  ICancelDelegationConfirmRequest,
+  IRelayerConfirmSendResult,
+} from "../../wallet/modalTypes";
 import { Modal } from "../Modal";
 import { PaymentFeePicker } from "../PaymentFeePicker";
-import { isSignCeremonyDenied } from "../../lib/utils/isSignCeremonyDenied";
 
 type CancelPhase = "confirm" | "signing" | "finalFee" | "submitting";
 

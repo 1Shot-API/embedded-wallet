@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits } from "viem";
+
 import { Button } from "@/components/ui/button";
+
 import {
   LIFI_SWAP_APPROVE,
   LIFI_SWAP_PERIODIC,
 } from "../../lib/interfaces/business/IDelegationService";
 import type { IDelegationSummary } from "../../lib/types/domain/StoredDelegation";
 import type { DelegationId } from "../../lib/types/primitives/DelegationId";
+import { faviconUrl, truncateAddress } from "../../lib/utils/identityDisplay";
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
-import { faviconUrl, truncateAddress } from "../../lib/utils/identityDisplay";
+
 
 function fillTemplate(
   template: string,

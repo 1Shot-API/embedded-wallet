@@ -1,9 +1,11 @@
 import { useEffect } from "react";
+
 import type {
   BalanceUpdatedEvent,
   RefreshBalanceRequestedEvent,
   TransactionHistoryUpdatedEvent,
 } from "../lib/types/events";
+
 import { useWallet } from "./WalletProvider";
 
 /** Subscribe to BalanceUpdated for the lifetime of the component. */

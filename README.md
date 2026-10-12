@@ -133,22 +133,21 @@ Additive merge of theme CSS variables, copy, feature flags, and optional
 `destinationUrl` (status webhooks from the
 [1Shot Relayer](https://1shotapi.com/docs/relayer/get-started/overview)).
 Safe to call repeatedly. Schema is Zod-strict (unknown keys rejected). Full field
-list: [skills/oneshot-embedded-wallet/SKILL.md](skills/oneshot-embedded-wallet/SKILL.md).
+list: [1shot-wallet skill](https://github.com/1Shot-API/skills/blob/main/1shot-wallet/SKILL.md).
 
 When `destinationUrl` is set, the wallet asks the 1Shot Relayer to send
 transaction status update webhooks to that URL.
 
 ### Agent skill
 
-Integrators / coding agents:
+Integrators / coding agents (global Cursor install):
 
 ```bash
-npx skills add 1Shot-API/embedded-wallet@oneshot-embedded-wallet
-# or from a sibling clone:
-npx skills add ../embedded-wallet --skill oneshot-embedded-wallet
+npm run skills:install
+# or: npx skills add 1Shot-API/skills/1shot-wallet -g -a cursor -y
 ```
 
-Source: [skills/oneshot-embedded-wallet](skills/oneshot-embedded-wallet/).
+Source: [1Shot-API/skills/1shot-wallet](https://github.com/1Shot-API/skills/tree/main/1shot-wallet).
 
 ## Build
 

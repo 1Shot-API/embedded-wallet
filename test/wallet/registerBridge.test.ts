@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+
+import { EChain } from "@/lib/types/enum/EChain.ts";
 import {
   evmChainIdFromDecimal,
   resolveBridgeSourceChainId,
 } from "@/wallet/registerBridge.ts";
-import { EChain } from "@/lib/types/enum/EChain.ts";
 
 describe("resolveBridgeSourceChainId", () => {
   const session = EChain.Base;

@@ -1,5 +1,6 @@
 import type { OWSSigner } from "@1shotapi/ows-signer-utils";
 import type { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
+
 import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
 
 type Deferred<T> = {

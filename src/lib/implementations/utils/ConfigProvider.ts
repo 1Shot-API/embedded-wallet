@@ -1,4 +1,5 @@
 import { DomainString, UriString } from "@1shotapi/ows-types";
+
 import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import { WalletConfig } from "../../types/domain/WalletConfig";
 

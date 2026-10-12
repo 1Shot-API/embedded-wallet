@@ -1,4 +1,5 @@
 import { ExternalLinkIcon } from "lucide-react";
+
 import { truncateAddress } from "../../../lib/utils/identityDisplay";
 
 export function ExplorerAddressLink({

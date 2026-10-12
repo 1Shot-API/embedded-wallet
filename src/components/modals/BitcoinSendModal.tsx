@@ -1,24 +1,27 @@
-import { useCallback, useMemo, useState } from "react";
-import { parseUnits, formatUnits } from "viem";
 import {
   EChainTechnology,
   type BitcoinChainId,
   type BitcoinSegwitAccountAddress,
   type BitcoinTransactionHash,
 } from "@1shotapi/ows-types";
-import { useStyle } from "../../style/StyleProvider";
-import { useWallet } from "../../wallet/WalletProvider";
-import { Modal } from "../Modal";
-import {
-  AddressInput,
-  type AddressInputValue,
-} from "../AddressInput";
-import { TokenAmountInput } from "../TokenAmountInput";
-import { SentTransactionModal } from "./SentTransactionModal";
+import { useCallback, useMemo, useState } from "react";
+import { parseUnits, formatUnits } from "viem";
+
 import {
   makeBitcoinSatoshiAmount,
   type BitcoinSatoshiAmount,
 } from "../../lib/types/primitives/BitcoinSatoshiAmount";
+import { useStyle } from "../../style/StyleProvider";
+import { useWallet } from "../../wallet/WalletProvider";
+import {
+  AddressInput,
+  type AddressInputValue,
+} from "../AddressInput";
+import { Modal } from "../Modal";
+import { TokenAmountInput } from "../TokenAmountInput";
+
+import { SentTransactionModal } from "./SentTransactionModal";
+
 
 export interface IBitcoinSendModalProps {
   chainId: BitcoinChainId;
