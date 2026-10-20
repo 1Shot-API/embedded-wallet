@@ -13,11 +13,7 @@ export function formatWalletSetupError(
   }
   const name = error.name;
   const message = error.message;
-  if (
-    name === "OwsTimeoutError" ||
-    message.includes("timed out") ||
-    message.includes("Signer RPC timed out")
-  ) {
+  if (message.includes("timed out")) {
     return copy.passkeyTimeoutError;
   }
   // User dismissed the signer Confirm UI or OS passkey sheet — soft message.
