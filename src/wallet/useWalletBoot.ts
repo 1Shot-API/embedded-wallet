@@ -85,6 +85,7 @@ import {
 import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerBitcoinProvider } from "../ows/registerBitcoinProvider";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
+import { registerSolanaProvider } from "../ows/registerSolanaProvider";
 import { loadCachedEvmAddress, loadCredentialId } from "../storage";
 import { registerConfigureRpc } from "../style/registerConfigure";
 import { styleController } from "../style/styleController";
@@ -355,6 +356,11 @@ export function useWalletBoot({
       });
 
       registerBitcoinProvider(wallet, {
+        owsProvider,
+        ensureReady,
+      });
+
+      registerSolanaProvider(wallet, {
         owsProvider,
         ensureReady,
       });

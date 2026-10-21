@@ -65,7 +65,7 @@ Tx simulation / instruction decoding is the hard consent UX (not a 712 field tre
 
 ### Already present (do not re-invent)
 
-- `SolanaAccountAddress`, `SolanaChainId` (`Solana` / `SolanaDevnet` / `SolanaTestnet`) and `ChainUtils.isSolanaChainId` in `ows-types`.
+- `SolanaAccountAddress`, CAIP `SolanaChainId`, program/mint/signature brands, and `solana.*` Host/Branding wire (Phase 1 done).
 - Session store already holds `solanaAddress`; unlock hydrates it via `signer.solana.getAccountAddress()`.
 - Mobile WalletConnect tests already mention a `solana` namespace — align later, don’t fork semantics.
 
@@ -79,81 +79,96 @@ When Host RPC / Standard registration / Branding conventions land, update **`1sh
 
 Rough order is dependency order. Prefer finishing a phase’s Host + Branding vertical slice before opening the next, except where noted.
 
-### Phase 0 — Spike / decisions (short, blocking)
+### Phase 0 — Decisions (locked)
 
-Capture answers before Phase 1 coding thrash:
+| Decision | Choice | Notes |
+|----------|--------|-------|
+| **Product clusters** | **Mainnet + Devnet only** | Drop Testnet from the product surface. Keep `solana:testnet` out of Embedded Wallet / Host registration unless a later need appears. |
+| **Chain id brand** | **CAIP-2 / Wallet Standard sentinels** | Branded `SolanaChainId` becomes `"solana:mainnet"` \| `"solana:devnet"` (and `"solana:testnet"` only if we retain the type for completeness). Replace today’s `"Solana"` / `"SolanaDevnet"` / `"SolanaTestnet"`. Map in `ChainUtils` the way Bitcoin maps to `bip122:…`. Phase 1 implements the rename (pre-1.0, update all call sites — no deprecation shims). |
+| **Host execution** | **`signAndSendTransaction`** | Branding signs + submits via Alchemy. Hosts need no Solana RPC. Optional raw `signTransaction` can wait. |
+| **CoinOperated path** | Native SOL send + later USDC/CCTP (incl. bridge back toward Arc) | Covered by Phases 3 → 6 → 7–8; no Phase 0 change. |
+| **Branding Solana SDK** | **`@solana/kit` + program clients** | See tradeoffs below. Signing Layer stays dep-free; `ows-signer-utils` stays curve/bytes-oriented (no Kit in the signer iframe path). |
 
-- **Clusters in product:** mainnet + which test cluster (Devnet vs Testnet)? OWS already has both sentinels; Embedded Wallet chain selector should pick one test option to start.
-- **CAIP / Wallet Standard chain ids:** `solana:mainnet`, `solana:devnet`, `solana:testnet` vs our `Solana` / `SolanaDevnet` / `SolanaTestnet` branded ids — define the mapping once in `ows-types` / `ChainUtils`.
-- **Library stance:** `@solana/web3.js` vs `@solana/kit` for Branding tx build/submit — pick one for the wallet app; Signing Layer stays dep-free.
-- **sign-only vs sign-and-send as MVP Host feature:** Phase 6 assumes Branding submits (host needs no RPC). Confirm CoinOperated only needs that.
+#### Cluster = Solana’s word for “which network”
+
+Yes — **cluster ≈ chain** in our vocabulary. Official roles:
+
+| Cluster | Who it’s for | Verdict for us |
+|---------|--------------|----------------|
+| **Mainnet** | Production | Required |
+| **Devnet** | App / wallet / program developers; public faucets; same software family as mainnet; Alchemy `solana-devnet` | **Our one test network** |
+| **Testnet** | Core/validator stress tests; newer release branch; flakier; not the app playground | Skip |
+
+“Bigger / easier” for wallets is **Devnet**, not Testnet. Testnet can run *newer* validator software, but that doesn’t help CoinOperated or CCTP testing — Devnet has the faucets, docs, and RPC product surface (including Alchemy).
+
+#### Library tradeoffs (Branding only)
+
+| Option | Pros | Cons |
+|--------|------|------|
+| **`@solana/web3.js` v1 (legacy)** | Familiar tutorials; already a transitive dep in this repo | Maintenance mode; SPL path stuck on legacy; wrong long-term bet |
+| **`@solana/web3.js` v3** | Class API (`Connection`, `Transaction`, `PublicKey`) on Kit internals; easier if we want old-shaped snippets | Transitional; still not where new Solana frontend docs lead |
+| **`@solana/kit` + `@solana-program/system` (and later token)** | Current official path; tree-shakeable; Wallet Standard–aligned types (`Address`); instruction planners for send/confirm | Newer mental model; fewer copy-paste Stack Overflow answers; AI/docs must follow Kit, not v1 |
+
+**Recommendation: Kit for the Embedded Wallet.** We are building a Standard wallet and owning RPC submit — Kit’s RPC + transaction planner match that. Do **not** put Kit (or web3.js) in `ows-signer`; Branding builds the tx bytes / message bytes, Signing only Ed25519-signs what Branding asks for. Avoid legacy web3.js v1 for *our* code even if something transitive still pulls it. If Phase 3 hits painful Kit gaps, fall back to web3.js v3 as a bridge — not v1.
+
+**Phase 0 exit:** Decisions above recorded; Phase 1 starts by migrating `SolanaChainId` to CAIP sentinels and extending `SolanaSigner` signing APIs.
 
 ---
 
 ### Phase 1 — OWS layer primitives & signer routing
 
-**Repos:** `prf-wallet` (`ows-types`, `ows-signer-utils`, thin hooks in `ows-wallet-utils` as needed).
+**Status: done** (OWS packages). CAIP `SolanaChainId`, program/mint/signature brands, `SolanaSigner.signMessage` / `signTransaction`, `toKitPartialSigner`, `SOLANA_WIRE_METHODS` + `proxy.solana` / `wallet.solana.register`. No Wallet Standard discovery yet (Phase 2).
+
+**Repos:** `prf-wallet` (`ows-types`, `ows-signer-utils`, thin hooks in `ows-wallet-utils` / `ows-provider`).
 
 **Intent:** Curve/address/signing building blocks and Branding↔Signing methods. No Host Wallet Standard yet, no Embedded Wallet Solana panel required to merge (tests in OWS packages).
 
-**Likely work**
+**Delivered**
 
-- Flesh out Solana primitives / schemas as needed (e.g. signature bytes, serialized tx brands) — prefer branded types in `ows-types`, never `string` at API boundaries.
-- Extend `SolanaSigner` beyond `getAccountAddress()`: at least **sign message bytes** and **sign transaction bytes** (Ed25519 over the right payloads). Signing Layer signs digests/curves; Solana tx serialization and message formatting stay in utils / Branding.
-- Wire Branding-facing helpers analogous to EVM `SignHelper` paths (consent stays Branding-owned).
-- Document feature ↔ RPC method names early so Phase 2 doesn’t invent a parallel vocabulary.
+- Branded primitives (`SolanaAccountAddress`, `SolanaProgramAddress`, `SolanaMintAddress`, `SolanaSignature`, `SolanaTransactionSignature`) via `@solana/addresses`.
+- `SolanaSigner.signMessage` / `signTransaction` over `ed25519` `signDigest`; `toKitPartialSigner` for Kit planners.
+- Wire vocabulary `solana.getAccountAddress` | `signMessage` | `signTransaction` | `signAndSendTransaction` | `signIn`.
 
-**Reminders**
+**Reminders (carry forward)**
 
 - Address is the base58 Ed25519 pubkey — already derived; keep cache invalidation rules consistent with Change Account.
 - No EIP-191 prefix; Ledger-style prefixes are a wallet/app concern if we ever support hardware (out of scope).
-- Versioned transactions (v0 + ALTs) are the ecosystem default — plan message formats that don’t assume legacy-only forever, even if MVP signs what Branding builds.
+- Versioned transactions (v0 + ALTs) are the ecosystem default — Branding/Kit supplies `messageBytes`.
 
-**Exit criteria:** Unit-tested `signer.solana` can produce address + message signature + tx signature from a fixture key path; types exported cleanly.
+**Exit criteria:** Met for OWS layer (types + signer + Host/Branding wire shell).
 
 ---
 
 ### Phase 2 — Wallet Standard on `ows-provider`
 
-**Repos:** `prf-wallet/packages/ows-provider` (+ Branding Host RPC handlers stubbed or no-op until later phases).
+**Status: done.** Hosts opt in with `proxy.solana.registerSolanaWallet()` / `unregisterSolanaWallet()` (never auto-registered in `OWSProxy.create`). Branding registers a connect stub via `wallet.solana.register` (`registerSolanaProvider`); sign paths throw `OwsUnimplementedError` until Phases 4–6.
 
-**Intent:** Host apps can register a Standard Wallet on the page. Keep everything under **`proxy.solana`**.
+**Repos:** `prf-wallet/packages/ows-provider` + embedded-wallet Branding stub + host demos / skills.
 
-**API shape (target)**
+**API**
 
 ```ts
 const proxy = await OWSProxy.create(container, walletUrl);
-
-// Explicit opt-in discovery (do not auto-register in create)
-proxy.solana.registerSolanaWallet();
-
-// Same object exposes Standard features for manual hosts
-await proxy.solana… // connect / features as designed
+proxy.solana.registerSolanaWallet(); // optional { name?, icon? }
+// Visible via getWallets() / Wallet Adapter StandardWalletAdapter
 ```
 
-**Likely work**
+**Delivered**
 
-- Implement a Wallet Standard `Wallet` whose features forward through Postmate/RPC into Branding (same pattern as `EIP1193Provider` → `rpc`).
-- Features to plan for across later phases: `standard:connect` / `disconnect` / `events`, `solana:signMessage`, `solana:signIn`, `solana:signTransaction` and/or `solana:signAndSendTransaction`.
-- `registerSolanaWallet()` / unregister on the **Host window** only.
-- Optional: `proxy.solana` as the ergonomic handle; avoid a separate top-level `registerSolanaWallet` that escapes the namespace.
+- `OwsSolanaStandardWallet` — features: `standard:connect` / `disconnect` / `events`, `solana:signMessage`, `solana:signIn`, `solana:signTransaction`, `solana:signAndSendTransaction` on `solana:mainnet` + `solana:devnet`.
+- Host tx split/merge with `@solana/transactions` (full serialized tx ↔ message bytes + signature merge); Branding wire still message-bytes.
+- Branding `getAccountAddress` stub (session → storage → signer); other methods unimplemented stubs.
+- Host demos + `1shot-wallet` / `ows-branding-layer` skill notes.
 
-**Reminders**
-
-- This is **not** EIP-1193. Don’t force a `request({ method })` bag as the public Solana API.
-- Wallet Adapter compatibility = Standard compliance. No adapter package.
-- Phantom `window.solana` shim is explicitly deferred.
-- Until Branding implements handlers, registration can exist with methods that reject `OwsUnimplementedError` — or gate registration behind feature readiness; decide in the phase design.
-
-**Exit criteria:** A minimal Host demo can `registerSolanaWallet()` and see the wallet in `getWallets()` / Adapter discovery; connect returns the Solana account when Branding supports it (may land with Phase 3).
+**Exit criteria:** Met — discovery + connect path; sign features discoverable and reject cleanly without Branding sign handlers.
 
 ---
 
-### Phase 3 — Embedded Wallet: native SOL (mainnet + test)
+### Phase 3 — Embedded Wallet: native SOL (mainnet + Devnet)
 
 **Repos:** `embedded-wallet` UI + chain catalog + Solana RPC read path.
 
-**Intent:** Selecting Solana feels like a first-class chain: show **native balance + address**, Receive, and Send for SOL only. No SPL mints yet.
+**Intent:** Selecting Solana feels like a first-class chain: show **native balance + address**, Receive, and Send for SOL only. No SPL mints yet. Product clusters: **`solana:mainnet`** and **`solana:devnet`** only.
 
 **UI direction**
 
