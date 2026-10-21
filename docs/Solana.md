@@ -183,33 +183,25 @@ proxy.solana.registerSolanaWallet(); // optional { name?, icon? }
 
 ### Phase 4 — `SolanaSignModal` (`signMessage`)
 
+**Status: done.** Branding `SolanaSignModal` + real `solana.signMessage` (display hold, analytics, `copy.solanaSign`). Host Standard reuses input bytes as `signedMessage`.
+
 **Repos:** Branding consent UI + Host Standard `solana:signMessage` + signer-utils.
 
-**Intent:** Hosts/dapps can request Ed25519 signatures over arbitrary bytes (usually UTF-8).
+**Delivered:** UTF-8 / hex preview consent → `signer.solana.signMessage` → `{ signatures }`; denial via `OwsUserRejectedError`.
 
-**Reminders**
-
-- Consent copy should show a **decoded UTF-8 preview when valid**, hex/bytes fallback otherwise (same spirit as personal_sign).
-- Return signature **and** clarify whether Branding/Standard also returns the exact bytes signed (Standard `signMessage` does — keep Host/Branding aligned).
-- Passkey ceremony still runs in Signing iframe; Branding owns the “what are you signing?” modal.
-
-**Exit criteria:** Standard `signMessage` + in-wallet modal; denial paths match existing analytics/error helpers.
+**Exit criteria:** Met.
 
 ---
 
 ### Phase 5 — SIWS modal (`solana:signIn`)
 
+**Status: done.** Branding `SiwsModal` + `SIWSUtils` message construction + real `solana.signIn`; host/website demos call `proxy.solana.signIn`.
+
 **Repos:** Branding SIWS consent + Standard `solana:signIn`.
 
-**Intent:** Sign-In With Solana parity with SIWE-style Host auth flows.
+**Delivered:** Wallet fills SIWS defaults (domain, address, uri, chain, nonce, issuedAt); structured consent (`copy.siws`); returns `{ account, signedMessage, signature }`.
 
-**Reminders**
-
-- Wallet constructs / may adjust the message; output includes `signedMessage` + `signature` + account. Verifiers must use the returned bytes.
-- Message shape is EIP-4361-like; domain binding matters for phishing UX — show domain prominently.
-- Many apps still abuse raw `signMessage` with SIWS text; Phase 4 covers that. Phase 5 is the one-shot connect+sign feature.
-
-**Exit criteria:** `solana:signIn` works end-to-end with a clear SIWS-specific modal (not a generic byte blob if we can parse inputs).
+**Exit criteria:** Met.
 
 ---
 
@@ -316,8 +308,8 @@ Do **not** 1-shot. Suggested loops:
 1. **Phase 0 + 1** — types & signer (OWS PR)
 2. **Phase 2 + connect** — Standard registration + account (OWS + thin Branding)
 3. ~~**Phase 3** — native SOL UI & Send (Embedded Wallet)~~ **done**
-4. **Phase 4 → 5** — message auth ← next
-5. **Phase 6 spike → build** — signAndSendTransaction (hardest Host value)
+4. ~~**Phase 4 → 5** — message auth / SIWS~~ **done**
+5. **Phase 6 spike → build** — signAndSendTransaction ← next
 6. **Phase 7** — USDC mint / ATA
 7. **Phase 8** — CCTP
 

@@ -71,8 +71,13 @@ export interface IStyleFormState {
 
   // Text — Personal sign
   signTitle: string;
+  signBody: string;
+  signNetworkLabel: string;
+  signAccountLabel: string;
+  signMessageLabel: string;
   signLabel: string;
   signReject: string;
+  signSigningHint: string;
 
   // Text — Typed data (EIP-712)
   typedTitle: string;
@@ -103,6 +108,33 @@ export interface IStyleFormState {
   siweRejectLabel: string;
   siweSignLabel: string;
   siweSigningHint: string;
+
+  // Text — Solana sign message
+  solanaSignTitle: string;
+  solanaSignBody: string;
+  solanaSignNetworkLabel: string;
+  solanaSignAccountLabel: string;
+  solanaSignMessageLabel: string;
+  solanaSignLabel: string;
+  solanaSignReject: string;
+  solanaSignSigningHint: string;
+
+  // Text — SIWS
+  siwsTitle: string;
+  siwsBody: string;
+  siwsNetworkLabel: string;
+  siwsSigningInWithLabel: string;
+  siwsMessageLabel: string;
+  siwsUriLabel: string;
+  siwsVersionLabel: string;
+  siwsNonceLabel: string;
+  siwsIssuedAtLabel: string;
+  siwsExpirationTimeLabel: string;
+  siwsNotBeforeLabel: string;
+  siwsResourcesLabel: string;
+  siwsRejectLabel: string;
+  siwsSignLabel: string;
+  siwsSigningHint: string;
 
   // Text — Send transaction
   txTitle: string;
@@ -347,8 +379,14 @@ export const ACME_PRESET: IStyleFormState = {
   passkeyTermsError:
     "Accept the Terms of Service and Privacy Policy to continue.",
   signTitle: "Approve signature",
+  signBody:
+    "{domain} is requesting a signature from your Ethereum account. This will not spend tokens or change on-chain balances.",
+  signNetworkLabel: "Network",
+  signAccountLabel: "Account",
+  signMessageLabel: "Message",
   signLabel: "Sign",
   signReject: "Reject",
+  signSigningHint: "Confirm in the signing panel…",
   typedTitle: "Signature request",
   typedBody: "Review request details before you confirm.",
   typedNetworkLabel: "Network",
@@ -376,6 +414,31 @@ export const ACME_PRESET: IStyleFormState = {
   siweRejectLabel: "Cancel",
   siweSignLabel: "Sign in",
   siweSigningHint: "Confirm in the signing panel…",
+  solanaSignTitle: "Sign message",
+  solanaSignBody:
+    "{domain} is requesting a signature from your Solana account. This will not spend tokens or change on-chain balances.",
+  solanaSignNetworkLabel: "Network",
+  solanaSignAccountLabel: "Account",
+  solanaSignMessageLabel: "Message",
+  solanaSignLabel: "Sign",
+  solanaSignReject: "Reject",
+  solanaSignSigningHint: "Confirm in the signing panel…",
+  siwsTitle: "Sign-in request",
+  siwsBody:
+    "{domain} is requesting to sign in with your Solana account. This will not spend tokens or change on-chain balances.",
+  siwsNetworkLabel: "Network",
+  siwsSigningInWithLabel: "Signing in with",
+  siwsMessageLabel: "Message",
+  siwsUriLabel: "URI",
+  siwsVersionLabel: "Version",
+  siwsNonceLabel: "Nonce",
+  siwsIssuedAtLabel: "Issued at",
+  siwsExpirationTimeLabel: "Expiration time",
+  siwsNotBeforeLabel: "Not before",
+  siwsResourcesLabel: "Resources",
+  siwsRejectLabel: "Cancel",
+  siwsSignLabel: "Sign in",
+  siwsSigningHint: "Confirm in the signing panel…",
   txTitle: "Approve transaction",
   txSignLabel: "Sign",
   txReject: "Reject",
@@ -585,7 +648,13 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   passkeyTermsError:
     "Accept the Terms of Service and Privacy Policy to continue.",
   signTitle: "Sign message",
+  signBody:
+    "{domain} is requesting a signature from your Ethereum account. This will not spend tokens or change on-chain balances.",
+  signNetworkLabel: "Network",
+  signAccountLabel: "Account",
+  signMessageLabel: "Message",
   signLabel: "Sign",
+  signSigningHint: "Confirm in the signing panel…",
   typedTitle: "Signature request",
   txTitle: "Send transaction",
   txSignLabel: "Sign",
@@ -605,6 +674,15 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   siweRejectLabel: "Cancel",
   siweSignLabel: "Sign in",
   siweSigningHint: "Confirm in the signing panel…",
+  solanaSignTitle: "Sign message",
+  solanaSignBody:
+    "{domain} is requesting a signature from your Solana account. This will not spend tokens or change on-chain balances.",
+  solanaSignNetworkLabel: "Network",
+  solanaSignAccountLabel: "Account",
+  solanaSignMessageLabel: "Message",
+  solanaSignLabel: "Sign",
+  solanaSignReject: "Reject",
+  solanaSignSigningHint: "Confirm in the signing panel…",
   credOfferTitle: "Accept credential offer?",
   credOfferBody: "",
   credPresentTitle: "Share credential?",
@@ -900,8 +978,13 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
 
   const personalSign: Record<string, string> = {};
   put(personalSign, "title", form.signTitle);
+  put(personalSign, "body", form.signBody);
+  put(personalSign, "networkLabel", form.signNetworkLabel);
+  put(personalSign, "accountLabel", form.signAccountLabel);
+  put(personalSign, "messageLabel", form.signMessageLabel);
   put(personalSign, "signLabel", form.signLabel);
   put(personalSign, "rejectLabel", form.signReject);
+  put(personalSign, "signingHint", form.signSigningHint);
   if (Object.keys(personalSign).length > 0) copy.personalSign = personalSign;
 
   const typedData: Record<string, string> = {};
@@ -935,6 +1018,35 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(siwe, "signLabel", form.siweSignLabel);
   put(siwe, "signingHint", form.siweSigningHint);
   if (Object.keys(siwe).length > 0) copy.siwe = siwe;
+
+  const solanaSign: Record<string, string> = {};
+  put(solanaSign, "title", form.solanaSignTitle);
+  put(solanaSign, "body", form.solanaSignBody);
+  put(solanaSign, "networkLabel", form.solanaSignNetworkLabel);
+  put(solanaSign, "accountLabel", form.solanaSignAccountLabel);
+  put(solanaSign, "messageLabel", form.solanaSignMessageLabel);
+  put(solanaSign, "signLabel", form.solanaSignLabel);
+  put(solanaSign, "rejectLabel", form.solanaSignReject);
+  put(solanaSign, "signingHint", form.solanaSignSigningHint);
+  if (Object.keys(solanaSign).length > 0) copy.solanaSign = solanaSign;
+
+  const siws: Record<string, string> = {};
+  put(siws, "title", form.siwsTitle);
+  put(siws, "body", form.siwsBody);
+  put(siws, "networkLabel", form.siwsNetworkLabel);
+  put(siws, "signingInWithLabel", form.siwsSigningInWithLabel);
+  put(siws, "messageLabel", form.siwsMessageLabel);
+  put(siws, "uriLabel", form.siwsUriLabel);
+  put(siws, "versionLabel", form.siwsVersionLabel);
+  put(siws, "nonceLabel", form.siwsNonceLabel);
+  put(siws, "issuedAtLabel", form.siwsIssuedAtLabel);
+  put(siws, "expirationTimeLabel", form.siwsExpirationTimeLabel);
+  put(siws, "notBeforeLabel", form.siwsNotBeforeLabel);
+  put(siws, "resourcesLabel", form.siwsResourcesLabel);
+  put(siws, "rejectLabel", form.siwsRejectLabel);
+  put(siws, "signLabel", form.siwsSignLabel);
+  put(siws, "signingHint", form.siwsSigningHint);
+  if (Object.keys(siws).length > 0) copy.siws = siws;
 
   const sendTransaction: Record<string, string> = {};
   put(sendTransaction, "title", form.txTitle);

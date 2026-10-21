@@ -196,6 +196,30 @@ export function WalletConfiguratorTextTabSigningSections({
             value={form.signTitle}
             onChange={(value) => patch("signTitle", value)}
           />
+          <BodyField
+            id="sign-body"
+            label="Body"
+            value={form.signBody}
+            onChange={(value) => patch("signBody", value)}
+          />
+          <TextField
+            id="sign-network"
+            label="Network label"
+            value={form.signNetworkLabel}
+            onChange={(value) => patch("signNetworkLabel", value)}
+          />
+          <TextField
+            id="sign-account"
+            label="Account label"
+            value={form.signAccountLabel}
+            onChange={(value) => patch("signAccountLabel", value)}
+          />
+          <TextField
+            id="sign-message"
+            label="Message label"
+            value={form.signMessageLabel}
+            onChange={(value) => patch("signMessageLabel", value)}
+          />
           <TextField
             id="sign-label"
             label="Sign"
@@ -207,6 +231,12 @@ export function WalletConfiguratorTextTabSigningSections({
             label="Reject"
             value={form.signReject}
             onChange={(value) => patch("signReject", value)}
+          />
+          <TextField
+            id="sign-hint"
+            label="Signing hint"
+            value={form.signSigningHint}
+            onChange={(value) => patch("signSigningHint", value)}
           />
         </AccordionContent>
       </AccordionItem>
@@ -339,6 +369,156 @@ export function WalletConfiguratorTextTabSigningSections({
             label="Signing hint"
             value={form.siweSigningHint}
             onChange={(value) => patch("siweSigningHint", value)}
+          />
+        </AccordionContent>
+      </AccordionItem>
+
+      <AccordionItem value="solana-sign">
+        <AccordionTrigger>Solana sign message</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <TextField
+            id="solana-sign-title"
+            label="Title"
+            value={form.solanaSignTitle}
+            onChange={(value) => patch("solanaSignTitle", value)}
+          />
+          <BodyField
+            id="solana-sign-body"
+            label="Body"
+            value={form.solanaSignBody}
+            onChange={(value) => patch("solanaSignBody", value)}
+          />
+          <TextField
+            id="solana-sign-network"
+            label="Network label"
+            value={form.solanaSignNetworkLabel}
+            onChange={(value) => patch("solanaSignNetworkLabel", value)}
+          />
+          <TextField
+            id="solana-sign-account"
+            label="Account label"
+            value={form.solanaSignAccountLabel}
+            onChange={(value) => patch("solanaSignAccountLabel", value)}
+          />
+          <TextField
+            id="solana-sign-message"
+            label="Message label"
+            value={form.solanaSignMessageLabel}
+            onChange={(value) => patch("solanaSignMessageLabel", value)}
+          />
+          <TextField
+            id="solana-sign-label"
+            label="Sign"
+            value={form.solanaSignLabel}
+            onChange={(value) => patch("solanaSignLabel", value)}
+          />
+          <TextField
+            id="solana-sign-reject"
+            label="Reject"
+            value={form.solanaSignReject}
+            onChange={(value) => patch("solanaSignReject", value)}
+          />
+          <TextField
+            id="solana-sign-hint"
+            label="Signing hint"
+            value={form.solanaSignSigningHint}
+            onChange={(value) => patch("solanaSignSigningHint", value)}
+          />
+        </AccordionContent>
+      </AccordionItem>
+
+      <AccordionItem value="siws">
+        <AccordionTrigger>Sign-in (SIWS)</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <TextField
+            id="siws-title"
+            label="Title"
+            value={form.siwsTitle}
+            onChange={(value) => patch("siwsTitle", value)}
+          />
+          <BodyField
+            id="siws-body"
+            label="Body"
+            value={form.siwsBody}
+            onChange={(value) => patch("siwsBody", value)}
+          />
+          <TextField
+            id="siws-network"
+            label="Network label"
+            value={form.siwsNetworkLabel}
+            onChange={(value) => patch("siwsNetworkLabel", value)}
+          />
+          <TextField
+            id="siws-signing-in-with"
+            label="Signing in with"
+            value={form.siwsSigningInWithLabel}
+            onChange={(value) => patch("siwsSigningInWithLabel", value)}
+          />
+          <TextField
+            id="siws-message"
+            label="Message label"
+            value={form.siwsMessageLabel}
+            onChange={(value) => patch("siwsMessageLabel", value)}
+          />
+          <TextField
+            id="siws-uri"
+            label="URI label"
+            value={form.siwsUriLabel}
+            onChange={(value) => patch("siwsUriLabel", value)}
+          />
+          <TextField
+            id="siws-version"
+            label="Version label"
+            value={form.siwsVersionLabel}
+            onChange={(value) => patch("siwsVersionLabel", value)}
+          />
+          <TextField
+            id="siws-nonce"
+            label="Nonce label"
+            value={form.siwsNonceLabel}
+            onChange={(value) => patch("siwsNonceLabel", value)}
+          />
+          <TextField
+            id="siws-issued-at"
+            label="Issued at label"
+            value={form.siwsIssuedAtLabel}
+            onChange={(value) => patch("siwsIssuedAtLabel", value)}
+          />
+          <TextField
+            id="siws-expiration"
+            label="Expiration time label"
+            value={form.siwsExpirationTimeLabel}
+            onChange={(value) => patch("siwsExpirationTimeLabel", value)}
+          />
+          <TextField
+            id="siws-not-before"
+            label="Not before label"
+            value={form.siwsNotBeforeLabel}
+            onChange={(value) => patch("siwsNotBeforeLabel", value)}
+          />
+          <TextField
+            id="siws-resources"
+            label="Resources label"
+            value={form.siwsResourcesLabel}
+            onChange={(value) => patch("siwsResourcesLabel", value)}
+          />
+          <TextField
+            id="siws-reject"
+            label="Reject"
+            value={form.siwsRejectLabel}
+            onChange={(value) => patch("siwsRejectLabel", value)}
+          />
+          <TextField
+            id="siws-sign"
+            label="Sign in"
+            value={form.siwsSignLabel}
+            onChange={(value) => patch("siwsSignLabel", value)}
+          />
+          <TextField
+            id="siws-signing-hint"
+            label="Signing hint"
+            value={form.siwsSigningHint}
+            onChange={(value) => patch("siwsSigningHint", value)}
           />
         </AccordionContent>
       </AccordionItem>

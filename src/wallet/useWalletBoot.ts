@@ -363,6 +363,10 @@ export function useWalletBoot({
       registerSolanaProvider(wallet, {
         owsProvider,
         ensureReady,
+        ensureOnboardedForSigning,
+        configProvider,
+        emitAnalytics: (event) => eventBus.emitAnalytics(event),
+        ask,
       });
 
       const catalog = chainRepository.getCatalog();

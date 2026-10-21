@@ -13,6 +13,8 @@ import type {
   EVMTransactionHash,
   IExecutionPermission,
   IExecutionPermissionRequest,
+  SolanaAccountAddress,
+  SolanaSignature,
 } from "@1shotapi/ows-types";
 
 import type {
@@ -24,6 +26,7 @@ import type { ITransactionWork } from "../lib/interfaces/business/ITransactionSe
 import type { IRelayerPayment } from "../lib/types/domain/RelayerPayment";
 import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 import type { ISiweFields } from "../lib/types/domain/SiweFields";
+import type { ISiwsFields } from "../lib/types/domain/SiwsFields";
 import type { TokenAmount } from "../lib/types/primitives";
 
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
@@ -154,6 +157,14 @@ export type ModalRequest =
     }
   | {
       id: string;
+      kind: "solanaSign";
+      address: SolanaAccountAddress;
+      messages: readonly Uint8Array[];
+      resolve: (signatures: SolanaSignature[]) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
       kind: "typedData";
       request: SignTypedDataApprovalRequest;
       resolve: (signature: EVMSignatureHex) => void;
@@ -166,6 +177,14 @@ export type ModalRequest =
       request: SignTypedDataApprovalRequest | PersonalSignApprovalRequest;
       fields: ISiweFields;
       resolve: (signature: EVMSignatureHex) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "siws";
+      fields: ISiwsFields;
+      messageBytes: Uint8Array;
+      resolve: (signature: SolanaSignature) => void;
       reject: (error: unknown) => void;
     }
   | {

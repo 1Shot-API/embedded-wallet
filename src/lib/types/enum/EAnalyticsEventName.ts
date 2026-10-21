@@ -11,6 +11,14 @@ export enum EAnalyticsEventName {
   PersonalSignFailed = "PersonalSignFailed",
   PersonalSignCancelled = "PersonalSignCancelled",
 
+  SolanaSignMessage = "SolanaSignMessage",
+  SolanaSignMessageFailed = "SolanaSignMessageFailed",
+  SolanaSignMessageCancelled = "SolanaSignMessageCancelled",
+
+  SolanaSignIn = "SolanaSignIn",
+  SolanaSignInFailed = "SolanaSignInFailed",
+  SolanaSignInCancelled = "SolanaSignInCancelled",
+
   TypedSign = "TypedSign",
   TypedSignFailed = "TypedSignFailed",
   TypedSignCancelled = "TypedSignCancelled",

@@ -66,13 +66,45 @@ export const styleCopyPasskeyNameSchema = z.strictObject({
 
 export const styleCopyPersonalSignSchema = z.strictObject({
   title: z.string(),
+  body: z.string(),
+  networkLabel: z.string(),
   accountLabel: z.string(),
   messageLabel: z.string(),
   rejectLabel: z.string(),
   signLabel: z.string(),
+  signingHint: z.string(),
+});
+
+export const styleCopySolanaSignSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  networkLabel: z.string(),
+  accountLabel: z.string(),
+  messageLabel: z.string(),
+  rejectLabel: z.string(),
+  signLabel: z.string(),
+  signingHint: z.string(),
 });
 
 export const styleCopySiweSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  networkLabel: z.string(),
+  signingInWithLabel: z.string(),
+  messageLabel: z.string(),
+  uriLabel: z.string(),
+  versionLabel: z.string(),
+  nonceLabel: z.string(),
+  issuedAtLabel: z.string(),
+  expirationTimeLabel: z.string(),
+  notBeforeLabel: z.string(),
+  resourcesLabel: z.string(),
+  rejectLabel: z.string(),
+  signLabel: z.string(),
+  signingHint: z.string(),
+});
+
+export const styleCopySiwsSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
   networkLabel: z.string(),
@@ -567,7 +599,9 @@ export const styleCopyResolvedSchema = z.strictObject({
   walletSetup: styleCopyWalletSetupSchema,
   passkeyName: styleCopyPasskeyNameSchema,
   personalSign: styleCopyPersonalSignSchema,
+  solanaSign: styleCopySolanaSignSchema,
   siwe: styleCopySiweSchema,
+  siws: styleCopySiwsSchema,
   typedData: styleCopyTypedDataSchema,
   sendTransaction: styleCopySendTransactionSchema,
   confirmTransfer: styleCopyConfirmTransferSchema,
@@ -618,7 +652,9 @@ export const styleCopyPatchSchema = z.strictObject({
   walletSetup: styleCopyWalletSetupSchema.partial().optional(),
   passkeyName: styleCopyPasskeyNameSchema.partial().optional(),
   personalSign: styleCopyPersonalSignSchema.partial().optional(),
+  solanaSign: styleCopySolanaSignSchema.partial().optional(),
   siwe: styleCopySiweSchema.partial().optional(),
+  siws: styleCopySiwsSchema.partial().optional(),
   typedData: styleCopyTypedDataSchema.partial().optional(),
   sendTransaction: styleCopySendTransactionSchema.partial().optional(),
   confirmTransfer: styleCopyConfirmTransferSchema.partial().optional(),
@@ -687,7 +723,9 @@ export type IStyleCopyConnect = z.infer<typeof styleCopyConnectSchema>;
 export type IStyleCopyWalletSetup = z.infer<typeof styleCopyWalletSetupSchema>;
 export type IStyleCopyPasskeyName = z.infer<typeof styleCopyPasskeyNameSchema>;
 export type IStyleCopyPersonalSign = z.infer<typeof styleCopyPersonalSignSchema>;
+export type IStyleCopySolanaSign = z.infer<typeof styleCopySolanaSignSchema>;
 export type IStyleCopySiwe = z.infer<typeof styleCopySiweSchema>;
+export type IStyleCopySiws = z.infer<typeof styleCopySiwsSchema>;
 export type IStyleCopyTypedData = z.infer<typeof styleCopyTypedDataSchema>;
 export type IStyleCopySendTransaction = z.infer<
   typeof styleCopySendTransactionSchema

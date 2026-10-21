@@ -344,7 +344,7 @@ export function WalletActions({
           onClick={onLoadSiwe}
           title={
             isSolana
-              ? "Loads a SIWS-shaped template (solana:signIn in Phase 5)"
+              ? "proxy.solana.signIn — Sign-In With Solana"
               : undefined
           }
         >

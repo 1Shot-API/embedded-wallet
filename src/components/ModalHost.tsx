@@ -25,6 +25,7 @@ import {
   SiweModal,
   TypedDataModal,
 } from "./modals/SignModals";
+import { SiwsModal, SolanaSignModal } from "./modals/SolanaSignModals";
 import { OnrampView } from "./OnrampView";
 
 export function ModalHost() {
@@ -46,6 +47,15 @@ export function ModalHost() {
           onReject={activeModal.reject}
         />
       );
+    case "solanaSign":
+      return (
+        <SolanaSignModal
+          address={activeModal.address}
+          messages={activeModal.messages}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
     case "typedData":
       return (
         <TypedDataModal
@@ -60,6 +70,15 @@ export function ModalHost() {
           source={activeModal.source}
           request={activeModal.request}
           fields={activeModal.fields}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    case "siws":
+      return (
+        <SiwsModal
+          fields={activeModal.fields}
+          messageBytes={activeModal.messageBytes}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
         />

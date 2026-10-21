@@ -34,9 +34,17 @@ export function mergeStyle(
         ...current.copy.personalSign,
         ...patch.copy?.personalSign,
       },
+      solanaSign: {
+        ...current.copy.solanaSign,
+        ...patch.copy?.solanaSign,
+      },
       siwe: {
         ...current.copy.siwe,
         ...patch.copy?.siwe,
+      },
+      siws: {
+        ...current.copy.siws,
+        ...patch.copy?.siws,
       },
       typedData: {
         ...current.copy.typedData,
@@ -229,7 +237,9 @@ function cloneDefaultStyle(): IResolvedStyle {
       walletSetup: { ...DEFAULT_STYLE.copy.walletSetup },
       passkeyName: { ...DEFAULT_STYLE.copy.passkeyName },
       personalSign: { ...DEFAULT_STYLE.copy.personalSign },
+      solanaSign: { ...DEFAULT_STYLE.copy.solanaSign },
       siwe: { ...DEFAULT_STYLE.copy.siwe },
+      siws: { ...DEFAULT_STYLE.copy.siws },
       typedData: { ...DEFAULT_STYLE.copy.typedData },
       sendTransaction: { ...DEFAULT_STYLE.copy.sendTransaction },
       confirmTransfer: { ...DEFAULT_STYLE.copy.confirmTransfer },

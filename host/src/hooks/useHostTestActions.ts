@@ -2,12 +2,15 @@ import type { OWSProxy } from "@1shotapi/ows-provider";
 import {
   ChainUtils,
   ConversionUtils,
+  DomainString,
   EVMAccountAddress,
   EVMChainId,
   HexString,
+  UriString,
   type EVMTransactionHash,
   type IExecutionPermissionResponse,
   type OWSChainId,
+  type SolanaChainId,
 } from "@1shotapi/ows-types";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import {
@@ -42,7 +45,6 @@ import {
 import {
   buildSiwePersonalMessage,
   buildSiweTypedData,
-  buildSiwsPersonalMessage,
   defaultTypedDataJsonForChain,
   parseTypedDataJson,
   randomSiweNonce,
@@ -384,7 +386,7 @@ export function useHostTestActions({
             reportStatus(
               error instanceof Error
                 ? error.message
-                : "Solana signMessage failed (Phase 4 implements Branding)",
+                : "Solana signMessage failed",
               true,
             );
           } finally {
@@ -456,21 +458,32 @@ export function useHostTestActions({
 
   const handleLoadSiwe = () => {
     if (ChainUtils.isSolanaChainId(chainId)) {
-      const address =
-        account ?? "So11111111111111111111111111111111111111112";
-      setSignMode("message");
-      setMessage(
-        buildSiwsPersonalMessage({
-          domain: window.location.host,
-          address,
-          uri: window.location.origin,
-          chainId,
-          nonce: randomSiweNonce(),
-        }),
-      );
-      reportStatus(
-        "Loaded SIWS template — Sign calls solana.signMessage (Phase 5: solana:signIn).",
-      );
+      const proxy = proxyRef.current;
+      if (!proxy) return;
+      setBusy(true);
+      setSignature(null);
+      reportStatus("Requesting Solana sign-in (SIWS)…");
+      void (async () => {
+        try {
+          const result = await proxy.solana.signIn({
+            domain: DomainString(window.location.host),
+            uri: UriString(window.location.origin),
+            chainId: chainId as SolanaChainId,
+            nonce: randomSiweNonce(),
+            statement: "Sign in with Solana to the host playground.",
+          });
+          setAccount(String(result.account));
+          setSignature(String(result.signature));
+          reportStatus(`SIWS signed as ${result.account}`);
+        } catch (error) {
+          reportStatus(
+            error instanceof Error ? error.message : "SIWS failed",
+            true,
+          );
+        } finally {
+          setBusy(false);
+        }
+      })();
       return;
     }
 
