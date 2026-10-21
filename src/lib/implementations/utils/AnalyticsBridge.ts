@@ -4,6 +4,8 @@ import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
 import type { IOWSProvider } from "../../interfaces/utils/IOWSProvider";
 
+import { collectPlatformProps } from "./platformProps";
+
 export type AnalyticsBridgeOptions = {
   eventBus: IEventBus;
   owsProvider: IOWSProvider;
@@ -62,7 +64,8 @@ export class AnalyticsBridge {
       const response = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(event),
+        // Platform props land in `props_json` server-side (non-promoted keys).
+        body: JSON.stringify({ ...event, ...collectPlatformProps() }),
         keepalive: true,
       });
       if (!response.ok && response.status !== 404) {
