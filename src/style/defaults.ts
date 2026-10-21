@@ -577,6 +577,14 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       invalidAddressError: "Enter a valid SegWit (bc1q / tb1q) address.",
       unconfirmedLabel: "(Unconfirmed)",
     },
+    solana: {
+      assetName: "Solana",
+      assetSymbol: "SOL",
+      loadingBody: "Loading…",
+      loadFailedError: "Failed to load Solana balance",
+      recipientPlaceholder: "Solana address…",
+      invalidAddressError: "Enter a valid Solana address.",
+    },
   },
   dark: false,
 };

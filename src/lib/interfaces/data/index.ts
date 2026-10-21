@@ -29,6 +29,8 @@ export type { IChainRepository } from "./IChainRepository";
 export { IChainRepositoryType } from "./IChainRepository";
 export type { IBitcoinBalance, IBitcoinRpc } from "./IBitcoinRpc";
 export { IBitcoinRpcType } from "./IBitcoinRpc";
+export type { ISolanaBlockhash, ISolanaRpc } from "./ISolanaRpc";
+export { ISolanaRpcType } from "./ISolanaRpc";
 export type {
   ICctpInFlightBurn,
   ICircleRepository,

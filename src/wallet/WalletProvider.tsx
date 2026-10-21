@@ -40,8 +40,10 @@ import {
   DelegationService,
   LiFiUtils,
   PaymentTokenUtils,
+  SolanaService,
   TransactionService,
 } from "../lib/implementations/business";
+import { AlchemySolanaRpc } from "../lib/implementations/data/AlchemySolanaRpc";
 import { AnkrBitcoinRpc } from "../lib/implementations/data/AnkrBitcoinRpc";
 import { BlockscoutAssetActivityRepository } from "../lib/implementations/data/BlockscoutAssetActivityRepository";
 import { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
@@ -66,6 +68,7 @@ import type {
   IBridgeService,
   IBitcoinService,
   IDelegationService,
+  ISolanaService,
   ITransactionService,
 } from "../lib/interfaces/business";
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
@@ -128,6 +131,8 @@ const owsProvider: IOWSProvider = new OWSProvider();
 const chainRepository: IChainRepository = new HardcodedChainRepository();
 const bitcoinRpc = new AnkrBitcoinRpc(configProvider);
 const bitcoinService = new BitcoinService(bitcoinRpc, owsProvider);
+const solanaRpc = new AlchemySolanaRpc(chainRepository);
+const solanaService = new SolanaService(solanaRpc, owsProvider);
 const blockchainProvider: IBlockchainProvider =
   new SupportedChainsBlockchainProvider(chainRepository);
 const addressUtils = new AddressUtils(blockchainProvider);
@@ -251,6 +256,7 @@ export type WalletContextValue = {
   paymentTokenUtils: IPaymentTokenUtils;
   bridgeService: IBridgeService;
   bitcoinService: IBitcoinService;
+  solanaService: ISolanaService;
   delegationService: IDelegationService;
   liFiUtils: ILiFiUtils;
   eventBus: IEventBus;
@@ -540,7 +546,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   });
 
   const switchChain = useCallback(async (next: OWSChainId) => {
-    if (ChainUtils.isBitcoinChainId(next)) {
+    if (
+      ChainUtils.isBitcoinChainId(next) ||
+      ChainUtils.isSolanaChainId(next)
+    ) {
       const session = useWalletSessionStore.getState();
       session.setChainId(next);
       if (session.focusedAssetAddress) {
@@ -935,6 +944,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       paymentTokenUtils,
       bridgeService,
       bitcoinService,
+      solanaService,
       delegationService,
       liFiUtils,
       eventBus,

@@ -42,6 +42,7 @@ import {
 import {
   buildSiwePersonalMessage,
   buildSiweTypedData,
+  buildSiwsPersonalMessage,
   defaultTypedDataJsonForChain,
   parseTypedDataJson,
   randomSiweNonce,
@@ -217,8 +218,17 @@ export function useHostTestActions({
     setTypedDataJson((prev) => syncDemoTypedDataChainId(prev, chainId));
   }, [chainId]);
 
+  useEffect(() => {
+    if (ChainUtils.isSolanaChainId(chainId) && signMode === "typedData") {
+      setSignMode("message");
+    }
+  }, [chainId, signMode]);
+
   const handleSignModeChange = useCallback(
     (mode: SignMode) => {
+      if (ChainUtils.isSolanaChainId(chainId) && mode === "typedData") {
+        return;
+      }
       setSignMode(mode);
       if (mode === "typedData") {
         setTypedDataJson(defaultTypedDataJsonForChain(chainId));
@@ -359,6 +369,31 @@ export function useHostTestActions({
 
       setBusy(true);
       setSignature(null);
+
+      if (ChainUtils.isSolanaChainId(chainId)) {
+        reportStatus("Calling proxy.solana.signMessage…");
+        void (async () => {
+          try {
+            const bytes = new TextEncoder().encode(trimmed);
+            const result = await proxy.solana.signMessage({
+              messages: [ConversionUtils.bytesToBase64(bytes)],
+            });
+            setSignature(result.signatures.join("\n"));
+            reportStatus("Solana message signed");
+          } catch (error) {
+            reportStatus(
+              error instanceof Error
+                ? error.message
+                : "Solana signMessage failed (Phase 4 implements Branding)",
+              true,
+            );
+          } finally {
+            setBusy(false);
+          }
+        })();
+        return;
+      }
+
       reportStatus("Requesting accounts…");
 
       void (async () => {
@@ -420,6 +455,25 @@ export function useHostTestActions({
   };
 
   const handleLoadSiwe = () => {
+    if (ChainUtils.isSolanaChainId(chainId)) {
+      const address =
+        account ?? "So11111111111111111111111111111111111111112";
+      setSignMode("message");
+      setMessage(
+        buildSiwsPersonalMessage({
+          domain: window.location.host,
+          address,
+          uri: window.location.origin,
+          chainId,
+          nonce: randomSiweNonce(),
+        }),
+      );
+      reportStatus(
+        "Loaded SIWS template — Sign calls solana.signMessage (Phase 5: solana:signIn).",
+      );
+      return;
+    }
+
     const address =
       account ?? "0x0000000000000000000000000000000000000001";
     const params = buildSiweParams(

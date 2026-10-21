@@ -549,6 +549,15 @@ export const styleCopyBitcoinSchema = z.strictObject({
   unconfirmedLabel: z.string(),
 });
 
+export const styleCopySolanaSchema = z.strictObject({
+  assetName: z.string(),
+  assetSymbol: z.string(),
+  loadingBody: z.string(),
+  loadFailedError: z.string(),
+  recipientPlaceholder: z.string(),
+  invalidAddressError: z.string(),
+});
+
 export const styleCopyResolvedSchema = z.strictObject({
   productName: z.string(),
   tagline: z.string(),
@@ -583,6 +592,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   importPrivateKey: styleCopyImportPrivateKeySchema,
   advancedOptions: styleCopyAdvancedOptionsSchema,
   bitcoin: styleCopyBitcoinSchema,
+  solana: styleCopySolanaSchema,
 });
 
 const passkeyPromptPatchSchema = z.strictObject({
@@ -638,6 +648,7 @@ export const styleCopyPatchSchema = z.strictObject({
   importPrivateKey: styleCopyImportPrivateKeySchema.partial().optional(),
   advancedOptions: styleCopyAdvancedOptionsSchema.partial().optional(),
   bitcoin: styleCopyBitcoinSchema.partial().optional(),
+  solana: styleCopySolanaSchema.partial().optional(),
 });
 
 export const styleFeaturesPatchSchema = z.strictObject({
@@ -645,7 +656,13 @@ export const styleFeaturesPatchSchema = z.strictObject({
   disableCredentials: z.boolean().optional(),
   disableDelegations: z.boolean().optional(),
   allowedChains: z
-    .array(z.string().regex(/^(0x[0-9a-fA-F]+|Bitcoin|BitcoinTestnet)$/))
+    .array(
+      z
+        .string()
+        .regex(
+          /^(0x[0-9a-fA-F]+|Bitcoin|BitcoinTestnet|solana:mainnet|solana:devnet)$/,
+        ),
+    )
     .optional(),
 });
 
@@ -732,6 +749,7 @@ export type IStyleCopyAdvancedOptions = z.infer<
   typeof styleCopyAdvancedOptionsSchema
 >;
 export type IStyleCopyBitcoin = z.infer<typeof styleCopyBitcoinSchema>;
+export type IStyleCopySolana = z.infer<typeof styleCopySolanaSchema>;
 export type IStyleCopyOptions = z.infer<typeof styleCopyPatchSchema>;
 export type IResolvedCopy = z.infer<typeof styleCopyResolvedSchema>;
 export type IStyleFeaturesOptions = z.infer<typeof styleFeaturesPatchSchema>;

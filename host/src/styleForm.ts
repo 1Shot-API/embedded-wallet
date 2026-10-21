@@ -19,7 +19,7 @@ export interface IStyleFormState {
   fontSans: string;
   dark: boolean;
   /**
-   * Chain ids to pass as `features.allowedChains` (hex `0x…`, or `Bitcoin` / `BitcoinTestnet`).
+   * Chain ids to pass as `features.allowedChains` (hex `0x…`, Bitcoin, or Solana CAIP).
    * Empty ⇒ omit (all catalog-enabled chains).
    */
   allowedChainIds: string[];
@@ -260,6 +260,14 @@ export interface IStyleFormState {
   bitcoinRecipientPlaceholder: string;
   bitcoinInvalidAddressError: string;
   bitcoinUnconfirmedLabel: string;
+
+  // Text — Solana
+  solanaAssetName: string;
+  solanaAssetSymbol: string;
+  solanaLoadingBody: string;
+  solanaLoadFailedError: string;
+  solanaRecipientPlaceholder: string;
+  solanaInvalidAddressError: string;
 }
 
 /** Catalog options for the Allowed chains configurator (matches HardcodedChainRepository). */
@@ -269,6 +277,8 @@ export const CATALOG_CHAIN_OPTIONS: ReadonlyArray<{
 }> = [
   { chainId: "Bitcoin", label: "Bitcoin" },
   { chainId: "BitcoinTestnet", label: "Bitcoin Testnet" },
+  { chainId: "solana:mainnet", label: "Solana" },
+  { chainId: "solana:devnet", label: "Solana Devnet" },
   { chainId: "0x13b2", label: "Arc" },
   { chainId: "0x4cef52", label: "Arc Testnet" },
   { chainId: "0xaa36a7", label: "Sepolia" },
@@ -506,6 +516,12 @@ export const ACME_PRESET: IStyleFormState = {
   bitcoinRecipientPlaceholder: "bc1q… or tb1q…",
   bitcoinInvalidAddressError: "Enter a valid SegWit (bc1q / tb1q) address.",
   bitcoinUnconfirmedLabel: "(Unconfirmed)",
+  solanaAssetName: "Solana",
+  solanaAssetSymbol: "SOL",
+  solanaLoadingBody: "Loading…",
+  solanaLoadFailedError: "Failed to load Solana balance",
+  solanaRecipientPlaceholder: "Solana address…",
+  solanaInvalidAddressError: "Enter a valid Solana address.",
 };
 
 export const OCEAN_PRESET: IStyleFormState = {
@@ -716,6 +732,12 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   bitcoinRecipientPlaceholder: "",
   bitcoinInvalidAddressError: "",
   bitcoinUnconfirmedLabel: "",
+  solanaAssetName: "",
+  solanaAssetSymbol: "",
+  solanaLoadingBody: "",
+  solanaLoadFailedError: "",
+  solanaRecipientPlaceholder: "",
+  solanaInvalidAddressError: "",
 };
 
 function put(
@@ -1216,6 +1238,17 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(bitcoin, "unconfirmedLabel", form.bitcoinUnconfirmedLabel);
   if (Object.keys(bitcoin).length > 0) {
     copy.bitcoin = bitcoin;
+  }
+
+  const solana: Record<string, string> = {};
+  put(solana, "assetName", form.solanaAssetName);
+  put(solana, "assetSymbol", form.solanaAssetSymbol);
+  put(solana, "loadingBody", form.solanaLoadingBody);
+  put(solana, "loadFailedError", form.solanaLoadFailedError);
+  put(solana, "recipientPlaceholder", form.solanaRecipientPlaceholder);
+  put(solana, "invalidAddressError", form.solanaInvalidAddressError);
+  if (Object.keys(solana).length > 0) {
+    copy.solana = solana;
   }
 
   return copy;

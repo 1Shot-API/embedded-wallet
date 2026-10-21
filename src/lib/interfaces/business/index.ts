@@ -22,6 +22,12 @@ export type {
 } from "./IBitcoinService";
 export { IBitcoinServiceType } from "./IBitcoinService";
 export type {
+  ISolanaSendParams,
+  ISolanaSendResult,
+  ISolanaService,
+} from "./ISolanaService";
+export { ISolanaServiceType } from "./ISolanaService";
+export type {
   IBuildCancelWorkParams,
   ICancelDelegationItem,
   ICancelDelegationParams,

@@ -27,6 +27,7 @@ import { BitcoinDetails } from "./BitcoinDetails";
 import { CredentialsTab } from "./credentials/CredentialsTab";
 import { DelegationsTab } from "./delegations/DelegationsTab";
 import { SelectNetworkModal } from "./modals/SelectNetworkModal";
+import { SolanaDetails } from "./SolanaDetails";
 
 
 const TRUNCATE_CHARS = 5;
@@ -147,6 +148,13 @@ export function MainPanel() {
         </div>
       );
     }
+    if (ChainUtils.isSolanaChainId(chainId)) {
+      return (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <SolanaDetails />
+        </div>
+      );
+    }
     if (focusedAssetAddress) {
       return <FocusedAssetPanel />;
     }
@@ -189,6 +197,7 @@ export function MainPanel() {
     ) ?? null;
   const networkLabel = selectedChain?.label ?? String(chainId);
   const showBitcoinShell = ChainUtils.isBitcoinChainId(chainId);
+  const showSolanaShell = ChainUtils.isSolanaChainId(chainId);
 
   const copyFeedbackLabel =
     copyState === "copied"
@@ -260,6 +269,8 @@ export function MainPanel() {
 
       {showBitcoinShell ? (
         <BitcoinDetails />
+      ) : showSolanaShell ? (
+        <SolanaDetails />
       ) : (
         <Tabs
           value={activeMainTab}

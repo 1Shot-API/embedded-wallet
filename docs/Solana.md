@@ -166,30 +166,18 @@ proxy.solana.registerSolanaWallet(); // optional { name?, icon? }
 
 ### Phase 3 — Embedded Wallet: native SOL (mainnet + Devnet)
 
-**Repos:** `embedded-wallet` UI + chain catalog + Solana RPC read path.
+**Status: done.** Catalog `solana:mainnet` / `solana:devnet`, Alchemy RPC, native SOL balance + Receive + Send; local `oneshot-wallet-host` remaps SIWE→SIWS, disables typed data / delegations, and routes Sign to `proxy.solana.signMessage` (unimplemented until Phase 4).
 
-**Intent:** Selecting Solana feels like a first-class chain: show **native balance + address**, Receive, and Send for SOL only. No SPL mints yet. Product clusters: **`solana:mainnet`** and **`solana:devnet`** only.
+**Repos:** `embedded-wallet` UI + chain catalog + Solana RPC + host Test panel remapping.
 
-**UI direction**
+**Delivered**
 
-- Prefer **EVM-like layout** (balances chrome, asset identity, send/receive) over the Bitcoin-only stripped panel — user callout: `SolanaDetails` similar in *role* to `BitcoinDetails`, but **styled like EVM**, with a `SolanaAssetList` (initially a single native row) under `src/components/balances/`.
-- Reuse `ReceiveModal` with the Solana wallet address (not an ATA).
-- Send: Solana-native send modal (system transfer). Confirm sheet shows fee only (no ATA creation for native SOL).
+- `EChain` / `HardcodedChainRepository` Solana rows; `switchChain` / `configure.allowedChains` accept CAIP Solana ids; thin `copy.solana`.
+- `SolanaLamports`, `AlchemySolanaRpc`, `SolanaService` (Kit system transfer + `signer.solana.signTransaction` + Alchemy submit).
+- `MainPanel` → `SolanaDetails` + `SolanaAssetList` + `SolanaSendModal`; shared `ReceiveModal`.
+- Host: Solana in chain picker; SIWS template; Sign → `proxy.solana.signMessage`; typed data + EIP-7715 controls disabled.
 
-**Infra**
-
-- Add Solana entries to `EChain` / `HardcodedChainRepository` with **Alchemy** HTTPS RPC (same key pattern as EVM `alchemyRpc(...)`).
-- `ISolanaRpc` / service analogous to Bitcoin’s read+send split, but keep types branded.
-
-**Reminders**
-
-- Native SOL ≠ SPL; don’t model SOL as a mint in this phase.
-- Sender must hold SOL for fees; failure modes differ from ERC-20 (no separate “gas token” abstraction beyond SOL itself).
-- Chain switch / `configure` / playground: if Host-tunable chain lists or copy gain Solana keys, update Zod defaults + both configurators (this repo `host/` and website playground) per AGENTS.md.
-
-**Exit criteria:** User can unlock, switch to Solana mainnet (and one test cluster), see balance/address, receive via QR, send SOL via Alchemy-submitted tx.
-
-**Suggested immediate follow within this phase or a tight 3b:** in-wallet native Send is required for CoinOperated demos even before Host `signAndSendTransaction`.
+**Exit criteria:** Met for native SOL in-wallet + chain-sensitive host demo structure.
 
 ---
 
@@ -327,13 +315,13 @@ Do **not** 1-shot. Suggested loops:
 
 1. **Phase 0 + 1** — types & signer (OWS PR)
 2. **Phase 2 + connect** — Standard registration + account (OWS + thin Branding)
-3. **Phase 3** — native SOL UI & Send (Embedded Wallet) ← first user-visible Solana
-4. **Phase 4 → 5** — message auth (can parallelize UI after 3)
+3. ~~**Phase 3** — native SOL UI & Send (Embedded Wallet)~~ **done**
+4. **Phase 4 → 5** — message auth ← next
 5. **Phase 6 spike → build** — signAndSendTransaction (hardest Host value)
 6. **Phase 7** — USDC mint / ATA
 7. **Phase 8** — CCTP
 
-CoinOperated amplification: **Phase 3** unblocks “Solana exists”; **Phase 6** unblocks dapp execution; **Phase 7–8** unblocks USDC destination narratives.
+CoinOperated amplification: Phase 3 unblocked “Solana exists”; **Phase 6** unblocks dapp execution; **Phase 7–8** unblocks USDC destination narratives.
 
 ---
 

@@ -1,3 +1,4 @@
+import { ChainUtils } from "@1shotapi/ows-types";
 import { RefreshCwIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -156,6 +157,7 @@ export function WalletActions({
   onGetGrantedPermissions,
 }: IWalletActionsProps) {
   const meta = hostChainMeta(chainId);
+  const isSolana = ChainUtils.isSolanaChainId(chainId);
   const [selectedGrantIds, setSelectedGrantIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -279,7 +281,7 @@ export function WalletActions({
 
       <div className="flex flex-col gap-1.5">
         <Tabs
-          value={signMode}
+          value={isSolana ? "message" : signMode}
           onValueChange={(value) => {
             if (value === "message" || value === "typedData") {
               onSignModeChange(value);
@@ -290,23 +292,21 @@ export function WalletActions({
             <TabsTrigger value="message" className="flex-1">
               Message
             </TabsTrigger>
-            <TabsTrigger value="typedData" className="flex-1">
+            <TabsTrigger
+              value="typedData"
+              className="flex-1"
+              disabled={isSolana}
+              title={
+                isSolana
+                  ? "EIP-712 is EVM-only; Solana uses message signing"
+                  : undefined
+              }
+            >
               Typed Data (EIP-712)
             </TabsTrigger>
           </TabsList>
         </Tabs>
-        {signMode === "message" ? (
-          <>
-            <Label htmlFor="message-input">Message to sign</Label>
-            <Textarea
-              id="message-input"
-              rows={3}
-              value={message}
-              disabled={!ready}
-              onChange={(event) => onMessageChange(event.target.value)}
-            />
-          </>
-        ) : (
+        {!isSolana && signMode === "typedData" ? (
           <>
             <Label htmlFor="typed-data-input">Typed Data JSON</Label>
             <Textarea
@@ -317,6 +317,17 @@ export function WalletActions({
               value={typedDataJson}
               disabled={!ready}
               onChange={(event) => onTypedDataJsonChange(event.target.value)}
+            />
+          </>
+        ) : (
+          <>
+            <Label htmlFor="message-input">Message to sign</Label>
+            <Textarea
+              id="message-input"
+              rows={3}
+              value={message}
+              disabled={!ready}
+              onChange={(event) => onMessageChange(event.target.value)}
             />
           </>
         )}
@@ -331,8 +342,13 @@ export function WalletActions({
           variant="outline"
           disabled={!ready || busy}
           onClick={onLoadSiwe}
+          title={
+            isSolana
+              ? "Loads a SIWS-shaped template (solana:signIn in Phase 5)"
+              : undefined
+          }
         >
-          SIWE
+          {isSolana ? "SIWS" : "SIWE"}
         </Button>
       </div>
 
@@ -667,32 +683,38 @@ export function WalletActions({
           <Button
             type="button"
             variant="outline"
-            disabled={!ready || busy}
+            disabled={!ready || busy || isSolana}
             onClick={onRequestDelegation}
+            title={isSolana ? "EIP-7715 is EVM-only" : undefined}
           >
             Request permissions
           </Button>
           <Button
             type="button"
             variant="outline"
-            disabled={!ready || busy || chainId.toLowerCase() !== "0x2105"}
+            disabled={
+              !ready || busy || isSolana || chainId.toLowerCase() !== "0x2105"
+            }
             onClick={onRequestLiFiDelegation}
+            title={isSolana ? "EIP-7715 is EVM-only" : undefined}
           >
             Request LiFi (Base)
           </Button>
           <Button
             type="button"
             variant="outline"
-            disabled={!ready || busy}
+            disabled={!ready || busy || isSolana}
             onClick={onGetSupportedPermissions}
+            title={isSolana ? "EIP-7715 is EVM-only" : undefined}
           >
             Get supported
           </Button>
           <Button
             type="button"
             variant="outline"
-            disabled={!ready || busy}
+            disabled={!ready || busy || isSolana}
             onClick={onGetGrantedPermissions}
+            title={isSolana ? "EIP-7715 is EVM-only" : undefined}
           >
             Get granted
           </Button>
@@ -713,7 +735,7 @@ export function WalletActions({
                         type="checkbox"
                         className="border-input mt-0.5 size-4 shrink-0 rounded border"
                         checked={checked}
-                        disabled={!ready || busy}
+                        disabled={!ready || busy || isSolana}
                         onChange={() => {
                           setSelectedGrantIds((prev) => {
                             const next = new Set(prev);
@@ -731,7 +753,7 @@ export function WalletActions({
                       type="button"
                       size="sm"
                       variant="outline"
-                      disabled={!ready || busy}
+                      disabled={!ready || busy || isSolana}
                       onClick={() => onCancelDelegation(grant.id)}
                     >
                       Cancel
@@ -752,7 +774,7 @@ export function WalletActions({
                   type="button"
                   size="sm"
                   variant="outline"
-                  disabled={!ready || busy}
+                  disabled={!ready || busy || isSolana}
                   onClick={() => {
                     const ids = [...selectedGrantIds];
                     setSelectedGrantIds(new Set());

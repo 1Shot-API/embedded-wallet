@@ -176,6 +176,10 @@ export function mergeStyle(
         ...current.copy.bitcoin,
         ...patch.copy?.bitcoin,
       },
+      solana: {
+        ...current.copy.solana,
+        ...patch.copy?.solana,
+      },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
     features: {
@@ -276,6 +280,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       importPrivateKey: { ...DEFAULT_STYLE.copy.importPrivateKey },
       advancedOptions: { ...DEFAULT_STYLE.copy.advancedOptions },
       bitcoin: { ...DEFAULT_STYLE.copy.bitcoin },
+      solana: { ...DEFAULT_STYLE.copy.solana },
     },
     features: {
       hideCloseBox: DEFAULT_STYLE.features.hideCloseBox,

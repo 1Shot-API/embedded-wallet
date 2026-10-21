@@ -13,6 +13,7 @@ export {
   DEFAULT_CHAIN_ID,
   HardcodedChainRepository,
 } from "./HardcodedChainRepository";
+export { AlchemySolanaRpc } from "./AlchemySolanaRpc";
 export { CircleRepository } from "./CircleRepository";
 export {
   parseInFlight,
