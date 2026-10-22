@@ -9,13 +9,15 @@ import {
   RULE_KIND_DIP,
 } from "@/lib/implementations/business/utils/ChainlinkPriceRuleUtils.ts";
 
-const ETH_USD = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
+const ARC_ETH_USD = "0x50FCDD99D6762D1C170DC6A9111db944AEE6D364";
+const ARC_BTC_USD = "0xa109B535C70C8Be9995be64Bb6751AcDB27e03De";
 const BASE_ETH_USD = "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70";
+const BASE_BTC_USD = "0xC01502b887D09B0f329981764268fC32a94cB453";
 
 describe("parseChainlinkPriceRuleData", () => {
   it("accepts a trusted Dip rule", () => {
     const parsed = parseChainlinkPriceRuleData({
-      priceFeed: ETH_USD,
+      priceFeed: ARC_BTC_USD,
       ruleKind: RULE_KIND_DIP,
       expectedDecimals: 8,
       windowSeconds: 86400,
@@ -27,6 +29,20 @@ describe("parseChainlinkPriceRuleData", () => {
     assert.equal(parsed.ruleKind, RULE_KIND_DIP);
     assert.equal(parsed.thresholdBps, 1000);
     assert.equal(parsed.triggerPrice, "0");
+  });
+
+  it("accepts Base BTC/USD", () => {
+    const parsed = parseChainlinkPriceRuleData({
+      priceFeed: BASE_BTC_USD,
+      ruleKind: RULE_KIND_DIP,
+      expectedDecimals: 8,
+      windowSeconds: 86400,
+      thresholdBps: 500,
+      maxStaleSeconds: 3600,
+      minGapSeconds: 60,
+      triggerPrice: "0",
+    });
+    assert.equal(parsed.priceFeed.toLowerCase(), BASE_BTC_USD.toLowerCase());
   });
 
   it("rejects an untrusted feed", () => {
@@ -67,7 +83,7 @@ describe("parseChainlinkPriceRuleData", () => {
 describe("encodeChainlinkPriceRuleTerms", () => {
   it("packs exactly 68 bytes for a Dip rule", () => {
     const terms = encodeChainlinkPriceRuleTerms({
-      priceFeed: ETH_USD,
+      priceFeed: ARC_BTC_USD,
       ruleKind: RULE_KIND_DIP,
       expectedDecimals: 8,
       windowSeconds: 86400,
@@ -77,7 +93,7 @@ describe("encodeChainlinkPriceRuleTerms", () => {
       triggerPrice: "0",
     });
     assert.equal((terms.length - 2) / 2, 68);
-    assert.equal(terms.slice(0, 42).toLowerCase(), ETH_USD.toLowerCase());
+    assert.equal(terms.slice(0, 42).toLowerCase(), ARC_BTC_USD.toLowerCase());
     assert.equal(terms.slice(42, 44), "00"); // ruleKind DIP
     assert.equal(terms.slice(44, 46), "08"); // decimals
   });
