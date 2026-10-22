@@ -4,9 +4,9 @@ import {
   SolanaMintAddress,
 } from "@1shotapi/ows-types";
 
+import usdcIcon from "../../../assets/images/tokens/CircleUSDC.svg";
 import { type SolanaKnownAsset, KnownAsset } from "../../types/domain/KnownAsset";
 import { EAssetType } from "../../types/enum/EAssetType";
-import { iconUrlForSymbol } from "../../utils/tokenIcons";
 
 /** Mainnet Circle USDC mint. */
 export const SOLANA_USDC_MAINNET_MINT = SolanaMintAddress(
@@ -33,7 +33,7 @@ export const SOLANA_KNOWN_ASSETS: readonly SolanaKnownAsset[] = [
     true,
     false,
     100,
-    iconUrlForSymbol("USDC"),
+    usdcIcon,
   ),
   new KnownAsset(
     SOLANA_DEVNET_CHAIN_ID,
@@ -45,6 +45,6 @@ export const SOLANA_KNOWN_ASSETS: readonly SolanaKnownAsset[] = [
     true,
     false,
     100,
-    iconUrlForSymbol("USDC"),
+    usdcIcon,
   ),
 ] as SolanaKnownAsset[];

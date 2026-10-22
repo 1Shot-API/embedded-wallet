@@ -123,7 +123,10 @@ export function MainPanel() {
   const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showCredentials = !style.features.disableCredentials;
-  const showDelegations = !style.features.disableDelegations;
+  const showDelegations =
+    !style.features.disableDelegations &&
+    !ChainUtils.isSolanaChainId(chainId) &&
+    !ChainUtils.isBitcoinChainId(chainId);
   const activeMainTab =
     (mainTab === "credentials" && !showCredentials) ||
     (mainTab === "delegations" && !showDelegations)
@@ -269,8 +272,6 @@ export function MainPanel() {
 
       {showBitcoinShell ? (
         <BitcoinDetails />
-      ) : showSolanaShell ? (
-        <SolanaDetails />
       ) : (
         <Tabs
           value={activeMainTab}
@@ -293,7 +294,11 @@ export function MainPanel() {
             ) : null}
           </TabsList>
           <TabsContent value="balances">
-            <BalancesTab onView={setSelectedAsset} />
+            {showSolanaShell ? (
+              <SolanaDetails />
+            ) : (
+              <BalancesTab onView={setSelectedAsset} />
+            )}
           </TabsContent>
           {showCredentials ? (
             <TabsContent value="credentials">

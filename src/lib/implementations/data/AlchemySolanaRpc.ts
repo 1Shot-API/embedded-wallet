@@ -7,10 +7,12 @@
   type SolanaMintAddress,
   type SolanaProgramAddress,
 } from "@1shotapi/ows-types";
+import { TOKEN_PROGRAM_ADDRESS } from "@solana-program/token";
 
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
 import type {
   ISolanaBlockhash,
+  ISolanaMintInfo,
   ISolanaParsedTokenBalance,
   ISolanaParsedTransaction,
   ISolanaRpc,
@@ -120,6 +122,55 @@ export class AlchemySolanaRpc implements ISolanaRpc {
       throw new Error(`Mint account not found: ${mint}`);
     }
     return SolanaAddressUtils.asProgramAddress(result.value.owner);
+  }
+
+  async getMintInfo(
+    chainId: SolanaChainId,
+    mint: SolanaMintAddress,
+  ): Promise<ISolanaMintInfo> {
+    const result = await this.rpcCall<{
+      value: {
+        owner?: string;
+        data?:
+          | {
+              parsed?: {
+                type?: string;
+                info?: { decimals?: number };
+              };
+            }
+          | [string, string]
+          | string;
+      } | null;
+    }>(chainId, "getAccountInfo", [
+      String(mint),
+      { encoding: "jsonParsed", commitment: "confirmed" },
+    ]);
+    const value = result.value;
+    if (!value?.owner) {
+      throw new Error(`Mint account not found: ${mint}`);
+    }
+    const owner = String(value.owner);
+    const token2022 = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
+    if (owner !== TOKEN_PROGRAM_ADDRESS && owner !== token2022) {
+      throw new Error(`Account is not an SPL mint: ${mint}`);
+    }
+    const parsed =
+      value.data &&
+      typeof value.data === "object" &&
+      !Array.isArray(value.data)
+        ? value.data.parsed
+        : null;
+    if (parsed?.type !== "mint") {
+      throw new Error(`Account is not an SPL mint: ${mint}`);
+    }
+    const decimals = Number(parsed.info?.decimals);
+    if (!Number.isFinite(decimals) || decimals < 0 || decimals > 18) {
+      throw new Error(`Invalid mint decimals for ${mint}`);
+    }
+    return {
+      decimals,
+      tokenProgram: SolanaAddressUtils.asProgramAddress(owner),
+    };
   }
 
   async getTokenAccountBalance(

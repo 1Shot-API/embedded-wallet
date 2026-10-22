@@ -6,7 +6,6 @@ import {
 import {
   ArrowLeftIcon,
   ArrowLeftRightIcon,
-  PlusIcon,
   QrCodeIcon,
   RefreshCwIcon,
   SendIcon,
@@ -495,16 +494,6 @@ export function SolanaDetails() {
           type="button"
           size="icon-sm"
           variant="outline"
-          aria-label={balances.addLabel}
-          disabled={!address}
-          onClick={() => setAddOpen(true)}
-        >
-          <PlusIcon className="size-3.5" />
-        </Button>
-        <Button
-          type="button"
-          size="icon-sm"
-          variant="outline"
           aria-label={balances.refreshLabel}
           disabled={!address || refreshing || loading}
           onClick={() => {
@@ -527,6 +516,15 @@ export function SolanaDetails() {
         splAssets={splAssets}
         onSelect={onSelect}
       />
+      <Button
+        type="button"
+        size="sm"
+        className="self-center"
+        disabled={!address}
+        onClick={() => setAddOpen(true)}
+      >
+        {balances.addLabel}
+      </Button>
       {addOpen ? (
         <SolanaAddAssetModal
           chainId={solChainId}

@@ -37,6 +37,20 @@ export function isSafeHttpsIconUrl(url: string): boolean {
   }
 }
 
+/**
+ * True when `url` is safe to show in `<img>`: same-origin / bundled (`/`),
+ * `data:`, `blob:`, or `https:`.
+ */
+export function isSafeAssetIconUrl(url: string): boolean {
+  const trimmed = url.trim();
+  return (
+    trimmed.startsWith("/") ||
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("blob:") ||
+    isSafeHttpsIconUrl(trimmed)
+  );
+}
+
 /** Normalize relayer/market symbol variants (e.g. USDT0, USD₮0) to icon keys. */
 function normalizeSymbol(symbol: string): string {
   const upper = symbol.toUpperCase();
@@ -102,7 +116,7 @@ export function resolveAssetIconUrl(
   symbol?: string,
   iconUrlOverride?: string,
 ): string | undefined {
-  if (iconUrlOverride && isSafeHttpsIconUrl(iconUrlOverride)) {
+  if (iconUrlOverride && isSafeAssetIconUrl(iconUrlOverride)) {
     return iconUrlOverride.trim();
   }
   const fromTracked = TRACKED_ICON_BY_ID.get(
@@ -112,7 +126,7 @@ export function resolveAssetIconUrl(
     return fromTracked;
   }
   const fromCatalog = resolveKnownAssetIconUrl?.(chainId, address);
-  if (fromCatalog) {
+  if (fromCatalog && isSafeAssetIconUrl(fromCatalog)) {
     return fromCatalog;
   }
   if (symbol) {

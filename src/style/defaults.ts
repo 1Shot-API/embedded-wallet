@@ -691,8 +691,11 @@ export const DEFAULT_STYLE: IResolvedStyle = {
         "Share your wallet address. Senders create token accounts as needed — you do not need a separate token account address.",
       addAssetTitle: "Add Solana asset",
       addAssetBody:
-        "Create a token account for this mint on your wallet. You pay a small SOL rent deposit (reclaimable later if you close the account).",
+        "Enter an SPL mint address on the current Solana network. Creating the token account costs a small SOL rent deposit (reclaimable later if you close the account).",
       addAssetRentWarning: "Estimated rent: ~{rent} SOL (+ network fee).",
+      mintAddressLabel: "Mint address",
+      mintAddressPlaceholder: "Mint address…",
+      invalidMintError: "Enter a valid Solana mint address.",
       addAssetCancelLabel: "Cancel",
       addAssetSubmitLabel: "Create & track",
       addAssetBusyLabel: "Creating…",

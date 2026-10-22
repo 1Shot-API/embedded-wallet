@@ -25,6 +25,13 @@ export interface ISolanaTokenAccountBalance {
   decimals: number;
 }
 
+/** jsonParsed mint account fields used when adding an arbitrary SPL. */
+export interface ISolanaMintInfo {
+  decimals: number;
+  /** Token or Token-2022 program that owns the mint account. */
+  tokenProgram: SolanaProgramAddress;
+}
+
 export interface ISolanaSignatureInfo {
   signature: SolanaTransactionHash;
   /** Unix seconds when available; null when the RPC omits blockTime. */
@@ -88,6 +95,15 @@ export interface ISolanaRpc {
     chainId: SolanaChainId,
     mint: SolanaMintAddress,
   ): Promise<SolanaProgramAddress>;
+
+  /**
+   * jsonParsed mint probe: decimals + owning token program.
+   * Throws if missing or not a Token / Token-2022 mint.
+   */
+  getMintInfo(
+    chainId: SolanaChainId,
+    mint: SolanaMintAddress,
+  ): Promise<ISolanaMintInfo>;
 
   getTokenAccountBalance(
     chainId: SolanaChainId,

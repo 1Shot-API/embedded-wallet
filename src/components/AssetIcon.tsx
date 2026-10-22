@@ -17,12 +17,13 @@ export interface IAssetIconProps {
   symbol: string;
   /** Optional host / tracked override (HTTPS). */
   iconUrl?: string;
-  size?: "sm" | "lg";
+  size?: "sm" | "md" | "lg";
   className?: string;
 }
 
 const SIZE_CLASSES = {
   sm: "size-6 text-[0.65rem]",
+  md: "size-10 text-sm",
   lg: "size-14 text-lg",
 } as const;
 

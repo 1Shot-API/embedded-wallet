@@ -17,6 +17,7 @@ import type {
   AssetOwnerAddress,
   IKnownAssetRepository,
 } from "../../interfaces/data/IKnownAssetRepository";
+import type { ISolanaRpc } from "../../interfaces/data/ISolanaRpc";
 import {
   type KnownAssetAddress,
   type KnownAssetChainId,
@@ -34,6 +35,11 @@ import {
   getOnrampAsset as lookupOnrampAsset,
 } from "./relayerKnownAssets";
 import { SOLANA_KNOWN_ASSETS } from "./solanaKnownAssets";
+
+function truncateMintLabel(mint: string): string {
+  if (mint.length <= 11) return mint;
+  return `${mint.slice(0, 4)}…${mint.slice(-4)}`;
+}
 
 const NATIVE_ADDRESS = EVMContractAddress(zeroAddress);
 const NATIVE_WEIGHT = 50;
@@ -128,7 +134,10 @@ export function isDefaultTrackedAsset(
 }
 
 export class HardcodedKnownAssetRepository implements IKnownAssetRepository {
-  constructor(private readonly blockchain: IBlockchainProvider) {}
+  constructor(
+    private readonly blockchain: IBlockchainProvider,
+    private readonly solanaRpc: ISolanaRpc,
+  ) {}
 
   async getKnownAsset(
     chainId: KnownAssetChainId,
@@ -172,11 +181,27 @@ export class HardcodedKnownAssetRepository implements IKnownAssetRepository {
     if (ChainUtils.isSolanaChainId(chainId)) {
       const mint = SolanaAddressUtils.asMintAddress(String(address));
       const known = await this.getKnownAsset(chainId, mint);
-      if (!known || !isSolanaKnownAsset(known)) {
-        throw new Error("Only catalog Solana mints can be tracked");
+      if (known && isSolanaKnownAsset(known)) {
+        void owner;
+        return NewTrackedAsset.fromKnown(known);
       }
       void owner;
-      return NewTrackedAsset.fromKnown(known);
+      try {
+        const mintInfo = await this.solanaRpc.getMintInfo(chainId, mint);
+        const label = truncateMintLabel(String(mint));
+        return new NewTrackedAsset(
+          chainId,
+          mint,
+          EAssetType.Spl,
+          label,
+          label,
+          mintInfo.decimals,
+        );
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Mint probe failed";
+        throw new Error(`Not an SPL mint: ${message}`);
+      }
     }
 
     const evmChainId = ChainUtils.asEVMChainId(chainId);

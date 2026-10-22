@@ -321,6 +321,9 @@ export interface IStyleFormState {
   solanaAddAssetTitle: string;
   solanaAddAssetBody: string;
   solanaAddAssetRentWarning: string;
+  solanaMintAddressLabel: string;
+  solanaMintAddressPlaceholder: string;
+  solanaInvalidMintError: string;
   solanaAddAssetCancelLabel: string;
   solanaAddAssetSubmitLabel: string;
   solanaAddAssetBusyLabel: string;
@@ -645,8 +648,11 @@ export const ACME_PRESET: IStyleFormState = {
     "Share your wallet address. Senders create token accounts as needed — you do not need a separate token account address.",
   solanaAddAssetTitle: "Add Solana asset",
   solanaAddAssetBody:
-    "Create a token account for this mint on your wallet. You pay a small SOL rent deposit (reclaimable later if you close the account).",
+    "Enter an SPL mint address on the current Solana network. Creating the token account costs a small SOL rent deposit (reclaimable later if you close the account).",
   solanaAddAssetRentWarning: "Estimated rent: ~{rent} SOL (+ network fee).",
+  solanaMintAddressLabel: "Mint address",
+  solanaMintAddressPlaceholder: "Mint address…",
+  solanaInvalidMintError: "Enter a valid Solana mint address.",
   solanaAddAssetCancelLabel: "Cancel",
   solanaAddAssetSubmitLabel: "Create & track",
   solanaAddAssetBusyLabel: "Creating…",
@@ -904,6 +910,9 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   solanaAddAssetTitle: "",
   solanaAddAssetBody: "",
   solanaAddAssetRentWarning: "",
+  solanaMintAddressLabel: "",
+  solanaMintAddressPlaceholder: "",
+  solanaInvalidMintError: "",
   solanaAddAssetCancelLabel: "",
   solanaAddAssetSubmitLabel: "",
   solanaAddAssetBusyLabel: "",
@@ -1491,6 +1500,9 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(solana, "addAssetTitle", form.solanaAddAssetTitle);
   put(solana, "addAssetBody", form.solanaAddAssetBody);
   put(solana, "addAssetRentWarning", form.solanaAddAssetRentWarning);
+  put(solana, "mintAddressLabel", form.solanaMintAddressLabel);
+  put(solana, "mintAddressPlaceholder", form.solanaMintAddressPlaceholder);
+  put(solana, "invalidMintError", form.solanaInvalidMintError);
   put(solana, "addAssetCancelLabel", form.solanaAddAssetCancelLabel);
   put(solana, "addAssetSubmitLabel", form.solanaAddAssetSubmitLabel);
   put(solana, "addAssetBusyLabel", form.solanaAddAssetBusyLabel);

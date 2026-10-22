@@ -3,8 +3,8 @@ import { formatUnits } from "viem";
 import solanaLogo from "../../assets/images/chains/solana-logo.svg";
 import type { TrackedAsset } from "../../lib/types/domain";
 import type { SolanaLamports } from "../../lib/types/primitives/SolanaLamports";
-import { resolveAssetIconUrl } from "../../lib/utils/tokenIcons";
 import { useStyle } from "../../style/StyleProvider";
+import { AssetIcon } from "../AssetIcon";
 
 const SOL_DECIMALS = 9;
 
@@ -72,13 +72,6 @@ export function SolanaAssetList({
         </button>
       </li>
       {splAssets.map((asset) => {
-        const icon =
-          resolveAssetIconUrl(
-            asset.chainId as never,
-            asset.address as never,
-            asset.symbol,
-            asset.iconUrl,
-          ) ?? logoUrl ?? solanaLogo;
         const amountLabel =
           asset.balance === null
             ? balances.balanceUnavailable
@@ -90,10 +83,12 @@ export function SolanaAssetList({
               className="hover:bg-muted/60 flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left transition-colors"
               onClick={() => onSelect({ kind: "spl", asset })}
             >
-              <img
-                src={icon}
-                alt=""
-                className="size-10 rounded-full object-cover"
+              <AssetIcon
+                chainId={asset.chainId}
+                address={asset.address}
+                symbol={asset.symbol}
+                iconUrl={asset.iconUrl}
+                size="md"
               />
               <div className="min-w-0 flex-1">
                 <p className="m-0 truncate text-sm font-medium">{asset.name}</p>

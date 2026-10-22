@@ -156,7 +156,7 @@ const analyticsBridge = new AnalyticsBridge({
 analyticsBridge.start();
 const transactionUtils: ITransactionUtils = new TransactionUtils();
 const knownAssetRepository: IKnownAssetRepository =
-  new HardcodedKnownAssetRepository(blockchainProvider);
+  new HardcodedKnownAssetRepository(blockchainProvider, solanaRpc);
 
 const walletKvStore = createIdbKvBackend();
 
