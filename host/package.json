@@ -12,8 +12,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@1shotapi/ows-provider": "file:../../prf-wallet/packages/ows-provider",
-    "@1shotapi/ows-types": "file:../../prf-wallet/packages/ows-types",
+    "@1shotapi/ows-provider": "^0.8.0",
+    "@1shotapi/ows-types": "0.15.0",
     "@scure/base": "^1.2.6",
     "@solana-program/system": "^0.16.0",
     "@solana/kit": "^8.5.0",
