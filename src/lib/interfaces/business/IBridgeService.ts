@@ -2,8 +2,10 @@ import type {
   EVMAccountAddress,
   EVMChainId,
   EVMContractAddress,
-  EVMTransactionHash,
   HexString,
+  OWSChainId,
+  SolanaAccountAddress,
+  TransactionHash,
 } from "@1shotapi/ows-types";
 
 import type { KnownAsset } from "../../types/domain/KnownAsset";
@@ -16,18 +18,28 @@ import type { IPaymentQuote, ITransactionWork } from "./ITransactionService";
 
 export interface ICctpQuoteParams {
   sourceChainId: EVMChainId;
-  destChainId: EVMChainId;
+  destChainId: OWSChainId;
   amountAtoms: bigint;
   speed: ECctpTransferSpeed;
   owner: EVMAccountAddress;
+  /**
+   * Destination mint recipient as bytes32 hex.
+   * Omit → pad `owner` (EVM dest). For Solana dest, prefer `solanaRecipient`
+   * (ATA is derived) or pass ATA bytes32 explicitly.
+   */
+  mintRecipientBytes32?: HexString;
+  /** Solana wallet pubkey when dest is Solana — ATA derived for USDC mint. */
+  solanaRecipient?: SolanaAccountAddress;
 }
 
 export interface ICctpBridgeQuote {
   sourceChainId: EVMChainId;
-  destChainId: EVMChainId;
+  destChainId: OWSChainId;
   amountAtoms: bigint;
   speed: ECctpTransferSpeed;
   owner: EVMAccountAddress;
+  mintRecipientBytes32: HexString;
+  solanaRecipient?: SolanaAccountAddress;
   sourceUsdc: KnownAsset;
   destChain: SupportedChain;
   minFinalityThreshold: number;
@@ -49,18 +61,18 @@ export interface ICctpBridgePayment {
 }
 
 export interface ICctpBridgeResult {
-  burnTxHash: EVMTransactionHash;
-  forwardTxHash?: EVMTransactionHash;
+  burnTxHash: TransactionHash;
+  forwardTxHash?: TransactionHash;
 }
 
 export interface ICctpPollProgress {
-  burnTxHash: EVMTransactionHash;
-  forwardTxHash?: EVMTransactionHash;
+  burnTxHash: TransactionHash;
+  forwardTxHash?: TransactionHash;
 }
 
 /**
  * Gasless CCTP V2 USDC bridge via native TokenMessengerV2 + Circle Forwarding
- * Service, submitted through the 1Shot relayer.
+ * Service, submitted through the 1Shot relayer (EVM source).
  */
 export interface IBridgeService {
   listDestinations(sourceChainId: EVMChainId): Promise<SupportedChain[]>;
@@ -78,7 +90,7 @@ export interface IBridgeService {
   pollUntilForwarded(
     inFlight: ICctpInFlightBurn,
     onProgress?: (progress: ICctpPollProgress) => void,
-  ): Promise<EVMTransactionHash>;
+  ): Promise<TransactionHash>;
 }
 
 export const IBridgeServiceType = Symbol.for("IBridgeService");

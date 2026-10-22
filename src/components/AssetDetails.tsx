@@ -1,6 +1,8 @@
 import {
   BITCOIN_MAINNET_CHAIN_ID,
   ChainUtils,
+  type EVMChainId,
+  type EVMContractAddress,
 } from "@1shotapi/ows-types";
 import {
   ArrowLeftRightIcon,
@@ -126,7 +128,7 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
       destinationAddress: evmAddress,
       chainId: Number(BigInt(asset.chainId)),
       tokenSymbol: asset.symbol,
-      tokenAddress: asset.address,
+      tokenAddress: asset.address as EVMContractAddress,
       iconUrl: asset.iconUrl,
     })
       .catch(() => {
@@ -149,7 +151,7 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
     if (!evmAddress || bridgeBusy || !canBridge) return;
     setBridgeBusy(true);
     void openCctpBridge({
-      sourceChainId: asset.chainId,
+      sourceChainId: asset.chainId as EVMChainId,
       ownerAddress: evmAddress,
       balance,
     })

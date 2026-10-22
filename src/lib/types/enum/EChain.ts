@@ -2,14 +2,18 @@ import {
   BITCOIN_MAINNET_CHAIN_ID,
   BITCOIN_TESTNET_CHAIN_ID,
   EVMChainId,
+  SOLANA_DEVNET_CHAIN_ID,
+  SOLANA_MAINNET_CHAIN_ID,
 } from "@1shotapi/ows-types";
 
 /**
- * Catalog chain ids. Prefer these over inline `EVMChainId("0x…")` or Bitcoin sentinels.
+ * Catalog chain ids. Prefer these over inline `EVMChainId("0x…")` or Bitcoin/Solana sentinels.
  */
 export const EChain = {
   Bitcoin: BITCOIN_MAINNET_CHAIN_ID,
   BitcoinTestnet: BITCOIN_TESTNET_CHAIN_ID,
+  Solana: SOLANA_MAINNET_CHAIN_ID,
+  SolanaDevnet: SOLANA_DEVNET_CHAIN_ID,
   Arc: EVMChainId("0x13b2"),
   ArcTestnet: EVMChainId("0x4cef52"),
   Sepolia: EVMChainId("0xaa36a7"),

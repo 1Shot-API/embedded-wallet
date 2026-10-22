@@ -6,6 +6,8 @@ import { QRCode } from "../QRCode";
 export interface IReceiveModalProps {
   address: string;
   chainLabel: string;
+  /** Optional note under the address (e.g. Solana token-account guidance). */
+  footnote?: string;
   onClose: () => void;
 }
 
@@ -15,6 +17,7 @@ export interface IReceiveModalProps {
 export function ReceiveModal({
   address,
   chainLabel,
+  footnote,
   onClose,
 }: IReceiveModalProps) {
   const { style } = useStyle();
@@ -56,6 +59,11 @@ export function ReceiveModal({
             copyFailedLabel={copy.receiveCopyFailedLabel}
           />
         </div>
+        {footnote ? (
+          <p className="text-muted-foreground m-0 text-sm leading-relaxed">
+            {footnote}
+          </p>
+        ) : null}
       </div>
     </Modal>
   );

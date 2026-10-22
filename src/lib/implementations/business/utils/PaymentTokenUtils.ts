@@ -179,7 +179,12 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
       // Tracked assets still brand ERC-20s as EVMAccountAddress; both brands
       // share the EIP-55 string so Map lookup by contract address works.
       const balanceByAddress = new Map<EVMContractAddress, bigint>(
-        tracked.map((asset) => [asset.address, asset.balance ?? 0n]),
+        tracked
+          .filter((asset) => asset.type === EAssetType.Erc20)
+          .map((asset) => [
+            asset.address as EVMContractAddress,
+            asset.balance ?? 0n,
+          ]),
       );
 
       const tokens: IPaymentTokenOption[] = capabilities.tokens.map(
@@ -203,7 +208,7 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
         );
         if (!accepted) continue;
         tokens.push({
-          address: contract,
+          address: contract as EVMContractAddress,
           symbol: asset.symbol,
           decimals: asset.decimals,
           chainId,

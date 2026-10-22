@@ -3,6 +3,7 @@ import {
   OWSProxy,
 } from "@1shotapi/ows-provider";
 import type { IOWSAnalyticsEvent } from "@1shotapi/ows-types";
+import { getWallets } from "@wallet-standard/app";
 import { useEffect, useRef, useState } from "react";
 
 import { AnalyticsPanel } from "./components/AnalyticsPanel";
@@ -93,6 +94,15 @@ export function App() {
           return;
         }
         proxyRef.current = proxy;
+
+        // Opt-in Wallet Standard discovery (Solana).
+        proxy.solana.registerSolanaWallet();
+        console.info(
+          "[oneshot-wallet-host] Wallet Standard wallets",
+          getWallets()
+            .get()
+            .map((w) => w.name),
+        );
 
         (
           proxy as OWSProxy & {

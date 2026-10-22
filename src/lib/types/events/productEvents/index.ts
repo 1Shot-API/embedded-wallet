@@ -11,6 +11,20 @@ export {
   PersonalSignFailedEvent,
 } from "./PersonalSignEvents";
 export {
+  SolanaSignAndSendCancelledEvent,
+  SolanaSignAndSendEvent,
+  SolanaSignAndSendFailedEvent,
+  SolanaSignInCancelledEvent,
+  SolanaSignInEvent,
+  SolanaSignInFailedEvent,
+  SolanaSignMessageCancelledEvent,
+  SolanaSignMessageEvent,
+  SolanaSignMessageFailedEvent,
+  SolanaSignTransactionCancelledEvent,
+  SolanaSignTransactionEvent,
+  SolanaSignTransactionFailedEvent,
+} from "./SolanaSignEvents";
+export {
   TypedSignCancelledEvent,
   TypedSignEvent,
   TypedSignFailedEvent,

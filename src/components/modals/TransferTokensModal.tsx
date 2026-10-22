@@ -2,6 +2,8 @@ import {
   EChainTechnology,
   HexString,
   type EVMAccountAddress,
+  type EVMChainId,
+  type EVMContractAddress,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -133,7 +135,7 @@ export function TransferTokensModal({
       return null;
     }
     return {
-      to: asset.address,
+      to: asset.address as EVMContractAddress,
       data: HexString(
         encodeFunctionData({
           abi: erc20Abi,
@@ -222,7 +224,7 @@ export function TransferTokensModal({
 
     setBusy(true);
     try {
-      await switchChain(asset.chainId);
+      await switchChain(asset.chainId as EVMChainId);
 
       const data = HexString(
         encodeFunctionData({
@@ -232,8 +234,8 @@ export function TransferTokensModal({
         }) as Hex,
       );
       const hash = await sendTransaction(
-        asset.chainId,
-        asset.address,
+        asset.chainId as EVMChainId,
+        asset.address as EVMContractAddress,
         data,
         undefined,
         useRelayer && quote
@@ -245,8 +247,8 @@ export function TransferTokensModal({
           : undefined,
       );
       await recordSentActivity({
-        chainId: asset.chainId,
-        tokenAddress: asset.address,
+        chainId: asset.chainId as EVMChainId,
+        tokenAddress: asset.address as EVMContractAddress,
         owner: evmAddress,
         to: recipient as EVMAccountAddress,
         amount: parsed,
@@ -321,7 +323,7 @@ export function TransferTokensModal({
         />
         {useRelayer && evmAddress && relayerWork ? (
           <PaymentFeePicker
-            chainId={asset.chainId}
+            chainId={asset.chainId as EVMChainId}
             ownerAddress={evmAddress}
             work={relayerWork}
             quote={quote}

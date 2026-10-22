@@ -3,7 +3,10 @@ import {
   type EVMChainId as EVMChainIdType,
 } from "@1shotapi/ows-types";
 
-import { KnownAsset } from "../../types/domain/KnownAsset";
+import {
+  type KnownAssetAddress,
+  type KnownAssetChainId,
+ KnownAsset } from "../../types/domain/KnownAsset";
 import { EAssetType } from "../../types/enum/EAssetType";
 import { EChain } from "../../types/enum/EChain";
 import { makeTrackedAssetId } from "../../types/primitives";
@@ -392,8 +395,8 @@ const BY_KEY = new Map(
 );
 
 export function getKnownAssetIconUrl(
-  chainId: EVMChainIdType,
-  address: EVMContractAddress,
+  chainId: KnownAssetChainId,
+  address: KnownAssetAddress,
 ): string | undefined {
   return BY_KEY.get(makeTrackedAssetId(chainId, address))?.iconUrl;
 }

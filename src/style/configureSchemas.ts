@@ -66,13 +66,63 @@ export const styleCopyPasskeyNameSchema = z.strictObject({
 
 export const styleCopyPersonalSignSchema = z.strictObject({
   title: z.string(),
+  body: z.string(),
+  networkLabel: z.string(),
   accountLabel: z.string(),
   messageLabel: z.string(),
   rejectLabel: z.string(),
   signLabel: z.string(),
+  signingHint: z.string(),
+});
+
+export const styleCopySolanaSignSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  networkLabel: z.string(),
+  accountLabel: z.string(),
+  messageLabel: z.string(),
+  rejectLabel: z.string(),
+  signLabel: z.string(),
+  signingHint: z.string(),
+});
+
+export const styleCopySolanaSignAndSendSchema = z.strictObject({
+  titleSign: z.string(),
+  titleSignAndSend: z.string(),
+  bodySign: z.string(),
+  bodySignAndSend: z.string(),
+  networkLabel: z.string(),
+  accountLabel: z.string(),
+  feePayerLabel: z.string(),
+  instructionsLabel: z.string(),
+  simulationWarning: z.string(),
+  durableNonceWarning: z.string(),
+  rejectLabel: z.string(),
+  signLabel: z.string(),
+  signAndSendLabel: z.string(),
+  signingHint: z.string(),
+  submittingHint: z.string(),
 });
 
 export const styleCopySiweSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  networkLabel: z.string(),
+  signingInWithLabel: z.string(),
+  messageLabel: z.string(),
+  uriLabel: z.string(),
+  versionLabel: z.string(),
+  nonceLabel: z.string(),
+  issuedAtLabel: z.string(),
+  expirationTimeLabel: z.string(),
+  notBeforeLabel: z.string(),
+  resourcesLabel: z.string(),
+  rejectLabel: z.string(),
+  signLabel: z.string(),
+  signingHint: z.string(),
+});
+
+export const styleCopySiwsSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
   networkLabel: z.string(),
@@ -201,6 +251,9 @@ export const styleCopyCctpBridgeSchema = z.strictObject({
   speedSlowLabel: z.string(),
   recipientLabel: z.string(),
   recipientHint: z.string(),
+  solanaRecipientPlaceholder: z.string(),
+  solanaRecipientHint: z.string(),
+  invalidSolanaRecipientError: z.string(),
   getQuoteLabel: z.string(),
   confirmLabel: z.string(),
   cancelLabel: z.string(),
@@ -213,6 +266,52 @@ export const styleCopyCctpBridgeSchema = z.strictObject({
   relayerFeeLabel: z.string(),
   totalBurnLabel: z.string(),
   netReceivedLabel: z.string(),
+  quotingLabel: z.string(),
+  submittingLabel: z.string(),
+  pollingLabel: z.string(),
+  sourceHashLabel: z.string(),
+  destHashLabel: z.string(),
+  successTitle: z.string(),
+  successBody: z.string(),
+  quoteFailedError: z.string(),
+  submitFailedError: z.string(),
+  timeoutError: z.string(),
+  insufficientBalanceError: z.string(),
+  invalidAmountError: z.string(),
+  noDestinationError: z.string(),
+  viewOnExplorerLabel: z.string(),
+  doneLabel: z.string(),
+});
+
+/** Solana → EVM CCTP bridge (no relayer fee strings). */
+export const styleCopySolanaBridgeSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  confirmTitle: z.string(),
+  confirmBody: z.string(),
+  amountLabel: z.string(),
+  amountPlaceholder: z.string(),
+  sourceChainLabel: z.string(),
+  destinationLabel: z.string(),
+  destinationPlaceholder: z.string(),
+  speedLabel: z.string(),
+  speedFastLabel: z.string(),
+  speedSlowLabel: z.string(),
+  recipientLabel: z.string(),
+  recipientHint: z.string(),
+  evmRecipientPlaceholder: z.string(),
+  invalidEvmRecipientError: z.string(),
+  getQuoteLabel: z.string(),
+  confirmLabel: z.string(),
+  cancelLabel: z.string(),
+  backLabel: z.string(),
+  retryLabel: z.string(),
+  transferAmountLabel: z.string(),
+  forwardFeeLabel: z.string(),
+  protocolFeeLabel: z.string(),
+  totalBurnLabel: z.string(),
+  netReceivedLabel: z.string(),
+  solNetworkFeeHint: z.string(),
   quotingLabel: z.string(),
   submittingLabel: z.string(),
   pollingLabel: z.string(),
@@ -549,6 +648,39 @@ export const styleCopyBitcoinSchema = z.strictObject({
   unconfirmedLabel: z.string(),
 });
 
+export const styleCopySolanaSchema = z.strictObject({
+  assetName: z.string(),
+  assetSymbol: z.string(),
+  loadingBody: z.string(),
+  loadFailedError: z.string(),
+  recipientPlaceholder: z.string(),
+  invalidAddressError: z.string(),
+  /** Receive: wallet pubkey only — senders create token accounts as needed. */
+  receiveTokenNote: z.string(),
+  addAssetTitle: z.string(),
+  addAssetBody: z.string(),
+  addAssetRentWarning: z.string(),
+  mintAddressLabel: z.string(),
+  mintAddressPlaceholder: z.string(),
+  invalidMintError: z.string(),
+  addAssetCancelLabel: z.string(),
+  addAssetSubmitLabel: z.string(),
+  addAssetBusyLabel: z.string(),
+  addAssetFailedError: z.string(),
+  addAssetInsufficientSolError: z.string(),
+  sendSplTitle: z.string(),
+  createRecipientAtaWarning: z.string(),
+  insufficientSolForAtaError: z.string(),
+  removeAssetLabel: z.string(),
+  closeAtaLabel: z.string(),
+  closeAtaBusyLabel: z.string(),
+  closeAtaBody: z.string(),
+  closeAtaMustEmptyError: z.string(),
+  closeAtaFailedError: z.string(),
+  stopTrackingLabel: z.string(),
+  stopTrackingBody: z.string(),
+});
+
 export const styleCopyResolvedSchema = z.strictObject({
   productName: z.string(),
   tagline: z.string(),
@@ -558,7 +690,10 @@ export const styleCopyResolvedSchema = z.strictObject({
   walletSetup: styleCopyWalletSetupSchema,
   passkeyName: styleCopyPasskeyNameSchema,
   personalSign: styleCopyPersonalSignSchema,
+  solanaSign: styleCopySolanaSignSchema,
+  solanaSignAndSend: styleCopySolanaSignAndSendSchema,
   siwe: styleCopySiweSchema,
+  siws: styleCopySiwsSchema,
   typedData: styleCopyTypedDataSchema,
   sendTransaction: styleCopySendTransactionSchema,
   confirmTransfer: styleCopyConfirmTransferSchema,
@@ -566,6 +701,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   transferTokens: styleCopyTransferTokensSchema,
   sendNativeToken: styleCopySendNativeTokenSchema,
   cctpBridge: styleCopyCctpBridgeSchema,
+  solanaBridge: styleCopySolanaBridgeSchema,
   grantExecutionPermission: styleCopyGrantExecutionPermissionSchema,
   grantKitScopeTerms: styleCopyGrantKitScopeTermsSchema,
   grantLiFiSwapPermission: styleCopyGrantLiFiSwapPermissionSchema,
@@ -583,6 +719,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   importPrivateKey: styleCopyImportPrivateKeySchema,
   advancedOptions: styleCopyAdvancedOptionsSchema,
   bitcoin: styleCopyBitcoinSchema,
+  solana: styleCopySolanaSchema,
 });
 
 const passkeyPromptPatchSchema = z.strictObject({
@@ -608,7 +745,10 @@ export const styleCopyPatchSchema = z.strictObject({
   walletSetup: styleCopyWalletSetupSchema.partial().optional(),
   passkeyName: styleCopyPasskeyNameSchema.partial().optional(),
   personalSign: styleCopyPersonalSignSchema.partial().optional(),
+  solanaSign: styleCopySolanaSignSchema.partial().optional(),
+  solanaSignAndSend: styleCopySolanaSignAndSendSchema.partial().optional(),
   siwe: styleCopySiweSchema.partial().optional(),
+  siws: styleCopySiwsSchema.partial().optional(),
   typedData: styleCopyTypedDataSchema.partial().optional(),
   sendTransaction: styleCopySendTransactionSchema.partial().optional(),
   confirmTransfer: styleCopyConfirmTransferSchema.partial().optional(),
@@ -616,6 +756,7 @@ export const styleCopyPatchSchema = z.strictObject({
   transferTokens: styleCopyTransferTokensSchema.partial().optional(),
   sendNativeToken: styleCopySendNativeTokenSchema.partial().optional(),
   cctpBridge: styleCopyCctpBridgeSchema.partial().optional(),
+  solanaBridge: styleCopySolanaBridgeSchema.partial().optional(),
   grantExecutionPermission:
     styleCopyGrantExecutionPermissionSchema.partial().optional(),
   grantKitScopeTerms: styleCopyGrantKitScopeTermsSchema.partial().optional(),
@@ -638,6 +779,7 @@ export const styleCopyPatchSchema = z.strictObject({
   importPrivateKey: styleCopyImportPrivateKeySchema.partial().optional(),
   advancedOptions: styleCopyAdvancedOptionsSchema.partial().optional(),
   bitcoin: styleCopyBitcoinSchema.partial().optional(),
+  solana: styleCopySolanaSchema.partial().optional(),
 });
 
 export const styleFeaturesPatchSchema = z.strictObject({
@@ -645,7 +787,13 @@ export const styleFeaturesPatchSchema = z.strictObject({
   disableCredentials: z.boolean().optional(),
   disableDelegations: z.boolean().optional(),
   allowedChains: z
-    .array(z.string().regex(/^(0x[0-9a-fA-F]+|Bitcoin|BitcoinTestnet)$/))
+    .array(
+      z
+        .string()
+        .regex(
+          /^(0x[0-9a-fA-F]+|Bitcoin|BitcoinTestnet|solana:mainnet|solana:devnet)$/,
+        ),
+    )
     .optional(),
 });
 
@@ -670,7 +818,12 @@ export type IStyleCopyConnect = z.infer<typeof styleCopyConnectSchema>;
 export type IStyleCopyWalletSetup = z.infer<typeof styleCopyWalletSetupSchema>;
 export type IStyleCopyPasskeyName = z.infer<typeof styleCopyPasskeyNameSchema>;
 export type IStyleCopyPersonalSign = z.infer<typeof styleCopyPersonalSignSchema>;
+export type IStyleCopySolanaSign = z.infer<typeof styleCopySolanaSignSchema>;
+export type IStyleCopySolanaSignAndSend = z.infer<
+  typeof styleCopySolanaSignAndSendSchema
+>;
 export type IStyleCopySiwe = z.infer<typeof styleCopySiweSchema>;
+export type IStyleCopySiws = z.infer<typeof styleCopySiwsSchema>;
 export type IStyleCopyTypedData = z.infer<typeof styleCopyTypedDataSchema>;
 export type IStyleCopySendTransaction = z.infer<
   typeof styleCopySendTransactionSchema
@@ -686,6 +839,7 @@ export type IStyleCopySendNativeToken = z.infer<
   typeof styleCopySendNativeTokenSchema
 >;
 export type IStyleCopyCctpBridge = z.infer<typeof styleCopyCctpBridgeSchema>;
+export type IStyleCopySolanaBridge = z.infer<typeof styleCopySolanaBridgeSchema>;
 export type IStyleCopyGrantExecutionPermission = z.infer<
   typeof styleCopyGrantExecutionPermissionSchema
 >;
@@ -732,6 +886,7 @@ export type IStyleCopyAdvancedOptions = z.infer<
   typeof styleCopyAdvancedOptionsSchema
 >;
 export type IStyleCopyBitcoin = z.infer<typeof styleCopyBitcoinSchema>;
+export type IStyleCopySolana = z.infer<typeof styleCopySolanaSchema>;
 export type IStyleCopyOptions = z.infer<typeof styleCopyPatchSchema>;
 export type IResolvedCopy = z.infer<typeof styleCopyResolvedSchema>;
 export type IStyleFeaturesOptions = z.infer<typeof styleFeaturesPatchSchema>;

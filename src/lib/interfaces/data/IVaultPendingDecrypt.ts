@@ -34,6 +34,17 @@ export interface IVaultPendingDecrypt {
    */
   hasPendingTrackedAssetsUpload(): boolean;
   /**
+   * Arm the next `signDigest` / `executeBatch` to mint a RelayerAuth challenge
+   * and {@link cacheRelayerVaultAssertion} (for a later vault HTTP call).
+   * Use when a TX ceremony precedes an unencrypted vault store (e.g. ATA
+   * create/close → tracked-assets sync).
+   */
+  armRelayerAuthPrefetch(): void;
+  /** Whether {@link armRelayerAuthPrefetch} is armed. */
+  hasRelayerAuthPrefetch(): boolean;
+  /** Clear a unused prefetch arm (e.g. TX path skipped signing). */
+  clearRelayerAuthPrefetch(): void;
+  /**
    * Upload queued tracked-assets under an existing assertion (same ceremony).
    */
   flushTrackedAssetsUpload(

@@ -12,7 +12,9 @@ import type { ChallengeId } from "../lib/types/primitives/ChallengeId";
 
 /**
  * Upgrade signDigest / executeBatch to also decrypt pending vault ciphertexts
- * (and optionally assert for tracked-assets upload) in the same ceremony.
+ * and/or mint RelayerAuth (tracked-assets upload or prefetch cache) in the
+ * same ceremony. Tracked-assets blobs are unencrypted — prefetch only needs
+ * an assertion for a later store HTTP call.
  */
 export function wrapSignerWithVaultDecrypt(
   signer: OWSSigner,
@@ -25,13 +27,14 @@ export function wrapSignerWithVaultDecrypt(
     await vault.ensurePendingStateLoaded();
     const pending = vault.peekPendingEncrypted();
     const needUpload = vault.hasPendingTrackedAssetsUpload();
-    if (pending.length === 0 && !needUpload) {
+    const needPrefetch = vault.hasRelayerAuthPrefetch();
+    if (pending.length === 0 && !needUpload && !needPrefetch) {
       return signDigest(digests, options);
     }
 
     let challenge: HexString | undefined;
     let challengeId: ChallengeId | null = null;
-    if (needUpload) {
+    if (needUpload || needPrefetch) {
       const minted = await vault.mintRelayerVaultChallenge();
       challengeId = minted.challengeId;
       challenge = minted.challenge;
@@ -64,13 +67,14 @@ export function wrapSignerWithVaultDecrypt(
     await vault.ensurePendingStateLoaded();
     const pending = vault.peekPendingEncrypted();
     const needUpload = vault.hasPendingTrackedAssetsUpload();
-    if (pending.length === 0 && !needUpload) {
+    const needPrefetch = vault.hasRelayerAuthPrefetch();
+    if (pending.length === 0 && !needUpload && !needPrefetch) {
       return executeBatch(params);
     }
 
     let challenge = params.challenge;
     let challengeId: ChallengeId | null = null;
-    if (needUpload && !challenge) {
+    if ((needUpload || needPrefetch) && !challenge) {
       const minted = await vault.mintRelayerVaultChallenge();
       challengeId = minted.challengeId;
       challenge = minted.challenge;
@@ -102,12 +106,10 @@ export function wrapSignerWithVaultDecrypt(
       );
     }
 
-    if (batchResult.assertion) {
-      if (needUpload && challengeId) {
-        await vault.flushTrackedAssetsUpload(challengeId, batchResult.assertion);
-      } else if (challengeId) {
-        vault.cacheRelayerVaultAssertion(challengeId, batchResult.assertion);
-      }
+    if (batchResult.assertion && challengeId) {
+      await settleRelayerAssertion(vault, challengeId, batchResult.assertion);
+    } else {
+      vault.clearRelayerAuthPrefetch();
     }
 
     return batchResult;
@@ -129,10 +131,21 @@ async function applyBatchSideEffects(
     );
   }
   if (batchResult.assertion && challengeId) {
-    if (vault.hasPendingTrackedAssetsUpload()) {
-      await vault.flushTrackedAssetsUpload(challengeId, batchResult.assertion);
-    } else {
-      vault.cacheRelayerVaultAssertion(challengeId, batchResult.assertion);
-    }
+    await settleRelayerAssertion(vault, challengeId, batchResult.assertion);
+  } else {
+    vault.clearRelayerAuthPrefetch();
   }
+}
+
+async function settleRelayerAssertion(
+  vault: IVaultPendingDecrypt,
+  challengeId: ChallengeId,
+  assertion: NonNullable<ExecuteBatchResult["assertion"]>,
+): Promise<void> {
+  if (vault.hasPendingTrackedAssetsUpload()) {
+    await vault.flushTrackedAssetsUpload(challengeId, assertion);
+  } else {
+    vault.cacheRelayerVaultAssertion(challengeId, assertion);
+  }
+  vault.clearRelayerAuthPrefetch();
 }

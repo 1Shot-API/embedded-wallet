@@ -19,7 +19,7 @@ export interface IStyleFormState {
   fontSans: string;
   dark: boolean;
   /**
-   * Chain ids to pass as `features.allowedChains` (hex `0x…`, or `Bitcoin` / `BitcoinTestnet`).
+   * Chain ids to pass as `features.allowedChains` (hex `0x…`, Bitcoin, or Solana CAIP).
    * Empty ⇒ omit (all catalog-enabled chains).
    */
   allowedChainIds: string[];
@@ -71,8 +71,13 @@ export interface IStyleFormState {
 
   // Text — Personal sign
   signTitle: string;
+  signBody: string;
+  signNetworkLabel: string;
+  signAccountLabel: string;
+  signMessageLabel: string;
   signLabel: string;
   signReject: string;
+  signSigningHint: string;
 
   // Text — Typed data (EIP-712)
   typedTitle: string;
@@ -103,6 +108,50 @@ export interface IStyleFormState {
   siweRejectLabel: string;
   siweSignLabel: string;
   siweSigningHint: string;
+
+  // Text — Solana sign message
+  solanaSignTitle: string;
+  solanaSignBody: string;
+  solanaSignNetworkLabel: string;
+  solanaSignAccountLabel: string;
+  solanaSignMessageLabel: string;
+  solanaSignLabel: string;
+  solanaSignReject: string;
+  solanaSignSigningHint: string;
+
+  // Text — Solana sign / sign-and-send transaction
+  solanaTxTitleSign: string;
+  solanaTxTitleSignAndSend: string;
+  solanaTxBodySign: string;
+  solanaTxBodySignAndSend: string;
+  solanaTxNetworkLabel: string;
+  solanaTxAccountLabel: string;
+  solanaTxFeePayerLabel: string;
+  solanaTxInstructionsLabel: string;
+  solanaTxSimulationWarning: string;
+  solanaTxDurableNonceWarning: string;
+  solanaTxRejectLabel: string;
+  solanaTxSignLabel: string;
+  solanaTxSignAndSendLabel: string;
+  solanaTxSigningHint: string;
+  solanaTxSubmittingHint: string;
+
+  // Text — SIWS
+  siwsTitle: string;
+  siwsBody: string;
+  siwsNetworkLabel: string;
+  siwsSigningInWithLabel: string;
+  siwsMessageLabel: string;
+  siwsUriLabel: string;
+  siwsVersionLabel: string;
+  siwsNonceLabel: string;
+  siwsIssuedAtLabel: string;
+  siwsExpirationTimeLabel: string;
+  siwsNotBeforeLabel: string;
+  siwsResourcesLabel: string;
+  siwsRejectLabel: string;
+  siwsSignLabel: string;
+  siwsSigningHint: string;
 
   // Text — Send transaction
   txTitle: string;
@@ -260,6 +309,37 @@ export interface IStyleFormState {
   bitcoinRecipientPlaceholder: string;
   bitcoinInvalidAddressError: string;
   bitcoinUnconfirmedLabel: string;
+
+  // Text — Solana
+  solanaAssetName: string;
+  solanaAssetSymbol: string;
+  solanaLoadingBody: string;
+  solanaLoadFailedError: string;
+  solanaRecipientPlaceholder: string;
+  solanaInvalidAddressError: string;
+  solanaReceiveTokenNote: string;
+  solanaAddAssetTitle: string;
+  solanaAddAssetBody: string;
+  solanaAddAssetRentWarning: string;
+  solanaMintAddressLabel: string;
+  solanaMintAddressPlaceholder: string;
+  solanaInvalidMintError: string;
+  solanaAddAssetCancelLabel: string;
+  solanaAddAssetSubmitLabel: string;
+  solanaAddAssetBusyLabel: string;
+  solanaAddAssetFailedError: string;
+  solanaAddAssetInsufficientSolError: string;
+  solanaSendSplTitle: string;
+  solanaCreateRecipientAtaWarning: string;
+  solanaInsufficientSolForAtaError: string;
+  solanaRemoveAssetLabel: string;
+  solanaCloseAtaLabel: string;
+  solanaCloseAtaBusyLabel: string;
+  solanaCloseAtaBody: string;
+  solanaCloseAtaMustEmptyError: string;
+  solanaCloseAtaFailedError: string;
+  solanaStopTrackingLabel: string;
+  solanaStopTrackingBody: string;
 }
 
 /** Catalog options for the Allowed chains configurator (matches HardcodedChainRepository). */
@@ -269,6 +349,8 @@ export const CATALOG_CHAIN_OPTIONS: ReadonlyArray<{
 }> = [
   { chainId: "Bitcoin", label: "Bitcoin" },
   { chainId: "BitcoinTestnet", label: "Bitcoin Testnet" },
+  { chainId: "solana:mainnet", label: "Solana" },
+  { chainId: "solana:devnet", label: "Solana Devnet" },
   { chainId: "0x13b2", label: "Arc" },
   { chainId: "0x4cef52", label: "Arc Testnet" },
   { chainId: "0xaa36a7", label: "Sepolia" },
@@ -337,8 +419,14 @@ export const ACME_PRESET: IStyleFormState = {
   passkeyTermsError:
     "Accept the Terms of Service and Privacy Policy to continue.",
   signTitle: "Approve signature",
+  signBody:
+    "{domain} is requesting a signature from your Ethereum account. This will not spend tokens or change on-chain balances.",
+  signNetworkLabel: "Network",
+  signAccountLabel: "Account",
+  signMessageLabel: "Message",
   signLabel: "Sign",
   signReject: "Reject",
+  signSigningHint: "Confirm in the signing panel…",
   typedTitle: "Signature request",
   typedBody: "Review request details before you confirm.",
   typedNetworkLabel: "Network",
@@ -366,6 +454,50 @@ export const ACME_PRESET: IStyleFormState = {
   siweRejectLabel: "Cancel",
   siweSignLabel: "Sign in",
   siweSigningHint: "Confirm in the signing panel…",
+  solanaSignTitle: "Sign message",
+  solanaSignBody:
+    "{domain} is requesting a signature from your Solana account. This will not spend tokens or change on-chain balances.",
+  solanaSignNetworkLabel: "Network",
+  solanaSignAccountLabel: "Account",
+  solanaSignMessageLabel: "Message",
+  solanaSignLabel: "Sign",
+  solanaSignReject: "Reject",
+  solanaSignSigningHint: "Confirm in the signing panel…",
+  solanaTxTitleSign: "Sign transaction",
+  solanaTxTitleSignAndSend: "Confirm transaction",
+  solanaTxBodySign:
+    "{domain} is requesting a signature on a Solana transaction. Signing does not submit it to the network.",
+  solanaTxBodySignAndSend:
+    "{domain} is requesting to sign and submit a Solana transaction. You pay network fees from this account.",
+  solanaTxNetworkLabel: "Network",
+  solanaTxAccountLabel: "Account",
+  solanaTxFeePayerLabel: "Fee payer",
+  solanaTxInstructionsLabel: "Instructions",
+  solanaTxSimulationWarning:
+    "Simulation failed. The transaction may still fail on-chain.",
+  solanaTxDurableNonceWarning:
+    "This transaction uses a durable nonce. Review carefully before confirming.",
+  solanaTxRejectLabel: "Reject",
+  solanaTxSignLabel: "Sign",
+  solanaTxSignAndSendLabel: "Confirm",
+  solanaTxSigningHint: "Confirm in the signing panel…",
+  solanaTxSubmittingHint: "Submitting to the network…",
+  siwsTitle: "Sign-in request",
+  siwsBody:
+    "{domain} is requesting to sign in with your Solana account. This will not spend tokens or change on-chain balances.",
+  siwsNetworkLabel: "Network",
+  siwsSigningInWithLabel: "Signing in with",
+  siwsMessageLabel: "Message",
+  siwsUriLabel: "URI",
+  siwsVersionLabel: "Version",
+  siwsNonceLabel: "Nonce",
+  siwsIssuedAtLabel: "Issued at",
+  siwsExpirationTimeLabel: "Expiration time",
+  siwsNotBeforeLabel: "Not before",
+  siwsResourcesLabel: "Resources",
+  siwsRejectLabel: "Cancel",
+  siwsSignLabel: "Sign in",
+  siwsSigningHint: "Confirm in the signing panel…",
   txTitle: "Approve transaction",
   txSignLabel: "Sign",
   txReject: "Reject",
@@ -506,6 +638,43 @@ export const ACME_PRESET: IStyleFormState = {
   bitcoinRecipientPlaceholder: "bc1q… or tb1q…",
   bitcoinInvalidAddressError: "Enter a valid SegWit (bc1q / tb1q) address.",
   bitcoinUnconfirmedLabel: "(Unconfirmed)",
+  solanaAssetName: "Solana",
+  solanaAssetSymbol: "SOL",
+  solanaLoadingBody: "Loading…",
+  solanaLoadFailedError: "Failed to load Solana balance",
+  solanaRecipientPlaceholder: "Solana address…",
+  solanaInvalidAddressError: "Enter a valid Solana address.",
+  solanaReceiveTokenNote:
+    "Share your wallet address. Senders create token accounts as needed — you do not need a separate token account address.",
+  solanaAddAssetTitle: "Add Solana asset",
+  solanaAddAssetBody:
+    "Enter an SPL mint address on the current Solana network. Creating the token account costs a small SOL rent deposit (reclaimable later if you close the account).",
+  solanaAddAssetRentWarning: "Estimated rent: ~{rent} SOL (+ network fee).",
+  solanaMintAddressLabel: "Mint address",
+  solanaMintAddressPlaceholder: "Mint address…",
+  solanaInvalidMintError: "Enter a valid Solana mint address.",
+  solanaAddAssetCancelLabel: "Cancel",
+  solanaAddAssetSubmitLabel: "Create & track",
+  solanaAddAssetBusyLabel: "Creating…",
+  solanaAddAssetFailedError: "Failed to add Solana asset",
+  solanaAddAssetInsufficientSolError:
+    "Not enough SOL for token account rent and network fee.",
+  solanaSendSplTitle: "Send {symbol}",
+  solanaCreateRecipientAtaWarning:
+    "Recipient has no token account yet. Creating one costs ~{rent} SOL (paid by you).",
+  solanaInsufficientSolForAtaError:
+    "Not enough SOL to create the recipient token account.",
+  solanaRemoveAssetLabel: "Remove",
+  solanaCloseAtaLabel: "Close account & remove",
+  solanaCloseAtaBusyLabel: "Closing…",
+  solanaCloseAtaBody:
+    "Closes your token account, returns ~{rent} SOL rent to you, and stops tracking. Balance must be zero.",
+  solanaCloseAtaMustEmptyError:
+    "Send all tokens first — the token account must be empty to close.",
+  solanaCloseAtaFailedError: "Failed to close token account",
+  solanaStopTrackingLabel: "Stop tracking",
+  solanaStopTrackingBody:
+    "Hides this asset in the wallet. Your on-chain token account stays open until you close it.",
 };
 
 export const OCEAN_PRESET: IStyleFormState = {
@@ -569,7 +738,13 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   passkeyTermsError:
     "Accept the Terms of Service and Privacy Policy to continue.",
   signTitle: "Sign message",
+  signBody:
+    "{domain} is requesting a signature from your Ethereum account. This will not spend tokens or change on-chain balances.",
+  signNetworkLabel: "Network",
+  signAccountLabel: "Account",
+  signMessageLabel: "Message",
   signLabel: "Sign",
+  signSigningHint: "Confirm in the signing panel…",
   typedTitle: "Signature request",
   txTitle: "Send transaction",
   txSignLabel: "Sign",
@@ -589,6 +764,15 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   siweRejectLabel: "Cancel",
   siweSignLabel: "Sign in",
   siweSigningHint: "Confirm in the signing panel…",
+  solanaSignTitle: "Sign message",
+  solanaSignBody:
+    "{domain} is requesting a signature from your Solana account. This will not spend tokens or change on-chain balances.",
+  solanaSignNetworkLabel: "Network",
+  solanaSignAccountLabel: "Account",
+  solanaSignMessageLabel: "Message",
+  solanaSignLabel: "Sign",
+  solanaSignReject: "Reject",
+  solanaSignSigningHint: "Confirm in the signing panel…",
   credOfferTitle: "Accept credential offer?",
   credOfferBody: "",
   credPresentTitle: "Share credential?",
@@ -716,6 +900,35 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   bitcoinRecipientPlaceholder: "",
   bitcoinInvalidAddressError: "",
   bitcoinUnconfirmedLabel: "",
+  solanaAssetName: "",
+  solanaAssetSymbol: "",
+  solanaLoadingBody: "",
+  solanaLoadFailedError: "",
+  solanaRecipientPlaceholder: "",
+  solanaInvalidAddressError: "",
+  solanaReceiveTokenNote: "",
+  solanaAddAssetTitle: "",
+  solanaAddAssetBody: "",
+  solanaAddAssetRentWarning: "",
+  solanaMintAddressLabel: "",
+  solanaMintAddressPlaceholder: "",
+  solanaInvalidMintError: "",
+  solanaAddAssetCancelLabel: "",
+  solanaAddAssetSubmitLabel: "",
+  solanaAddAssetBusyLabel: "",
+  solanaAddAssetFailedError: "",
+  solanaAddAssetInsufficientSolError: "",
+  solanaSendSplTitle: "",
+  solanaCreateRecipientAtaWarning: "",
+  solanaInsufficientSolForAtaError: "",
+  solanaRemoveAssetLabel: "",
+  solanaCloseAtaLabel: "",
+  solanaCloseAtaBusyLabel: "",
+  solanaCloseAtaBody: "",
+  solanaCloseAtaMustEmptyError: "",
+  solanaCloseAtaFailedError: "",
+  solanaStopTrackingLabel: "",
+  solanaStopTrackingBody: "",
 };
 
 function put(
@@ -878,8 +1091,13 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
 
   const personalSign: Record<string, string> = {};
   put(personalSign, "title", form.signTitle);
+  put(personalSign, "body", form.signBody);
+  put(personalSign, "networkLabel", form.signNetworkLabel);
+  put(personalSign, "accountLabel", form.signAccountLabel);
+  put(personalSign, "messageLabel", form.signMessageLabel);
   put(personalSign, "signLabel", form.signLabel);
   put(personalSign, "rejectLabel", form.signReject);
+  put(personalSign, "signingHint", form.signSigningHint);
   if (Object.keys(personalSign).length > 0) copy.personalSign = personalSign;
 
   const typedData: Record<string, string> = {};
@@ -913,6 +1131,59 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(siwe, "signLabel", form.siweSignLabel);
   put(siwe, "signingHint", form.siweSigningHint);
   if (Object.keys(siwe).length > 0) copy.siwe = siwe;
+
+  const solanaSign: Record<string, string> = {};
+  put(solanaSign, "title", form.solanaSignTitle);
+  put(solanaSign, "body", form.solanaSignBody);
+  put(solanaSign, "networkLabel", form.solanaSignNetworkLabel);
+  put(solanaSign, "accountLabel", form.solanaSignAccountLabel);
+  put(solanaSign, "messageLabel", form.solanaSignMessageLabel);
+  put(solanaSign, "signLabel", form.solanaSignLabel);
+  put(solanaSign, "rejectLabel", form.solanaSignReject);
+  put(solanaSign, "signingHint", form.solanaSignSigningHint);
+  if (Object.keys(solanaSign).length > 0) copy.solanaSign = solanaSign;
+
+  const solanaSignAndSend: Record<string, string> = {};
+  put(solanaSignAndSend, "titleSign", form.solanaTxTitleSign);
+  put(solanaSignAndSend, "titleSignAndSend", form.solanaTxTitleSignAndSend);
+  put(solanaSignAndSend, "bodySign", form.solanaTxBodySign);
+  put(solanaSignAndSend, "bodySignAndSend", form.solanaTxBodySignAndSend);
+  put(solanaSignAndSend, "networkLabel", form.solanaTxNetworkLabel);
+  put(solanaSignAndSend, "accountLabel", form.solanaTxAccountLabel);
+  put(solanaSignAndSend, "feePayerLabel", form.solanaTxFeePayerLabel);
+  put(solanaSignAndSend, "instructionsLabel", form.solanaTxInstructionsLabel);
+  put(solanaSignAndSend, "simulationWarning", form.solanaTxSimulationWarning);
+  put(
+    solanaSignAndSend,
+    "durableNonceWarning",
+    form.solanaTxDurableNonceWarning,
+  );
+  put(solanaSignAndSend, "rejectLabel", form.solanaTxRejectLabel);
+  put(solanaSignAndSend, "signLabel", form.solanaTxSignLabel);
+  put(solanaSignAndSend, "signAndSendLabel", form.solanaTxSignAndSendLabel);
+  put(solanaSignAndSend, "signingHint", form.solanaTxSigningHint);
+  put(solanaSignAndSend, "submittingHint", form.solanaTxSubmittingHint);
+  if (Object.keys(solanaSignAndSend).length > 0) {
+    copy.solanaSignAndSend = solanaSignAndSend;
+  }
+
+  const siws: Record<string, string> = {};
+  put(siws, "title", form.siwsTitle);
+  put(siws, "body", form.siwsBody);
+  put(siws, "networkLabel", form.siwsNetworkLabel);
+  put(siws, "signingInWithLabel", form.siwsSigningInWithLabel);
+  put(siws, "messageLabel", form.siwsMessageLabel);
+  put(siws, "uriLabel", form.siwsUriLabel);
+  put(siws, "versionLabel", form.siwsVersionLabel);
+  put(siws, "nonceLabel", form.siwsNonceLabel);
+  put(siws, "issuedAtLabel", form.siwsIssuedAtLabel);
+  put(siws, "expirationTimeLabel", form.siwsExpirationTimeLabel);
+  put(siws, "notBeforeLabel", form.siwsNotBeforeLabel);
+  put(siws, "resourcesLabel", form.siwsResourcesLabel);
+  put(siws, "rejectLabel", form.siwsRejectLabel);
+  put(siws, "signLabel", form.siwsSignLabel);
+  put(siws, "signingHint", form.siwsSigningHint);
+  if (Object.keys(siws).length > 0) copy.siws = siws;
 
   const sendTransaction: Record<string, string> = {};
   put(sendTransaction, "title", form.txTitle);
@@ -1216,6 +1487,52 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(bitcoin, "unconfirmedLabel", form.bitcoinUnconfirmedLabel);
   if (Object.keys(bitcoin).length > 0) {
     copy.bitcoin = bitcoin;
+  }
+
+  const solana: Record<string, string> = {};
+  put(solana, "assetName", form.solanaAssetName);
+  put(solana, "assetSymbol", form.solanaAssetSymbol);
+  put(solana, "loadingBody", form.solanaLoadingBody);
+  put(solana, "loadFailedError", form.solanaLoadFailedError);
+  put(solana, "recipientPlaceholder", form.solanaRecipientPlaceholder);
+  put(solana, "invalidAddressError", form.solanaInvalidAddressError);
+  put(solana, "receiveTokenNote", form.solanaReceiveTokenNote);
+  put(solana, "addAssetTitle", form.solanaAddAssetTitle);
+  put(solana, "addAssetBody", form.solanaAddAssetBody);
+  put(solana, "addAssetRentWarning", form.solanaAddAssetRentWarning);
+  put(solana, "mintAddressLabel", form.solanaMintAddressLabel);
+  put(solana, "mintAddressPlaceholder", form.solanaMintAddressPlaceholder);
+  put(solana, "invalidMintError", form.solanaInvalidMintError);
+  put(solana, "addAssetCancelLabel", form.solanaAddAssetCancelLabel);
+  put(solana, "addAssetSubmitLabel", form.solanaAddAssetSubmitLabel);
+  put(solana, "addAssetBusyLabel", form.solanaAddAssetBusyLabel);
+  put(solana, "addAssetFailedError", form.solanaAddAssetFailedError);
+  put(
+    solana,
+    "addAssetInsufficientSolError",
+    form.solanaAddAssetInsufficientSolError,
+  );
+  put(solana, "sendSplTitle", form.solanaSendSplTitle);
+  put(
+    solana,
+    "createRecipientAtaWarning",
+    form.solanaCreateRecipientAtaWarning,
+  );
+  put(
+    solana,
+    "insufficientSolForAtaError",
+    form.solanaInsufficientSolForAtaError,
+  );
+  put(solana, "removeAssetLabel", form.solanaRemoveAssetLabel);
+  put(solana, "closeAtaLabel", form.solanaCloseAtaLabel);
+  put(solana, "closeAtaBusyLabel", form.solanaCloseAtaBusyLabel);
+  put(solana, "closeAtaBody", form.solanaCloseAtaBody);
+  put(solana, "closeAtaMustEmptyError", form.solanaCloseAtaMustEmptyError);
+  put(solana, "closeAtaFailedError", form.solanaCloseAtaFailedError);
+  put(solana, "stopTrackingLabel", form.solanaStopTrackingLabel);
+  put(solana, "stopTrackingBody", form.solanaStopTrackingBody);
+  if (Object.keys(solana).length > 0) {
+    copy.solana = solana;
   }
 
   return copy;

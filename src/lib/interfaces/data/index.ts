@@ -1,8 +1,12 @@
-export type { IKnownAssetRepository } from "./IKnownAssetRepository";
+export type {
+  AssetOwnerAddress,
+  IKnownAssetRepository,
+} from "./IKnownAssetRepository";
 export { IKnownAssetRepositoryType } from "./IKnownAssetRepository";
 export type { ITrackedAssetRepository } from "./ITrackedAssetRepository";
 export { ITrackedAssetRepositoryType } from "./ITrackedAssetRepository";
 export type {
+  ActivityOwnerAddress,
   IAssetActivityRepository,
   IListAssetActivityParams,
   IRecordSentActivityParams,
@@ -29,6 +33,13 @@ export type { IChainRepository } from "./IChainRepository";
 export { IChainRepositoryType } from "./IChainRepository";
 export type { IBitcoinBalance, IBitcoinRpc } from "./IBitcoinRpc";
 export { IBitcoinRpcType } from "./IBitcoinRpc";
+export type {
+  ISolanaBlockhash,
+  ISolanaRpc,
+  ISolanaSimulateResult,
+  ISolanaTokenAccountBalance,
+} from "./ISolanaRpc";
+export { ISolanaRpcType } from "./ISolanaRpc";
 export type {
   ICctpInFlightBurn,
   ICircleRepository,

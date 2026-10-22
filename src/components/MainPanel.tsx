@@ -27,6 +27,7 @@ import { BitcoinDetails } from "./BitcoinDetails";
 import { CredentialsTab } from "./credentials/CredentialsTab";
 import { DelegationsTab } from "./delegations/DelegationsTab";
 import { SelectNetworkModal } from "./modals/SelectNetworkModal";
+import { SolanaDetails } from "./SolanaDetails";
 
 
 const TRUNCATE_CHARS = 5;
@@ -122,7 +123,10 @@ export function MainPanel() {
   const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showCredentials = !style.features.disableCredentials;
-  const showDelegations = !style.features.disableDelegations;
+  const showDelegations =
+    !style.features.disableDelegations &&
+    !ChainUtils.isSolanaChainId(chainId) &&
+    !ChainUtils.isBitcoinChainId(chainId);
   const activeMainTab =
     (mainTab === "credentials" && !showCredentials) ||
     (mainTab === "delegations" && !showDelegations)
@@ -144,6 +148,13 @@ export function MainPanel() {
       return (
         <div className="flex min-h-0 flex-1 flex-col">
           <BitcoinDetails />
+        </div>
+      );
+    }
+    if (ChainUtils.isSolanaChainId(chainId)) {
+      return (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <SolanaDetails />
         </div>
       );
     }
@@ -189,6 +200,7 @@ export function MainPanel() {
     ) ?? null;
   const networkLabel = selectedChain?.label ?? String(chainId);
   const showBitcoinShell = ChainUtils.isBitcoinChainId(chainId);
+  const showSolanaShell = ChainUtils.isSolanaChainId(chainId);
 
   const copyFeedbackLabel =
     copyState === "copied"
@@ -282,7 +294,11 @@ export function MainPanel() {
             ) : null}
           </TabsList>
           <TabsContent value="balances">
-            <BalancesTab onView={setSelectedAsset} />
+            {showSolanaShell ? (
+              <SolanaDetails />
+            ) : (
+              <BalancesTab onView={setSelectedAsset} />
+            )}
           </TabsContent>
           {showCredentials ? (
             <TabsContent value="credentials">

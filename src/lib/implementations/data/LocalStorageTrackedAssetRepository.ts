@@ -2,11 +2,18 @@ import {
   type EVMChainId,
   ChainUtils,
   EVMAccountAddress,
-  EVMContractAddress
+  EVMContractAddress,
+  SolanaAddressUtils,
+  type SolanaAccountAddress,
+  type SolanaATAAddress,
+  type SolanaChainId,
+  type SolanaMintAddress,
 } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import { erc20Abi, type Address } from "viem";
 
+import type { AssetOwnerAddress } from "../../interfaces/data/IKnownAssetRepository";
+import type { ISolanaRpc } from "../../interfaces/data/ISolanaRpc";
 import type { ITrackedAssetRepository } from "../../interfaces/data/ITrackedAssetRepository";
 import type {
   IVaultTrackedAssetRow,
@@ -14,6 +21,10 @@ import type {
 } from "../../interfaces/data/IVaultTrackedAssetSync";
 import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IEventBus } from "../../interfaces/utils/IEventBus";
+import type {
+  KnownAssetAddress,
+  KnownAssetChainId,
+} from "../../types/domain/KnownAsset";
 import { NewTrackedAsset, TrackedAsset } from "../../types/domain/TrackedAsset";
 import { EAssetType } from "../../types/enum/EAssetType";
 import { BalanceUpdatedEvent } from "../../types/events/BalanceUpdatedEvent";
@@ -48,6 +59,8 @@ type StoredBlob = {
     decimals: number;
     id: string;
     iconUrl?: string;
+    ataAddress?: string | null;
+    ataRentPaid?: boolean | null;
   }>;
 };
 
@@ -55,7 +68,11 @@ export type TrackedAssetRepositoryOptions = {
   storage?: AsyncKvStore;
 };
 
-const EMPTY_OWNER = EVMAccountAddress("0x0");
+const EMPTY_EVM_OWNER = EVMAccountAddress("0x0");
+
+function isSolanaOwner(owner: AssetOwnerAddress): owner is SolanaAccountAddress {
+  return !String(owner).startsWith("0x");
+}
 
 export class LocalStorageTrackedAssetRepository
   implements ITrackedAssetRepository, IVaultTrackedAssetSync
@@ -70,6 +87,7 @@ export class LocalStorageTrackedAssetRepository
     private readonly blockchain: IBlockchainProvider,
     private readonly eventBus: IEventBus,
     private readonly configProvider: IConfigProvider,
+    private readonly solanaRpc: ISolanaRpc,
     options: TrackedAssetRepositoryOptions = {},
   ) {
     this.storage =
@@ -95,6 +113,8 @@ export class LocalStorageTrackedAssetRepository
       decimals: asset.decimals,
       id: asset.id,
       ...(asset.iconUrl ? { iconUrl: asset.iconUrl } : {}),
+      ...(asset.ataAddress != null ? { ataAddress: asset.ataAddress } : {}),
+      ...(asset.ataRentPaid != null ? { ataRentPaid: asset.ataRentPaid } : {}),
     }));
   }
 
@@ -114,6 +134,10 @@ export class LocalStorageTrackedAssetRepository
           row.symbol,
           row.decimals,
           row.iconUrl,
+          0,
+          false,
+          row.ataAddress ?? null,
+          row.ataRentPaid ?? null,
         ),
       );
       next.push(tracked);
@@ -137,7 +161,7 @@ export class LocalStorageTrackedAssetRepository
     return this.storageKey;
   }
 
-  async list(chainId?: EVMChainId): Promise<TrackedAsset[]> {
+  async list(chainId?: KnownAssetChainId): Promise<TrackedAsset[]> {
     const storageKey = await this.resolveStorageKey();
     const assets = this.filterByChain(
       this.mergeWithDefaults(await this.readStoredAssets(storageKey)),
@@ -153,8 +177,8 @@ export class LocalStorageTrackedAssetRepository
   }
 
   async has(
-    chainId: EVMChainId,
-    address: EVMContractAddress,
+    chainId: KnownAssetChainId,
+    address: KnownAssetAddress,
   ): Promise<boolean> {
     if (isDefaultTrackedAsset(chainId, address)) {
       return true;
@@ -168,7 +192,7 @@ export class LocalStorageTrackedAssetRepository
 
   async add(
     asset: NewTrackedAsset,
-    owner: EVMAccountAddress,
+    owner: AssetOwnerAddress,
   ): Promise<TrackedAsset> {
     if (isDefaultTrackedAsset(asset.chainId, asset.address)) {
       const existing = TrackedAsset.fromNew(asset);
@@ -182,19 +206,31 @@ export class LocalStorageTrackedAssetRepository
     const foundIndex = assets.findIndex((a) => a.id === key);
     if (foundIndex >= 0) {
       const found = assets[foundIndex]!;
+      let next = found;
       if (asset.iconUrl !== undefined && asset.iconUrl !== found.iconUrl) {
-        const updated = TrackedAsset.fromNew(
+        next = TrackedAsset.fromNew(
           found.withIconUrl(asset.iconUrl),
           found.balance,
         );
-        assets[foundIndex] = updated;
+      }
+      if (
+        asset.ataAddress != null &&
+        (asset.ataAddress !== found.ataAddress ||
+          asset.ataRentPaid !== found.ataRentPaid)
+      ) {
+        next = next.withAta(asset.ataAddress, asset.ataRentPaid);
+      }
+      if (next !== found) {
+        assets[foundIndex] = next;
         await this.writeAssets(storageKey, assets);
         if (asset.iconUrl) {
           registerTrackedAssetIconUrl(key, asset.iconUrl);
+        } else if (asset.iconUrl === undefined) {
+          // keep existing icon registration
         } else {
           unregisterTrackedAssetIconUrl(key);
         }
-        const [withBalance] = await this.ensureBalances([updated], owner, false);
+        const [withBalance] = await this.ensureBalances([next], owner, false);
         return withBalance!;
       }
       const [withBalance] = await this.ensureBalances([found], owner, false);
@@ -212,8 +248,8 @@ export class LocalStorageTrackedAssetRepository
   }
 
   async remove(
-    chainId: EVMChainId,
-    address: EVMContractAddress,
+    chainId: KnownAssetChainId,
+    address: KnownAssetAddress,
   ): Promise<void> {
     if (isDefaultTrackedAsset(chainId, address)) {
       return;
@@ -229,8 +265,10 @@ export class LocalStorageTrackedAssetRepository
   }
 
   async getBalances(
-    owner: EVMAccountAddress,
-    options: { id: TrackedAssetId } | { chainId: EVMChainId },
+    owner: AssetOwnerAddress,
+    options:
+      | { id: TrackedAssetId }
+      | { chainId: EVMChainId | SolanaChainId },
   ): Promise<TrackedAsset[]> {
     const storageKey = await this.resolveStorageKey();
     const all = this.mergeWithDefaults(await this.readStoredAssets(storageKey));
@@ -255,7 +293,7 @@ export class LocalStorageTrackedAssetRepository
 
   private filterByChain(
     assets: TrackedAsset[],
-    chainId?: EVMChainId,
+    chainId?: KnownAssetChainId,
   ): TrackedAsset[] {
     if (chainId == null) return assets;
     const key = String(chainId).toLowerCase();
@@ -282,7 +320,7 @@ export class LocalStorageTrackedAssetRepository
 
   private async ensureBalances(
     assets: TrackedAsset[],
-    owner: EVMAccountAddress,
+    owner: AssetOwnerAddress,
     forceEmit: boolean,
   ): Promise<TrackedAsset[]> {
     let anyFetched = forceEmit;
@@ -310,13 +348,21 @@ export class LocalStorageTrackedAssetRepository
 
   private async fetchBalance(
     asset: TrackedAsset,
-    owner: EVMAccountAddress,
+    owner: AssetOwnerAddress,
   ): Promise<bigint | null> {
-    if (owner === EMPTY_OWNER) {
+    if (asset.type === EAssetType.Spl) {
+      if (!isSolanaOwner(owner) || owner === ("—" as SolanaAccountAddress)) {
+        return null;
+      }
+      return this.fetchSplBalance(asset, owner);
+    }
+
+    if (owner === EMPTY_EVM_OWNER || isSolanaOwner(owner)) {
       return null;
     }
     if (asset.type === EAssetType.Native) {
       try {
+        if (!ChainUtils.isEVMChainId(asset.chainId)) return null;
         const client = this.blockchain.getPublicClient(asset.chainId);
         return await client.getBalance({ address: owner as Address });
       } catch (error: unknown) {
@@ -328,6 +374,7 @@ export class LocalStorageTrackedAssetRepository
       return null;
     }
     try {
+      if (!ChainUtils.isEVMChainId(asset.chainId)) return null;
       const client = this.blockchain.getPublicClient(asset.chainId);
       return await client.readContract({
         address: asset.address as Address,
@@ -339,6 +386,42 @@ export class LocalStorageTrackedAssetRepository
       console.warn("[balances] balanceOf failed", error);
       return null;
     }
+  }
+
+  private async fetchSplBalance(
+    asset: TrackedAsset,
+    _owner: SolanaAccountAddress,
+  ): Promise<bigint | null> {
+    if (!ChainUtils.isSolanaChainId(asset.chainId)) {
+      return null;
+    }
+    try {
+      let ata = asset.ataAddress;
+      if (!ata) {
+        // Without a stored ATA, balance is unknown until Add Asset / ensureAta.
+        return 0n;
+      }
+      const exists = await this.solanaRpc.accountExists(asset.chainId, ata);
+      if (!exists) {
+        return 0n;
+      }
+      const { amount } = await this.solanaRpc.getTokenAccountBalance(
+        asset.chainId,
+        ata,
+      );
+      return amount;
+    } catch (error: unknown) {
+      console.warn("[balances] SPL token balance failed", error);
+      return null;
+    }
+  }
+
+  private parseAssetType(type: string): EAssetType {
+    if (type === EAssetType.Native) return EAssetType.Native;
+    if (type === EAssetType.Erc721) return EAssetType.Erc721;
+    if (type === EAssetType.Erc1155) return EAssetType.Erc1155;
+    if (type === EAssetType.Spl) return EAssetType.Spl;
+    return EAssetType.Erc20;
   }
 
   private async readStoredAssets(storageKey: string): Promise<TrackedAsset[]> {
@@ -354,7 +437,56 @@ export class LocalStorageTrackedAssetRepository
           typeof row?.address !== "string" ||
           typeof row?.name !== "string" ||
           typeof row?.symbol !== "string" ||
-          typeof row?.decimals !== "number" ||
+          typeof row?.decimals !== "number"
+        ) {
+          continue;
+        }
+
+        if (ChainUtils.isSolanaChainId(row.chainId)) {
+          const chainId = ChainUtils.asSolanaChainId(row.chainId);
+          let mint: SolanaMintAddress;
+          try {
+            mint = SolanaAddressUtils.asMintAddress(row.address);
+          } catch {
+            continue;
+          }
+          const type = this.parseAssetType(row.type);
+          if (type !== EAssetType.Spl) continue;
+          const iconUrl =
+            typeof row.iconUrl === "string" && row.iconUrl.length > 0
+              ? row.iconUrl
+              : undefined;
+          let ataAddress: SolanaATAAddress | null = null;
+          if (typeof row.ataAddress === "string" && row.ataAddress.length > 0) {
+            try {
+              ataAddress = SolanaAddressUtils.asAtaAddress(row.ataAddress);
+            } catch {
+              ataAddress = null;
+            }
+          }
+          const ataRentPaid =
+            typeof row.ataRentPaid === "boolean" ? row.ataRentPaid : null;
+          assets.push(
+            new TrackedAsset(
+              chainId,
+              mint,
+              EAssetType.Spl,
+              row.name,
+              row.symbol,
+              row.decimals,
+              makeTrackedAssetId(chainId, mint),
+              null,
+              iconUrl,
+              0,
+              false,
+              ataAddress,
+              ataRentPaid,
+            ),
+          );
+          continue;
+        }
+
+        if (
           !/^0x[0-9a-fA-F]+$/.test(row.chainId) ||
           !/^0x[0-9a-fA-F]{40}$/.test(row.address)
         ) {
@@ -362,14 +494,7 @@ export class LocalStorageTrackedAssetRepository
         }
         const chainId = ChainUtils.asEVMChainId(row.chainId);
         const address = EVMContractAddress(row.address as `0x${string}`);
-        const type =
-          row.type === EAssetType.Native
-            ? EAssetType.Native
-            : row.type === EAssetType.Erc721
-              ? EAssetType.Erc721
-              : row.type === EAssetType.Erc1155
-                ? EAssetType.Erc1155
-                : EAssetType.Erc20;
+        const type = this.parseAssetType(row.type);
         const iconUrl =
           typeof row.iconUrl === "string" && row.iconUrl.length > 0
             ? row.iconUrl
@@ -413,6 +538,10 @@ export class LocalStorageTrackedAssetRepository
         decimals: asset.decimals,
         id: asset.id,
         ...(asset.iconUrl ? { iconUrl: asset.iconUrl } : {}),
+        ...(asset.ataAddress != null ? { ataAddress: asset.ataAddress } : {}),
+        ...(asset.ataRentPaid != null
+          ? { ataRentPaid: asset.ataRentPaid }
+          : {}),
       })),
     };
     await this.storage.setItem(storageKey, JSON.stringify(blob));

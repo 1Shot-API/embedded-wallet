@@ -3,16 +3,25 @@ export {
   HardcodedKnownAssetRepository,
   isDefaultTrackedAsset,
 } from "./HardcodedKnownAssetRepository";
+export {
+  SOLANA_KNOWN_ASSETS,
+  SOLANA_USDC_DEVNET_MINT,
+  SOLANA_USDC_MAINNET_MINT,
+} from "./solanaKnownAssets";
 export { LocalStorageTrackedAssetRepository } from "./LocalStorageTrackedAssetRepository";
 export type { TrackedAssetRepositoryOptions } from "./LocalStorageTrackedAssetRepository";
 export { BlockscoutAssetActivityRepository } from "./BlockscoutAssetActivityRepository";
 export type { AssetActivityRepositoryOptions } from "./BlockscoutAssetActivityRepository";
+export { CompositeAssetActivityRepository } from "./CompositeAssetActivityRepository";
+export { SolanaAssetActivityRepository } from "./SolanaAssetActivityRepository";
+export type { SolanaAssetActivityRepositoryOptions } from "./SolanaAssetActivityRepository";
 export { OneshotRelayerRepository } from "./OneshotRelayerRepository";
 export { EVMRepository } from "./EVMRepository";
 export {
   DEFAULT_CHAIN_ID,
   HardcodedChainRepository,
 } from "./HardcodedChainRepository";
+export { AlchemySolanaRpc } from "./AlchemySolanaRpc";
 export { CircleRepository } from "./CircleRepository";
 export {
   parseInFlight,

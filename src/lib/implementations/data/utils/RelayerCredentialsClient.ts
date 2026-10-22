@@ -111,6 +111,7 @@ export class RelayerCredentialsClient implements IRelayerCredentialsClient {
   async storeCredentials(
     body: IWebAuthnAssertionRequest & {
       items: ICredentialStoreItem[];
+      deleteCredentialBlobIds?: string[];
     },
   ): Promise<{ id: string; ids: string[] }> {
     return this.postJson<{ id: string; ids: string[] }>(

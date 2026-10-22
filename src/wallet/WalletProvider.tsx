@@ -10,14 +10,16 @@ import {
   type CredentialSummary,
   type EVMTransactionHash,
   type OWSChainId,
+  type SolanaChainId,
+  type SolanaMintAddress,
   type StoredCredential,
 } from "@1shotapi/ows-types";
 import {
   AddressUtils,
   type IBlockchainProvider,
-type 
-  OWSWallet,type 
-  RpcHelper} from "@1shotapi/ows-wallet-utils";
+  type OWSWallet,
+  type RpcHelper,
+} from "@1shotapi/ows-wallet-utils";
 import {
   createContext,
   useCallback,
@@ -32,6 +34,7 @@ import {
 
 import { CircleContextProvider } from "../circle/CircleContext";
 import { openCctpBridge } from "../circle/openCctpBridge";
+import { openSolanaBridge } from "../circle/openSolanaBridge";
 import {
   BitcoinService,
   BridgeService,
@@ -40,17 +43,22 @@ import {
   DelegationService,
   LiFiUtils,
   PaymentTokenUtils,
+  SolanaBridgeService,
+  SolanaService,
   TransactionService,
 } from "../lib/implementations/business";
+import { AlchemySolanaRpc } from "../lib/implementations/data/AlchemySolanaRpc";
 import { AnkrBitcoinRpc } from "../lib/implementations/data/AnkrBitcoinRpc";
 import { BlockscoutAssetActivityRepository } from "../lib/implementations/data/BlockscoutAssetActivityRepository";
 import { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import { CircleRepository } from "../lib/implementations/data/CircleRepository";
+import { CompositeAssetActivityRepository } from "../lib/implementations/data/CompositeAssetActivityRepository";
 import { EVMRepository } from "../lib/implementations/data/EVMRepository";
 import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
 import { HardcodedKnownAssetRepository } from "../lib/implementations/data/HardcodedKnownAssetRepository";
 import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
 import { OneshotRelayerRepository } from "../lib/implementations/data/OneshotRelayerRepository";
+import { SolanaAssetActivityRepository } from "../lib/implementations/data/SolanaAssetActivityRepository";
 import { RelayerCredentialsClient } from "../lib/implementations/data/utils/RelayerCredentialsClient";
 import {
   ConfigProvider,
@@ -66,12 +74,15 @@ import type {
   IBridgeService,
   IBitcoinService,
   IDelegationService,
+  ISolanaBridgeService,
+  ISolanaService,
   ITransactionService,
 } from "../lib/interfaces/business";
 import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
 import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPaymentTokenUtils";
 import type {
+  ActivityOwnerAddress,
   IAssetActivityRepository,
   IChainRepository,
   ICircleRepository,
@@ -91,6 +102,9 @@ import type {
 import type {
   AssetActivity,
   KnownAsset,
+  KnownAssetAddress,
+  KnownAssetChainId,
+  SolanaKnownAsset,
   SupportedChain,
   TrackedAsset,
 } from "../lib/types/domain";
@@ -128,6 +142,8 @@ const owsProvider: IOWSProvider = new OWSProvider();
 const chainRepository: IChainRepository = new HardcodedChainRepository();
 const bitcoinRpc = new AnkrBitcoinRpc(configProvider);
 const bitcoinService = new BitcoinService(bitcoinRpc, owsProvider);
+const solanaRpc = new AlchemySolanaRpc(chainRepository);
+const solanaService = new SolanaService(solanaRpc, owsProvider);
 const blockchainProvider: IBlockchainProvider =
   new SupportedChainsBlockchainProvider(chainRepository);
 const addressUtils = new AddressUtils(blockchainProvider);
@@ -140,7 +156,7 @@ const analyticsBridge = new AnalyticsBridge({
 analyticsBridge.start();
 const transactionUtils: ITransactionUtils = new TransactionUtils();
 const knownAssetRepository: IKnownAssetRepository =
-  new HardcodedKnownAssetRepository(blockchainProvider);
+  new HardcodedKnownAssetRepository(blockchainProvider, solanaRpc);
 
 const walletKvStore = createIdbKvBackend();
 
@@ -148,12 +164,18 @@ const trackedAssetRepository = new LocalStorageTrackedAssetRepository(
   blockchainProvider,
   eventBus,
   configProvider,
+  solanaRpc,
   { storage: walletKvStore },
 );
 const assetActivityRepository: IAssetActivityRepository =
-  new BlockscoutAssetActivityRepository(eventBus, configProvider, {
-    storage: walletKvStore,
-  });
+  new CompositeAssetActivityRepository(
+    new BlockscoutAssetActivityRepository(eventBus, configProvider, {
+      storage: walletKvStore,
+    }),
+    new SolanaAssetActivityRepository(solanaRpc, eventBus, configProvider, {
+      storage: walletKvStore,
+    }),
+  );
 const oneshotRelayerRepository: IOneshotRelayerRepository =
   new OneshotRelayerRepository();
 const evmRepository: IEVMRepository = new EVMRepository(
@@ -209,6 +231,15 @@ const bridgeService: IBridgeService = new BridgeService(
   blockchainProvider,
 );
 
+const solanaBridgeService: ISolanaBridgeService = new SolanaBridgeService(
+  chainRepository,
+  knownAssetRepository,
+  circleRepository,
+  cctpUtils,
+  solanaRpc,
+  owsProvider,
+);
+
 const delegationService: IDelegationService = new DelegationService(
   chainRepository,
   credentialRepository,
@@ -250,7 +281,9 @@ export type WalletContextValue = {
   transactionService: ITransactionService;
   paymentTokenUtils: IPaymentTokenUtils;
   bridgeService: IBridgeService;
+  solanaBridgeService: ISolanaBridgeService;
   bitcoinService: IBitcoinService;
+  solanaService: ISolanaService;
   delegationService: IDelegationService;
   liFiUtils: ILiFiUtils;
   eventBus: IEventBus;
@@ -294,18 +327,29 @@ export type WalletContextValue = {
     /** Null when the user skipped on-chain cancellation. */
     transactionHashes: EVMTransactionHash[] | null;
   }>;
-  listTrackedAssets: (chainId?: EVMChainId) => Promise<TrackedAsset[]>;
+  listTrackedAssets: (chainId?: KnownAssetChainId) => Promise<TrackedAsset[]>;
+  listSolanaKnownAssets: (chainId: SolanaChainId) => Promise<SolanaKnownAsset[]>;
   addTrackedAsset: (
     chainId: EVMChainId,
     address: EVMContractAddress,
   ) => Promise<TrackedAsset>;
+  addSolanaTrackedAsset: (
+    chainId: SolanaChainId,
+    mint: SolanaMintAddress,
+  ) => Promise<TrackedAsset>;
   removeTrackedAsset: (
-    chainId: EVMChainId,
-    address: EVMContractAddress,
+    chainId: KnownAssetChainId,
+    address: KnownAssetAddress,
+  ) => Promise<void>;
+  /** Close empty ATA on-chain and untrack (one RelayerAuth-prefetch sign). */
+  closeSolanaAtaAndUntrack: (
+    chainId: SolanaChainId,
+    mint: SolanaMintAddress,
+    owner: SolanaAccountAddress,
   ) => Promise<void>;
   getKnownAsset: (
-    chainId: EVMChainId,
-    address: EVMContractAddress,
+    chainId: KnownAssetChainId,
+    address: KnownAssetAddress,
   ) => Promise<KnownAsset | null>;
   resolveTrackedAsset: (
     chainId: EVMChainId,
@@ -313,10 +357,10 @@ export type WalletContextValue = {
   ) => Promise<TrackedAsset>;
   requestBalanceRefresh: (
     id?: TrackedAssetId,
-    chainId?: EVMChainId,
+    chainId?: KnownAssetChainId,
   ) => Promise<void>;
   listAssetActivity: (
-    owner: EVMAccountAddress,
+    owner: ActivityOwnerAddress,
     asset: TrackedAsset,
     limit?: number,
   ) => Promise<AssetActivity[]>;
@@ -422,6 +466,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [refreshAllowedChains]);
 
   const evmAddress = useWalletSessionStore((state) => state.evmAddress);
+  const solanaAddress = useWalletSessionStore((state) => state.solanaAddress);
   const unlocked = useWalletSessionStore((state) => state.unlocked);
   useEffect(() => {
     if (!unlocked || !evmAddress || String(evmAddress).toLowerCase() === "0x0") {
@@ -430,8 +475,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     void bridgeService.resume(evmAddress).then((inFlight) => {
       if (cancelled || !inFlight) return;
+      if (!ChainUtils.isEVMChainId(inFlight.sourceChainId)) return;
       void openCctpBridge({
-        sourceChainId: inFlight.sourceChainId,
+        sourceChainId: ChainUtils.asEVMChainId(inFlight.sourceChainId),
         ownerAddress: evmAddress,
         resume: inFlight,
       }).catch(() => {
@@ -442,6 +488,44 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [evmAddress, unlocked]);
+
+  useEffect(() => {
+    if (!unlocked || !solanaAddress || solanaAddress === "—") {
+      return;
+    }
+    let cancelled = false;
+    void solanaBridgeService.resume(solanaAddress).then((inFlight) => {
+      if (cancelled || !inFlight) return;
+      if (!ChainUtils.isSolanaChainId(inFlight.sourceChainId)) return;
+      const sourceChainId = ChainUtils.asSolanaChainId(inFlight.sourceChainId);
+      void knownAssetRepository
+        .getCctpBridgeAsset(sourceChainId)
+        .then(async (usdc) => {
+          if (cancelled || !usdc) return;
+          const tracked = await trackedAssetRepository.list();
+          const row = tracked.find(
+            (a) =>
+              a.chainId === sourceChainId &&
+              String(a.address).toLowerCase() ===
+                String(usdc.address).toLowerCase() &&
+              a.ataAddress,
+          );
+          if (!row?.ataAddress) return;
+          void openSolanaBridge({
+            sourceChainId,
+            ownerAddress: solanaAddress,
+            mint: usdc.address as SolanaMintAddress,
+            burnAta: row.ataAddress,
+            resume: inFlight,
+          }).catch(() => {
+            /* user closed resume modal */
+          });
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [solanaAddress, unlocked]);
 
   const {
     setUnlocked,
@@ -490,8 +574,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     getDelegation,
     refreshDelegationsFromRelayer,
     listTrackedAssets,
+    listSolanaKnownAssets,
     addTrackedAsset,
+    addSolanaTrackedAsset,
     removeTrackedAsset,
+    closeSolanaAtaAndUntrack,
     getKnownAsset,
     resolveTrackedAsset,
     requestBalanceRefresh,
@@ -502,6 +589,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     knownAssetRepository,
     trackedAssetRepository,
     assetActivityRepository,
+    solanaService,
     eventBus,
     awaitSignerReady,
     refreshCredentialCount,
@@ -528,6 +616,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     trackedAssetRepository,
     transactionService,
     bitcoinService,
+    solanaService,
+    solanaRpc,
     paymentTokenUtils,
     delegationService,
     transactionUtils,
@@ -540,7 +630,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   });
 
   const switchChain = useCallback(async (next: OWSChainId) => {
-    if (ChainUtils.isBitcoinChainId(next)) {
+    if (
+      ChainUtils.isBitcoinChainId(next) ||
+      ChainUtils.isSolanaChainId(next)
+    ) {
       const session = useWalletSessionStore.getState();
       session.setChainId(next);
       if (session.focusedAssetAddress) {
@@ -934,7 +1027,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       transactionService,
       paymentTokenUtils,
       bridgeService,
+      solanaBridgeService,
       bitcoinService,
+      solanaService,
       delegationService,
       liFiUtils,
       eventBus,
@@ -957,8 +1052,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       refreshDelegationsFromRelayer,
       cancelStoredDelegations,
       listTrackedAssets,
+      listSolanaKnownAssets,
       addTrackedAsset,
+      addSolanaTrackedAsset,
       removeTrackedAsset,
+      closeSolanaAtaAndUntrack,
       getKnownAsset,
       resolveTrackedAsset,
       requestBalanceRefresh,
@@ -992,8 +1090,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       refreshDelegationsFromRelayer,
       cancelStoredDelegations,
       listTrackedAssets,
+      listSolanaKnownAssets,
       addTrackedAsset,
+      addSolanaTrackedAsset,
       removeTrackedAsset,
+      closeSolanaAtaAndUntrack,
       getKnownAsset,
       resolveTrackedAsset,
       requestBalanceRefresh,

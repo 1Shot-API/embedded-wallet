@@ -38,6 +38,7 @@ import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type {
   IDelegationService,
   IBitcoinService,
+  ISolanaService,
   ITransactionService,
 } from "../lib/interfaces/business";
 import {
@@ -50,6 +51,7 @@ import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPayme
 import type {
   IChainRepository,
   IKnownAssetRepository,
+  ISolanaRpc,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
 import type {
@@ -85,6 +87,7 @@ import {
 import { registerApprovalSigning } from "../ows/registerApprovalSigning";
 import { registerBitcoinProvider } from "../ows/registerBitcoinProvider";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
+import { registerSolanaProvider } from "../ows/registerSolanaProvider";
 import { loadCachedEvmAddress, loadCredentialId } from "../storage";
 import { registerConfigureRpc } from "../style/registerConfigure";
 import { styleController } from "../style/styleController";
@@ -212,6 +215,8 @@ export interface IUseWalletBootParams {
   trackedAssetRepository: ITrackedAssetRepository;
   transactionService: ITransactionService;
   bitcoinService: IBitcoinService;
+  solanaService: ISolanaService;
+  solanaRpc: ISolanaRpc;
   paymentTokenUtils: IPaymentTokenUtils;
   delegationService: IDelegationService;
   transactionUtils: ITransactionUtils;
@@ -245,6 +250,8 @@ export function useWalletBoot({
   trackedAssetRepository,
   transactionService,
   bitcoinService,
+  solanaService,
+  solanaRpc,
   paymentTokenUtils,
   delegationService,
   transactionUtils,
@@ -357,6 +364,16 @@ export function useWalletBoot({
       registerBitcoinProvider(wallet, {
         owsProvider,
         ensureReady,
+      });
+
+      registerSolanaProvider(wallet, {
+        owsProvider,
+        ensureReady,
+        ensureOnboardedForSigning,
+        configProvider,
+        solanaRpc,
+        emitAnalytics: (event) => eventBus.emitAnalytics(event),
+        ask,
       });
 
       const catalog = chainRepository.getCatalog();
@@ -851,15 +868,23 @@ export function useWalletBoot({
           }
           return address;
         },
+        getSolanaAddress: () => {
+          const address = useWalletSessionStore.getState().solanaAddress;
+          if (!address || address === "—") {
+            return null;
+          }
+          return address;
+        },
         getSessionChainId: () => {
           const id = useWalletSessionStore.getState().chainId;
           if (ChainUtils.isBitcoinChainId(id)) {
             return DEFAULT_CHAIN_ID;
           }
-          return id as EVMChainId;
+          return id;
         },
         chainRepository,
         knownAssetRepository,
+        trackedAssetRepository,
         cctpUtils,
       });
 
@@ -867,7 +892,14 @@ export function useWalletBoot({
         ensureReady,
         knownAssetRepository,
         trackedAssetRepository,
+        solanaService,
+        credentialRepository,
         getOwnerAddress: () => useWalletSessionStore.getState().evmAddress,
+        getSolanaAddress: () => {
+          const address = useWalletSessionStore.getState().solanaAddress;
+          if (!address || address === "—") return null;
+          return address;
+        },
         requestAddAssetApproval: (request) =>
           ask<boolean>(({ id, resolve }) => ({
             id,

@@ -3,14 +3,26 @@ import {
   ChainUtils,
   EVMContractAddress,
   type EVMChainId,
+  type EVMContractAddress as EVMContractAddressType,
+  type SolanaChainId,
+  type SolanaMintAddress,
+  SolanaAddressUtils,
 } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import { erc20Abi, zeroAddress } from "viem";
 
 import { makeTrackedAssetId } from "@/lib/types/primitives";
 
-import type { IKnownAssetRepository } from "../../interfaces/data/IKnownAssetRepository";
-import { KnownAsset } from "../../types/domain/KnownAsset";
+import type {
+  AssetOwnerAddress,
+  IKnownAssetRepository,
+} from "../../interfaces/data/IKnownAssetRepository";
+import type { ISolanaRpc } from "../../interfaces/data/ISolanaRpc";
+import {
+  type KnownAssetAddress,
+  type KnownAssetChainId,
+  type SolanaKnownAsset,
+ KnownAsset, isSolanaKnownAsset } from "../../types/domain/KnownAsset";
 import { NewTrackedAsset } from "../../types/domain/TrackedAsset";
 import { EAssetType } from "../../types/enum/EAssetType";
 import { EChain } from "../../types/enum/EChain";
@@ -22,7 +34,12 @@ import {
   getCctpBridgeAsset as lookupCctpBridgeAsset,
   getOnrampAsset as lookupOnrampAsset,
 } from "./relayerKnownAssets";
+import { SOLANA_KNOWN_ASSETS } from "./solanaKnownAssets";
 
+function truncateMintLabel(mint: string): string {
+  if (mint.length <= 11) return mint;
+  return `${mint.slice(0, 4)}…${mint.slice(-4)}`;
+}
 
 const NATIVE_ADDRESS = EVMContractAddress(zeroAddress);
 const NATIVE_WEIGHT = 50;
@@ -63,6 +80,7 @@ const NATIVE_KNOWN_ASSETS: readonly KnownAsset[] = buildNativeKnownAssets();
 const ALL_KNOWN_ASSETS: readonly KnownAsset[] = [
   ...RELAYER_KNOWN_ASSETS,
   ...NATIVE_KNOWN_ASSETS,
+  ...SOLANA_KNOWN_ASSETS,
 ];
 
 const BY_KEY = new Map(
@@ -81,6 +99,7 @@ registerKnownAssetIconResolver(
  * Pinned payment stables use {@link KnownAsset.weight} ≥ 100 in
  * {@link RELAYER_KNOWN_ASSETS} (USDC on each supported EVM chain, USDG on
  * Robinhood). Weight is the source of truth — no per-chain symbol allowlist.
+ * Solana USDC is catalog-only (not default-tracked — ATA rent).
  */
 function isPinnedStable(asset: KnownAsset): boolean {
   return asset.type === EAssetType.Erc20 && asset.weight >= 100;
@@ -108,25 +127,42 @@ const DEFAULT_TRACKED_KEYS = new Set(
 );
 
 export function isDefaultTrackedAsset(
-  chainId: EVMChainId,
-  address: EVMContractAddress,
+  chainId: KnownAssetChainId,
+  address: KnownAssetAddress,
 ): boolean {
   return DEFAULT_TRACKED_KEYS.has(makeTrackedAssetId(chainId, address));
 }
 
 export class HardcodedKnownAssetRepository implements IKnownAssetRepository {
-  constructor(private readonly blockchain: IBlockchainProvider) {}
+  constructor(
+    private readonly blockchain: IBlockchainProvider,
+    private readonly solanaRpc: ISolanaRpc,
+  ) {}
 
   async getKnownAsset(
-    chainId: EVMChainId,
-    address: EVMContractAddress,
+    chainId: KnownAssetChainId,
+    address: KnownAssetAddress,
   ): Promise<KnownAsset | null> {
     return BY_KEY.get(makeTrackedAssetId(chainId, address)) ?? null;
   }
 
+  async listSolanaKnownAssets(
+    chainId: SolanaChainId,
+  ): Promise<SolanaKnownAsset[]> {
+    return SOLANA_KNOWN_ASSETS.filter((asset) => asset.chainId === chainId);
+  }
+
   async getCctpBridgeAsset(
-    chainId: EVMChainId,
+    chainId: EVMChainId | SolanaChainId,
   ): Promise<KnownAsset | null> {
+    if (ChainUtils.isSolanaChainId(chainId)) {
+      return (
+        SOLANA_KNOWN_ASSETS.find(
+          (asset) =>
+            asset.useCCTPBridge && asset.chainId === chainId,
+        ) ?? null
+      );
+    }
     return lookupCctpBridgeAsset(chainId);
   }
 
@@ -138,11 +174,39 @@ export class HardcodedKnownAssetRepository implements IKnownAssetRepository {
   }
 
   async resolveForTracking(
-    chainId: EVMChainId,
-    address: EVMContractAddress,
-    owner: EVMAccountAddress,
+    chainId: EVMChainId | SolanaChainId,
+    address: EVMContractAddressType | SolanaMintAddress,
+    owner: AssetOwnerAddress,
   ): Promise<NewTrackedAsset> {
-    const known = await this.getKnownAsset(chainId, address);
+    if (ChainUtils.isSolanaChainId(chainId)) {
+      const mint = SolanaAddressUtils.asMintAddress(String(address));
+      const known = await this.getKnownAsset(chainId, mint);
+      if (known && isSolanaKnownAsset(known)) {
+        void owner;
+        return NewTrackedAsset.fromKnown(known);
+      }
+      void owner;
+      try {
+        const mintInfo = await this.solanaRpc.getMintInfo(chainId, mint);
+        const label = truncateMintLabel(String(mint));
+        return new NewTrackedAsset(
+          chainId,
+          mint,
+          EAssetType.Spl,
+          label,
+          label,
+          mintInfo.decimals,
+        );
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Mint probe failed";
+        throw new Error(`Not an SPL mint: ${message}`);
+      }
+    }
+
+    const evmChainId = ChainUtils.asEVMChainId(chainId);
+    const contract = EVMContractAddress(String(address) as `0x${string}`);
+    const known = await this.getKnownAsset(evmChainId, contract);
     if (
       known?.type === EAssetType.Erc20 ||
       known?.type === EAssetType.Native
@@ -150,26 +214,27 @@ export class HardcodedKnownAssetRepository implements IKnownAssetRepository {
       return NewTrackedAsset.fromKnown(known);
     }
 
-    const client = this.blockchain.getPublicClient(chainId);
-    const code = await client.getCode({ address: address });
+    const client = this.blockchain.getPublicClient(evmChainId);
+    const code = await client.getCode({ address: contract });
     if (!code || code === "0x") {
       throw new Error("Address is not a contract");
     }
 
     try {
+      const evmOwner = owner as EVMAccountAddress;
       const [name, symbol, decimals] = await Promise.all([
         client.readContract({
-          address: address,
+          address: contract,
           abi: erc20Abi,
           functionName: "name",
         }),
         client.readContract({
-          address: address,
+          address: contract,
           abi: erc20Abi,
           functionName: "symbol",
         }),
         client.readContract({
-          address: address,
+          address: contract,
           abi: erc20Abi,
           functionName: "decimals",
         }),
@@ -177,15 +242,15 @@ export class HardcodedKnownAssetRepository implements IKnownAssetRepository {
 
       // Validate ERC-20 with a balanceOf probe (reverts → not ERC-20).
       await client.readContract({
-        address: address,
+        address: contract,
         abi: erc20Abi,
         functionName: "balanceOf",
-        args: [owner],
+        args: [evmOwner],
       });
 
       return new NewTrackedAsset(
-        chainId,
-        address,
+        evmChainId,
+        contract,
         EAssetType.Erc20,
         name,
         symbol,

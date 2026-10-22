@@ -2,6 +2,8 @@ import {
   BITCOIN_MAINNET_CHAIN_ID,
   BITCOIN_TESTNET_CHAIN_ID,
   ChainUtils,
+  SOLANA_DEVNET_CHAIN_ID,
+  SOLANA_MAINNET_CHAIN_ID,
   type OWSChainId,
 } from "@1shotapi/ows-types";
 import type { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
@@ -12,11 +14,15 @@ import { useWalletSessionStore } from "./sessionStore";
 /** Custom RPC — host: `await proxy.rpc("switchChain", { chainId })`. */
 export const SWITCH_CHAIN_RPC_METHOD = "switchChain";
 
-/** Custom RPC — host: `await proxy.rpc("getChainId")` — session OWS chain (EVM or Bitcoin). */
+/** Custom RPC — host: `await proxy.rpc("getChainId")` — session OWS chain. */
 export const GET_CHAIN_ID_RPC_METHOD = "getChainId";
 
 const switchChainParamsSchema = z.strictObject({
-  chainId: z.string().regex(/^(0x[0-9a-fA-F]+|Bitcoin|BitcoinTestnet)$/),
+  chainId: z
+    .string()
+    .regex(
+      /^(0x[0-9a-fA-F]+|Bitcoin|BitcoinTestnet|solana:mainnet|solana:devnet)$/,
+    ),
 });
 
 export type ISwitchChainParams = z.infer<typeof switchChainParamsSchema>;
@@ -25,16 +31,23 @@ function toOwsChainId(raw: string): OWSChainId {
   if (ChainUtils.isBitcoinChainId(raw)) {
     return ChainUtils.asBitcoinChainId(raw);
   }
+  if (ChainUtils.isSolanaChainId(raw)) {
+    return ChainUtils.asSolanaChainId(raw);
+  }
   return ChainUtils.asEVMChainId(raw);
 }
 
+function clearFocusedAssetIfNeeded(): void {
+  const session = useWalletSessionStore.getState();
+  if (session.focusedAssetAddress) {
+    session.setFocusedAssetAddress(null);
+  }
+}
+
 /**
- * Host chain switch that accepts EVM hex ids and Bitcoin sentinels
- * (`Bitcoin` / `BitcoinTestnet`). Bitcoin is session-only (no EIP-1193);
- * EVM goes through {@link RpcHelper.switchChain}.
- *
- * Also registers {@link GET_CHAIN_ID_RPC_METHOD} so hosts can read the session
- * chain when `eth_chainId` cannot represent Bitcoin.
+ * Host chain switch that accepts EVM hex ids, Bitcoin sentinels, and Solana
+ * CAIP-2 ids. Bitcoin / Solana are session-only (no EIP-1193); EVM goes through
+ * {@link RpcHelper.switchChain}.
  */
 export function registerSwitchChainRpc(
   wallet: OWSWallet,
@@ -49,11 +62,7 @@ export function registerSwitchChainRpc(
       if (ChainUtils.isBitcoinChainId(chainId)) {
         const session = useWalletSessionStore.getState();
         session.setChainId(chainId);
-        // Focused mode holds an EVM asset address — drop it on Bitcoin switch.
-        if (session.focusedAssetAddress) {
-          session.setFocusedAssetAddress(null);
-        }
-        // EIP-1193-style notify — hosts must accept Bitcoin string ids.
+        clearFocusedAssetIfNeeded();
         wallet.providerEvents.emit("chainChanged", chainId);
         return {
           ok: true as const,
@@ -64,10 +73,21 @@ export function registerSwitchChainRpc(
         };
       }
 
+      if (ChainUtils.isSolanaChainId(chainId)) {
+        const session = useWalletSessionStore.getState();
+        session.setChainId(chainId);
+        clearFocusedAssetIfNeeded();
+        wallet.providerEvents.emit("chainChanged", chainId);
+        return {
+          ok: true as const,
+          chainId:
+            chainId === SOLANA_MAINNET_CHAIN_ID
+              ? SOLANA_MAINNET_CHAIN_ID
+              : SOLANA_DEVNET_CHAIN_ID,
+        };
+      }
+
       await rpcHelper.switchChain(String(chainId));
-      // RpcHelper no-ops when already on `chainId` (e.g. session was Bitcoin
-      // while the helper stayed on that EVM). Sync + emit only when session
-      // still differs — onChainChanged already handled a real RpcHelper change.
       const session = useWalletSessionStore.getState();
       if (
         String(session.chainId).toLowerCase() !== String(chainId).toLowerCase()

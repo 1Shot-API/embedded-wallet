@@ -2,12 +2,15 @@ import type { OWSProxy } from "@1shotapi/ows-provider";
 import {
   ChainUtils,
   ConversionUtils,
+  DomainString,
   EVMAccountAddress,
   EVMChainId,
   HexString,
+  UriString,
   type EVMTransactionHash,
   type IExecutionPermissionResponse,
   type OWSChainId,
+  type SolanaChainId,
 } from "@1shotapi/ows-types";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import {
@@ -48,6 +51,13 @@ import {
   syncDemoTypedDataChainId,
   type SignMode,
 } from "../constants/signDemo";
+import {
+  buildDemoSolTransferWire,
+  DEMO_SOL_TRANSFER_LAMPORTS,
+  ensureOwsSolanaConnected,
+  standardSignAndSendDemo,
+  standardSignTransactionDemo,
+} from "../constants/solanaTxDemo";
 import { mergeConfigurePayload } from "../styleForm";
 
 const USDC_DECIMALS = 6;
@@ -217,8 +227,17 @@ export function useHostTestActions({
     setTypedDataJson((prev) => syncDemoTypedDataChainId(prev, chainId));
   }, [chainId]);
 
+  useEffect(() => {
+    if (ChainUtils.isSolanaChainId(chainId) && signMode === "typedData") {
+      setSignMode("message");
+    }
+  }, [chainId, signMode]);
+
   const handleSignModeChange = useCallback(
     (mode: SignMode) => {
+      if (ChainUtils.isSolanaChainId(chainId) && mode === "typedData") {
+        return;
+      }
       setSignMode(mode);
       if (mode === "typedData") {
         setTypedDataJson(defaultTypedDataJsonForChain(chainId));
@@ -359,6 +378,31 @@ export function useHostTestActions({
 
       setBusy(true);
       setSignature(null);
+
+      if (ChainUtils.isSolanaChainId(chainId)) {
+        reportStatus("Calling proxy.solana.signMessage…");
+        void (async () => {
+          try {
+            const bytes = new TextEncoder().encode(trimmed);
+            const result = await proxy.solana.signMessage({
+              messages: [ConversionUtils.bytesToBase64(bytes)],
+            });
+            setSignature(result.signatures.join("\n"));
+            reportStatus("Solana message signed");
+          } catch (error) {
+            reportStatus(
+              error instanceof Error
+                ? error.message
+                : "Solana signMessage failed",
+              true,
+            );
+          } finally {
+            setBusy(false);
+          }
+        })();
+        return;
+      }
+
       reportStatus("Requesting accounts…");
 
       void (async () => {
@@ -419,7 +463,110 @@ export function useHostTestActions({
     })();
   };
 
+  const handleSolanaSignAndSend = () => {
+    const proxy = proxyRef.current;
+    if (!proxy || !ChainUtils.isSolanaChainId(chainId)) return;
+    setBusy(true);
+    setSignature(null);
+    setTxHash(null);
+    reportStatus("Building Solana transfer via Wallet Standard…");
+    void (async () => {
+      try {
+        const accountInfo = await ensureOwsSolanaConnected();
+        setAccount(accountInfo.address);
+        const wire = await buildDemoSolTransferWire({
+          chainId: chainId as SolanaChainId,
+          from: accountInfo.address,
+        });
+        reportStatus(
+          `Approve sign & send (${DEMO_SOL_TRANSFER_LAMPORTS} lamports to self)…`,
+        );
+        const signature = await standardSignAndSendDemo({
+          chainId: chainId as SolanaChainId,
+          accountAddress: accountInfo.address,
+          wireTransaction: wire,
+        });
+        setSignature(signature);
+        setTxHash(signature);
+        reportStatus(`Solana transaction submitted: ${signature}`);
+      } catch (error) {
+        reportStatus(
+          error instanceof Error
+            ? error.message
+            : "Solana signAndSendTransaction failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleSolanaSignTransaction = () => {
+    const proxy = proxyRef.current;
+    if (!proxy || !ChainUtils.isSolanaChainId(chainId)) return;
+    setBusy(true);
+    setSignature(null);
+    reportStatus("Building Solana transfer for signTransaction…");
+    void (async () => {
+      try {
+        const accountInfo = await ensureOwsSolanaConnected();
+        setAccount(accountInfo.address);
+        const wire = await buildDemoSolTransferWire({
+          chainId: chainId as SolanaChainId,
+          from: accountInfo.address,
+        });
+        reportStatus("Approve sign transaction (no submit)…");
+        const signedWireBase64 = await standardSignTransactionDemo({
+          accountAddress: accountInfo.address,
+          wireTransaction: wire,
+        });
+        setSignature(signedWireBase64);
+        reportStatus("Solana transaction signed (Host holds wire; not submitted)");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error
+            ? error.message
+            : "Solana signTransaction failed",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
   const handleLoadSiwe = () => {
+    if (ChainUtils.isSolanaChainId(chainId)) {
+      const proxy = proxyRef.current;
+      if (!proxy) return;
+      setBusy(true);
+      setSignature(null);
+      reportStatus("Requesting Solana sign-in (SIWS)…");
+      void (async () => {
+        try {
+          const result = await proxy.solana.signIn({
+            domain: DomainString(window.location.host),
+            uri: UriString(window.location.origin),
+            chainId: chainId as SolanaChainId,
+            nonce: randomSiweNonce(),
+            statement: "Sign in with Solana to the host playground.",
+          });
+          setAccount(String(result.account));
+          setSignature(String(result.signature));
+          reportStatus(`SIWS signed as ${result.account}`);
+        } catch (error) {
+          reportStatus(
+            error instanceof Error ? error.message : "SIWS failed",
+            true,
+          );
+        } finally {
+          setBusy(false);
+        }
+      })();
+      return;
+    }
+
     const address =
       account ?? "0x0000000000000000000000000000000000000001";
     const params = buildSiweParams(
@@ -1127,6 +1274,8 @@ export function useHostTestActions({
     onUsdcAmountChange: setUsdcAmount,
     onSign: handleSign,
     onLoadSiwe: handleLoadSiwe,
+    onSolanaSignAndSend: handleSolanaSignAndSend,
+    onSolanaSignTransaction: handleSolanaSignTransaction,
     walletVisible,
     onToggleWallet: handleToggleWallet,
     onUsdcAction: handleUsdcAction,
