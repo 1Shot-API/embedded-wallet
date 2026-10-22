@@ -67,14 +67,17 @@ export function SolanaDetails() {
     listTrackedAssets,
     requestBalanceRefresh,
     removeTrackedAsset,
+    closeSolanaAtaAndUntrack,
   } = useWallet();
-  const { chainId, solanaAddress, unlocked } = useWalletSessionStore(
-    useShallow((state) => ({
-      chainId: state.chainId,
-      solanaAddress: state.solanaAddress,
-      unlocked: state.unlocked,
-    })),
-  );
+  const { chainId, solanaAddress, unlocked, trackedAssetCount } =
+    useWalletSessionStore(
+      useShallow((state) => ({
+        chainId: state.chainId,
+        solanaAddress: state.solanaAddress,
+        unlocked: state.unlocked,
+        trackedAssetCount: state.trackedAssetCount,
+      })),
+    );
 
   const solChainId = ChainUtils.asSolanaChainId(chainId);
   const address: SolanaAccountAddress | null =
@@ -118,11 +121,25 @@ export function SolanaDetails() {
       }
       setError(null);
       try {
+        // Paint tracked SPL rows from local store first so add/remove shows up
+        // even if balance RPC is slow or fails (same pattern as EVM AssetList).
+        const listed = await listTrackedAssets(solChainId);
+        if (requestId !== requestIdRef.current) return;
+        setSplAssets(listed.filter((a) => a.type === EAssetType.Spl));
+        setDetail((current) => {
+          if (current?.kind !== "spl") return current;
+          const next = listed.find((a) => a.id === current.asset.id);
+          return next ? { kind: "spl", asset: next } : null;
+        });
+
         const [balance, refreshed] = await Promise.all([
           solanaService.getBalance(solChainId, address),
-          requestBalanceRefresh(undefined, solChainId).then(() =>
-            listTrackedAssets(solChainId),
-          ),
+          requestBalanceRefresh(undefined, solChainId)
+            .then(() => listTrackedAssets(solChainId))
+            .catch((err: unknown) => {
+              console.warn("[solana] balance refresh failed", err);
+              return listed;
+            }),
         ]);
         if (requestId !== requestIdRef.current) return;
         setBalanceLamports(balance);
@@ -130,7 +147,7 @@ export function SolanaDetails() {
         setDetail((current) => {
           if (current?.kind !== "spl") return current;
           const next = refreshed.find((a) => a.id === current.asset.id);
-          return next ? { kind: "spl", asset: next } : current;
+          return next ? { kind: "spl", asset: next } : null;
         });
       } catch (err: unknown) {
         if (requestId !== requestIdRef.current) return;
@@ -162,6 +179,12 @@ export function SolanaDetails() {
     void refresh();
   }, [refresh, unlocked]);
 
+  // Same signal EVM AssetList uses — pick up add/remove without relying on
+  // modal callbacks alone.
+  useEffect(() => {
+    void refresh({ quiet: true });
+  }, [trackedAssetCount, refresh]);
+
   const canAct = Boolean(address);
 
   const onSelect = (selection: SolanaListSelection) => {
@@ -192,12 +215,11 @@ export function SolanaDetails() {
           setRemoveError(solanaCopy.closeAtaMustEmptyError);
           return;
         }
-        await solanaService.closeAta({
-          chainId: solChainId,
-          owner: address,
-          mint: asset.address as SolanaMintAddress,
-        });
-        await removeTrackedAsset(asset.chainId, asset.address);
+        await closeSolanaAtaAndUntrack(
+          solChainId,
+          asset.address as SolanaMintAddress,
+          address,
+        );
         setDetail(null);
         await refresh({ quiet: true });
       } catch (err: unknown) {
@@ -214,12 +236,11 @@ export function SolanaDetails() {
     },
     [
       address,
+      closeSolanaAtaAndUntrack,
       refresh,
-      removeTrackedAsset,
       solChainId,
       solanaCopy.closeAtaFailedError,
       solanaCopy.closeAtaMustEmptyError,
-      solanaService,
     ],
   );
 

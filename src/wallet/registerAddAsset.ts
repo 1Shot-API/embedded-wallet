@@ -15,6 +15,7 @@ import {
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import { z } from "zod";
 
+import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import type { ISolanaService } from "../lib/interfaces/business/ISolanaService";
 import type {
   IKnownAssetRepository,
@@ -58,6 +59,8 @@ export type RegisterAddAssetOptions = {
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   solanaService: ISolanaService;
+  /** Prefetch RelayerAuth on ATA create sign for tracked-assets vault sync. */
+  credentialRepository: CachedRelayerVaultRepository;
   getOwnerAddress: () => EVMAccountAddressType;
   getSolanaAddress: () => SolanaAccountAddress | null;
   requestAddAssetApproval: (
@@ -110,11 +113,21 @@ export function registerAddAssetRpc(
             throw new OwsUserRejectedError("User rejected add asset request");
           }
 
-          const ataResult = await options.solanaService.ensureAta({
-            chainId,
-            owner: solOwner,
-            mint,
-          });
+          options.credentialRepository.armRelayerAuthPrefetch();
+          let ataResult;
+          try {
+            ataResult = await options.solanaService.ensureAta({
+              chainId,
+              owner: solOwner,
+              mint,
+            });
+            if (!ataResult.created) {
+              options.credentialRepository.clearRelayerAuthPrefetch();
+            }
+          } catch (error: unknown) {
+            options.credentialRepository.clearRelayerAuthPrefetch();
+            throw error;
+          }
           const toPersist = toPersistBase.withAta(
             ataResult.ataAddress,
             true,

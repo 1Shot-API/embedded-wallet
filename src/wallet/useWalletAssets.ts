@@ -3,6 +3,7 @@ import {
   type EVMAccountAddress,
   type EVMContractAddress,
   type EVMChainId,
+  type SolanaAccountAddress,
   type SolanaChainId,
   type SolanaMintAddress,
   ChainUtils,
@@ -138,6 +139,8 @@ export function useWalletAssets({
 
   /**
    * Catalog Solana mint → ensure ATA (user pays rent) → track with ATA fields.
+   * Prefetches RelayerAuth during the create-ATA sign so tracked-assets sync
+   * reuses the cached assertion (tracked assets are unencrypted).
    */
   const addSolanaTrackedAsset = useCallback(
     async (chainId: SolanaChainId, mint: SolanaMintAddress) => {
@@ -150,11 +153,22 @@ export function useWalletAssets({
         mint,
         solOwner,
       );
-      const ataResult = await solanaService.ensureAta({
-        chainId,
-        owner: solOwner,
-        mint,
-      });
+      credentialRepository.armRelayerAuthPrefetch();
+      let ataResult;
+      try {
+        ataResult = await solanaService.ensureAta({
+          chainId,
+          owner: solOwner,
+          mint,
+        });
+        if (!ataResult.created) {
+          // No sign ceremony — drop unused arm; sync will assert if needed.
+          credentialRepository.clearRelayerAuthPrefetch();
+        }
+      } catch (error: unknown) {
+        credentialRepository.clearRelayerAuthPrefetch();
+        throw error;
+      }
       const tracked = await trackedAssetRepository.add(
         resolved.withAta(ataResult.ataAddress, true),
         solOwner,
@@ -163,6 +177,7 @@ export function useWalletAssets({
       return tracked;
     },
     [
+      credentialRepository,
       knownAssetRepository,
       refreshTrackedAssetCount,
       solanaService,
@@ -176,6 +191,34 @@ export function useWalletAssets({
       await refreshTrackedAssetCount();
     },
     [refreshTrackedAssetCount, trackedAssetRepository],
+  );
+
+  /**
+   * Close empty ATA on-chain, then untrack. RelayerAuth is prefetched on the
+   * close TX sign so vault sync needs no second passkey.
+   */
+  const closeSolanaAtaAndUntrack = useCallback(
+    async (
+      chainId: SolanaChainId,
+      mint: SolanaMintAddress,
+      owner: SolanaAccountAddress,
+    ) => {
+      credentialRepository.armRelayerAuthPrefetch();
+      try {
+        await solanaService.closeAta({ chainId, owner, mint });
+      } catch (error: unknown) {
+        credentialRepository.clearRelayerAuthPrefetch();
+        throw error;
+      }
+      await trackedAssetRepository.remove(chainId, mint);
+      await refreshTrackedAssetCount();
+    },
+    [
+      credentialRepository,
+      refreshTrackedAssetCount,
+      solanaService,
+      trackedAssetRepository,
+    ],
   );
 
   const getKnownAsset = useCallback(
@@ -287,6 +330,7 @@ export function useWalletAssets({
     addTrackedAsset,
     addSolanaTrackedAsset,
     removeTrackedAsset,
+    closeSolanaAtaAndUntrack,
     getKnownAsset,
     resolveTrackedAsset,
     requestBalanceRefresh,

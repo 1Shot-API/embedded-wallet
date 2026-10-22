@@ -885,6 +885,7 @@ export function useWalletBoot({
         knownAssetRepository,
         trackedAssetRepository,
         solanaService,
+        credentialRepository,
         getOwnerAddress: () => useWalletSessionStore.getState().evmAddress,
         getSolanaAddress: () => {
           const address = useWalletSessionStore.getState().solanaAddress;

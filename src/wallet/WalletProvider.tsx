@@ -318,6 +318,12 @@ export type WalletContextValue = {
     chainId: KnownAssetChainId,
     address: KnownAssetAddress,
   ) => Promise<void>;
+  /** Close empty ATA on-chain and untrack (one RelayerAuth-prefetch sign). */
+  closeSolanaAtaAndUntrack: (
+    chainId: SolanaChainId,
+    mint: SolanaMintAddress,
+    owner: SolanaAccountAddress,
+  ) => Promise<void>;
   getKnownAsset: (
     chainId: KnownAssetChainId,
     address: KnownAssetAddress,
@@ -509,6 +515,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     addTrackedAsset,
     addSolanaTrackedAsset,
     removeTrackedAsset,
+    closeSolanaAtaAndUntrack,
     getKnownAsset,
     resolveTrackedAsset,
     requestBalanceRefresh,
@@ -985,6 +992,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       addTrackedAsset,
       addSolanaTrackedAsset,
       removeTrackedAsset,
+      closeSolanaAtaAndUntrack,
       getKnownAsset,
       resolveTrackedAsset,
       requestBalanceRefresh,
@@ -1022,6 +1030,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       addTrackedAsset,
       addSolanaTrackedAsset,
       removeTrackedAsset,
+      closeSolanaAtaAndUntrack,
       getKnownAsset,
       resolveTrackedAsset,
       requestBalanceRefresh,
