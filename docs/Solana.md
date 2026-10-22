@@ -207,37 +207,26 @@ proxy.solana.registerSolanaWallet(); // optional { name?, icon? }
 
 ### Phase 6 — `signAndSendTransaction` (Host execution via Alchemy)
 
-**Repos:** Branding tx decode/consent + build/sign/submit + Standard feature. **Haziest phase — design spike required.**
+**Done.** Branding consent + Alchemy simulate (warn) / submit; Standard `signTransaction` + `signAndSendTransaction` live.
 
 **Intent:** Dapps can request execution without owning a Solana RPC. Branding signs with the passkey and **submits through Alchemy**.
 
-#### Requirements (non-negotiable)
+#### Delivered
 
-1. **Branding owns RPC submit** for `signAndSendTransaction`. Hosts must not be required to pass an RPC URL or API key.
-2. **User consent before Signing ceremony** — show a Solana-specific confirm UI (fee payer, summary of instructions at a human level, destination SOL amount when detectable). Perfect ABI decoding is not required for MVP; silent blind-sign is not acceptable.
-3. **Fee payer = user** for MVP. Do not silently replace fee payer or sponsor fees.
-4. **Block or warn on dangerous patterns** we can detect cheaply (exact policy TBD in spike): e.g. unexpected durable nonce, authority changes, create-account draining rent to strangers — start conservative.
-5. **Idempotent enough UX:** show signature / signature status; surface RPC errors without stuck spinners.
-6. **Cluster binding:** tx must match the wallet’s selected Solana cluster (reject mainnet tx while UI is on Devnet, etc.).
+1. **Branding owns RPC submit** for `signAndSendTransaction` (Alchemy `sendTransaction`). Hosts do not pass RPC URLs or API keys.
+2. **Consent UI** (`SolanaSignAndSendModal` / `copy.solanaSignAndSend`) — fee payer, instruction summary (System SOL transfers when detectable), host domain + network chrome.
+3. **Fee payer = user**; reject extra required signers; reject more than 64 instructions; `signTransaction` batch capped at 5.
+4. **Warn (non-blocking):** Alchemy `simulateTransaction` (`sigVerify: false`) failure; durable nonce AdvanceNonce.
+5. **Cluster binding:** `params.chainId` (when set) must match the wallet’s selected Solana cluster.
+6. **`signTransaction`** also shipped — same consent + sign path; Host merges signatures (no Branding submit).
 
-#### Restrictions / explicit non-goals for MVP
+#### Still deferred
 
-- No relayer, no sponsored SOL gas, no “Host pays fees.”
-- No guarantee of full program IDL decoding (unknown programs → generic instruction list / risk copy).
-- No multi-wallet / coin-signer aggregation.
-- No automatic ALT (address lookup table) management beyond accepting versioned txs that already reference ALTs.
-- Prefer **partially signed only by us**: if the tx requires other signers, fail clearly.
-- Cap or reject oversized / multi-hundred-instruction txs if they break consent UI (define limit in spike).
-- Priority fees / compute budget: follow sane defaults or preserve what the dapp set; don’t invent a second fee market UI in MVP unless Send already needs it.
+- Dynamic Standard `account.chains` on in-wallet cluster switch (both chains still advertised).
+- Mobile / extension-specific path vs WalletConnect `solana_signTransaction`.
+- Full IDL decode / SPL (Phase 7).
 
-#### Open questions for the Phase 6 design cycle
-
-- Expose **`signTransaction`** (return serialized signed tx) in addition to sign-and-send? (Useful for dapps that must submit themselves; still no Host Alchemy key.)
-- Simulation (`simulateTransaction`) before confirm — strongly recommended if Alchemy supports it reliably for our tx set.
-- How Wallet Standard `account` / `chains` update when the user switches Solana cluster in-wallet.
-- Mobile / extension: same Branding submit path vs WalletConnect `solana_signTransaction` already sketched in tests.
-
-**Exit criteria:** A Host using Wallet Standard `signAndSendTransaction` can transfer SOL (and later SPL) with Branding showing consent and returning a signature; no Host RPC configuration.
+**Exit criteria:** Met for native SOL via Wallet Standard (host + website playground demos).
 
 ---
 

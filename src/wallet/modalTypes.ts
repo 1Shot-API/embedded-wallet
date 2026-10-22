@@ -14,7 +14,9 @@ import type {
   IExecutionPermission,
   IExecutionPermissionRequest,
   SolanaAccountAddress,
+  SolanaChainId,
   SolanaSignature,
+  SolanaTransactionSignature,
 } from "@1shotapi/ows-types";
 
 import type {
@@ -22,6 +24,7 @@ import type {
   ICctpBridgeOpenRequest,
 } from "../circle/cctpBridgeTypes";
 import type { IOnrampOpenRequest } from "../circle/onrampTypes";
+import type { ISolanaTxSummary } from "../lib/implementations/utils/SolanaTxUtils";
 import type { ITransactionWork } from "../lib/interfaces/business/ITransactionService";
 import type { IRelayerPayment } from "../lib/types/domain/RelayerPayment";
 import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
@@ -30,6 +33,8 @@ import type { ISiwsFields } from "../lib/types/domain/SiwsFields";
 import type { TokenAmount } from "../lib/types/primitives";
 
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
+
+export type ESolanaTxConsentMode = "sign" | "signAndSend";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
@@ -185,6 +190,28 @@ export type ModalRequest =
       fields: ISiwsFields;
       messageBytes: Uint8Array;
       resolve: (signature: SolanaSignature) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "solanaSignAndSend";
+      mode: ESolanaTxConsentMode;
+      chainId: SolanaChainId;
+      address: SolanaAccountAddress;
+      summaries: readonly ISolanaTxSummary[];
+      messageBytesList: readonly Uint8Array[];
+      warnings: readonly string[];
+      /**
+       * Sign-and-send only: Branding attaches the signature and submits via
+       * Alchemy after the passkey ceremony.
+       */
+      submit?: (
+        messageBytes: Uint8Array,
+        signatureBytes: Uint8Array,
+      ) => Promise<SolanaTransactionSignature>;
+      resolve: (
+        value: SolanaSignature[] | SolanaTransactionSignature,
+      ) => void;
       reject: (error: unknown) => void;
     }
   | {

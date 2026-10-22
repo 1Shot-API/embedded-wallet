@@ -38,6 +38,10 @@ export function mergeStyle(
         ...current.copy.solanaSign,
         ...patch.copy?.solanaSign,
       },
+      solanaSignAndSend: {
+        ...current.copy.solanaSignAndSend,
+        ...patch.copy?.solanaSignAndSend,
+      },
       siwe: {
         ...current.copy.siwe,
         ...patch.copy?.siwe,
@@ -238,6 +242,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       passkeyName: { ...DEFAULT_STYLE.copy.passkeyName },
       personalSign: { ...DEFAULT_STYLE.copy.personalSign },
       solanaSign: { ...DEFAULT_STYLE.copy.solanaSign },
+      solanaSignAndSend: { ...DEFAULT_STYLE.copy.solanaSignAndSend },
       siwe: { ...DEFAULT_STYLE.copy.siwe },
       siws: { ...DEFAULT_STYLE.copy.siws },
       typedData: { ...DEFAULT_STYLE.copy.typedData },

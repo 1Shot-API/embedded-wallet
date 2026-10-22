@@ -119,6 +119,23 @@ export interface IStyleFormState {
   solanaSignReject: string;
   solanaSignSigningHint: string;
 
+  // Text — Solana sign / sign-and-send transaction
+  solanaTxTitleSign: string;
+  solanaTxTitleSignAndSend: string;
+  solanaTxBodySign: string;
+  solanaTxBodySignAndSend: string;
+  solanaTxNetworkLabel: string;
+  solanaTxAccountLabel: string;
+  solanaTxFeePayerLabel: string;
+  solanaTxInstructionsLabel: string;
+  solanaTxSimulationWarning: string;
+  solanaTxDurableNonceWarning: string;
+  solanaTxRejectLabel: string;
+  solanaTxSignLabel: string;
+  solanaTxSignAndSendLabel: string;
+  solanaTxSigningHint: string;
+  solanaTxSubmittingHint: string;
+
   // Text — SIWS
   siwsTitle: string;
   siwsBody: string;
@@ -423,6 +440,25 @@ export const ACME_PRESET: IStyleFormState = {
   solanaSignLabel: "Sign",
   solanaSignReject: "Reject",
   solanaSignSigningHint: "Confirm in the signing panel…",
+  solanaTxTitleSign: "Sign transaction",
+  solanaTxTitleSignAndSend: "Confirm transaction",
+  solanaTxBodySign:
+    "{domain} is requesting a signature on a Solana transaction. Signing does not submit it to the network.",
+  solanaTxBodySignAndSend:
+    "{domain} is requesting to sign and submit a Solana transaction. You pay network fees from this account.",
+  solanaTxNetworkLabel: "Network",
+  solanaTxAccountLabel: "Account",
+  solanaTxFeePayerLabel: "Fee payer",
+  solanaTxInstructionsLabel: "Instructions",
+  solanaTxSimulationWarning:
+    "Simulation failed. The transaction may still fail on-chain.",
+  solanaTxDurableNonceWarning:
+    "This transaction uses a durable nonce. Review carefully before confirming.",
+  solanaTxRejectLabel: "Reject",
+  solanaTxSignLabel: "Sign",
+  solanaTxSignAndSendLabel: "Confirm",
+  solanaTxSigningHint: "Confirm in the signing panel…",
+  solanaTxSubmittingHint: "Submitting to the network…",
   siwsTitle: "Sign-in request",
   siwsBody:
     "{domain} is requesting to sign in with your Solana account. This will not spend tokens or change on-chain balances.",
@@ -1029,6 +1065,30 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(solanaSign, "rejectLabel", form.solanaSignReject);
   put(solanaSign, "signingHint", form.solanaSignSigningHint);
   if (Object.keys(solanaSign).length > 0) copy.solanaSign = solanaSign;
+
+  const solanaSignAndSend: Record<string, string> = {};
+  put(solanaSignAndSend, "titleSign", form.solanaTxTitleSign);
+  put(solanaSignAndSend, "titleSignAndSend", form.solanaTxTitleSignAndSend);
+  put(solanaSignAndSend, "bodySign", form.solanaTxBodySign);
+  put(solanaSignAndSend, "bodySignAndSend", form.solanaTxBodySignAndSend);
+  put(solanaSignAndSend, "networkLabel", form.solanaTxNetworkLabel);
+  put(solanaSignAndSend, "accountLabel", form.solanaTxAccountLabel);
+  put(solanaSignAndSend, "feePayerLabel", form.solanaTxFeePayerLabel);
+  put(solanaSignAndSend, "instructionsLabel", form.solanaTxInstructionsLabel);
+  put(solanaSignAndSend, "simulationWarning", form.solanaTxSimulationWarning);
+  put(
+    solanaSignAndSend,
+    "durableNonceWarning",
+    form.solanaTxDurableNonceWarning,
+  );
+  put(solanaSignAndSend, "rejectLabel", form.solanaTxRejectLabel);
+  put(solanaSignAndSend, "signLabel", form.solanaTxSignLabel);
+  put(solanaSignAndSend, "signAndSendLabel", form.solanaTxSignAndSendLabel);
+  put(solanaSignAndSend, "signingHint", form.solanaTxSigningHint);
+  put(solanaSignAndSend, "submittingHint", form.solanaTxSubmittingHint);
+  if (Object.keys(solanaSignAndSend).length > 0) {
+    copy.solanaSignAndSend = solanaSignAndSend;
+  }
 
   const siws: Record<string, string> = {};
   put(siws, "title", form.siwsTitle);

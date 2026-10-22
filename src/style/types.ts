@@ -13,6 +13,8 @@ export type {
   IStyleCopyWalletSetup,
   IStyleCopyPasskeyName,
   IStyleCopyPersonalSign,
+  IStyleCopySolanaSign,
+  IStyleCopySolanaSignAndSend,
   IStyleCopySiwe,
   IStyleCopyTypedData,
   IStyleCopySendTransaction,

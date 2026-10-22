@@ -88,6 +88,27 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       signLabel: "Sign",
       signingHint: "Confirm in the signing panel…",
     },
+    solanaSignAndSend: {
+      titleSign: "Sign transaction",
+      titleSignAndSend: "Confirm transaction",
+      bodySign:
+        "{domain} is requesting a signature on a Solana transaction. Signing does not submit it to the network.",
+      bodySignAndSend:
+        "{domain} is requesting to sign and submit a Solana transaction. You pay network fees from this account.",
+      networkLabel: "Network",
+      accountLabel: "Account",
+      feePayerLabel: "Fee payer",
+      instructionsLabel: "Instructions",
+      simulationWarning:
+        "Simulation failed. The transaction may still fail on-chain.",
+      durableNonceWarning:
+        "This transaction uses a durable nonce. Review carefully before confirming.",
+      rejectLabel: "Reject",
+      signLabel: "Sign",
+      signAndSendLabel: "Confirm",
+      signingHint: "Confirm in the signing panel…",
+      submittingHint: "Submitting to the network…",
+    },
     siwe: {
       title: "Sign-in request",
       body: "{domain} is requesting to sign in with your Ethereum account. This will not spend tokens or change on-chain balances.",

@@ -50,6 +50,7 @@ import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPayme
 import type {
   IChainRepository,
   IKnownAssetRepository,
+  ISolanaRpc,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
 import type {
@@ -213,6 +214,7 @@ export interface IUseWalletBootParams {
   trackedAssetRepository: ITrackedAssetRepository;
   transactionService: ITransactionService;
   bitcoinService: IBitcoinService;
+  solanaRpc: ISolanaRpc;
   paymentTokenUtils: IPaymentTokenUtils;
   delegationService: IDelegationService;
   transactionUtils: ITransactionUtils;
@@ -246,6 +248,7 @@ export function useWalletBoot({
   trackedAssetRepository,
   transactionService,
   bitcoinService,
+  solanaRpc,
   paymentTokenUtils,
   delegationService,
   transactionUtils,
@@ -365,6 +368,7 @@ export function useWalletBoot({
         ensureReady,
         ensureOnboardedForSigning,
         configProvider,
+        solanaRpc,
         emitAnalytics: (event) => eventBus.emitAnalytics(event),
         ask,
       });

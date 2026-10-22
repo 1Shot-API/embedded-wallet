@@ -11,6 +11,12 @@ export interface ISolanaBlockhash {
   lastValidBlockHeight: bigint;
 }
 
+export interface ISolanaSimulateResult {
+  /** Non-null when the RPC reports a simulation error. */
+  err: unknown | null;
+  logs?: string[];
+}
+
 export interface ISolanaRpc {
   getBalance(
     chainId: SolanaChainId,
@@ -18,6 +24,15 @@ export interface ISolanaRpc {
   ): Promise<SolanaLamports>;
 
   getLatestBlockhash(chainId: SolanaChainId): Promise<ISolanaBlockhash>;
+
+  /**
+   * Prefight simulation. Prefer `sigVerify: false` so unsigned wires work
+   * before the passkey ceremony.
+   */
+  simulateTransaction(
+    chainId: SolanaChainId,
+    wireTransactionBase64: string,
+  ): Promise<ISolanaSimulateResult>;
 
   sendRawTransaction(
     chainId: SolanaChainId,

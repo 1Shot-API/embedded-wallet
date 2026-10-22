@@ -86,6 +86,24 @@ export const styleCopySolanaSignSchema = z.strictObject({
   signingHint: z.string(),
 });
 
+export const styleCopySolanaSignAndSendSchema = z.strictObject({
+  titleSign: z.string(),
+  titleSignAndSend: z.string(),
+  bodySign: z.string(),
+  bodySignAndSend: z.string(),
+  networkLabel: z.string(),
+  accountLabel: z.string(),
+  feePayerLabel: z.string(),
+  instructionsLabel: z.string(),
+  simulationWarning: z.string(),
+  durableNonceWarning: z.string(),
+  rejectLabel: z.string(),
+  signLabel: z.string(),
+  signAndSendLabel: z.string(),
+  signingHint: z.string(),
+  submittingHint: z.string(),
+});
+
 export const styleCopySiweSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
@@ -600,6 +618,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   passkeyName: styleCopyPasskeyNameSchema,
   personalSign: styleCopyPersonalSignSchema,
   solanaSign: styleCopySolanaSignSchema,
+  solanaSignAndSend: styleCopySolanaSignAndSendSchema,
   siwe: styleCopySiweSchema,
   siws: styleCopySiwsSchema,
   typedData: styleCopyTypedDataSchema,
@@ -653,6 +672,7 @@ export const styleCopyPatchSchema = z.strictObject({
   passkeyName: styleCopyPasskeyNameSchema.partial().optional(),
   personalSign: styleCopyPersonalSignSchema.partial().optional(),
   solanaSign: styleCopySolanaSignSchema.partial().optional(),
+  solanaSignAndSend: styleCopySolanaSignAndSendSchema.partial().optional(),
   siwe: styleCopySiweSchema.partial().optional(),
   siws: styleCopySiwsSchema.partial().optional(),
   typedData: styleCopyTypedDataSchema.partial().optional(),
@@ -724,6 +744,9 @@ export type IStyleCopyWalletSetup = z.infer<typeof styleCopyWalletSetupSchema>;
 export type IStyleCopyPasskeyName = z.infer<typeof styleCopyPasskeyNameSchema>;
 export type IStyleCopyPersonalSign = z.infer<typeof styleCopyPersonalSignSchema>;
 export type IStyleCopySolanaSign = z.infer<typeof styleCopySolanaSignSchema>;
+export type IStyleCopySolanaSignAndSend = z.infer<
+  typeof styleCopySolanaSignAndSendSchema
+>;
 export type IStyleCopySiwe = z.infer<typeof styleCopySiweSchema>;
 export type IStyleCopySiws = z.infer<typeof styleCopySiwsSchema>;
 export type IStyleCopyTypedData = z.infer<typeof styleCopyTypedDataSchema>;

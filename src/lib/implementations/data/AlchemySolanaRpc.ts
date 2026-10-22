@@ -8,6 +8,7 @@ import type { IChainRepository } from "../../interfaces/data/IChainRepository";
 import type {
   ISolanaBlockhash,
   ISolanaRpc,
+  ISolanaSimulateResult,
 } from "../../interfaces/data/ISolanaRpc";
 import {
   makeSolanaLamports,
@@ -46,6 +47,26 @@ export class AlchemySolanaRpc implements ISolanaRpc {
     return {
       blockhash: result.value.blockhash,
       lastValidBlockHeight: BigInt(result.value.lastValidBlockHeight),
+    };
+  }
+
+  async simulateTransaction(
+    chainId: SolanaChainId,
+    wireTransactionBase64: string,
+  ): Promise<ISolanaSimulateResult> {
+    const result = await this.rpcCall<{
+      value: { err: unknown | null; logs?: string[] | null };
+    }>(chainId, "simulateTransaction", [
+      wireTransactionBase64,
+      {
+        encoding: "base64",
+        sigVerify: false,
+        commitment: "confirmed",
+      },
+    ]);
+    return {
+      err: result.value.err ?? null,
+      ...(result.value.logs ? { logs: [...result.value.logs] } : {}),
     };
   }
 

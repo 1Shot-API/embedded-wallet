@@ -427,6 +427,102 @@ export function WalletConfiguratorTextTabSigningSections({
         </AccordionContent>
       </AccordionItem>
 
+      <AccordionItem value="solana-tx">
+        <AccordionTrigger>Solana transaction</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <TextField
+            id="solana-tx-title-sign"
+            label="Sign title"
+            value={form.solanaTxTitleSign}
+            onChange={(value) => patch("solanaTxTitleSign", value)}
+          />
+          <TextField
+            id="solana-tx-title-send"
+            label="Sign & send title"
+            value={form.solanaTxTitleSignAndSend}
+            onChange={(value) => patch("solanaTxTitleSignAndSend", value)}
+          />
+          <BodyField
+            id="solana-tx-body-sign"
+            label="Sign body"
+            value={form.solanaTxBodySign}
+            onChange={(value) => patch("solanaTxBodySign", value)}
+          />
+          <BodyField
+            id="solana-tx-body-send"
+            label="Sign & send body"
+            value={form.solanaTxBodySignAndSend}
+            onChange={(value) => patch("solanaTxBodySignAndSend", value)}
+          />
+          <TextField
+            id="solana-tx-network"
+            label="Network label"
+            value={form.solanaTxNetworkLabel}
+            onChange={(value) => patch("solanaTxNetworkLabel", value)}
+          />
+          <TextField
+            id="solana-tx-account"
+            label="Account label"
+            value={form.solanaTxAccountLabel}
+            onChange={(value) => patch("solanaTxAccountLabel", value)}
+          />
+          <TextField
+            id="solana-tx-fee-payer"
+            label="Fee payer label"
+            value={form.solanaTxFeePayerLabel}
+            onChange={(value) => patch("solanaTxFeePayerLabel", value)}
+          />
+          <TextField
+            id="solana-tx-instructions"
+            label="Instructions label"
+            value={form.solanaTxInstructionsLabel}
+            onChange={(value) => patch("solanaTxInstructionsLabel", value)}
+          />
+          <BodyField
+            id="solana-tx-sim-warning"
+            label="Simulation warning"
+            value={form.solanaTxSimulationWarning}
+            onChange={(value) => patch("solanaTxSimulationWarning", value)}
+          />
+          <BodyField
+            id="solana-tx-nonce-warning"
+            label="Durable nonce warning"
+            value={form.solanaTxDurableNonceWarning}
+            onChange={(value) => patch("solanaTxDurableNonceWarning", value)}
+          />
+          <TextField
+            id="solana-tx-reject"
+            label="Reject"
+            value={form.solanaTxRejectLabel}
+            onChange={(value) => patch("solanaTxRejectLabel", value)}
+          />
+          <TextField
+            id="solana-tx-sign"
+            label="Sign"
+            value={form.solanaTxSignLabel}
+            onChange={(value) => patch("solanaTxSignLabel", value)}
+          />
+          <TextField
+            id="solana-tx-send"
+            label="Sign & send"
+            value={form.solanaTxSignAndSendLabel}
+            onChange={(value) => patch("solanaTxSignAndSendLabel", value)}
+          />
+          <TextField
+            id="solana-tx-hint"
+            label="Signing hint"
+            value={form.solanaTxSigningHint}
+            onChange={(value) => patch("solanaTxSigningHint", value)}
+          />
+          <TextField
+            id="solana-tx-submitting"
+            label="Submitting hint"
+            value={form.solanaTxSubmittingHint}
+            onChange={(value) => patch("solanaTxSubmittingHint", value)}
+          />
+        </AccordionContent>
+      </AccordionItem>
+
       <AccordionItem value="siws">
         <AccordionTrigger>Sign-in (SIWS)</AccordionTrigger>
         <AccordionContent className="flex flex-col gap-3">

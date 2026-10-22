@@ -65,6 +65,8 @@ export interface IWalletActionsProps {
   onUsdcAmountChange: (amount: string) => void;
   onSign: () => void;
   onLoadSiwe: () => void;
+  onSolanaSignAndSend: () => void;
+  onSolanaSignTransaction: () => void;
   walletVisible: boolean;
   onToggleWallet: () => void;
   onUsdcAction: () => void;
@@ -130,6 +132,8 @@ export function WalletActions({
   onUsdcAmountChange,
   onSign,
   onLoadSiwe,
+  onSolanaSignAndSend,
+  onSolanaSignTransaction,
   walletVisible,
   onToggleWallet,
   onUsdcAction,
@@ -350,6 +354,28 @@ export function WalletActions({
         >
           {isSolana ? "SIWS" : "SIWE"}
         </Button>
+        {isSolana ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!ready || busy}
+              onClick={onSolanaSignAndSend}
+              title="Wallet Standard solana:signAndSendTransaction"
+            >
+              Sign & send SOL
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!ready || busy}
+              onClick={onSolanaSignTransaction}
+              title="Wallet Standard solana:signTransaction"
+            >
+              Sign transaction
+            </Button>
+          </>
+        ) : null}
       </div>
 
       <p

@@ -534,6 +534,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     trackedAssetRepository,
     transactionService,
     bitcoinService,
+    solanaRpc,
     paymentTokenUtils,
     delegationService,
     transactionUtils,
