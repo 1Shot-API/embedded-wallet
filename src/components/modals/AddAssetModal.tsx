@@ -80,6 +80,15 @@ export function AddAssetModal({
           />
         </div>
 
+        {request.ataRentSol ? (
+          <p className="text-muted-foreground m-0 text-sm leading-relaxed">
+            {style.copy.solana.addAssetRentWarning.replace(
+              "{rent}",
+              request.ataRentSol,
+            )}
+          </p>
+        ) : null}
+
         <div className="bg-primary/5 flex gap-2.5 rounded-xl px-3 py-3 text-sm leading-relaxed">
           <InfoIcon
             className="text-primary mt-0.5 size-4 shrink-0"

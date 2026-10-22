@@ -1,4 +1,7 @@
-export type { IKnownAssetRepository } from "./IKnownAssetRepository";
+export type {
+  AssetOwnerAddress,
+  IKnownAssetRepository,
+} from "./IKnownAssetRepository";
 export { IKnownAssetRepositoryType } from "./IKnownAssetRepository";
 export type { ITrackedAssetRepository } from "./ITrackedAssetRepository";
 export { ITrackedAssetRepositoryType } from "./ITrackedAssetRepository";
@@ -33,6 +36,7 @@ export type {
   ISolanaBlockhash,
   ISolanaRpc,
   ISolanaSimulateResult,
+  ISolanaTokenAccountBalance,
 } from "./ISolanaRpc";
 export { ISolanaRpcType } from "./ISolanaRpc";
 export type {

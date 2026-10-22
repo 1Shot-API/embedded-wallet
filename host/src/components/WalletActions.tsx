@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { ChainSelector, type IChainSelectorOption } from "./ChainSelector";
 import {
   DEMO_ADD_ASSET_ICON_URL,
+  DEMO_SOLANA_USDC_MAINNET,
   FOCUS_USDT_BASE,
   hostChainMeta,
   type UsdcMode,
@@ -172,7 +173,10 @@ export function WalletActions({
     FOCUS_USDT_BASE.assetAddress,
   );
   const [addAssetIconUrl, setAddAssetIconUrl] = useState(DEMO_ADD_ASSET_ICON_URL);
-  const addAssetAddressValid = /^0x[0-9a-fA-F]{40}$/.test(addAssetAddress.trim());
+  const addAssetIsSolana = ChainUtils.isSolanaChainId(addAssetChainId);
+  const addAssetAddressValid = addAssetIsSolana
+    ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addAssetAddress.trim())
+    : /^0x[0-9a-fA-F]{40}$/.test(addAssetAddress.trim());
   const addAssetIconTrimmed = addAssetIconUrl.trim();
   const addAssetIconValid =
     addAssetIconTrimmed.length === 0 ||
@@ -521,9 +525,36 @@ export function WalletActions({
         <p className="text-muted-foreground text-xs">
           Propose a tracked asset via <code>addAsset</code> (user must confirm
           in the wallet). Optional HTTPS <code>iconUrl</code> is shown after
-          approval.
+          approval. Solana: catalog USDC mint → ATA create (rent) then track —
+          not default-tracked.
         </p>
         <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={!ready || busy}
+              onClick={() => {
+                setAddAssetChainId(FOCUS_USDT_BASE.chainId);
+                setAddAssetAddress(FOCUS_USDT_BASE.assetAddress);
+              }}
+            >
+              {FOCUS_USDT_BASE.label}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={!ready || busy}
+              onClick={() => {
+                setAddAssetChainId(DEMO_SOLANA_USDC_MAINNET.chainId);
+                setAddAssetAddress(DEMO_SOLANA_USDC_MAINNET.assetAddress);
+              }}
+            >
+              {DEMO_SOLANA_USDC_MAINNET.label}
+            </Button>
+          </div>
           <div className="flex flex-col gap-1">
             <Label htmlFor="add-asset-chain" className="text-xs font-normal">
               Chain
@@ -533,18 +564,24 @@ export function WalletActions({
               ariaLabel="Add asset chain"
               value={addAssetChainId}
               disabled={!ready || busy}
-              onValueChange={setAddAssetChainId}
+              onValueChange={(next) => {
+                setAddAssetChainId(next);
+                const meta = hostChainMeta(next);
+                if (meta?.usdc) {
+                  setAddAssetAddress(meta.usdc);
+                }
+              }}
             />
           </div>
           <div className="flex flex-col gap-1">
             <Label htmlFor="add-asset-address" className="text-xs font-normal">
-              Token address
+              {addAssetIsSolana ? "Mint address" : "Token address"}
             </Label>
             <Input
               id="add-asset-address"
               value={addAssetAddress}
               onChange={(event) => setAddAssetAddress(event.target.value)}
-              placeholder="0x…"
+              placeholder={addAssetIsSolana ? "Base58 mint…" : "0x…"}
               className="font-mono text-xs"
               spellCheck={false}
             />

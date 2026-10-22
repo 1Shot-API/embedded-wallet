@@ -3,6 +3,11 @@ export {
   HardcodedKnownAssetRepository,
   isDefaultTrackedAsset,
 } from "./HardcodedKnownAssetRepository";
+export {
+  SOLANA_KNOWN_ASSETS,
+  SOLANA_USDC_DEVNET_MINT,
+  SOLANA_USDC_MAINNET_MINT,
+} from "./solanaKnownAssets";
 export { LocalStorageTrackedAssetRepository } from "./LocalStorageTrackedAssetRepository";
 export type { TrackedAssetRepositoryOptions } from "./LocalStorageTrackedAssetRepository";
 export { BlockscoutAssetActivityRepository } from "./BlockscoutAssetActivityRepository";

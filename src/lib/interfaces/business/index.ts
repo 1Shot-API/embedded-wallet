@@ -22,8 +22,12 @@ export type {
 } from "./IBitcoinService";
 export { IBitcoinServiceType } from "./IBitcoinService";
 export type {
+  ISolanaEnsureAtaParams,
+  ISolanaEnsureAtaResult,
   ISolanaSendParams,
   ISolanaSendResult,
+  ISolanaSendSplParams,
+  ISolanaSendSplResult,
   ISolanaService,
 } from "./ISolanaService";
 export { ISolanaServiceType } from "./ISolanaService";

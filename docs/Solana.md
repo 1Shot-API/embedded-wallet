@@ -232,24 +232,23 @@ proxy.solana.registerSolanaWallet(); // optional { name?, icon? }
 
 ### Phase 7 — Mint / tracked assets (USDC first)
 
-**Repos:** Known assets + tracked assets + balances UI + ATA setup + Send for SPL.
+**Status: done** (unified `KnownAsset` / `TrackedAsset` + `EAssetType.Spl`, catalog USDC not default-tracked, Add Asset → ATA, SPL balances + send with `CreateIdempotent`).
 
 **Intent:** Wallet consistency with EVM token list: track USDC on Solana, show balances, let the user **set up receiving** without exposing ATA addresses.
 
-**Likely work**
+**Shipped**
 
-- Extend asset typing for Solana mints (new `EAssetType` value or Solana-specific enum — decide deliberately; do not overload `Erc20`).
-- Known Asset catalog entry for **USDC** (mainnet mint; optional Devnet mint for test).
-- **Add Asset** flow: user picks USDC → Branding creates their USDC ATA (user pays rent + fees) → track + show balance.
-- Balances / `AssetDetails`: stick to EVM patterns (icon, symbol, balance, Send / Receive / Bridge placeholders). **Never show ATA address** in primary UI; Receive still shows wallet pubkey + short explanation that senders create accounts as needed.
-- Send SPL: if recipient ATA missing, include `CreateIdempotent` and surface **“create recipient token account ~0.002 SOL”** on the confirm sheet; require enough SOL for rent+fees, not only token balance.
-- Detect Token program vs Token-2022 when deriving ATAs.
+- `EAssetType.Spl`; refined `EVMKnownAsset` / `SolanaKnownAsset` (+ tracked); `SolanaATAAddress` in ows-types; TrackedAsset `ataAddress` / `ataRentPaid`.
+- Catalog USDC mainnet + Devnet Circle mints — **not** in `DEFAULT_TRACKED_ASSETS` (ATA rent).
+- Add Asset (in-wallet + host `addAsset`): catalog mint → rent consent → `ensureAta` → track.
+- Solana shell lists native SOL + tracked SPL; detail Send / Receive; **never shows ATA** in primary UI; Receive = wallet pubkey + token-account note.
+- SPL send: optional dest `CreateIdempotent` + rent warning; Token vs Token-2022 via mint owner.
 
-**Reminders**
+**Reminders (still true)**
 
-- Empty ATA with 0 balance still locks rent — listing policy TBD (show tracked zeros vs hide).
-- Do not ask users to paste ATA addresses for bridging or receive.
-- Griefing (create ATA → close → reclaim) matters for *protocols that sponsor* ATA creation; user-initiated Add Asset and sender-pays-on-Send are the safe defaults.
+- Empty ATA with 0 balance still locks rent — show tracked zeros.
+- Do not ask users to paste ATA addresses for bridging or receive (Phase 8 CCTP uses ATA internally).
+- No ATA close/reclaim, arbitrary mint paste, or full Token-2022 fee UX this phase.
 
 **Exit criteria:** USDC can be added, ATA created, balance shown, sent/received with EVM-like chrome; native SOL still works.
 

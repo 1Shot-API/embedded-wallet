@@ -1,7 +1,11 @@
 import {
+  SolanaAddressUtils,
   SolanaTransactionSignature,
   type SolanaAccountAddress,
+  type SolanaATAAddress,
   type SolanaChainId,
+  type SolanaMintAddress,
+  type SolanaProgramAddress,
 } from "@1shotapi/ows-types";
 
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
@@ -9,6 +13,7 @@ import type {
   ISolanaBlockhash,
   ISolanaRpc,
   ISolanaSimulateResult,
+  ISolanaTokenAccountBalance,
 } from "../../interfaces/data/ISolanaRpc";
 import {
   makeSolanaLamports,
@@ -23,8 +28,8 @@ interface IJsonRpcResponse<T> {
 }
 
 /**
- * Alchemy Solana JSON-RPC (`getBalance`, `getLatestBlockhash`, `sendTransaction`)
- * using the catalog HTTPS URL from {@link IChainRepository}.
+ * Alchemy Solana JSON-RPC using the catalog HTTPS URL from
+ * {@link IChainRepository}.
  */
 export class AlchemySolanaRpc implements ISolanaRpc {
   constructor(protected readonly chainRepository: IChainRepository) {}
@@ -83,6 +88,51 @@ export class AlchemySolanaRpc implements ISolanaRpc {
       },
     ]);
     return SolanaTransactionSignature(signature);
+  }
+
+  async accountExists(
+    chainId: SolanaChainId,
+    address: SolanaAccountAddress | SolanaATAAddress | SolanaMintAddress,
+  ): Promise<boolean> {
+    const result = await this.rpcCall<{
+      value: { data: unknown } | null;
+    }>(chainId, "getAccountInfo", [
+      String(address),
+      { encoding: "base64", commitment: "confirmed" },
+    ]);
+    return result.value != null;
+  }
+
+  async getMintTokenProgram(
+    chainId: SolanaChainId,
+    mint: SolanaMintAddress,
+  ): Promise<SolanaProgramAddress> {
+    const result = await this.rpcCall<{
+      value: { owner: string } | null;
+    }>(chainId, "getAccountInfo", [
+      String(mint),
+      { encoding: "base64", commitment: "confirmed" },
+    ]);
+    if (!result.value?.owner) {
+      throw new Error(`Mint account not found: ${mint}`);
+    }
+    return SolanaAddressUtils.asProgramAddress(result.value.owner);
+  }
+
+  async getTokenAccountBalance(
+    chainId: SolanaChainId,
+    tokenAccount: SolanaATAAddress,
+  ): Promise<ISolanaTokenAccountBalance> {
+    const result = await this.rpcCall<{
+      value: { amount: string; decimals: number };
+    }>(chainId, "getTokenAccountBalance", [
+      String(tokenAccount),
+      { commitment: "confirmed" },
+    ]);
+    return {
+      amount: BigInt(result.value.amount),
+      decimals: result.value.decimals,
+    };
   }
 
   protected async rpcUrl(chainId: SolanaChainId): Promise<string> {

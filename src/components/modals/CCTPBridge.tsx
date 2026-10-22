@@ -3,6 +3,7 @@ import {
   ChainUtils,
   OwsUserRejectedError,
   type EVMChainId as EVMChainIdType,
+  type EVMContractAddress,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -281,7 +282,7 @@ export function CCTPBridge({
             request.sourceChainId,
           );
           const live = await client.readContract({
-            address: asset.address,
+            address: asset.address as EVMContractAddress,
             abi: erc20Abi,
             functionName: "balanceOf",
             args: [request.ownerAddress],

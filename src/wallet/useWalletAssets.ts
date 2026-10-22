@@ -3,10 +3,14 @@ import {
   type EVMAccountAddress,
   type EVMContractAddress,
   type EVMChainId,
- ChainUtils } from "@1shotapi/ows-types";
+  type SolanaChainId,
+  type SolanaMintAddress,
+  ChainUtils,
+} from "@1shotapi/ows-types";
 import { useCallback } from "react";
 
 import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
+import type { ISolanaService } from "../lib/interfaces/business/ISolanaService";
 import type {
   IAssetActivityRepository,
   IKnownAssetRepository,
@@ -16,6 +20,10 @@ import type {
 import type { IEventBus } from "../lib/interfaces/utils";
 import type {
   AssetActivity,
+  KnownAsset,
+  KnownAssetAddress,
+  KnownAssetChainId,
+  SolanaKnownAsset,
   TrackedAsset,
 } from "../lib/types/domain";
 import { RefreshBalanceRequestedEvent } from "../lib/types/events/RefreshBalanceRequestedEvent";
@@ -29,6 +37,7 @@ export interface IUseWalletAssetsParams {
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   assetActivityRepository: IAssetActivityRepository;
+  solanaService: ISolanaService;
   eventBus: IEventBus;
   /** Vault recover needs the Signing Layer for decryptAES256 only — not unlock. */
   awaitSignerReady: () => Promise<unknown>;
@@ -40,6 +49,7 @@ export function useWalletAssets({
   knownAssetRepository,
   trackedAssetRepository,
   assetActivityRepository,
+  solanaService,
   eventBus,
   awaitSignerReady,
   refreshCredentialCount,
@@ -94,10 +104,17 @@ export function useWalletAssets({
   }, [refreshCredentialsFromRelayer]);
 
   const listTrackedAssets = useCallback(
-    async (chainId?: EVMChainId) => {
+    async (chainId?: KnownAssetChainId) => {
       return trackedAssetRepository.list(chainId);
     },
     [trackedAssetRepository],
+  );
+
+  const listSolanaKnownAssets = useCallback(
+    async (chainId: SolanaChainId): Promise<SolanaKnownAsset[]> => {
+      return knownAssetRepository.listSolanaKnownAssets(chainId);
+    },
+    [knownAssetRepository],
   );
 
   const addTrackedAsset = useCallback(
@@ -119,8 +136,42 @@ export function useWalletAssets({
     ],
   );
 
+  /**
+   * Catalog Solana mint → ensure ATA (user pays rent) → track with ATA fields.
+   */
+  const addSolanaTrackedAsset = useCallback(
+    async (chainId: SolanaChainId, mint: SolanaMintAddress) => {
+      const solOwner = useWalletSessionStore.getState().solanaAddress;
+      if (!solOwner || solOwner === "—") {
+        throw new Error("Solana address not available");
+      }
+      const resolved = await knownAssetRepository.resolveForTracking(
+        chainId,
+        mint,
+        solOwner,
+      );
+      const ataResult = await solanaService.ensureAta({
+        chainId,
+        owner: solOwner,
+        mint,
+      });
+      const tracked = await trackedAssetRepository.add(
+        resolved.withAta(ataResult.ataAddress, true),
+        solOwner,
+      );
+      await refreshTrackedAssetCount();
+      return tracked;
+    },
+    [
+      knownAssetRepository,
+      refreshTrackedAssetCount,
+      solanaService,
+      trackedAssetRepository,
+    ],
+  );
+
   const removeTrackedAsset = useCallback(
-    async (chainId: EVMChainId, address: EVMContractAddress) => {
+    async (chainId: KnownAssetChainId, address: KnownAssetAddress) => {
       await trackedAssetRepository.remove(chainId, address);
       await refreshTrackedAssetCount();
     },
@@ -128,7 +179,10 @@ export function useWalletAssets({
   );
 
   const getKnownAsset = useCallback(
-    async (chainId: EVMChainId, address: EVMContractAddress) => {
+    async (
+      chainId: KnownAssetChainId,
+      address: KnownAssetAddress,
+    ): Promise<KnownAsset | null> => {
       return knownAssetRepository.getKnownAsset(chainId, address);
     },
     [knownAssetRepository],
@@ -160,18 +214,40 @@ export function useWalletAssets({
   );
 
   const requestBalanceRefresh = useCallback(
-    async (id?: TrackedAssetId, chainId?: EVMChainId) => {
+    async (id?: TrackedAssetId, chainId?: KnownAssetChainId) => {
       eventBus.emit(new RefreshBalanceRequestedEvent(id));
-      const { evmAddress: owner, chainId: sessionChainId } =
-        useWalletSessionStore.getState();
+      const {
+        evmAddress,
+        solanaAddress,
+        chainId: sessionChainId,
+      } = useWalletSessionStore.getState();
       try {
         if (id) {
-          await trackedAssetRepository.getBalances(owner, { id });
+          const owner =
+            solanaAddress && solanaAddress !== "—" ? solanaAddress : evmAddress;
+          // Prefer Solana owner when the id looks Solana (CAIP chain prefix).
+          const useSol =
+            id.includes("solana:") &&
+            solanaAddress &&
+            solanaAddress !== "—";
+          await trackedAssetRepository.getBalances(
+            useSol ? solanaAddress! : owner,
+            { id },
+          );
           return;
         }
         const scope = chainId ?? sessionChainId;
+        if (ChainUtils.isSolanaChainId(scope)) {
+          if (!solanaAddress || solanaAddress === "—") return;
+          await trackedAssetRepository.getBalances(solanaAddress, {
+            chainId: scope,
+          });
+          return;
+        }
         if (ChainUtils.isEVMChainId(scope)) {
-          await trackedAssetRepository.getBalances(owner, { chainId: scope });
+          await trackedAssetRepository.getBalances(evmAddress, {
+            chainId: scope,
+          });
         }
       } catch (error: unknown) {
         console.error("[oneshot-wallet] balance refresh failed", error);
@@ -207,7 +283,9 @@ export function useWalletAssets({
     getDelegation,
     refreshDelegationsFromRelayer,
     listTrackedAssets,
+    listSolanaKnownAssets,
     addTrackedAsset,
+    addSolanaTrackedAsset,
     removeTrackedAsset,
     getKnownAsset,
     resolveTrackedAsset,

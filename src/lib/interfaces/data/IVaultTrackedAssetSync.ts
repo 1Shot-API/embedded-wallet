@@ -1,17 +1,25 @@
-import type { EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
+import type {
+  EVMChainId,
+  EVMContractAddress,
+  SolanaATAAddress,
+  SolanaChainId,
+  SolanaMintAddress,
+} from "@1shotapi/ows-types";
 
 import type { EAssetType } from "../../types/enum/EAssetType";
 
 /** Persistable user-added tracked asset row (vault / localStorage). */
 export interface IVaultTrackedAssetRow {
-  chainId: EVMChainId;
-  address: EVMContractAddress;
+  chainId: EVMChainId | SolanaChainId;
+  address: EVMContractAddress | SolanaMintAddress;
   type: EAssetType;
   name: string;
   symbol: string;
   decimals: number;
   id: string;
   iconUrl?: string;
+  ataAddress?: SolanaATAAddress | null;
+  ataRentPaid?: boolean | null;
 }
 
 /**

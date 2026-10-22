@@ -1,14 +1,21 @@
 import {
-  type EVMContractAddress,
+  ChainUtils,
   EVMChainIdSchema,
+  EVMContractAddressSchema,
   OwsUserRejectedError,
+  SolanaChainIdSchema,
+  SolanaMintAddressSchema,
   type EVMAccountAddress as EVMAccountAddressType,
   type EVMChainId,
-  EVMContractAddressSchema,
+  type EVMContractAddress,
+  type SolanaAccountAddress,
+  type SolanaChainId,
+  type SolanaMintAddress,
 } from "@1shotapi/ows-types";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import { z } from "zod";
 
+import type { ISolanaService } from "../lib/interfaces/business/ISolanaService";
 import type {
   IKnownAssetRepository,
   ITrackedAssetRepository,
@@ -22,8 +29,8 @@ import { withWalletReady, type WalletReadyGate } from "./withWalletReady";
 export const ADD_ASSET_RPC_METHOD = "addAsset";
 
 const addAssetParamsSchema = z.strictObject({
-  chainId: EVMChainIdSchema,
-  assetAddress: EVMContractAddressSchema,
+  chainId: z.union([EVMChainIdSchema, SolanaChainIdSchema]),
+  assetAddress: z.union([EVMContractAddressSchema, SolanaMintAddressSchema]),
   iconUrl: z
     .url()
     .refine((url) => isSafeHttpsIconUrl(url), {
@@ -35,20 +42,24 @@ const addAssetParamsSchema = z.strictObject({
 export type IAddAssetParams = z.infer<typeof addAssetParamsSchema>;
 
 export interface IAddAssetApprovalRequest {
-  chainId: EVMChainId;
-  assetAddress: EVMContractAddress;
+  chainId: EVMChainId | SolanaChainId;
+  assetAddress: EVMContractAddress | SolanaMintAddress;
   /** Resolved token name for the confirm modal. */
   assetName: string;
   assetSymbol: string;
   /** Optional host-supplied HTTPS icon for preview + persistence. */
   iconUrl?: string;
+  /** Solana: estimated ATA rent in SOL (display string), when creating. */
+  ataRentSol?: string;
 }
 
 export type RegisterAddAssetOptions = {
   ensureReady: WalletReadyGate;
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
+  solanaService: ISolanaService;
   getOwnerAddress: () => EVMAccountAddressType;
+  getSolanaAddress: () => SolanaAccountAddress | null;
   requestAddAssetApproval: (
     request: IAddAssetApprovalRequest,
   ) => Promise<boolean>;
@@ -56,7 +67,8 @@ export type RegisterAddAssetOptions = {
 
 /**
  * Register host `addAsset` RPC (always requires user confirmation).
- * Resolves ERC-20 metadata before the confirm modal.
+ * EVM: resolves ERC-20 metadata before confirm.
+ * Solana: catalog mint only; creates ATA then tracks.
  */
 export function registerAddAssetRpc(
   wallet: OWSWallet,
@@ -66,22 +78,76 @@ export function registerAddAssetRpc(
     ADD_ASSET_RPC_METHOD,
     withWalletReady(options.ensureReady, async (params) => {
       const { chainId, assetAddress, iconUrl } = params as IAddAssetParams;
+
+      if (ChainUtils.isSolanaChainId(chainId)) {
+        const solOwner = options.getSolanaAddress();
+        if (!solOwner || solOwner === ("—" as SolanaAccountAddress)) {
+          throw new Error("Solana address not available");
+        }
+        const mint = assetAddress as SolanaMintAddress;
+        const resolved = await options.knownAssetRepository.resolveForTracking(
+          chainId,
+          mint,
+          solOwner,
+        );
+        const rentLamports = options.solanaService.estimateAtaRentLamports();
+        const ataRentSol = (Number(rentLamports) / 1e9).toFixed(4);
+        const [toPersistBase, display] = await Promise.all([
+          Promise.resolve(iconUrl ? resolved.withIconUrl(iconUrl) : resolved),
+          wallet.requestDisplay(),
+        ]);
+        try {
+          if (
+            !(await options.requestAddAssetApproval({
+              chainId,
+              assetAddress: mint,
+              assetName: resolved.name,
+              assetSymbol: resolved.symbol,
+              iconUrl: toPersistBase.iconUrl,
+              ataRentSol,
+            }))
+          ) {
+            throw new OwsUserRejectedError("User rejected add asset request");
+          }
+
+          const ataResult = await options.solanaService.ensureAta({
+            chainId,
+            owner: solOwner,
+            mint,
+          });
+          const toPersist = toPersistBase.withAta(
+            ataResult.ataAddress,
+            true,
+          );
+          await options.trackedAssetRepository.add(toPersist, solOwner);
+          const listed = await options.trackedAssetRepository.list();
+          useWalletSessionStore.getState().setTrackedAssetCount(listed.length);
+
+          return {
+            ok: true as const,
+            chainId,
+            assetAddress: mint,
+          };
+        } finally {
+          await display.hide();
+        }
+      }
+
       const owner = options.getOwnerAddress();
       const [resolved, display] = await Promise.all([
         options.knownAssetRepository.resolveForTracking(
-          chainId,
-          assetAddress,
+          chainId as EVMChainId,
+          assetAddress as EVMContractAddress,
           owner,
         ),
         wallet.requestDisplay(),
       ]);
       const toPersist = iconUrl ? resolved.withIconUrl(iconUrl) : resolved;
       try {
-        // Consent UI requires the flyout already open — keep sequential.
         if (
           !(await options.requestAddAssetApproval({
-            chainId,
-            assetAddress,
+            chainId: chainId as EVMChainId,
+            assetAddress: assetAddress as EVMContractAddress,
             assetName: resolved.name,
             assetSymbol: resolved.symbol,
             iconUrl: toPersist.iconUrl,

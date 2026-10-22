@@ -606,6 +606,19 @@ export const styleCopySolanaSchema = z.strictObject({
   loadFailedError: z.string(),
   recipientPlaceholder: z.string(),
   invalidAddressError: z.string(),
+  /** Receive: wallet pubkey only — senders create token accounts as needed. */
+  receiveTokenNote: z.string(),
+  addAssetTitle: z.string(),
+  addAssetBody: z.string(),
+  addAssetRentWarning: z.string(),
+  addAssetCancelLabel: z.string(),
+  addAssetSubmitLabel: z.string(),
+  addAssetBusyLabel: z.string(),
+  addAssetFailedError: z.string(),
+  addAssetInsufficientSolError: z.string(),
+  sendSplTitle: z.string(),
+  createRecipientAtaWarning: z.string(),
+  insufficientSolForAtaError: z.string(),
 });
 
 export const styleCopyResolvedSchema = z.strictObject({

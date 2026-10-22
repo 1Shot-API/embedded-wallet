@@ -635,6 +635,23 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       loadFailedError: "Failed to load Solana balance",
       recipientPlaceholder: "Solana address…",
       invalidAddressError: "Enter a valid Solana address.",
+      receiveTokenNote:
+        "Share your wallet address. Senders create token accounts as needed — you do not need a separate token account address.",
+      addAssetTitle: "Add Solana asset",
+      addAssetBody:
+        "Create a token account for this mint on your wallet. You pay a small SOL rent deposit (reclaimable later if you close the account).",
+      addAssetRentWarning: "Estimated rent: ~{rent} SOL (+ network fee).",
+      addAssetCancelLabel: "Cancel",
+      addAssetSubmitLabel: "Create & track",
+      addAssetBusyLabel: "Creating…",
+      addAssetFailedError: "Failed to add Solana asset",
+      addAssetInsufficientSolError:
+        "Not enough SOL for token account rent and network fee.",
+      sendSplTitle: "Send {symbol}",
+      createRecipientAtaWarning:
+        "Recipient has no token account yet. Creating one costs ~{rent} SOL (paid by you).",
+      insufficientSolForAtaError:
+        "Not enough SOL to create the recipient token account.",
     },
   },
   dark: false,

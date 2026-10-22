@@ -41,6 +41,7 @@
     "@reown/walletkit": "^1.5.6",
     "@simplewebauthn/browser": "^13.3.0",
     "@solana-program/system": "^0.16.0",
+    "@solana-program/token": "^0.18.0",
     "@solana/kit": "^8.5.0",
     "@tanstack/react-table": "^8.21.3",
     "@walletconnect/core": "^2.24.0",

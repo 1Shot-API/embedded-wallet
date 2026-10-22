@@ -51,8 +51,8 @@ const HOST_CHAIN_SEED: readonly IHostChainMeta[] = [
   {
     value: "solana:mainnet",
     label: "Solana",
-    usdc: "",
-    tokenSymbol: "SOL",
+    usdc: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    tokenSymbol: "USDC",
     blockExplorerUrl: "https://explorer.solana.com",
     isTestnet: false,
     weight: 88,
@@ -60,8 +60,8 @@ const HOST_CHAIN_SEED: readonly IHostChainMeta[] = [
   {
     value: "solana:devnet",
     label: "Solana Devnet",
-    usdc: "",
-    tokenSymbol: "SOL",
+    usdc: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+    tokenSymbol: "USDC",
     blockExplorerUrl: "https://explorer.solana.com/?cluster=devnet",
     isTestnet: true,
     weight: 88,
@@ -142,6 +142,20 @@ export const FOCUS_USDT_BASE = {
 /** Default HTTPS icon for addAsset playground demos (Trust Wallet assets). */
 export const DEMO_ADD_ASSET_ICON_URL =
   "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png";
+
+/** Mainnet Circle USDC mint — catalog-only (not default-tracked; ATA rent). */
+export const DEMO_SOLANA_USDC_MAINNET = {
+  chainId: "solana:mainnet",
+  assetAddress: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  label: "USDC (Solana)",
+} as const;
+
+/** Devnet Circle USDC mint for playground testing. */
+export const DEMO_SOLANA_USDC_DEVNET = {
+  chainId: "solana:devnet",
+  assetAddress: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+  label: "USDC (Solana Devnet)",
+} as const;
 
 /**
  * Playground session / delegatee for `wallet_requestExecutionPermissions`.

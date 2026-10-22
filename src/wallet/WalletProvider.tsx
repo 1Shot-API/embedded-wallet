@@ -11,7 +11,7 @@ import {
   type EVMTransactionHash,
   type OWSChainId,
   type StoredCredential,
-} from "@1shotapi/ows-types";
+type  SolanaChainId,type  SolanaMintAddress } from "@1shotapi/ows-types";
 import {
   AddressUtils,
   type IBlockchainProvider,
@@ -94,6 +94,9 @@ import type {
 import type {
   AssetActivity,
   KnownAsset,
+  KnownAssetAddress,
+  KnownAssetChainId,
+  SolanaKnownAsset,
   SupportedChain,
   TrackedAsset,
 } from "../lib/types/domain";
@@ -153,6 +156,7 @@ const trackedAssetRepository = new LocalStorageTrackedAssetRepository(
   blockchainProvider,
   eventBus,
   configProvider,
+  solanaRpc,
   { storage: walletKvStore },
 );
 const assetActivityRepository: IAssetActivityRepository =
@@ -300,18 +304,23 @@ export type WalletContextValue = {
     /** Null when the user skipped on-chain cancellation. */
     transactionHashes: EVMTransactionHash[] | null;
   }>;
-  listTrackedAssets: (chainId?: EVMChainId) => Promise<TrackedAsset[]>;
+  listTrackedAssets: (chainId?: KnownAssetChainId) => Promise<TrackedAsset[]>;
+  listSolanaKnownAssets: (chainId: SolanaChainId) => Promise<SolanaKnownAsset[]>;
   addTrackedAsset: (
     chainId: EVMChainId,
     address: EVMContractAddress,
   ) => Promise<TrackedAsset>;
+  addSolanaTrackedAsset: (
+    chainId: SolanaChainId,
+    mint: SolanaMintAddress,
+  ) => Promise<TrackedAsset>;
   removeTrackedAsset: (
-    chainId: EVMChainId,
-    address: EVMContractAddress,
+    chainId: KnownAssetChainId,
+    address: KnownAssetAddress,
   ) => Promise<void>;
   getKnownAsset: (
-    chainId: EVMChainId,
-    address: EVMContractAddress,
+    chainId: KnownAssetChainId,
+    address: KnownAssetAddress,
   ) => Promise<KnownAsset | null>;
   resolveTrackedAsset: (
     chainId: EVMChainId,
@@ -319,7 +328,7 @@ export type WalletContextValue = {
   ) => Promise<TrackedAsset>;
   requestBalanceRefresh: (
     id?: TrackedAssetId,
-    chainId?: EVMChainId,
+    chainId?: KnownAssetChainId,
   ) => Promise<void>;
   listAssetActivity: (
     owner: EVMAccountAddress,
@@ -496,7 +505,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     getDelegation,
     refreshDelegationsFromRelayer,
     listTrackedAssets,
+    listSolanaKnownAssets,
     addTrackedAsset,
+    addSolanaTrackedAsset,
     removeTrackedAsset,
     getKnownAsset,
     resolveTrackedAsset,
@@ -508,6 +519,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     knownAssetRepository,
     trackedAssetRepository,
     assetActivityRepository,
+    solanaService,
     eventBus,
     awaitSignerReady,
     refreshCredentialCount,
@@ -534,6 +546,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     trackedAssetRepository,
     transactionService,
     bitcoinService,
+    solanaService,
     solanaRpc,
     paymentTokenUtils,
     delegationService,
@@ -968,7 +981,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       refreshDelegationsFromRelayer,
       cancelStoredDelegations,
       listTrackedAssets,
+      listSolanaKnownAssets,
       addTrackedAsset,
+      addSolanaTrackedAsset,
       removeTrackedAsset,
       getKnownAsset,
       resolveTrackedAsset,
@@ -1003,7 +1018,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       refreshDelegationsFromRelayer,
       cancelStoredDelegations,
       listTrackedAssets,
+      listSolanaKnownAssets,
       addTrackedAsset,
+      addSolanaTrackedAsset,
       removeTrackedAsset,
       getKnownAsset,
       resolveTrackedAsset,

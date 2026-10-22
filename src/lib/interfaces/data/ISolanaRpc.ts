@@ -1,6 +1,9 @@
 import type {
   SolanaAccountAddress,
+  SolanaATAAddress,
   SolanaChainId,
+  SolanaMintAddress,
+  SolanaProgramAddress,
   SolanaTransactionSignature,
 } from "@1shotapi/ows-types";
 
@@ -15,6 +18,11 @@ export interface ISolanaSimulateResult {
   /** Non-null when the RPC reports a simulation error. */
   err: unknown | null;
   logs?: string[];
+}
+
+export interface ISolanaTokenAccountBalance {
+  amount: bigint;
+  decimals: number;
 }
 
 export interface ISolanaRpc {
@@ -38,6 +46,26 @@ export interface ISolanaRpc {
     chainId: SolanaChainId,
     wireTransactionBase64: string,
   ): Promise<SolanaTransactionSignature>;
+
+  /** True when the account exists on-chain (data length &gt; 0). */
+  accountExists(
+    chainId: SolanaChainId,
+    address: SolanaAccountAddress | SolanaATAAddress | SolanaMintAddress,
+  ): Promise<boolean>;
+
+  /**
+   * Owner program of a mint account (classic Token vs Token-2022).
+   * Throws if the account is missing or not a mint.
+   */
+  getMintTokenProgram(
+    chainId: SolanaChainId,
+    mint: SolanaMintAddress,
+  ): Promise<SolanaProgramAddress>;
+
+  getTokenAccountBalance(
+    chainId: SolanaChainId,
+    tokenAccount: SolanaATAAddress,
+  ): Promise<ISolanaTokenAccountBalance>;
 }
 
 export const ISolanaRpcType = Symbol.for("ISolanaRpc");

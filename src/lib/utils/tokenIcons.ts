@@ -1,5 +1,9 @@
-import type { EVMChainId, EVMContractAddress } from "@1shotapi/ows-types";
-
+import type {
+  EVMChainId,
+  EVMContractAddress,
+  SolanaChainId,
+  SolanaMintAddress,
+} from "@1shotapi/ows-types";
 
 import usdcIcon from "../../assets/images/tokens/CircleUSDC.svg";
 import usdgIcon from "../../assets/images/tokens/GlobalDollarUSDG.svg";
@@ -7,7 +11,8 @@ import musdIcon from "../../assets/images/tokens/mUSD-icon.svg";
 import paxgIcon from "../../assets/images/tokens/PAXG.svg";
 import pyusdIcon from "../../assets/images/tokens/PYUSD.svg";
 import usdtIcon from "../../assets/images/tokens/tetherUSD.svg";
-import { makeTrackedAssetId ,type  TrackedAssetId } from "../types/primitives/TrackedAssetId";
+import type { KnownAssetAddress, KnownAssetChainId } from "../types/domain/KnownAsset";
+import { makeTrackedAssetId, type TrackedAssetId } from "../types/primitives/TrackedAssetId";
 
 
 const ICON_BY_SYMBOL: Readonly<Record<string, string>> = {
@@ -47,8 +52,8 @@ export function iconUrlForSymbol(symbol: string): string | undefined {
 }
 
 export type IResolveAssetIconUrl = (
-  chainId: EVMChainId,
-  address: EVMContractAddress,
+  chainId: KnownAssetChainId,
+  address: KnownAssetAddress,
 ) => string | undefined;
 
 let resolveKnownAssetIconUrl: IResolveAssetIconUrl | null = null;
@@ -92,8 +97,8 @@ export function syncTrackedAssetIconUrls(
  * Priority: explicit override → tracked custom (host) → known catalog → symbol bundle.
  */
 export function resolveAssetIconUrl(
-  chainId: EVMChainId,
-  address: EVMContractAddress,
+  chainId: EVMChainId | SolanaChainId,
+  address: EVMContractAddress | SolanaMintAddress,
   symbol?: string,
   iconUrlOverride?: string,
 ): string | undefined {

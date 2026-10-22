@@ -112,8 +112,8 @@ export class BlockscoutAssetActivityRepository
     try {
       indexed = await this.fetchIndexed({
         owner,
-        chainId: asset.chainId,
-        tokenAddress: asset.address,
+        chainId: asset.chainId as EVMChainId,
+        tokenAddress: asset.address as EVMContractAddress,
         decimals: asset.decimals,
         trackedAssetId,
         limit,

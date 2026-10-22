@@ -38,6 +38,7 @@ import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type {
   IDelegationService,
   IBitcoinService,
+  ISolanaService,
   ITransactionService,
 } from "../lib/interfaces/business";
 import {
@@ -214,6 +215,7 @@ export interface IUseWalletBootParams {
   trackedAssetRepository: ITrackedAssetRepository;
   transactionService: ITransactionService;
   bitcoinService: IBitcoinService;
+  solanaService: ISolanaService;
   solanaRpc: ISolanaRpc;
   paymentTokenUtils: IPaymentTokenUtils;
   delegationService: IDelegationService;
@@ -248,6 +250,7 @@ export function useWalletBoot({
   trackedAssetRepository,
   transactionService,
   bitcoinService,
+  solanaService,
   solanaRpc,
   paymentTokenUtils,
   delegationService,
@@ -881,7 +884,13 @@ export function useWalletBoot({
         ensureReady,
         knownAssetRepository,
         trackedAssetRepository,
+        solanaService,
         getOwnerAddress: () => useWalletSessionStore.getState().evmAddress,
+        getSolanaAddress: () => {
+          const address = useWalletSessionStore.getState().solanaAddress;
+          if (!address || address === "—") return null;
+          return address;
+        },
         requestAddAssetApproval: (request) =>
           ask<boolean>(({ id, resolve }) => ({
             id,

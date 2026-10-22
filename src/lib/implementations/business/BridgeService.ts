@@ -52,6 +52,7 @@ export class BridgeService implements IBridgeService {
   async quote(params: ICctpQuoteParams): Promise<ICctpBridgeQuote> {
     const { dest, sourceUsdc, sourceRoute, destRoute } =
       await this.requireRoute(params.sourceChainId, params.destChainId);
+    const usdcAddress = sourceUsdc.address as EVMContractAddress;
 
     if (params.amountAtoms <= 0n) {
       throw new Error("Bridge amount must be greater than zero");
@@ -70,7 +71,7 @@ export class BridgeService implements IBridgeService {
     );
     const allowance = await this.readAllowance(
       params.sourceChainId,
-      sourceUsdc.address,
+      usdcAddress,
       params.owner,
       contracts.tokenMessengerV2,
     );
@@ -78,7 +79,7 @@ export class BridgeService implements IBridgeService {
       totalBurn: fees.totalBurn,
       destDomain: destRoute.domain,
       mintRecipient: params.owner,
-      burnToken: sourceUsdc.address,
+      burnToken: usdcAddress,
       maxFee: fees.maxFee,
       minFinalityThreshold: fees.minFinalityThreshold,
     });
@@ -89,7 +90,7 @@ export class BridgeService implements IBridgeService {
     const relayerWork = this.cctpUtils.buildRelayerWork({
       allowance,
       totalBurn: fees.totalBurn,
-      usdcAddress: sourceUsdc.address,
+      usdcAddress,
       tokenMessenger: contracts.tokenMessengerV2,
       approveData,
       burnData: burnCalldata,
@@ -98,7 +99,7 @@ export class BridgeService implements IBridgeService {
       params.sourceChainId,
       params.owner,
       relayerWork,
-      sourceUsdc.address,
+      usdcAddress,
     );
 
     return {
@@ -128,6 +129,7 @@ export class BridgeService implements IBridgeService {
   ): Promise<ICctpBridgeResult> {
     const { source, sourceUsdc, sourceRoute, destRoute } =
       await this.requireRoute(quote.sourceChainId, quote.destChainId);
+    const usdcAddress = sourceUsdc.address as EVMContractAddress;
 
     const fees = await this.fetchBurnFees(
       sourceRoute.irisBaseUrl,
@@ -142,7 +144,7 @@ export class BridgeService implements IBridgeService {
     );
     const allowance = await this.readAllowance(
       quote.sourceChainId,
-      sourceUsdc.address,
+      usdcAddress,
       quote.owner,
       contracts.tokenMessengerV2,
     );
@@ -150,7 +152,7 @@ export class BridgeService implements IBridgeService {
       totalBurn: fees.totalBurn,
       destDomain: destRoute.domain,
       mintRecipient: quote.owner,
-      burnToken: sourceUsdc.address,
+      burnToken: usdcAddress,
       maxFee: fees.maxFee,
       minFinalityThreshold: fees.minFinalityThreshold,
     });
@@ -161,7 +163,7 @@ export class BridgeService implements IBridgeService {
     const work = this.cctpUtils.buildRelayerWork({
       allowance,
       totalBurn: fees.totalBurn,
-      usdcAddress: sourceUsdc.address,
+      usdcAddress,
       tokenMessenger: contracts.tokenMessengerV2,
       approveData,
       burnData,

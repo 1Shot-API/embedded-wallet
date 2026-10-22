@@ -317,6 +317,18 @@ export interface IStyleFormState {
   solanaLoadFailedError: string;
   solanaRecipientPlaceholder: string;
   solanaInvalidAddressError: string;
+  solanaReceiveTokenNote: string;
+  solanaAddAssetTitle: string;
+  solanaAddAssetBody: string;
+  solanaAddAssetRentWarning: string;
+  solanaAddAssetCancelLabel: string;
+  solanaAddAssetSubmitLabel: string;
+  solanaAddAssetBusyLabel: string;
+  solanaAddAssetFailedError: string;
+  solanaAddAssetInsufficientSolError: string;
+  solanaSendSplTitle: string;
+  solanaCreateRecipientAtaWarning: string;
+  solanaInsufficientSolForAtaError: string;
 }
 
 /** Catalog options for the Allowed chains configurator (matches HardcodedChainRepository). */
@@ -621,6 +633,23 @@ export const ACME_PRESET: IStyleFormState = {
   solanaLoadFailedError: "Failed to load Solana balance",
   solanaRecipientPlaceholder: "Solana address…",
   solanaInvalidAddressError: "Enter a valid Solana address.",
+  solanaReceiveTokenNote:
+    "Share your wallet address. Senders create token accounts as needed — you do not need a separate token account address.",
+  solanaAddAssetTitle: "Add Solana asset",
+  solanaAddAssetBody:
+    "Create a token account for this mint on your wallet. You pay a small SOL rent deposit (reclaimable later if you close the account).",
+  solanaAddAssetRentWarning: "Estimated rent: ~{rent} SOL (+ network fee).",
+  solanaAddAssetCancelLabel: "Cancel",
+  solanaAddAssetSubmitLabel: "Create & track",
+  solanaAddAssetBusyLabel: "Creating…",
+  solanaAddAssetFailedError: "Failed to add Solana asset",
+  solanaAddAssetInsufficientSolError:
+    "Not enough SOL for token account rent and network fee.",
+  solanaSendSplTitle: "Send {symbol}",
+  solanaCreateRecipientAtaWarning:
+    "Recipient has no token account yet. Creating one costs ~{rent} SOL (paid by you).",
+  solanaInsufficientSolForAtaError:
+    "Not enough SOL to create the recipient token account.",
 };
 
 export const OCEAN_PRESET: IStyleFormState = {
@@ -852,6 +881,18 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   solanaLoadFailedError: "",
   solanaRecipientPlaceholder: "",
   solanaInvalidAddressError: "",
+  solanaReceiveTokenNote: "",
+  solanaAddAssetTitle: "",
+  solanaAddAssetBody: "",
+  solanaAddAssetRentWarning: "",
+  solanaAddAssetCancelLabel: "",
+  solanaAddAssetSubmitLabel: "",
+  solanaAddAssetBusyLabel: "",
+  solanaAddAssetFailedError: "",
+  solanaAddAssetInsufficientSolError: "",
+  solanaSendSplTitle: "",
+  solanaCreateRecipientAtaWarning: "",
+  solanaInsufficientSolForAtaError: "",
 };
 
 function put(
@@ -1419,6 +1460,30 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(solana, "loadFailedError", form.solanaLoadFailedError);
   put(solana, "recipientPlaceholder", form.solanaRecipientPlaceholder);
   put(solana, "invalidAddressError", form.solanaInvalidAddressError);
+  put(solana, "receiveTokenNote", form.solanaReceiveTokenNote);
+  put(solana, "addAssetTitle", form.solanaAddAssetTitle);
+  put(solana, "addAssetBody", form.solanaAddAssetBody);
+  put(solana, "addAssetRentWarning", form.solanaAddAssetRentWarning);
+  put(solana, "addAssetCancelLabel", form.solanaAddAssetCancelLabel);
+  put(solana, "addAssetSubmitLabel", form.solanaAddAssetSubmitLabel);
+  put(solana, "addAssetBusyLabel", form.solanaAddAssetBusyLabel);
+  put(solana, "addAssetFailedError", form.solanaAddAssetFailedError);
+  put(
+    solana,
+    "addAssetInsufficientSolError",
+    form.solanaAddAssetInsufficientSolError,
+  );
+  put(solana, "sendSplTitle", form.solanaSendSplTitle);
+  put(
+    solana,
+    "createRecipientAtaWarning",
+    form.solanaCreateRecipientAtaWarning,
+  );
+  put(
+    solana,
+    "insufficientSolForAtaError",
+    form.solanaInsufficientSolForAtaError,
+  );
   if (Object.keys(solana).length > 0) {
     copy.solana = solana;
   }
