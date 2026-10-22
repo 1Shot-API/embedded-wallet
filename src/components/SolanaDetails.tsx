@@ -291,7 +291,7 @@ export function SolanaDetails() {
         : `${formatUnits(spl!.balance, spl!.decimals)} ${spl!.symbol}`;
 
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-2">
         <div className="flex items-center justify-between">
           <Button
             type="button"
@@ -393,58 +393,45 @@ export function SolanaDetails() {
         {spl ? <TransactionHistory asset={spl} owner={address} /> : null}
 
         {spl ? (
-          <div className="border-border mt-2 flex flex-col gap-2 border-t pt-4">
-            <p className="text-muted-foreground m-0 text-xs font-medium tracking-wide uppercase">
-              {solanaCopy.removeAssetLabel}
-            </p>
+          <div className="mt-2 flex flex-col items-center gap-3 pt-2">
             {splBalanceEmpty ? (
-              <>
-                <p className="text-muted-foreground m-0 text-sm leading-relaxed">
-                  {solanaCopy.closeAtaBody.replace("{rent}", rentLabel)}
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={!canAct || removeBusy}
-                  onClick={() => {
-                    void closeAtaAndRemove(spl);
-                  }}
-                >
-                  {removeBusy
-                    ? solanaCopy.closeAtaBusyLabel
-                    : solanaCopy.closeAtaLabel}
-                </Button>
-              </>
+              <p className="text-muted-foreground m-0 text-center text-sm leading-relaxed">
+                {solanaCopy.closeAtaBody.replace("{rent}", rentLabel)}
+              </p>
             ) : (
-              <>
-                <p className="text-muted-foreground m-0 text-sm leading-relaxed">
-                  {solanaCopy.closeAtaMustEmptyError}
-                </p>
-                <p className="text-muted-foreground m-0 text-sm leading-relaxed">
-                  {solanaCopy.stopTrackingBody}
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={!canAct || removeBusy}
-                  onClick={() => {
-                    setRemoveBusy(true);
-                    setRemoveError(null);
-                    void stopTrackingSpl(spl)
-                      .catch((err: unknown) => {
-                        setRemoveError(
-                          err instanceof Error
-                            ? err.message
-                            : solanaCopy.closeAtaFailedError,
-                        );
-                      })
-                      .finally(() => setRemoveBusy(false));
-                  }}
-                >
-                  {solanaCopy.stopTrackingLabel}
-                </Button>
-              </>
+              <p className="text-muted-foreground m-0 text-center text-sm leading-relaxed">
+                {solanaCopy.stopTrackingBody}
+              </p>
             )}
+            <Button
+              type="button"
+              size="sm"
+              className="self-center"
+              disabled={!canAct || removeBusy}
+              onClick={() => {
+                if (splBalanceEmpty) {
+                  void closeAtaAndRemove(spl);
+                  return;
+                }
+                setRemoveBusy(true);
+                setRemoveError(null);
+                void stopTrackingSpl(spl)
+                  .catch((err: unknown) => {
+                    setRemoveError(
+                      err instanceof Error
+                        ? err.message
+                        : solanaCopy.closeAtaFailedError,
+                    );
+                  })
+                  .finally(() => setRemoveBusy(false));
+              }}
+            >
+              {splBalanceEmpty
+                ? removeBusy
+                  ? solanaCopy.closeAtaBusyLabel
+                  : solanaCopy.closeAtaLabel
+                : solanaCopy.stopTrackingLabel}
+            </Button>
             {removeError ? (
               <p className="text-destructive m-0 text-sm">{removeError}</p>
             ) : null}

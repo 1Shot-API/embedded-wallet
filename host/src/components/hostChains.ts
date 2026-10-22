@@ -139,9 +139,16 @@ export const FOCUS_USDT_BASE = {
   label: "Tether (Base)",
 } as const;
 
-/** Default HTTPS icon for addAsset playground demos (Trust Wallet assets). */
-export const DEMO_ADD_ASSET_ICON_URL =
+/** HTTPS icon for USDT addAsset demos (Trust Wallet Ethereum USDT). */
+export const DEMO_USDT_ICON_URL =
   "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png";
+
+/**
+ * HTTPS icon for USDC addAsset demos (bundled Circle USDC from embedded-wallet).
+ * Do not use the Trust Wallet USDT asset path for Solana/EVM USDC.
+ */
+export const DEMO_USDC_ICON_URL =
+  "https://raw.githubusercontent.com/1Shot-API/embedded-wallet/refs/heads/develop/src/assets/images/tokens/CircleUSDC.svg";
 
 /** Mainnet Circle USDC mint — catalog-only (not default-tracked; ATA rent). */
 export const DEMO_SOLANA_USDC_MAINNET = {

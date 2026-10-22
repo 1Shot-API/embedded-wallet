@@ -141,8 +141,8 @@ export function TransactionHistory({
       : null;
 
   return (
-    <section className="border-border flex min-h-0 flex-1 flex-col gap-3 border-t pt-4">
-      <div className="flex shrink-0 items-center justify-between gap-2">
+    <section className="border-border flex flex-col gap-3 border-t pt-4">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-foreground text-sm font-semibold">
           Recent Activity
         </h3>
@@ -166,7 +166,7 @@ export function TransactionHistory({
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div>
         {loading && rows.length === 0 ? (
           <p className="text-muted-foreground text-sm">Loading…</p>
         ) : null}

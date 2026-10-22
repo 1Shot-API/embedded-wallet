@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 
 import { ChainSelector, type IChainSelectorOption } from "./ChainSelector";
 import {
-  DEMO_ADD_ASSET_ICON_URL,
   DEMO_SOLANA_USDC_MAINNET,
+  DEMO_USDC_ICON_URL,
+  DEMO_USDT_ICON_URL,
   FOCUS_USDT_BASE,
   hostChainMeta,
   type UsdcMode,
@@ -172,7 +173,7 @@ export function WalletActions({
   const [addAssetAddress, setAddAssetAddress] = useState<string>(
     FOCUS_USDT_BASE.assetAddress,
   );
-  const [addAssetIconUrl, setAddAssetIconUrl] = useState(DEMO_ADD_ASSET_ICON_URL);
+  const [addAssetIconUrl, setAddAssetIconUrl] = useState(DEMO_USDT_ICON_URL);
   const addAssetIsSolana = ChainUtils.isSolanaChainId(addAssetChainId);
   const addAssetAddressValid = addAssetIsSolana
     ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addAssetAddress.trim())
@@ -538,6 +539,7 @@ export function WalletActions({
               onClick={() => {
                 setAddAssetChainId(FOCUS_USDT_BASE.chainId);
                 setAddAssetAddress(FOCUS_USDT_BASE.assetAddress);
+                setAddAssetIconUrl(DEMO_USDT_ICON_URL);
               }}
             >
               {FOCUS_USDT_BASE.label}
@@ -550,6 +552,7 @@ export function WalletActions({
               onClick={() => {
                 setAddAssetChainId(DEMO_SOLANA_USDC_MAINNET.chainId);
                 setAddAssetAddress(DEMO_SOLANA_USDC_MAINNET.assetAddress);
+                setAddAssetIconUrl(DEMO_USDC_ICON_URL);
               }}
             >
               {DEMO_SOLANA_USDC_MAINNET.label}
@@ -569,6 +572,7 @@ export function WalletActions({
                 const meta = hostChainMeta(next);
                 if (meta?.usdc) {
                   setAddAssetAddress(meta.usdc);
+                  setAddAssetIconUrl(DEMO_USDC_ICON_URL);
                 }
               }}
             />
