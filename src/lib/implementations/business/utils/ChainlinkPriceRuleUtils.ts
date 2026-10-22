@@ -36,11 +36,22 @@ export type ChainlinkPriceRuleData = {
 type TrustedFeed = { pair: string; decimals: number };
 
 /**
- * Hard-verified Chainlink USD feed proxies (Ethereum mainnet + Base ETH/USD).
- * Malicious feeds are rejected before signing.
+ * Hard-verified Chainlink USD feed proxies (allowlist — not every RDD feed).
+ * CoinOperated hop-1 redeems on Arc, so product grants should use Arc proxies;
+ * Eth/Base entries remain trusted for other hosts / legacy grants.
+ *
+ * Official per-network lists (proxyAddress + decimals):
+ * - Index of RDD URLs: https://github.com/smartcontractkit/documentation/blob/main/src/features/data/chains.ts (`rddUrl`)
+ * - Ethereum: https://reference-data-directory.vercel.app/feeds-mainnet.json
+ * - Base: https://reference-data-directory.vercel.app/feeds-ethereum-mainnet-base-1.json
+ * - Arc: https://reference-data-directory.vercel.app/feeds-arc-mainnet.json
+ * - UI: https://docs.chain.link/data-feeds/price-feeds/addresses
+ *
+ * Malicious / unknown feeds are rejected before signing.
  */
 export const TRUSTED_CHAINLINK_USD_FEEDS: ReadonlyMap<string, TrustedFeed> =
   new Map([
+    // Ethereum mainnet
     [
       "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419",
       { pair: "ETH/USD", decimals: 8 },
@@ -53,9 +64,27 @@ export const TRUSTED_CHAINLINK_USD_FEEDS: ReadonlyMap<string, TrustedFeed> =
       "0x214ed9da11d2bbbe9a2747a5fa0f8156c0ed75c3",
       { pair: "PAXG/USD", decimals: 8 },
     ],
+    // Arc mainnet (CoinOperated hop-1)
+    [
+      "0x50fcdd99d6762d1c170dc6a9111db944aee6d364",
+      { pair: "ETH/USD (Arc)", decimals: 8 },
+    ],
+    [
+      "0xa109b535c70c8be9995be64bb6751acdb27e03de",
+      { pair: "BTC/USD (Arc)", decimals: 8 },
+    ],
+    [
+      "0xd7a3c3e82867e606f21a1fea9b38cf4f34b96d2a",
+      { pair: "PAXG/USD (Arc)", decimals: 8 },
+    ],
+    // Base mainnet
     [
       "0x71041dddad3595f9ced3dccfbe3d1f4b0a16bb70",
       { pair: "ETH/USD (Base)", decimals: 8 },
+    ],
+    [
+      "0xc01502b887d09b0f329981764268fc32a94cb453",
+      { pair: "BTC/USD (Base)", decimals: 8 },
     ],
   ]);
 

@@ -46,7 +46,7 @@ const KIT_9: IAppendedCaveatConfiguration[] = [
 const CHAINLINK_DIP: IAppendedCaveatConfiguration = {
   type: CHAINLINK_PRICE_RULE,
   data: {
-    priceFeed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+    priceFeed: "0x50FCDD99D6762D1C170DC6A9111db944AEE6D364",
     ruleKind: 0,
     expectedDecimals: 8,
     windowSeconds: 86400,
