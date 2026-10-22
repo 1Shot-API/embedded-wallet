@@ -1,10 +1,10 @@
-import type {
+﻿import type {
   SolanaAccountAddress,
   SolanaATAAddress,
   SolanaChainId,
   SolanaMintAddress,
   SolanaProgramAddress,
-  SolanaTransactionSignature,
+  SolanaTransactionHash,
 } from "@1shotapi/ows-types";
 
 import type { SolanaLamports } from "../../types/primitives/SolanaLamports";
@@ -45,7 +45,7 @@ export interface ISolanaRpc {
   sendRawTransaction(
     chainId: SolanaChainId,
     wireTransactionBase64: string,
-  ): Promise<SolanaTransactionSignature>;
+  ): Promise<SolanaTransactionHash>;
 
   /** True when the account exists on-chain (data length &gt; 0). */
   accountExists(

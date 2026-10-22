@@ -1,9 +1,9 @@
-import {
+﻿import {
   type DomainString,
   OWSAnalyticsEvent,
   type SolanaAccountAddress,
   type SolanaChainId,
-  type SolanaTransactionSignature,
+  type SolanaTransactionHash,
 } from "@1shotapi/ows-types";
 
 import { EAnalyticsEventName } from "../../enum/EAnalyticsEventName";
@@ -112,7 +112,7 @@ export class SolanaSignAndSendEvent extends OWSAnalyticsEvent {
     hostDomain: DomainString,
     public readonly accountAddress: SolanaAccountAddress,
     public readonly chainId: SolanaChainId,
-    public readonly signature: SolanaTransactionSignature,
+    public readonly signature: SolanaTransactionHash,
     public readonly durationMs: number,
   ) {
     super(EAnalyticsEventName.SolanaSignAndSend, hostDomain);

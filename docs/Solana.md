@@ -1,4 +1,4 @@
-# Solana support — plan for a plan
+﻿# Solana support — plan for a plan
 
 Incremental roadmap to full Solana support across OWS (`prf-wallet`) and this Branding Layer. **Not an implementation plan.** Each numbered phase should get its own scoped design/build cycle before the next.
 
@@ -125,7 +125,7 @@ Yes — **cluster ≈ chain** in our vocabulary. Official roles:
 
 **Delivered**
 
-- Branded primitives (`SolanaAccountAddress`, `SolanaProgramAddress`, `SolanaMintAddress`, `SolanaSignature`, `SolanaTransactionSignature`) via `@solana/addresses`.
+- Branded primitives (`SolanaAccountAddress`, `SolanaProgramAddress`, `SolanaMintAddress`, `SolanaSignature`, `SolanaTransactionHash`) via `@solana/addresses`.
 - `SolanaSigner.signMessage` / `signTransaction` over `ed25519` `signDigest`; `toKitPartialSigner` for Kit planners.
 - Wire vocabulary `solana.getAccountAddress` | `signMessage` | `signTransaction` | `signAndSendTransaction` | `signIn`.
 
@@ -254,25 +254,28 @@ proxy.solana.registerSolanaWallet(); // optional { name?, icon? }
 
 ---
 
-### Phase 8 — CCTP bridge (native SOL? + USDC mints)
+### Phase 8 — CCTP bridge (USDC EVM ↔ Solana) ✅
 
-**Repos:** Bridge UI + CCTP utils extended for Solana domain + Forwarding.
+**Status:** Shipped — custom Iris + Kit UI (no BridgeKit).
 
-**Intent:** Bridge flows involving Solana, prioritized around **USDC via CCTP** (product-consistent with EVM). Re-read “native SOL” carefully: CCTP moves **USDC**, not SOL. Native SOL bridging would be a different bridge (Wormhole/Li.FI/etc.) — treat as optional later unless CoinOperated explicitly needs SOL↔X.
+**Depends:** Bridge UI + CCTP utils extended for Solana domain + Forwarding; Phase 6 Alchemy sign-and-send.
 
-**Recommended CCTP scope**
+**Intent:** Bidirectional **USDC via CCTP** (not native SOL). Circle Forwarding still mints on the destination — no in-wallet Solana `receiveMessage`.
 
-1. **EVM → Solana USDC** using existing burn + Forwarding (dest mint to **USDC ATA**; `includeRecipientSetup` when needed). May work before Solana sign-and-send if Forwarding covers dest.
-2. **Solana → EVM USDC** — requires Solana burn tx via Phase 6 Alchemy path + attestation + EVM receive/forwarding as designed.
-3. In-wallet Bridge entry from Solana USDC `AssetDetails` / Host `bridge` RPC extended with Solana chain ids.
+**Shipped scope**
+
+1. **EVM → Solana USDC** — existing `CCTPBridge` / `BridgeService` + EIP-7710 relayer burn; Solana destination collects a wallet address and burns with `mintRecipient` = that wallet's **USDC ATA** (bytes32).
+2. **Solana → EVM USDC** — `SolanaBridge` / `SolanaBridgeService`: Iris fee quote + `depositForBurnWithHook` via Kit/Alchemy (user pays SOL); no relayer / `PaymentFeePicker`.
+3. In-wallet Bridge on Solana USDC SPL detail; Host `bridge` accepts Solana CAIP-2 source/dest plus optional `solanaRecipient` / `evmRecipient`.
 
 **Reminders**
 
-- `mintRecipient` = ATA (32-byte), not wallet pubkey.
-- Forwarding fees on Solana include rent/gas semantics different from EVM — quote UI must not reuse EVM-only fee copy blindly.
-- Li.FI remains a future aggregator option; not required to declare CCTP done.
+- `mintRecipient` for Solana dest = ATA (32-byte), not wallet pubkey.
+- Solana source fee copy is SOL rent/fees — do not reuse EVM relayer USDC fee strings.
+- Li.FI remains a future aggregator option.
 
-**Exit criteria:** User can bridge USDC between a supported EVM chain and Solana with consent UX consistent with current CCTP chrome; Host `bridge` accepts Solana where applicable.
+**Exit criteria (met):** User can bridge USDC between a supported EVM chain and Solana with consent UX consistent with CCTP chrome; Host `bridge` accepts Solana where applicable.
+
 
 ---
 

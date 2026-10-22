@@ -1,9 +1,9 @@
-import type {
+﻿import type {
   SolanaAccountAddress,
   SolanaATAAddress,
   SolanaChainId,
   SolanaMintAddress,
-  SolanaTransactionSignature,
+  SolanaTransactionHash,
 } from "@1shotapi/ows-types";
 
 import type { SolanaLamports } from "../../types/primitives/SolanaLamports";
@@ -17,7 +17,7 @@ export interface ISolanaSendParams {
 }
 
 export interface ISolanaSendResult {
-  signature: SolanaTransactionSignature;
+  signature: SolanaTransactionHash;
   /** Estimated prioritization / base fee reserve used when building (lamports). */
   feeLamports: SolanaLamports;
 }
@@ -32,7 +32,7 @@ export interface ISolanaEnsureAtaResult {
   ataAddress: SolanaATAAddress;
   /** True when CreateIdempotent was submitted (account was missing). */
   created: boolean;
-  signature: SolanaTransactionSignature | null;
+  signature: SolanaTransactionHash | null;
   /** Rent + fee reserve when creating; 0 when ATA already existed. */
   rentLamports: SolanaLamports;
 }
@@ -48,7 +48,7 @@ export interface ISolanaSendSplParams {
 }
 
 export interface ISolanaSendSplResult {
-  signature: SolanaTransactionSignature;
+  signature: SolanaTransactionHash;
   feeLamports: SolanaLamports;
   /** True when destination ATA CreateIdempotent was included. */
   createdRecipientAta: boolean;
@@ -56,7 +56,7 @@ export interface ISolanaSendSplResult {
 }
 
 export interface ISolanaCloseAtaResult {
-  signature: SolanaTransactionSignature;
+  signature: SolanaTransactionHash;
   feeLamports: SolanaLamports;
   /** Rent returned to the owner (estimate; actual amount is on-chain). */
   rentReclaimedLamports: SolanaLamports;

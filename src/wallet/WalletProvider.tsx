@@ -10,14 +10,16 @@ import {
   type CredentialSummary,
   type EVMTransactionHash,
   type OWSChainId,
+  type SolanaChainId,
+  type SolanaMintAddress,
   type StoredCredential,
-type  SolanaChainId,type  SolanaMintAddress } from "@1shotapi/ows-types";
+} from "@1shotapi/ows-types";
 import {
   AddressUtils,
   type IBlockchainProvider,
-type 
-  OWSWallet,type 
-  RpcHelper} from "@1shotapi/ows-wallet-utils";
+  type OWSWallet,
+  type RpcHelper,
+} from "@1shotapi/ows-wallet-utils";
 import {
   createContext,
   useCallback,
@@ -32,6 +34,7 @@ import {
 
 import { CircleContextProvider } from "../circle/CircleContext";
 import { openCctpBridge } from "../circle/openCctpBridge";
+import { openSolanaBridge } from "../circle/openSolanaBridge";
 import {
   BitcoinService,
   BridgeService,
@@ -40,6 +43,7 @@ import {
   DelegationService,
   LiFiUtils,
   PaymentTokenUtils,
+  SolanaBridgeService,
   SolanaService,
   TransactionService,
 } from "../lib/implementations/business";
@@ -68,6 +72,7 @@ import type {
   IBridgeService,
   IBitcoinService,
   IDelegationService,
+  ISolanaBridgeService,
   ISolanaService,
   ITransactionService,
 } from "../lib/interfaces/business";
@@ -218,6 +223,15 @@ const bridgeService: IBridgeService = new BridgeService(
   blockchainProvider,
 );
 
+const solanaBridgeService: ISolanaBridgeService = new SolanaBridgeService(
+  chainRepository,
+  knownAssetRepository,
+  circleRepository,
+  cctpUtils,
+  solanaRpc,
+  owsProvider,
+);
+
 const delegationService: IDelegationService = new DelegationService(
   chainRepository,
   credentialRepository,
@@ -259,6 +273,7 @@ export type WalletContextValue = {
   transactionService: ITransactionService;
   paymentTokenUtils: IPaymentTokenUtils;
   bridgeService: IBridgeService;
+  solanaBridgeService: ISolanaBridgeService;
   bitcoinService: IBitcoinService;
   solanaService: ISolanaService;
   delegationService: IDelegationService;
@@ -443,6 +458,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [refreshAllowedChains]);
 
   const evmAddress = useWalletSessionStore((state) => state.evmAddress);
+  const solanaAddress = useWalletSessionStore((state) => state.solanaAddress);
   const unlocked = useWalletSessionStore((state) => state.unlocked);
   useEffect(() => {
     if (!unlocked || !evmAddress || String(evmAddress).toLowerCase() === "0x0") {
@@ -451,8 +467,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     void bridgeService.resume(evmAddress).then((inFlight) => {
       if (cancelled || !inFlight) return;
+      if (!ChainUtils.isEVMChainId(inFlight.sourceChainId)) return;
       void openCctpBridge({
-        sourceChainId: inFlight.sourceChainId,
+        sourceChainId: ChainUtils.asEVMChainId(inFlight.sourceChainId),
         ownerAddress: evmAddress,
         resume: inFlight,
       }).catch(() => {
@@ -463,6 +480,44 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [evmAddress, unlocked]);
+
+  useEffect(() => {
+    if (!unlocked || !solanaAddress || solanaAddress === "—") {
+      return;
+    }
+    let cancelled = false;
+    void solanaBridgeService.resume(solanaAddress).then((inFlight) => {
+      if (cancelled || !inFlight) return;
+      if (!ChainUtils.isSolanaChainId(inFlight.sourceChainId)) return;
+      const sourceChainId = ChainUtils.asSolanaChainId(inFlight.sourceChainId);
+      void knownAssetRepository
+        .getCctpBridgeAsset(sourceChainId)
+        .then(async (usdc) => {
+          if (cancelled || !usdc) return;
+          const tracked = await trackedAssetRepository.list();
+          const row = tracked.find(
+            (a) =>
+              a.chainId === sourceChainId &&
+              String(a.address).toLowerCase() ===
+                String(usdc.address).toLowerCase() &&
+              a.ataAddress,
+          );
+          if (!row?.ataAddress) return;
+          void openSolanaBridge({
+            sourceChainId,
+            ownerAddress: solanaAddress,
+            mint: usdc.address as SolanaMintAddress,
+            burnAta: row.ataAddress,
+            resume: inFlight,
+          }).catch(() => {
+            /* user closed resume modal */
+          });
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [solanaAddress, unlocked]);
 
   const {
     setUnlocked,
@@ -964,6 +1019,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       transactionService,
       paymentTokenUtils,
       bridgeService,
+      solanaBridgeService,
       bitcoinService,
       solanaService,
       delegationService,

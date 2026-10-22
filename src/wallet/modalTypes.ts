@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   PersonalSignApprovalRequest,
   SendTransactionApprovalRequest,
   SignTypedDataApprovalRequest,
@@ -16,7 +16,7 @@ import type {
   SolanaAccountAddress,
   SolanaChainId,
   SolanaSignature,
-  SolanaTransactionSignature,
+  SolanaTransactionHash,
 } from "@1shotapi/ows-types";
 
 import type {
@@ -24,6 +24,10 @@ import type {
   ICctpBridgeOpenRequest,
 } from "../circle/cctpBridgeTypes";
 import type { IOnrampOpenRequest } from "../circle/onrampTypes";
+import type {
+  ISolanaBridgeModalResult,
+  ISolanaBridgeOpenRequest,
+} from "../circle/solanaBridgeTypes";
 import type { ISolanaTxSummary } from "../lib/implementations/utils/SolanaTxUtils";
 import type { ITransactionWork } from "../lib/interfaces/business/ITransactionService";
 import type { IRelayerPayment } from "../lib/types/domain/RelayerPayment";
@@ -208,9 +212,9 @@ export type ModalRequest =
       submit?: (
         messageBytes: Uint8Array,
         signatureBytes: Uint8Array,
-      ) => Promise<SolanaTransactionSignature>;
+      ) => Promise<SolanaTransactionHash>;
       resolve: (
-        value: SolanaSignature[] | SolanaTransactionSignature,
+        value: SolanaSignature[] | SolanaTransactionHash,
       ) => void;
       reject: (error: unknown) => void;
     }
@@ -323,6 +327,13 @@ export type ModalRequest =
       kind: "cctpBridge";
       request: ICctpBridgeOpenRequest;
       resolve: (result: ICctpBridgeModalResult) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "solanaBridge";
+      request: ISolanaBridgeOpenRequest;
+      resolve: (result: ISolanaBridgeModalResult) => void;
       reject: (error: unknown) => void;
     };
 

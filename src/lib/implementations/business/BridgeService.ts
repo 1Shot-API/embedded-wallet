@@ -1,11 +1,19 @@
 import {
-  type EVMContractAddress,
-  type UriString,
+  ChainUtils,
+  ConversionUtils,
   EVMTransactionHash,
+  SolanaAddressUtils,
+  type EVMContractAddress,
+  type TransactionHash,
+  type UriString,
   type EVMAccountAddress,
   type EVMChainId,
+  type OWSChainId,
+  type SolanaMintAddress,
 } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
+import { address } from "@solana/kit";
+import { findAssociatedTokenPda, TOKEN_PROGRAM_ADDRESS } from "@solana-program/token";
 import { erc20Abi } from "viem";
 
 import type {
@@ -58,6 +66,33 @@ export class BridgeService implements IBridgeService {
       throw new Error("Bridge amount must be greater than zero");
     }
 
+    let mintRecipientBytes32 = params.mintRecipientBytes32;
+    if (!mintRecipientBytes32) {
+      if (this.cctpUtils.isSolanaRoute(params.destChainId)) {
+        if (!params.solanaRecipient) {
+          throw new Error(
+            "Solana destination requires a Solana recipient address",
+          );
+        }
+        const destUsdc =
+          await this.knownAssetRepository.getCctpBridgeAsset(
+            ChainUtils.asSolanaChainId(params.destChainId),
+          );
+        if (!destUsdc) {
+          throw new Error("No CCTP USDC catalog entry on Solana destination");
+        }
+        const ata = await deriveUsdcAta(
+          params.solanaRecipient,
+          destUsdc.address as SolanaMintAddress,
+        );
+        mintRecipientBytes32 = ConversionUtils.solanaAccountToBytes32(ata);
+      } else {
+        mintRecipientBytes32 = ConversionUtils.addressToBytes32Hex(
+          params.owner,
+        );
+      }
+    }
+
     const fees = await this.fetchBurnFees(
       sourceRoute.irisBaseUrl,
       sourceRoute.domain,
@@ -78,7 +113,7 @@ export class BridgeService implements IBridgeService {
     const burnCalldata = this.cctpUtils.encodeDepositForBurnWithHook({
       totalBurn: fees.totalBurn,
       destDomain: destRoute.domain,
-      mintRecipient: params.owner,
+      mintRecipientBytes32,
       burnToken: usdcAddress,
       maxFee: fees.maxFee,
       minFinalityThreshold: fees.minFinalityThreshold,
@@ -108,6 +143,10 @@ export class BridgeService implements IBridgeService {
       amountAtoms: params.amountAtoms,
       speed: params.speed,
       owner: params.owner,
+      mintRecipientBytes32,
+      ...(params.solanaRecipient
+        ? { solanaRecipient: params.solanaRecipient }
+        : {}),
       sourceUsdc,
       destChain: dest,
       minFinalityThreshold: fees.minFinalityThreshold,
@@ -151,7 +190,7 @@ export class BridgeService implements IBridgeService {
     const burnData = this.cctpUtils.encodeDepositForBurnWithHook({
       totalBurn: fees.totalBurn,
       destDomain: destRoute.domain,
-      mintRecipient: quote.owner,
+      mintRecipientBytes32: quote.mintRecipientBytes32,
       burnToken: usdcAddress,
       maxFee: fees.maxFee,
       minFinalityThreshold: fees.minFinalityThreshold,
@@ -180,8 +219,11 @@ export class BridgeService implements IBridgeService {
       relayerUrl: source.relayerUrl,
     });
 
+    const burnTxHash = EVMTransactionHash(
+      submitted.transactionHash as `0x${string}`,
+    );
     const inFlight: ICctpInFlightBurn = {
-      burnTxHash: submitted.transactionHash,
+      burnTxHash,
       sourceDomain: sourceRoute.domain,
       sourceChainId: quote.sourceChainId,
       destChainId: quote.destChainId,
@@ -189,11 +231,11 @@ export class BridgeService implements IBridgeService {
       address: quote.owner,
     };
     this.circleRepository.saveInFlight(inFlight);
-    onProgress?.({ burnTxHash: submitted.transactionHash });
+    onProgress?.({ burnTxHash });
 
     const forwardTxHash = await this.pollUntilForwarded(inFlight, onProgress);
     return {
-      burnTxHash: submitted.transactionHash,
+      burnTxHash,
       forwardTxHash,
     };
   }
@@ -205,10 +247,8 @@ export class BridgeService implements IBridgeService {
   async pollUntilForwarded(
     inFlight: ICctpInFlightBurn,
     onProgress?: (progress: ICctpPollProgress) => void,
-  ): Promise<EVMTransactionHash> {
-    const sourceRoute = this.cctpUtils.requireRoute(
-      inFlight.sourceChainId,
-    );
+  ): Promise<TransactionHash> {
+    const sourceRoute = this.cctpUtils.requireRoute(inFlight.sourceChainId);
     onProgress?.({ burnTxHash: inFlight.burnTxHash });
 
     for (let i = 0; i < MAX_POLL_ATTEMPTS; i += 1) {
@@ -218,14 +258,13 @@ export class BridgeService implements IBridgeService {
         inFlight.burnTxHash,
       );
       const hash = message?.forwardTxHash;
-      if (hash && hash.startsWith("0x") && hash.length >= 66) {
-        const forwardTxHash = EVMTransactionHash(hash as `0x${string}`);
+      if (hash) {
         onProgress?.({
           burnTxHash: inFlight.burnTxHash,
-          forwardTxHash,
+          forwardTxHash: hash,
         });
         this.circleRepository.clearInFlight(inFlight.address);
-        return forwardTxHash;
+        return hash;
       }
       await sleep(POLL_MS);
     }
@@ -283,10 +322,7 @@ export class BridgeService implements IBridgeService {
     return chain;
   }
 
-  private async requireRoute(
-    sourceChainId: EVMChainId,
-    destChainId: EVMChainId,
-  ) {
+  private async requireRoute(sourceChainId: EVMChainId, destChainId: OWSChainId) {
     const source = await this.requireChain(sourceChainId);
     const dest = await this.chainRepository.get(destChainId);
     if (!dest) {
@@ -297,12 +333,19 @@ export class BridgeService implements IBridgeService {
         "Destination must be a same-network CCTP chain other than the source",
       );
     }
-    const sourceUsdc =
-      await this.knownAssetRepository.getCctpBridgeAsset(
-        sourceChainId,
-      );
+    const sourceUsdc = await this.knownAssetRepository.getCctpBridgeAsset(
+      sourceChainId,
+    );
     if (!sourceUsdc) {
       throw new Error(`No CCTP USDC on ${source.label}`);
+    }
+    // Dest Solana must also have a CCTP USDC catalog entry (for mint/ATA).
+    if (ChainUtils.isSolanaChainId(destChainId)) {
+      const destUsdc =
+        await this.knownAssetRepository.getCctpBridgeAsset(destChainId);
+      if (!destUsdc) {
+        throw new Error(`No CCTP USDC on ${dest.label}`);
+      }
     }
     return {
       source,
@@ -312,6 +355,18 @@ export class BridgeService implements IBridgeService {
       destRoute: this.cctpUtils.requireRoute(destChainId),
     };
   }
+}
+
+async function deriveUsdcAta(
+  owner: string,
+  mint: SolanaMintAddress,
+): Promise<ReturnType<typeof SolanaAddressUtils.asAtaAddress>> {
+  const [ata] = await findAssociatedTokenPda({
+    owner: address(owner),
+    mint: address(mint),
+    tokenProgram: TOKEN_PROGRAM_ADDRESS,
+  });
+  return SolanaAddressUtils.asAtaAddress(ata);
 }
 
 function sleep(ms: number): Promise<void> {

@@ -1,6 +1,6 @@
-import {
+﻿import {
   SolanaAddressUtils,
-  SolanaTransactionSignature,
+  SolanaTransactionHash,
   type SolanaAccountAddress,
   type SolanaATAAddress,
   type SolanaChainId,
@@ -78,7 +78,7 @@ export class AlchemySolanaRpc implements ISolanaRpc {
   async sendRawTransaction(
     chainId: SolanaChainId,
     wireTransactionBase64: string,
-  ): Promise<SolanaTransactionSignature> {
+  ): Promise<SolanaTransactionHash> {
     const signature = await this.rpcCall<string>(chainId, "sendTransaction", [
       wireTransactionBase64,
       {
@@ -87,7 +87,7 @@ export class AlchemySolanaRpc implements ISolanaRpc {
         preflightCommitment: "confirmed",
       },
     ]);
-    return SolanaTransactionSignature(signature);
+    return SolanaTransactionHash(signature);
   }
 
   async accountExists(

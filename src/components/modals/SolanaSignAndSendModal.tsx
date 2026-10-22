@@ -1,9 +1,9 @@
-import {
+﻿import {
   OwsUserRejectedError,
   type SolanaAccountAddress,
   type SolanaChainId,
   type SolanaSignature,
-  type SolanaTransactionSignature,
+  type SolanaTransactionHash,
 } from "@1shotapi/ows-types";
 import { useEffect, useRef, useState } from "react";
 
@@ -42,8 +42,8 @@ export function SolanaSignAndSendModal({
   submit?: (
     messageBytes: Uint8Array,
     signatureBytes: Uint8Array,
-  ) => Promise<SolanaTransactionSignature>;
-  onResolve: (value: SolanaSignature[] | SolanaTransactionSignature) => void;
+  ) => Promise<SolanaTransactionHash>;
+  onResolve: (value: SolanaSignature[] | SolanaTransactionHash) => void;
   onReject: (error: unknown) => void;
 }) {
   const { getSigner, resolveChain, configProvider } = useWallet();

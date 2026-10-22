@@ -17,6 +17,7 @@ export type {
   IStyleCopyTransferTokens,
   IStyleCopySendNativeToken,
   IStyleCopyCctpBridge,
+  IStyleCopySolanaBridge,
   IStyleCopyGrantExecutionPermission,
   IStyleCopyCancelDelegation,
   IStyleCopyPasskeyPrompt,

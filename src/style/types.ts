@@ -23,6 +23,7 @@ export type {
   IStyleCopyTransferTokens,
   IStyleCopySendNativeToken,
   IStyleCopyCctpBridge,
+  IStyleCopySolanaBridge,
   IStyleCopyGrantExecutionPermission,
   IStyleCopyGrantLiFiSwapPermission,
   IStyleCopyGrantLiFiApprovePermission,

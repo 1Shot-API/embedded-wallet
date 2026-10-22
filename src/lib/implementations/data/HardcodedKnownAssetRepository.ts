@@ -144,8 +144,16 @@ export class HardcodedKnownAssetRepository implements IKnownAssetRepository {
   }
 
   async getCctpBridgeAsset(
-    chainId: EVMChainId,
+    chainId: EVMChainId | SolanaChainId,
   ): Promise<KnownAsset | null> {
+    if (ChainUtils.isSolanaChainId(chainId)) {
+      return (
+        SOLANA_KNOWN_ASSETS.find(
+          (asset) =>
+            asset.useCCTPBridge && asset.chainId === chainId,
+        ) ?? null
+      );
+    }
     return lookupCctpBridgeAsset(chainId);
   }
 

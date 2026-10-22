@@ -1,9 +1,9 @@
-import {
+﻿import {
   EChainTechnology,
   type SolanaAccountAddress,
   type SolanaChainId,
   type SolanaMintAddress,
-  type SolanaTransactionSignature,
+  type SolanaTransactionHash,
 } from "@1shotapi/ows-types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
@@ -22,7 +22,7 @@ export interface ISolanaSendSplModalProps {
   fromAddress: SolanaAccountAddress;
   asset: TrackedAsset;
   onClose: () => void;
-  onSuccess: (signature: SolanaTransactionSignature) => void;
+  onSuccess: (signature: SolanaTransactionHash) => void;
 }
 
 /**
@@ -46,7 +46,7 @@ export function SolanaSendSplModal({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sentSignature, setSentSignature] =
-    useState<SolanaTransactionSignature | null>(null);
+    useState<SolanaTransactionHash | null>(null);
   const [destNeedsAta, setDestNeedsAta] = useState(false);
 
   const rentLamports = solanaService.estimateAtaRentLamports();

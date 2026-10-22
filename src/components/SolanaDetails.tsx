@@ -5,6 +5,7 @@ import {
 } from "@1shotapi/ows-types";
 import {
   ArrowLeftIcon,
+  ArrowLeftRightIcon,
   PlusIcon,
   QrCodeIcon,
   RefreshCwIcon,
@@ -17,6 +18,7 @@ import { useShallow } from "zustand/react/shallow";
 import { Button } from "@/components/ui/button";
 
 import solanaLogo from "../assets/images/chains/solana-logo.svg";
+import { openSolanaBridge } from "../circle/openSolanaBridge";
 import type { TrackedAsset } from "../lib/types/domain";
 import { EAssetType } from "../lib/types/enum/EAssetType";
 import type { SolanaLamports } from "../lib/types/primitives/SolanaLamports";
@@ -68,6 +70,7 @@ export function SolanaDetails() {
     requestBalanceRefresh,
     removeTrackedAsset,
     closeSolanaAtaAndUntrack,
+    getKnownAsset,
   } = useWallet();
   const { chainId, solanaAddress, unlocked, trackedAssetCount } =
     useWalletSessionStore(
@@ -99,6 +102,8 @@ export function SolanaDetails() {
   const [addOpen, setAddOpen] = useState(false);
   const [removeBusy, setRemoveBusy] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [canBridge, setCanBridge] = useState(false);
+  const [bridgeBusy, setBridgeBusy] = useState(false);
   const requestIdRef = useRef(0);
   const inFlightLoadRef = useRef(0);
   const inFlightQuietRef = useRef(0);
@@ -244,6 +249,24 @@ export function SolanaDetails() {
     ],
   );
 
+  useEffect(() => {
+    if (!detail || detail.kind !== "spl") {
+      setCanBridge(false);
+      return;
+    }
+    let cancelled = false;
+    void getKnownAsset(detail.asset.chainId, detail.asset.address).then(
+      (known) => {
+        if (!cancelled) {
+          setCanBridge(known?.useCCTPBridge === true);
+        }
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [detail, getKnownAsset]);
+
   if (detail) {
     const isNative = detail.kind === "native";
     const spl = detail.kind === "spl" ? detail.asset : null;
@@ -315,7 +338,9 @@ export function SolanaDetails() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div
+          className={`grid gap-2 ${canBridge && spl ? "grid-cols-3" : "grid-cols-2"}`}
+        >
           <Button
             type="button"
             variant="outline"
@@ -336,6 +361,33 @@ export function SolanaDetails() {
             <SendIcon />
             {balances.sendLabel}
           </Button>
+          {canBridge && spl && address && spl.ataAddress ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!canAct || bridgeBusy}
+              onClick={() => {
+                setBridgeBusy(true);
+                void openSolanaBridge({
+                  sourceChainId: solChainId,
+                  ownerAddress: address,
+                  mint: spl.address as SolanaMintAddress,
+                  burnAta: spl.ataAddress!,
+                  balance: spl.balance,
+                })
+                  .catch(() => {
+                    /* user closed or rejected */
+                  })
+                  .finally(() => {
+                    setBridgeBusy(false);
+                    void refresh({ quiet: true });
+                  });
+              }}
+            >
+              <ArrowLeftRightIcon />
+              {balances.bridgeLabel}
+            </Button>
+          ) : null}
         </div>
 
         {spl ? (

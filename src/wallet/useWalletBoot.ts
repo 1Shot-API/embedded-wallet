@@ -868,15 +868,23 @@ export function useWalletBoot({
           }
           return address;
         },
+        getSolanaAddress: () => {
+          const address = useWalletSessionStore.getState().solanaAddress;
+          if (!address || address === "—") {
+            return null;
+          }
+          return address;
+        },
         getSessionChainId: () => {
           const id = useWalletSessionStore.getState().chainId;
           if (ChainUtils.isBitcoinChainId(id)) {
             return DEFAULT_CHAIN_ID;
           }
-          return id as EVMChainId;
+          return id;
         },
         chainRepository,
         knownAssetRepository,
+        trackedAssetRepository,
         cctpUtils,
       });
 

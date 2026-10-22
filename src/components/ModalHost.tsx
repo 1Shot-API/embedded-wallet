@@ -5,21 +5,22 @@ import { AddAssetModal } from "./modals/AddAssetModal";
 import { AdvancedOptionsModal } from "./modals/AdvancedOptionsModal";
 import { CancelDelegationModal } from "./modals/CancelDelegationModal";
 import { CCTPBridge } from "./modals/CCTPBridge";
+import { ConnectModal } from "./modals/ConnectModal";
 import {
   CredentialOfferModal,
   CredentialPresentationModal,
 } from "./modals/CredentialModals";
-import { ExportPrivateKeyModal } from "./modals/ExportPrivateKeyModal";
-import { GrantPermissionConsentModal } from "./modals/GrantPermissionConsentModal";
-import { ImportPrivateKeyModal } from "./modals/ImportPrivateKeyModal";
-import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
-import { ConnectModal } from "./modals/ConnectModal";
 import { EVMConfirmTransferModal } from "./modals/EVMConfirmTransferModal";
 import { EVMSendTransactionModal } from "./modals/EVMSendTransactionModal";
 import { EVMSignModal } from "./modals/EVMSignModal";
 import { EVMSiweModal } from "./modals/EVMSiweModal";
 import { EVMTypedDataModal } from "./modals/EVMTypedDataModal";
+import { ExportPrivateKeyModal } from "./modals/ExportPrivateKeyModal";
+import { GrantPermissionConsentModal } from "./modals/GrantPermissionConsentModal";
+import { ImportPrivateKeyModal } from "./modals/ImportPrivateKeyModal";
+import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
 import { PasskeyNameModal } from "./modals/PasskeyNameModal";
+import { SolanaBridge } from "./modals/SolanaBridge";
 import { SolanaSignAndSendModal } from "./modals/SolanaSignAndSendModal";
 import { SolanaSignModal } from "./modals/SolanaSignModal";
 import { SolanaSiwsModal } from "./modals/SolanaSiwsModal";
@@ -207,6 +208,14 @@ export function ModalHost() {
     case "cctpBridge":
       return (
         <CCTPBridge
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    case "solanaBridge":
+      return (
+        <SolanaBridge
           request={activeModal.request}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}

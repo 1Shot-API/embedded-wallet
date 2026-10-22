@@ -1,8 +1,8 @@
-import {
+﻿import {
   EChainTechnology,
   type SolanaAccountAddress,
   type SolanaChainId,
-  type SolanaTransactionSignature,
+  type SolanaTransactionHash,
 } from "@1shotapi/ows-types";
 import { useCallback, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
@@ -24,7 +24,7 @@ export interface ISolanaSendModalProps {
   fromAddress: SolanaAccountAddress;
   balanceLamports: SolanaLamports | null;
   onClose: () => void;
-  onSuccess: (signature: SolanaTransactionSignature) => void;
+  onSuccess: (signature: SolanaTransactionHash) => void;
 }
 
 const SOL_DECIMALS = 9;
@@ -76,7 +76,7 @@ export function SolanaSendModal({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sentSignature, setSentSignature] =
-    useState<SolanaTransactionSignature | null>(null);
+    useState<SolanaTransactionHash | null>(null);
 
   const amountError = useMemo(
     () => amountValidationError(amount, balanceLamports, transfer),

@@ -27,7 +27,9 @@ export interface IKnownAssetRepository {
   listSolanaKnownAssets(chainId: SolanaChainId): Promise<SolanaKnownAsset[]>;
 
   /** Native Circle USDC on `chainId` when the catalog marks `useCCTPBridge`. */
-  getCctpBridgeAsset(chainId: EVMChainId): Promise<KnownAsset | null>;
+  getCctpBridgeAsset(
+    chainId: EVMChainId | SolanaChainId,
+  ): Promise<KnownAsset | null>;
 
   /** Buyable stable on `chainId` for Circle onramp (defaults to USDC). */
   getOnrampAsset(

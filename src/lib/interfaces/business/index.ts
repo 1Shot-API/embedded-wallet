@@ -16,6 +16,12 @@ export type {
 } from "./IBridgeService";
 export { IBridgeServiceType } from "./IBridgeService";
 export type {
+  ISolanaBridgeService,
+  ISolanaCctpBridgeQuote,
+  ISolanaCctpQuoteParams,
+} from "./ISolanaBridgeService";
+export { ISolanaBridgeServiceType } from "./ISolanaBridgeService";
+export type {
   IBitcoinSendParams,
   IBitcoinSendResult,
   IBitcoinService,

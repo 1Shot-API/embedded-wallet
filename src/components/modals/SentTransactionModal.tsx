@@ -1,8 +1,7 @@
-import type {
+﻿import type {
   BitcoinTransactionHash,
-  EVMTransactionHash,
   OWSChainId,
-  SolanaTransactionSignature,
+  TransactionHash,
 } from "@1shotapi/ows-types";
 
 import { useStyle } from "../../style/StyleProvider";
@@ -12,10 +11,7 @@ import { Modal } from "../Modal";
 
 export interface ISentTransactionModalProps {
   chainId: OWSChainId;
-  transactionHash:
-    | EVMTransactionHash
-    | BitcoinTransactionHash
-    | SolanaTransactionSignature;
+  transactionHash: TransactionHash | BitcoinTransactionHash;
   onClose: () => void;
 }
 

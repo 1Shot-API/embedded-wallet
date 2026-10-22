@@ -78,6 +78,10 @@ export function mergeStyle(
         ...current.copy.cctpBridge,
         ...patch.copy?.cctpBridge,
       },
+      solanaBridge: {
+        ...current.copy.solanaBridge,
+        ...patch.copy?.solanaBridge,
+      },
       grantExecutionPermission: {
         ...current.copy.grantExecutionPermission,
         ...patch.copy?.grantExecutionPermission,
@@ -252,6 +256,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       transferTokens: { ...DEFAULT_STYLE.copy.transferTokens },
       sendNativeToken: { ...DEFAULT_STYLE.copy.sendNativeToken },
       cctpBridge: { ...DEFAULT_STYLE.copy.cctpBridge },
+      solanaBridge: { ...DEFAULT_STYLE.copy.solanaBridge },
       grantExecutionPermission: {
         ...DEFAULT_STYLE.copy.grantExecutionPermission,
       },

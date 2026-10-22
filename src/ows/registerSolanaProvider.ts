@@ -1,4 +1,4 @@
-import {
+﻿import {
   ChainUtils,
   ConversionUtils,
   OwsInvalidParamsError,
@@ -16,7 +16,7 @@ import {
   type OWSAnalyticsEvent,
   type SolanaChainId,
   type SolanaSignature,
-  type SolanaTransactionSignature,
+  type SolanaTransactionHash,
 } from "@1shotapi/ows-types";
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 
@@ -331,12 +331,12 @@ export function registerSolanaProvider(
           copy,
         );
 
-        let submittedSignature: SolanaTransactionSignature | null = null;
+        let submittedSignature: SolanaTransactionHash | null = null;
 
         const signature = await runWithAnalytics(
           options.emitAnalytics,
           () =>
-            options.ask<SolanaTransactionSignature>(
+            options.ask<SolanaTransactionHash>(
               ({ id, resolve, reject }) => ({
                 id,
                 kind: "solanaSignAndSend",

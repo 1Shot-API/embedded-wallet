@@ -251,6 +251,9 @@ export const styleCopyCctpBridgeSchema = z.strictObject({
   speedSlowLabel: z.string(),
   recipientLabel: z.string(),
   recipientHint: z.string(),
+  solanaRecipientPlaceholder: z.string(),
+  solanaRecipientHint: z.string(),
+  invalidSolanaRecipientError: z.string(),
   getQuoteLabel: z.string(),
   confirmLabel: z.string(),
   cancelLabel: z.string(),
@@ -263,6 +266,52 @@ export const styleCopyCctpBridgeSchema = z.strictObject({
   relayerFeeLabel: z.string(),
   totalBurnLabel: z.string(),
   netReceivedLabel: z.string(),
+  quotingLabel: z.string(),
+  submittingLabel: z.string(),
+  pollingLabel: z.string(),
+  sourceHashLabel: z.string(),
+  destHashLabel: z.string(),
+  successTitle: z.string(),
+  successBody: z.string(),
+  quoteFailedError: z.string(),
+  submitFailedError: z.string(),
+  timeoutError: z.string(),
+  insufficientBalanceError: z.string(),
+  invalidAmountError: z.string(),
+  noDestinationError: z.string(),
+  viewOnExplorerLabel: z.string(),
+  doneLabel: z.string(),
+});
+
+/** Solana → EVM CCTP bridge (no relayer fee strings). */
+export const styleCopySolanaBridgeSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  confirmTitle: z.string(),
+  confirmBody: z.string(),
+  amountLabel: z.string(),
+  amountPlaceholder: z.string(),
+  sourceChainLabel: z.string(),
+  destinationLabel: z.string(),
+  destinationPlaceholder: z.string(),
+  speedLabel: z.string(),
+  speedFastLabel: z.string(),
+  speedSlowLabel: z.string(),
+  recipientLabel: z.string(),
+  recipientHint: z.string(),
+  evmRecipientPlaceholder: z.string(),
+  invalidEvmRecipientError: z.string(),
+  getQuoteLabel: z.string(),
+  confirmLabel: z.string(),
+  cancelLabel: z.string(),
+  backLabel: z.string(),
+  retryLabel: z.string(),
+  transferAmountLabel: z.string(),
+  forwardFeeLabel: z.string(),
+  protocolFeeLabel: z.string(),
+  totalBurnLabel: z.string(),
+  netReceivedLabel: z.string(),
+  solNetworkFeeHint: z.string(),
   quotingLabel: z.string(),
   submittingLabel: z.string(),
   pollingLabel: z.string(),
@@ -649,6 +698,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   transferTokens: styleCopyTransferTokensSchema,
   sendNativeToken: styleCopySendNativeTokenSchema,
   cctpBridge: styleCopyCctpBridgeSchema,
+  solanaBridge: styleCopySolanaBridgeSchema,
   grantExecutionPermission: styleCopyGrantExecutionPermissionSchema,
   grantKitScopeTerms: styleCopyGrantKitScopeTermsSchema,
   grantLiFiSwapPermission: styleCopyGrantLiFiSwapPermissionSchema,
@@ -703,6 +753,7 @@ export const styleCopyPatchSchema = z.strictObject({
   transferTokens: styleCopyTransferTokensSchema.partial().optional(),
   sendNativeToken: styleCopySendNativeTokenSchema.partial().optional(),
   cctpBridge: styleCopyCctpBridgeSchema.partial().optional(),
+  solanaBridge: styleCopySolanaBridgeSchema.partial().optional(),
   grantExecutionPermission:
     styleCopyGrantExecutionPermissionSchema.partial().optional(),
   grantKitScopeTerms: styleCopyGrantKitScopeTermsSchema.partial().optional(),
@@ -785,6 +836,7 @@ export type IStyleCopySendNativeToken = z.infer<
   typeof styleCopySendNativeTokenSchema
 >;
 export type IStyleCopyCctpBridge = z.infer<typeof styleCopyCctpBridgeSchema>;
+export type IStyleCopySolanaBridge = z.infer<typeof styleCopySolanaBridgeSchema>;
 export type IStyleCopyGrantExecutionPermission = z.infer<
   typeof styleCopyGrantExecutionPermissionSchema
 >;

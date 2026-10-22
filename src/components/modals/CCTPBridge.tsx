@@ -2,12 +2,16 @@ import {
   type DomainString,
   ChainUtils,
   OwsUserRejectedError,
-  type EVMChainId as EVMChainIdType,
+  SolanaAddressUtils,
   type EVMContractAddress,
   type EVMTransactionHash,
+  type OWSChainId,
+  type SolanaAccountAddress,
+  type TransactionHash,
 } from "@1shotapi/ows-types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatUnits, parseUnits, erc20Abi } from "viem";
+import { useShallow } from "zustand/react/shallow";
 
 import {
   isCctpBridgeParamsComplete,
@@ -37,6 +41,7 @@ import {
 } from "../../lib/types/primitives/USDCAmount";
 import { useStyle } from "../../style/StyleProvider";
 import type { IStyleCopyCctpBridge } from "../../style/types";
+import { useWalletSessionStore } from "../../wallet/sessionStore";
 import { useWallet } from "../../wallet/WalletProvider";
 import { ChainSelector } from "../ChainSelector";
 import { CopyableText } from "../CopyableText";
@@ -144,14 +149,25 @@ export function CCTPBridge({
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [phase, setPhase] = useState<BridgePhase>(() => initialPhase(request));
   const [error, setError] = useState<string | null>(null);
-  const [burnTxHash, setBurnTxHash] = useState<EVMTransactionHash | null>(
+  const [burnTxHash, setBurnTxHash] = useState<TransactionHash | null>(
     request.resume?.burnTxHash ?? null,
   );
-  const [forwardTxHash, setForwardTxHash] = useState<EVMTransactionHash | null>(
+  const [forwardTxHash, setForwardTxHash] = useState<TransactionHash | null>(
     null,
   );
   const [inFlight, setInFlight] = useState<ICctpInFlightBurn | null>(
     request.resume ?? null,
+  );
+  const sessionSolana = useWalletSessionStore(
+    useShallow((s) => s.solanaAddress),
+  );
+  const [solanaRecipient, setSolanaRecipient] = useState(
+    () =>
+      (request.solanaRecipient
+        ? String(request.solanaRecipient)
+        : sessionSolana && sessionSolana !== "—"
+          ? String(sessionSolana)
+          : "") as string,
   );
 
   const sourceChain = resolveChain(request.sourceChainId);
@@ -162,14 +178,28 @@ export function CCTPBridge({
     [amount, decimals, copy],
   );
 
-  const resolvedDestChainId = useMemo((): EVMChainIdType | null => {
+  const resolvedDestChainId = useMemo((): OWSChainId | null => {
     if (!destChainId) return null;
     try {
+      if (ChainUtils.isSolanaChainId(destChainId)) {
+        return ChainUtils.asSolanaChainId(destChainId);
+      }
       return ChainUtils.asEVMChainId(destChainId);
     } catch {
       return null;
     }
   }, [destChainId]);
+
+  const destIsSolana =
+    resolvedDestChainId != null && ChainUtils.isSolanaChainId(resolvedDestChainId);
+
+  /** Analytics events still type dest as EVM — omit Solana destinations. */
+  const analyticsDestChainId = useMemo(() => {
+    if (!resolvedDestChainId || !ChainUtils.isEVMChainId(resolvedDestChainId)) {
+      return null;
+    }
+    return ChainUtils.asEVMChainId(resolvedDestChainId);
+  }, [resolvedDestChainId]);
 
   const durationMs = () => Date.now() - openedAtRef.current;
 
@@ -179,7 +209,7 @@ export function CCTPBridge({
         hostDomain,
         request.ownerAddress,
         request.sourceChainId,
-        request.destinationChainId ?? null,
+        analyticsDestChainId,
       ),
     );
   }
@@ -191,7 +221,7 @@ export function CCTPBridge({
         request.ownerAddress,
         request.sourceChainId,
         durationMs(),
-        resolvedDestChainId,
+        analyticsDestChainId,
       ),
     );
   }
@@ -204,7 +234,7 @@ export function CCTPBridge({
         request.sourceChainId,
         analyticsErrorCode(err),
         durationMs(),
-        resolvedDestChainId,
+        analyticsDestChainId,
       ),
     );
   }
@@ -218,7 +248,7 @@ export function CCTPBridge({
         hostDomain,
         request.ownerAddress,
         request.sourceChainId,
-        resolvedDestChainId,
+        analyticsDestChainId,
         hash,
         durationMs(),
       ),
@@ -230,7 +260,8 @@ export function CCTPBridge({
     settledRef.current = true;
     try {
       const hostDomain = await hostDomainPromise;
-      emitCompleted(hostDomain, result.burnTxHash);
+      // CCTPBridge is EVM-source only — burn hash is always EVM.
+      emitCompleted(hostDomain, result.burnTxHash as EVMTransactionHash);
     } catch {
       // Analytics is best-effort; still settle the modal.
     }
@@ -348,12 +379,26 @@ export function CCTPBridge({
       }
       try {
         const parsed = parseUnits(opts.amountRaw.trim(), decimals);
+        const destId = ChainUtils.isSolanaChainId(opts.dest)
+          ? ChainUtils.asSolanaChainId(opts.dest)
+          : ChainUtils.asEVMChainId(opts.dest);
+        let solRecipient: SolanaAccountAddress | undefined;
+        if (ChainUtils.isSolanaChainId(destId)) {
+          try {
+            solRecipient = SolanaAddressUtils.asAccountAddress(
+              solanaRecipient.trim(),
+            );
+          } catch {
+            throw new Error(copy.invalidSolanaRecipientError);
+          }
+        }
         const next = await bridgeService.quote({
           sourceChainId: request.sourceChainId,
-          destChainId: ChainUtils.asEVMChainId(opts.dest),
+          destChainId: destId,
           amountAtoms: parsed,
           speed: opts.transferSpeed,
           owner: request.ownerAddress,
+          ...(solRecipient ? { solanaRecipient: solRecipient } : {}),
         });
         setIrisQuote(next);
         setPaymentQuote(next.paymentQuote);
@@ -373,10 +418,12 @@ export function CCTPBridge({
     },
     [
       bridgeService,
+      copy.invalidSolanaRecipientError,
       copy.quoteFailedError,
       decimals,
       request.ownerAddress,
       request.sourceChainId,
+      solanaRecipient,
     ],
   );
 
@@ -456,7 +503,8 @@ export function CCTPBridge({
     Boolean(amount.trim()) &&
     !amountError &&
     Boolean(destChainId) &&
-    phase === "form";
+    phase === "form" &&
+    (!destIsSolana || Boolean(solanaRecipient.trim()));
 
   const canConfirm =
     phase === "quoted" &&
@@ -765,10 +813,33 @@ export function CCTPBridge({
               <span className="text-muted-foreground text-xs font-medium">
                 {copy.recipientLabel}
               </span>
-              <CopyableText text={String(request.ownerAddress)} truncate />
-              <p className="text-muted-foreground m-0 text-xs">
-                {copy.recipientHint}
-              </p>
+              {destIsSolana ? (
+                <>
+                  <input
+                    type="text"
+                    className="border-border bg-background text-foreground focus:ring-primary w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
+                    value={solanaRecipient}
+                    disabled={busy}
+                    placeholder={copy.solanaRecipientPlaceholder}
+                    onChange={(e) => {
+                      setSolanaRecipient(e.target.value);
+                      setError(null);
+                    }}
+                    spellCheck={false}
+                    autoComplete="off"
+                  />
+                  <p className="text-muted-foreground m-0 text-xs">
+                    {copy.solanaRecipientHint}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <CopyableText text={String(request.ownerAddress)} truncate />
+                  <p className="text-muted-foreground m-0 text-xs">
+                    {copy.recipientHint}
+                  </p>
+                </>
+              )}
             </div>
           </>
         ) : null}
