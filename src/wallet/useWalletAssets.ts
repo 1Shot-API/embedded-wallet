@@ -1,6 +1,5 @@
 import {
   type CredentialId,
-  type EVMAccountAddress,
   type EVMContractAddress,
   type EVMChainId,
   type SolanaAccountAddress,
@@ -13,6 +12,7 @@ import { useCallback } from "react";
 import type { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import type { ISolanaService } from "../lib/interfaces/business/ISolanaService";
 import type {
+  ActivityOwnerAddress,
   IAssetActivityRepository,
   IKnownAssetRepository,
   IRecordSentActivityParams,
@@ -302,7 +302,7 @@ export function useWalletAssets({
 
   const listAssetActivity = useCallback(
     async (
-      owner: EVMAccountAddress,
+      owner: ActivityOwnerAddress,
       asset: TrackedAsset,
       limit?: number,
     ): Promise<AssetActivity[]> => {

@@ -12,6 +12,9 @@ export { LocalStorageTrackedAssetRepository } from "./LocalStorageTrackedAssetRe
 export type { TrackedAssetRepositoryOptions } from "./LocalStorageTrackedAssetRepository";
 export { BlockscoutAssetActivityRepository } from "./BlockscoutAssetActivityRepository";
 export type { AssetActivityRepositoryOptions } from "./BlockscoutAssetActivityRepository";
+export { CompositeAssetActivityRepository } from "./CompositeAssetActivityRepository";
+export { SolanaAssetActivityRepository } from "./SolanaAssetActivityRepository";
+export type { SolanaAssetActivityRepositoryOptions } from "./SolanaAssetActivityRepository";
 export { OneshotRelayerRepository } from "./OneshotRelayerRepository";
 export { EVMRepository } from "./EVMRepository";
 export {

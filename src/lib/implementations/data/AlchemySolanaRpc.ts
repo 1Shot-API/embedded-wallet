@@ -11,7 +11,10 @@
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
 import type {
   ISolanaBlockhash,
+  ISolanaParsedTokenBalance,
+  ISolanaParsedTransaction,
   ISolanaRpc,
+  ISolanaSignatureInfo,
   ISolanaSimulateResult,
   ISolanaTokenAccountBalance,
 } from "../../interfaces/data/ISolanaRpc";
@@ -135,6 +138,84 @@ export class AlchemySolanaRpc implements ISolanaRpc {
     };
   }
 
+  async getSignaturesForAddress(
+    chainId: SolanaChainId,
+    address: SolanaAccountAddress | SolanaATAAddress,
+    limit: number,
+  ): Promise<ISolanaSignatureInfo[]> {
+    const rows = await this.rpcCall<
+      Array<{
+        signature?: string;
+        blockTime?: number | null;
+        err?: unknown;
+      }>
+    >(chainId, "getSignaturesForAddress", [
+      String(address),
+      { limit: Math.min(Math.max(limit, 1), 1000), commitment: "confirmed" },
+    ]);
+    const out: ISolanaSignatureInfo[] = [];
+    for (const row of rows ?? []) {
+      if (!row.signature) continue;
+      out.push({
+        signature: SolanaTransactionHash(row.signature),
+        blockTime:
+          typeof row.blockTime === "number" && Number.isFinite(row.blockTime)
+            ? row.blockTime
+            : null,
+        err: row.err ?? null,
+      });
+    }
+    return out;
+  }
+
+  async getParsedTransaction(
+    chainId: SolanaChainId,
+    signature: SolanaTransactionHash,
+  ): Promise<ISolanaParsedTransaction | null> {
+    const result = await this.rpcCall<{
+      blockTime?: number | null;
+      meta?: {
+        err?: unknown;
+        preTokenBalances?: unknown[];
+        postTokenBalances?: unknown[];
+      } | null;
+      transaction?: {
+        message?: {
+          accountKeys?: Array<string | { pubkey?: string }>;
+        };
+      };
+    } | null>(chainId, "getTransaction", [
+      String(signature),
+      {
+        encoding: "jsonParsed",
+        commitment: "confirmed",
+        maxSupportedTransactionVersion: 0,
+      },
+    ]);
+    if (!result) {
+      return null;
+    }
+    const accountKeys = (result.transaction?.message?.accountKeys ?? []).map(
+      (key) => (typeof key === "string" ? key : (key.pubkey ?? null)),
+    );
+    return {
+      signature,
+      blockTime:
+        typeof result.blockTime === "number" && Number.isFinite(result.blockTime)
+          ? result.blockTime
+          : null,
+      err: result.meta?.err ?? null,
+      preTokenBalances: this.parseTokenBalances(
+        result.meta?.preTokenBalances,
+        accountKeys,
+      ),
+      postTokenBalances: this.parseTokenBalances(
+        result.meta?.postTokenBalances,
+        accountKeys,
+      ),
+    };
+  }
+
   protected async rpcUrl(chainId: SolanaChainId): Promise<string> {
     const chain = await this.chainRepository.get(chainId);
     if (!chain?.rpcUrl) {
@@ -173,5 +254,47 @@ export class AlchemySolanaRpc implements ISolanaRpc {
       throw new Error(`Solana RPC missing result for ${method}`);
     }
     return body.result;
+  }
+
+  protected parseTokenBalances(
+    rows: unknown[] | undefined,
+    accountKeys: Array<string | null>,
+  ): ISolanaParsedTokenBalance[] {
+    if (!Array.isArray(rows)) {
+      return [];
+    }
+    const out: ISolanaParsedTokenBalance[] = [];
+    for (const item of rows) {
+      if (!item || typeof item !== "object") continue;
+      const row = item as {
+        accountIndex?: number;
+        mint?: string;
+        owner?: string;
+        uiTokenAmount?: { amount?: string; decimals?: number };
+      };
+      if (
+        typeof row.accountIndex !== "number" ||
+        typeof row.mint !== "string" ||
+        !row.uiTokenAmount?.amount
+      ) {
+        continue;
+      }
+      let amount: bigint;
+      try {
+        amount = BigInt(row.uiTokenAmount.amount);
+      } catch {
+        continue;
+      }
+      const decimals = Number(row.uiTokenAmount.decimals ?? 0);
+      out.push({
+        accountIndex: row.accountIndex,
+        mint: row.mint,
+        owner: typeof row.owner === "string" ? row.owner : null,
+        amount,
+        decimals: Number.isFinite(decimals) ? decimals : 0,
+        accountAddress: accountKeys[row.accountIndex] ?? null,
+      });
+    }
+    return out;
   }
 }

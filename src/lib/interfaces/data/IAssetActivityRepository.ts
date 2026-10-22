@@ -1,25 +1,30 @@
 import type {
   EVMAccountAddress,
-  EVMChainId,
-  EVMContractAddress,
-  EVMTransactionHash,
+  SolanaAccountAddress,
+  TransactionHash,
 } from "@1shotapi/ows-types";
 
 import type { AssetActivity } from "../../types/domain/AssetActivity";
+import type {
+  KnownAssetAddress,
+  KnownAssetChainId,
+} from "../../types/domain/KnownAsset";
 import type { TrackedAsset } from "../../types/domain/TrackedAsset";
 
+export type ActivityOwnerAddress = EVMAccountAddress | SolanaAccountAddress;
+
 export interface IRecordSentActivityParams {
-  chainId: EVMChainId;
-  tokenAddress: EVMContractAddress;
-  owner: EVMAccountAddress;
-  to: EVMAccountAddress;
+  chainId: KnownAssetChainId;
+  tokenAddress: KnownAssetAddress;
+  owner: ActivityOwnerAddress;
+  to: ActivityOwnerAddress;
   amount: bigint;
   decimals: number;
-  hash: EVMTransactionHash;
+  hash: TransactionHash;
 }
 
 export interface IListAssetActivityParams {
-  owner: EVMAccountAddress;
+  owner: ActivityOwnerAddress;
   asset: TrackedAsset;
   /** Max rows to return (default 10). */
   limit?: number;

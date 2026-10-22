@@ -1,4 +1,7 @@
-import type { EVMAccountAddress } from "@1shotapi/ows-types";
+import type {
+  EVMAccountAddress,
+  SolanaAccountAddress,
+} from "@1shotapi/ows-types";
 import {
   ArrowDownLeftIcon,
   ArrowUpRightIcon,
@@ -22,7 +25,7 @@ const ACTIVITY_WHEN_FORMAT = new Intl.DateTimeFormat(undefined, {
 
 export interface ITransactionHistoryProps {
   asset: TrackedAsset;
-  owner: EVMAccountAddress | null;
+  owner: EVMAccountAddress | SolanaAccountAddress | null;
 }
 
 function truncateAddress(address: string): string {
@@ -77,7 +80,8 @@ function ActivityIcon({ kind }: { kind: EAssetActivityKind }) {
 }
 
 /**
- * Recent ERC-20 transfers for a tracked asset (Alchemy + optimistic local sends).
+ * Recent token transfers for a tracked asset (EVM Blockscout / Solana ATA via
+ * Alchemy, merged with optimistic local sends).
  */
 export function TransactionHistory({
   asset,

@@ -52,11 +52,13 @@ import { AnkrBitcoinRpc } from "../lib/implementations/data/AnkrBitcoinRpc";
 import { BlockscoutAssetActivityRepository } from "../lib/implementations/data/BlockscoutAssetActivityRepository";
 import { CachedRelayerVaultRepository } from "../lib/implementations/data/CachedRelayerVaultRepository";
 import { CircleRepository } from "../lib/implementations/data/CircleRepository";
+import { CompositeAssetActivityRepository } from "../lib/implementations/data/CompositeAssetActivityRepository";
 import { EVMRepository } from "../lib/implementations/data/EVMRepository";
 import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedChainRepository";
 import { HardcodedKnownAssetRepository } from "../lib/implementations/data/HardcodedKnownAssetRepository";
 import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
 import { OneshotRelayerRepository } from "../lib/implementations/data/OneshotRelayerRepository";
+import { SolanaAssetActivityRepository } from "../lib/implementations/data/SolanaAssetActivityRepository";
 import { RelayerCredentialsClient } from "../lib/implementations/data/utils/RelayerCredentialsClient";
 import {
   ConfigProvider,
@@ -80,6 +82,7 @@ import type { ICCTPUtils } from "../lib/interfaces/business/utils/ICCTPUtils";
 import type { ILiFiUtils } from "../lib/interfaces/business/utils/ILiFiUtils";
 import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPaymentTokenUtils";
 import type {
+  ActivityOwnerAddress,
   IAssetActivityRepository,
   IChainRepository,
   ICircleRepository,
@@ -165,9 +168,14 @@ const trackedAssetRepository = new LocalStorageTrackedAssetRepository(
   { storage: walletKvStore },
 );
 const assetActivityRepository: IAssetActivityRepository =
-  new BlockscoutAssetActivityRepository(eventBus, configProvider, {
-    storage: walletKvStore,
-  });
+  new CompositeAssetActivityRepository(
+    new BlockscoutAssetActivityRepository(eventBus, configProvider, {
+      storage: walletKvStore,
+    }),
+    new SolanaAssetActivityRepository(solanaRpc, eventBus, configProvider, {
+      storage: walletKvStore,
+    }),
+  );
 const oneshotRelayerRepository: IOneshotRelayerRepository =
   new OneshotRelayerRepository();
 const evmRepository: IEVMRepository = new EVMRepository(
@@ -352,7 +360,7 @@ export type WalletContextValue = {
     chainId?: KnownAssetChainId,
   ) => Promise<void>;
   listAssetActivity: (
-    owner: EVMAccountAddress,
+    owner: ActivityOwnerAddress,
     asset: TrackedAsset,
     limit?: number,
   ) => Promise<AssetActivity[]>;

@@ -1,4 +1,4 @@
-export { AssetActivity } from "./AssetActivity";
+export { AssetActivity, type ActivityAccountAddress } from "./AssetActivity";
 export type { IRelayerPayment } from "./RelayerPayment";
 export { BitcoinUtxo } from "./BitcoinUtxo";
 export {

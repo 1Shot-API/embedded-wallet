@@ -25,6 +25,33 @@ export interface ISolanaTokenAccountBalance {
   decimals: number;
 }
 
+export interface ISolanaSignatureInfo {
+  signature: SolanaTransactionHash;
+  /** Unix seconds when available; null when the RPC omits blockTime. */
+  blockTime: number | null;
+  err: unknown | null;
+}
+
+/** Minimal jsonParsed transaction fields used for SPL activity. */
+export interface ISolanaParsedTransaction {
+  signature: SolanaTransactionHash;
+  blockTime: number | null;
+  err: unknown | null;
+  /** Token-account balance rows from meta.preTokenBalances / postTokenBalances. */
+  preTokenBalances: ISolanaParsedTokenBalance[];
+  postTokenBalances: ISolanaParsedTokenBalance[];
+}
+
+export interface ISolanaParsedTokenBalance {
+  accountIndex: number;
+  mint: string;
+  owner: string | null;
+  amount: bigint;
+  decimals: number;
+  /** Account pubkey at this meta index when present in accountKeys. */
+  accountAddress: string | null;
+}
+
 export interface ISolanaRpc {
   getBalance(
     chainId: SolanaChainId,
@@ -66,6 +93,19 @@ export interface ISolanaRpc {
     chainId: SolanaChainId,
     tokenAccount: SolanaATAAddress,
   ): Promise<ISolanaTokenAccountBalance>;
+
+  /** Recent signatures for an account (wallet or ATA), newest first. */
+  getSignaturesForAddress(
+    chainId: SolanaChainId,
+    address: SolanaAccountAddress | SolanaATAAddress,
+    limit: number,
+  ): Promise<ISolanaSignatureInfo[]>;
+
+  /** jsonParsed transaction for SPL balance-delta activity. */
+  getParsedTransaction(
+    chainId: SolanaChainId,
+    signature: SolanaTransactionHash,
+  ): Promise<ISolanaParsedTransaction | null>;
 }
 
 export const ISolanaRpcType = Symbol.for("ISolanaRpc");

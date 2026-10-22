@@ -38,7 +38,8 @@ export function SolanaSendSplModal({
   const { style } = useStyle();
   const transfer = style.copy.transferTokens;
   const solanaCopy = style.copy.solana;
-  const { addressUtils, solanaService, resolveChain } = useWallet();
+  const { addressUtils, solanaService, resolveChain, recordSentActivity } =
+    useWallet();
 
   const [amount, setAmount] = useState("");
   const [recipientText, setRecipientText] = useState("");
@@ -115,6 +116,15 @@ export function SolanaSendSplModal({
         amount: parsed,
         decimals: asset.decimals,
       });
+      await recordSentActivity({
+        chainId,
+        tokenAddress: asset.address as SolanaMintAddress,
+        owner: fromAddress,
+        to: recipient as SolanaAccountAddress,
+        amount: parsed,
+        decimals: asset.decimals,
+        hash: result.signature,
+      });
       setSentSignature(result.signature);
       onSuccess(result.signature);
     } catch (err: unknown) {
@@ -136,6 +146,7 @@ export function SolanaSendSplModal({
     fromAddress,
     onSuccess,
     recipient,
+    recordSentActivity,
     solanaCopy.insufficientSolForAtaError,
     solanaService,
     transfer.sendFailedError,

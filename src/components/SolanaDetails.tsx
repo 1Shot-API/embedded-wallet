@@ -35,6 +35,7 @@ import { ReceiveModal } from "./modals/ReceiveModal";
 import { SolanaAddAssetModal } from "./modals/SolanaAddAssetModal";
 import { SolanaSendModal } from "./modals/SolanaSendModal";
 import { SolanaSendSplModal } from "./modals/SolanaSendSplModal";
+import { TransactionHistory } from "./TransactionHistory";
 
 const SOL_DECIMALS = 9;
 
@@ -389,6 +390,8 @@ export function SolanaDetails() {
             </Button>
           ) : null}
         </div>
+
+        {spl ? <TransactionHistory asset={spl} owner={address} /> : null}
 
         {spl ? (
           <div className="border-border mt-2 flex flex-col gap-2 border-t pt-4">
