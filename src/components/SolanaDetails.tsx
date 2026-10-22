@@ -1,6 +1,7 @@
 import {
   ChainUtils,
   type SolanaAccountAddress,
+  type SolanaMintAddress,
 } from "@1shotapi/ows-types";
 import {
   ArrowLeftIcon,
@@ -65,6 +66,7 @@ export function SolanaDetails() {
     resolveChain,
     listTrackedAssets,
     requestBalanceRefresh,
+    removeTrackedAsset,
   } = useWallet();
   const { chainId, solanaAddress, unlocked } = useWalletSessionStore(
     useShallow((state) => ({
@@ -92,6 +94,8 @@ export function SolanaDetails() {
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [removeBusy, setRemoveBusy] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
   const inFlightLoadRef = useRef(0);
   const inFlightQuietRef = useRef(0);
@@ -165,12 +169,68 @@ export function SolanaDetails() {
       setDetail({ kind: "native" });
       return;
     }
+    setRemoveError(null);
     setDetail({ kind: "spl", asset: selection.asset });
   };
+
+  const stopTrackingSpl = useCallback(
+    async (asset: TrackedAsset) => {
+      await removeTrackedAsset(asset.chainId, asset.address);
+      setDetail(null);
+      await refresh({ quiet: true });
+    },
+    [refresh, removeTrackedAsset],
+  );
+
+  const closeAtaAndRemove = useCallback(
+    async (asset: TrackedAsset) => {
+      if (!address) return;
+      setRemoveBusy(true);
+      setRemoveError(null);
+      try {
+        if (asset.balance !== null && asset.balance !== 0n) {
+          setRemoveError(solanaCopy.closeAtaMustEmptyError);
+          return;
+        }
+        await solanaService.closeAta({
+          chainId: solChainId,
+          owner: address,
+          mint: asset.address as SolanaMintAddress,
+        });
+        await removeTrackedAsset(asset.chainId, asset.address);
+        setDetail(null);
+        await refresh({ quiet: true });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : solanaCopy.closeAtaFailedError;
+        if (/empty|must be empty|balance/i.test(message)) {
+          setRemoveError(solanaCopy.closeAtaMustEmptyError);
+        } else {
+          setRemoveError(message);
+        }
+      } finally {
+        setRemoveBusy(false);
+      }
+    },
+    [
+      address,
+      refresh,
+      removeTrackedAsset,
+      solChainId,
+      solanaCopy.closeAtaFailedError,
+      solanaCopy.closeAtaMustEmptyError,
+      solanaService,
+    ],
+  );
 
   if (detail) {
     const isNative = detail.kind === "native";
     const spl = detail.kind === "spl" ? detail.asset : null;
+    const splBalanceEmpty = spl?.balance === 0n;
+    const rentLabel = formatUnits(
+      solanaService.estimateAtaRentLamports(),
+      SOL_DECIMALS,
+    );
     const detailLogo = isNative
       ? logoUrl
       : (resolveAssetIconUrl(
@@ -256,6 +316,65 @@ export function SolanaDetails() {
             {balances.sendLabel}
           </Button>
         </div>
+
+        {spl ? (
+          <div className="border-border mt-2 flex flex-col gap-2 border-t pt-4">
+            <p className="text-muted-foreground m-0 text-xs font-medium tracking-wide uppercase">
+              {solanaCopy.removeAssetLabel}
+            </p>
+            {splBalanceEmpty ? (
+              <>
+                <p className="text-muted-foreground m-0 text-sm leading-relaxed">
+                  {solanaCopy.closeAtaBody.replace("{rent}", rentLabel)}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!canAct || removeBusy}
+                  onClick={() => {
+                    void closeAtaAndRemove(spl);
+                  }}
+                >
+                  {removeBusy
+                    ? solanaCopy.closeAtaBusyLabel
+                    : solanaCopy.closeAtaLabel}
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-muted-foreground m-0 text-sm leading-relaxed">
+                  {solanaCopy.closeAtaMustEmptyError}
+                </p>
+                <p className="text-muted-foreground m-0 text-sm leading-relaxed">
+                  {solanaCopy.stopTrackingBody}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!canAct || removeBusy}
+                  onClick={() => {
+                    setRemoveBusy(true);
+                    setRemoveError(null);
+                    void stopTrackingSpl(spl)
+                      .catch((err: unknown) => {
+                        setRemoveError(
+                          err instanceof Error
+                            ? err.message
+                            : solanaCopy.closeAtaFailedError,
+                        );
+                      })
+                      .finally(() => setRemoveBusy(false));
+                  }}
+                >
+                  {solanaCopy.stopTrackingLabel}
+                </Button>
+              </>
+            )}
+            {removeError ? (
+              <p className="text-destructive m-0 text-sm">{removeError}</p>
+            ) : null}
+          </div>
+        ) : null}
 
         {receiveOpen && address ? (
           <ReceiveModal

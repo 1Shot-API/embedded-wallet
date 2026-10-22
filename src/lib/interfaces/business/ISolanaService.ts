@@ -55,6 +55,13 @@ export interface ISolanaSendSplResult {
   rentLamports: SolanaLamports;
 }
 
+export interface ISolanaCloseAtaResult {
+  signature: SolanaTransactionSignature;
+  feeLamports: SolanaLamports;
+  /** Rent returned to the owner (estimate; actual amount is on-chain). */
+  rentReclaimedLamports: SolanaLamports;
+}
+
 export interface ISolanaService {
   getBalance(
     chainId: SolanaChainId,
@@ -77,6 +84,12 @@ export interface ISolanaService {
   ): Promise<{ exists: boolean; ataAddress: SolanaATAAddress }>;
 
   sendSpl(params: ISolanaSendSplParams): Promise<ISolanaSendSplResult>;
+
+  /**
+   * Close the owner’s ATA for `mint` and reclaim rent to `owner`.
+   * Requires a zero token balance; throws otherwise.
+   */
+  closeAta(params: ISolanaEnsureAtaParams): Promise<ISolanaCloseAtaResult>;
 
   /** Typical ATA rent-exempt minimum (lamports) for UI estimates. */
   estimateAtaRentLamports(): SolanaLamports;

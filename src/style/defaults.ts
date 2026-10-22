@@ -652,6 +652,17 @@ export const DEFAULT_STYLE: IResolvedStyle = {
         "Recipient has no token account yet. Creating one costs ~{rent} SOL (paid by you).",
       insufficientSolForAtaError:
         "Not enough SOL to create the recipient token account.",
+      removeAssetLabel: "Remove",
+      closeAtaLabel: "Close account & remove",
+      closeAtaBusyLabel: "Closing…",
+      closeAtaBody:
+        "Closes your token account, returns ~{rent} SOL rent to you, and stops tracking. Balance must be zero.",
+      closeAtaMustEmptyError:
+        "Send all tokens first — the token account must be empty to close.",
+      closeAtaFailedError: "Failed to close token account",
+      stopTrackingLabel: "Stop tracking",
+      stopTrackingBody:
+        "Hides this asset in the wallet. Your on-chain token account stays open until you close it.",
     },
   },
   dark: false,

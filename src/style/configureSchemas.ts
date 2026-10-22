@@ -619,6 +619,14 @@ export const styleCopySolanaSchema = z.strictObject({
   sendSplTitle: z.string(),
   createRecipientAtaWarning: z.string(),
   insufficientSolForAtaError: z.string(),
+  removeAssetLabel: z.string(),
+  closeAtaLabel: z.string(),
+  closeAtaBusyLabel: z.string(),
+  closeAtaBody: z.string(),
+  closeAtaMustEmptyError: z.string(),
+  closeAtaFailedError: z.string(),
+  stopTrackingLabel: z.string(),
+  stopTrackingBody: z.string(),
 });
 
 export const styleCopyResolvedSchema = z.strictObject({

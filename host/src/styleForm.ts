@@ -329,6 +329,14 @@ export interface IStyleFormState {
   solanaSendSplTitle: string;
   solanaCreateRecipientAtaWarning: string;
   solanaInsufficientSolForAtaError: string;
+  solanaRemoveAssetLabel: string;
+  solanaCloseAtaLabel: string;
+  solanaCloseAtaBusyLabel: string;
+  solanaCloseAtaBody: string;
+  solanaCloseAtaMustEmptyError: string;
+  solanaCloseAtaFailedError: string;
+  solanaStopTrackingLabel: string;
+  solanaStopTrackingBody: string;
 }
 
 /** Catalog options for the Allowed chains configurator (matches HardcodedChainRepository). */
@@ -650,6 +658,17 @@ export const ACME_PRESET: IStyleFormState = {
     "Recipient has no token account yet. Creating one costs ~{rent} SOL (paid by you).",
   solanaInsufficientSolForAtaError:
     "Not enough SOL to create the recipient token account.",
+  solanaRemoveAssetLabel: "Remove",
+  solanaCloseAtaLabel: "Close account & remove",
+  solanaCloseAtaBusyLabel: "Closing…",
+  solanaCloseAtaBody:
+    "Closes your token account, returns ~{rent} SOL rent to you, and stops tracking. Balance must be zero.",
+  solanaCloseAtaMustEmptyError:
+    "Send all tokens first — the token account must be empty to close.",
+  solanaCloseAtaFailedError: "Failed to close token account",
+  solanaStopTrackingLabel: "Stop tracking",
+  solanaStopTrackingBody:
+    "Hides this asset in the wallet. Your on-chain token account stays open until you close it.",
 };
 
 export const OCEAN_PRESET: IStyleFormState = {
@@ -893,6 +912,14 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   solanaSendSplTitle: "",
   solanaCreateRecipientAtaWarning: "",
   solanaInsufficientSolForAtaError: "",
+  solanaRemoveAssetLabel: "",
+  solanaCloseAtaLabel: "",
+  solanaCloseAtaBusyLabel: "",
+  solanaCloseAtaBody: "",
+  solanaCloseAtaMustEmptyError: "",
+  solanaCloseAtaFailedError: "",
+  solanaStopTrackingLabel: "",
+  solanaStopTrackingBody: "",
 };
 
 function put(
@@ -1484,6 +1511,14 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
     "insufficientSolForAtaError",
     form.solanaInsufficientSolForAtaError,
   );
+  put(solana, "removeAssetLabel", form.solanaRemoveAssetLabel);
+  put(solana, "closeAtaLabel", form.solanaCloseAtaLabel);
+  put(solana, "closeAtaBusyLabel", form.solanaCloseAtaBusyLabel);
+  put(solana, "closeAtaBody", form.solanaCloseAtaBody);
+  put(solana, "closeAtaMustEmptyError", form.solanaCloseAtaMustEmptyError);
+  put(solana, "closeAtaFailedError", form.solanaCloseAtaFailedError);
+  put(solana, "stopTrackingLabel", form.solanaStopTrackingLabel);
+  put(solana, "stopTrackingBody", form.solanaStopTrackingBody);
   if (Object.keys(solana).length > 0) {
     copy.solana = solana;
   }

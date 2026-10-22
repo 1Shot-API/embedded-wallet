@@ -21,12 +21,14 @@ import {
 import { getTransferSolInstruction } from "@solana-program/system";
 import {
   findAssociatedTokenPda,
+  getCloseAccountInstruction,
   getCreateAssociatedTokenIdempotentInstruction,
   getTransferCheckedInstruction,
   TOKEN_PROGRAM_ADDRESS,
 } from "@solana-program/token";
 
 import type {
+  ISolanaCloseAtaResult,
   ISolanaEnsureAtaParams,
   ISolanaEnsureAtaResult,
   ISolanaSendParams,
@@ -330,6 +332,91 @@ export class SolanaService implements ISolanaService {
       feeLamports,
       createdRecipientAta: !destExists,
       rentLamports,
+    };
+  }
+
+  async closeAta(
+    params: ISolanaEnsureAtaParams,
+  ): Promise<ISolanaCloseAtaResult> {
+    const tokenProgram = await this.resolveTokenProgram(
+      params.chainId,
+      params.mint,
+    );
+    const ataAddress = await this.deriveAta(
+      params.owner,
+      params.mint,
+      tokenProgram,
+    );
+    const exists = await this.solanaRpc.accountExists(
+      params.chainId,
+      ataAddress,
+    );
+    if (!exists) {
+      throw new Error("Token account does not exist");
+    }
+
+    const { amount } = await this.solanaRpc.getTokenAccountBalance(
+      params.chainId,
+      ataAddress,
+    );
+    if (amount !== 0n) {
+      throw new Error(
+        "Token account must be empty before closing — send the balance first",
+      );
+    }
+
+    const feeLamports = makeSolanaLamports(ESTIMATED_TRANSFER_FEE_LAMPORTS);
+    const solBalance = await this.solanaRpc.getBalance(
+      params.chainId,
+      params.owner,
+    );
+    if (solBalance < feeLamports) {
+      throw new Error("Insufficient SOL for network fee");
+    }
+
+    const signer = await this.owsProvider.getSigner();
+    const kitSigner = await toKitPartialSigner(signer, {
+      accountAddress: params.owner,
+    });
+
+    const { blockhash, lastValidBlockHeight } =
+      await this.solanaRpc.getLatestBlockhash(params.chainId);
+
+    const closeIx = getCloseAccountInstruction(
+      {
+        account: address(ataAddress),
+        destination: address(params.owner),
+        owner: kitSigner,
+      },
+      { programAddress: tokenProgram },
+    );
+
+    const message = pipe(
+      createTransactionMessage({ version: 0 }),
+      (m) => setTransactionMessageFeePayerSigner(kitSigner, m),
+      (m) =>
+        setTransactionMessageLifetimeUsingBlockhash(
+          {
+            blockhash: blockhash as Blockhash,
+            lastValidBlockHeight,
+          },
+          m,
+        ),
+      (m) =>
+        appendTransactionMessageInstructions([closeIx as Instruction], m),
+    );
+
+    const signed = await signTransactionMessageWithSigners(message);
+    const wire = getBase64EncodedWireTransaction(signed);
+    const signature = await this.solanaRpc.sendRawTransaction(
+      params.chainId,
+      wire,
+    );
+
+    return {
+      signature,
+      feeLamports,
+      rentReclaimedLamports: this.estimateAtaRentLamports(),
     };
   }
 
