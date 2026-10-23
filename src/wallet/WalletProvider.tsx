@@ -989,7 +989,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       } else if (choice === "changeAccount") {
         await clearWalletStorage();
         credentialRepository.invalidateLocalCache();
-        signerRef.current?.clearSession();
+        await signerRef.current?.clearSession();
         const session = useWalletSessionStore.getState();
         session.setUnlocked(false);
         session.setWalletCreated(false);
