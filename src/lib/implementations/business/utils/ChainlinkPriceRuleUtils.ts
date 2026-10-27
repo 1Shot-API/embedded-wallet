@@ -57,11 +57,11 @@ export const TRUSTED_CHAINLINK_USD_FEEDS: ReadonlyMap<string, TrustedFeed> =
       { pair: "ETH/USD", decimals: 8 },
     ],
     [
-      "0xf4030086522a5beea06127aa4bbe73f8b8f65a86",
+      "0xf4030086522a5beea4988f8ca5b36dbc97bee88c",
       { pair: "BTC/USD", decimals: 8 },
     ],
     [
-      "0x214ed9da11d2bbbe9a2747a5fa0f8156c0ed75c3",
+      "0x9944d86ceb9160af5c5feb251fd671923323f8c3",
       { pair: "PAXG/USD", decimals: 8 },
     ],
     // Arc mainnet (CoinOperated hop-1)
