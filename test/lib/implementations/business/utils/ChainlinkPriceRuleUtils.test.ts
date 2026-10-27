@@ -13,6 +13,9 @@ const ARC_ETH_USD = "0x50FCDD99D6762D1C170DC6A9111db944AEE6D364";
 const ARC_BTC_USD = "0xa109B535C70C8Be9995be64Bb6751AcDB27e03De";
 const BASE_ETH_USD = "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70";
 const BASE_BTC_USD = "0xC01502b887D09B0f329981764268fC32a94cB453";
+// Ethereum mainnet proxies from Chainlink's reference data directory (feeds-mainnet.json).
+const ETH_BTC_USD = "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c";
+const ETH_PAXG_USD = "0x9944D86CEB9160aF5C5feB251FD671923323f8C3";
 
 describe("parseChainlinkPriceRuleData", () => {
   it("accepts a trusted Dip rule", () => {
@@ -44,6 +47,25 @@ describe("parseChainlinkPriceRuleData", () => {
     });
     assert.equal(parsed.priceFeed.toLowerCase(), BASE_BTC_USD.toLowerCase());
   });
+
+  for (const [pair, feed] of [
+    ["BTC/USD", ETH_BTC_USD],
+    ["PAXG/USD", ETH_PAXG_USD],
+  ] as const) {
+    it(`accepts Ethereum ${pair}`, () => {
+      const parsed = parseChainlinkPriceRuleData({
+        priceFeed: feed,
+        ruleKind: RULE_KIND_DIP,
+        expectedDecimals: 8,
+        windowSeconds: 86400,
+        thresholdBps: 500,
+        maxStaleSeconds: 3600,
+        minGapSeconds: 60,
+        triggerPrice: "0",
+      });
+      assert.equal(parsed.priceFeed.toLowerCase(), feed.toLowerCase());
+    });
+  }
 
   it("rejects an untrusted feed", () => {
     assert.throws(
