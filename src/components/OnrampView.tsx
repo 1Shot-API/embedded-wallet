@@ -98,7 +98,7 @@ export function OnrampView({
       .then((asset) => {
         if (cancelled) return;
         if (asset) {
-          setCatalogTokenAddress(asset.address);
+          setCatalogTokenAddress(asset.address as EVMContractAddress);
           setCatalogIconUrl(asset.iconUrl);
         } else {
           setCatalogTokenAddress(null);

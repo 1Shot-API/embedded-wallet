@@ -16,11 +16,28 @@ export type {
 } from "./IBridgeService";
 export { IBridgeServiceType } from "./IBridgeService";
 export type {
+  ISolanaBridgeService,
+  ISolanaCctpBridgeQuote,
+  ISolanaCctpQuoteParams,
+} from "./ISolanaBridgeService";
+export { ISolanaBridgeServiceType } from "./ISolanaBridgeService";
+export type {
   IBitcoinSendParams,
   IBitcoinSendResult,
   IBitcoinService,
 } from "./IBitcoinService";
 export { IBitcoinServiceType } from "./IBitcoinService";
+export type {
+  ISolanaCloseAtaResult,
+  ISolanaEnsureAtaParams,
+  ISolanaEnsureAtaResult,
+  ISolanaSendParams,
+  ISolanaSendResult,
+  ISolanaSendSplParams,
+  ISolanaSendSplResult,
+  ISolanaService,
+} from "./ISolanaService";
+export { ISolanaServiceType } from "./ISolanaService";
 export type {
   IBuildCancelWorkParams,
   ICancelDelegationItem,

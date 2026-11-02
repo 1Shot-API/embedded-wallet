@@ -51,6 +51,8 @@ export interface IRelayerCredentialsClient {
   storeCredentials(
     body: IWebAuthnAssertionRequest & {
       items: ICredentialStoreItem[];
+      /** Optional replace: delete these blob ids under the same assertion. */
+      deleteCredentialBlobIds?: string[];
     },
   ): Promise<{ id: string; ids: string[] }>;
 

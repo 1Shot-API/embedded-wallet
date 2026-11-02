@@ -92,17 +92,23 @@ export class BlockscoutAssetActivityRepository
   }
 
   async list(params: IListAssetActivityParams): Promise<AssetActivity[]> {
+    if (!ChainUtils.isEVMChainId(params.asset.chainId)) {
+      return [];
+    }
     const config = await this.configProvider.getConfig();
     const limit = params.limit ?? config.assetActivityDefaultLimit;
     const { owner, asset } = params;
     const trackedAssetId = asset.id;
+    const chainId = ChainUtils.asEVMChainId(asset.chainId);
+    const tokenAddress = asset.address as EVMContractAddress;
+    const evmOwner = EVMAccountAddress(String(owner) as `0x${string}`);
 
     const optimistic: AssetActivity[] = [];
     for (const row of await this.readOptimistic(config.assetActivityStorageKey)) {
       if (
         row.chainId === String(asset.chainId) &&
-        row.tokenAddress.toLowerCase() === asset.address.toLowerCase() &&
-        row.owner.toLowerCase() === owner.toLowerCase()
+        row.tokenAddress.toLowerCase() === String(asset.address).toLowerCase() &&
+        row.owner.toLowerCase() === String(owner).toLowerCase()
       ) {
         optimistic.push(this.optimisticToActivity(row, trackedAssetId));
       }
@@ -111,9 +117,9 @@ export class BlockscoutAssetActivityRepository
     let indexed: AssetActivity[] = [];
     try {
       indexed = await this.fetchIndexed({
-        owner,
-        chainId: asset.chainId,
-        tokenAddress: asset.address,
+        owner: evmOwner,
+        chainId,
+        tokenAddress,
         decimals: asset.decimals,
         trackedAssetId,
         limit,
@@ -143,6 +149,9 @@ export class BlockscoutAssetActivityRepository
   async recordSent(
     params: IRecordSentActivityParams,
   ): Promise<AssetActivity> {
+    if (!ChainUtils.isEVMChainId(params.chainId)) {
+      throw new Error("Blockscout activity repository only records EVM sends");
+    }
     const config = await this.configProvider.getConfig();
     const trackedAssetId = makeTrackedAssetId(
       params.chainId,

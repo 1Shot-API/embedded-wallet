@@ -17,6 +17,7 @@ import monadLogo from "../../../assets/images/chains/monad-logo.png";
 import optimismLogo from "../../../assets/images/chains/optimism-logo.png";
 import polygonLogo from "../../../assets/images/chains/polygon-logo.png";
 import robinhoodLogo from "../../../assets/images/chains/robinhood-logo.png";
+import solanaLogo from "../../../assets/images/chains/solana-logo.svg";
 import sonicLogo from "../../../assets/images/chains/sonic-logo.png";
 import unichainLogo from "../../../assets/images/chains/unichain-logo.png";
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
@@ -54,6 +55,11 @@ const NATIVE_BTC: INativeCurrency = {
   name: "Bitcoin",
   symbol: "BTC",
   decimals: 8,
+};
+const NATIVE_SOL: INativeCurrency = {
+  name: "Solana",
+  symbol: "SOL",
+  decimals: 9,
 };
 /** Arc uses USDC as gas — no separate Native tracked row (see known assets). */
 const NATIVE_ARC_USDC: INativeCurrency = {
@@ -163,6 +169,34 @@ const CATALOG: readonly SupportedChain[] = [
     false,
     NATIVE_BTC,
     75,
+  ),
+  new SupportedChain(
+    EChain.SolanaDevnet,
+    EChainNetworkType.Testnet,
+    DEVELOPMENT_RELAYER_URL,
+    false,
+    solanaLogo,
+    true,
+    alchemyRpc("solana-devnet"),
+    "Solana Devnet",
+    "https://explorer.solana.com/?cluster=devnet",
+    true,
+    NATIVE_SOL,
+    88,
+  ),
+  new SupportedChain(
+    EChain.Solana,
+    EChainNetworkType.Mainnet,
+    PRODUCTION_RELAYER_URL,
+    false,
+    solanaLogo,
+    true,
+    alchemyRpc("solana-mainnet"),
+    "Solana",
+    "https://explorer.solana.com",
+    true,
+    NATIVE_SOL,
+    88,
   ),
   new SupportedChain(
     EChain.Bitcoin,

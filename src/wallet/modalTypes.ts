@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   PersonalSignApprovalRequest,
   SendTransactionApprovalRequest,
   SignTypedDataApprovalRequest,
@@ -13,6 +13,10 @@ import type {
   EVMTransactionHash,
   IExecutionPermission,
   IExecutionPermissionRequest,
+  SolanaAccountAddress,
+  SolanaChainId,
+  SolanaSignature,
+  SolanaTransactionHash,
 } from "@1shotapi/ows-types";
 
 import type {
@@ -20,13 +24,21 @@ import type {
   ICctpBridgeOpenRequest,
 } from "../circle/cctpBridgeTypes";
 import type { IOnrampOpenRequest } from "../circle/onrampTypes";
+import type {
+  ISolanaBridgeModalResult,
+  ISolanaBridgeOpenRequest,
+} from "../circle/solanaBridgeTypes";
+import type { ISolanaTxSummary } from "../lib/implementations/utils/SolanaTxUtils";
 import type { ITransactionWork } from "../lib/interfaces/business/ITransactionService";
 import type { IRelayerPayment } from "../lib/types/domain/RelayerPayment";
 import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 import type { ISiweFields } from "../lib/types/domain/SiweFields";
+import type { ISiwsFields } from "../lib/types/domain/SiwsFields";
 import type { TokenAmount } from "../lib/types/primitives";
 
 import type { IAddAssetApprovalRequest } from "./registerAddAsset";
+
+export type ESolanaTxConsentMode = "sign" | "signAndSend";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
@@ -154,6 +166,14 @@ export type ModalRequest =
     }
   | {
       id: string;
+      kind: "solanaSign";
+      address: SolanaAccountAddress;
+      messages: readonly Uint8Array[];
+      resolve: (signatures: SolanaSignature[]) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
       kind: "typedData";
       request: SignTypedDataApprovalRequest;
       resolve: (signature: EVMSignatureHex) => void;
@@ -166,6 +186,36 @@ export type ModalRequest =
       request: SignTypedDataApprovalRequest | PersonalSignApprovalRequest;
       fields: ISiweFields;
       resolve: (signature: EVMSignatureHex) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "siws";
+      fields: ISiwsFields;
+      messageBytes: Uint8Array;
+      resolve: (signature: SolanaSignature) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "solanaSignAndSend";
+      mode: ESolanaTxConsentMode;
+      chainId: SolanaChainId;
+      address: SolanaAccountAddress;
+      summaries: readonly ISolanaTxSummary[];
+      messageBytesList: readonly Uint8Array[];
+      warnings: readonly string[];
+      /**
+       * Sign-and-send only: Branding attaches the signature and submits via
+       * Alchemy after the passkey ceremony.
+       */
+      submit?: (
+        messageBytes: Uint8Array,
+        signatureBytes: Uint8Array,
+      ) => Promise<SolanaTransactionHash>;
+      resolve: (
+        value: SolanaSignature[] | SolanaTransactionHash,
+      ) => void;
       reject: (error: unknown) => void;
     }
   | {
@@ -277,6 +327,13 @@ export type ModalRequest =
       kind: "cctpBridge";
       request: ICctpBridgeOpenRequest;
       resolve: (result: ICctpBridgeModalResult) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "solanaBridge";
+      request: ISolanaBridgeOpenRequest;
+      resolve: (result: ISolanaBridgeModalResult) => void;
       reject: (error: unknown) => void;
     };
 

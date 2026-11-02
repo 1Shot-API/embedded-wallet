@@ -35,10 +35,27 @@ export class SupportedChain {
   ) {}
 
   public txExplorerUrl(transactionHash: string): string {
-    return `${this.blockExplorerUrl}/tx/${transactionHash}`;
+    return SupportedChain.withExplorerPath(this.blockExplorerUrl, "tx", transactionHash);
   }
 
   public addressExplorerUrl(address: string): string {
-    return `${this.blockExplorerUrl}/address/${address}`;
+    return SupportedChain.withExplorerPath(
+      this.blockExplorerUrl,
+      "address",
+      address,
+    );
+  }
+
+  /** Insert `/kind/id` before any `?query` so Solana cluster URLs stay valid. */
+  private static withExplorerPath(
+    baseUrl: string,
+    kind: "tx" | "address",
+    id: string,
+  ): string {
+    const q = baseUrl.indexOf("?");
+    if (q === -1) {
+      return `${baseUrl}/${kind}/${id}`;
+    }
+    return `${baseUrl.slice(0, q)}/${kind}/${id}${baseUrl.slice(q)}`;
   }
 }

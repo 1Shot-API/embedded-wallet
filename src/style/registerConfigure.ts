@@ -38,6 +38,7 @@ export function registerConfigureRpc(
           if (match === undefined) continue;
           if (
             ChainUtils.isBitcoinChainId(match) ||
+            ChainUtils.isSolanaChainId(match) ||
             ChainUtils.isEVMChainId(match)
           ) {
             valid.push(match);

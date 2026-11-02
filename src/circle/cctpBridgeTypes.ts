@@ -2,6 +2,8 @@ import type {
   EVMAccountAddress,
   EVMChainId,
   EVMContractAddress,
+  OWSChainId,
+  SolanaAccountAddress,
 } from "@1shotapi/ows-types";
 
 import type { ICctpBridgeResult } from "../lib/interfaces/business/IBridgeService";
@@ -14,7 +16,10 @@ export type ICctpBridgeOpenRequest = {
   ownerAddress: EVMAccountAddress;
   balance?: bigint | null;
   amountAtoms?: bigint;
-  destinationChainId?: EVMChainId;
+  /** EVM hex or Solana CAIP-2 destination. */
+  destinationChainId?: OWSChainId;
+  /** Solana wallet when destination is Solana (defaults to session in UI). */
+  solanaRecipient?: SolanaAccountAddress;
   /** When set with amount + dest, skip setup and auto-quote. */
   speed?: ECctpTransferSpeed;
   /** Optional; must be native CCTP USDC on the source chain when provided. */

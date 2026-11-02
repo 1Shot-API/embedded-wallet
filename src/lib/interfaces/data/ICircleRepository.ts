@@ -1,7 +1,6 @@
 import type {
-  EVMAccountAddress,
-  EVMChainId,
-  EVMTransactionHash,
+  OWSChainId,
+  TransactionHash,
   UriString,
 } from "@1shotapi/ows-types";
 
@@ -19,17 +18,20 @@ export interface IIrisForwardingFee {
 }
 
 export interface ICctpInFlightBurn {
-  burnTxHash: EVMTransactionHash;
+  /** Source-chain burn id (EVM hex or Solana base58). */
+  burnTxHash: TransactionHash;
   sourceDomain: ECircleDomainId;
-  sourceChainId: EVMChainId;
-  destChainId: EVMChainId;
+  sourceChainId: OWSChainId;
+  destChainId: OWSChainId;
   amountAtoms: bigint;
-  address: EVMAccountAddress;
+  /** Owner key for resume storage (EVM or Solana address). */
+  address: string;
 }
 
 export interface IIrisCctpMessage {
   status?: string;
-  forwardTxHash?: EVMTransactionHash | null;
+  /** Destination mint id when Forwarding completes (EVM or Solana). */
+  forwardTxHash?: TransactionHash | null;
   message?: string;
   attestation?: string | null;
 }
@@ -48,14 +50,14 @@ export interface ICircleRepository {
   getMessageByBurnTx(
     irisBaseUrl: UriString,
     sourceDomain: ECircleDomainId,
-    txHash: EVMTransactionHash,
+    txHash: TransactionHash,
   ): Promise<IIrisCctpMessage | null>;
 
   saveInFlight(record: ICctpInFlightBurn): void;
 
-  loadInFlight(address: EVMAccountAddress): ICctpInFlightBurn | null;
+  loadInFlight(address: string): ICctpInFlightBurn | null;
 
-  clearInFlight(address: EVMAccountAddress): void;
+  clearInFlight(address: string): void;
 }
 
 export const ICircleRepositoryType = Symbol.for("ICircleRepository");

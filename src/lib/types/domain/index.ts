@@ -1,8 +1,24 @@
-export { AssetActivity } from "./AssetActivity";
+export { AssetActivity, type ActivityAccountAddress } from "./AssetActivity";
 export type { IRelayerPayment } from "./RelayerPayment";
 export { BitcoinUtxo } from "./BitcoinUtxo";
-export { KnownAsset } from "./KnownAsset";
-export { NewTrackedAsset, TrackedAsset } from "./TrackedAsset";
+export {
+  KnownAsset,
+  isEvmKnownAsset,
+  isSolanaKnownAsset,
+} from "./KnownAsset";
+export type {
+  EVMKnownAsset,
+  KnownAssetAddress,
+  KnownAssetChainId,
+  SolanaKnownAsset,
+} from "./KnownAsset";
+export {
+  NewTrackedAsset,
+  TrackedAsset,
+  isEvmTrackedAsset,
+  isSolanaTrackedAsset,
+} from "./TrackedAsset";
+export type { EVMTrackedAsset, SolanaTrackedAsset } from "./TrackedAsset";
 export { SupportedChain } from "./SupportedChain";
 export type { INativeCurrency } from "./SupportedChain";
 export type {

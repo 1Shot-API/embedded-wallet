@@ -1,9 +1,12 @@
+import { ChainUtils } from "@1shotapi/ows-types";
 import { RefreshCwIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { ChainSelector, type IChainSelectorOption } from "./ChainSelector";
 import {
-  DEMO_ADD_ASSET_ICON_URL,
+  DEMO_SOLANA_USDC_MAINNET,
+  DEMO_USDC_ICON_URL,
+  DEMO_USDT_ICON_URL,
   FOCUS_USDT_BASE,
   hostChainMeta,
   type UsdcMode,
@@ -64,6 +67,8 @@ export interface IWalletActionsProps {
   onUsdcAmountChange: (amount: string) => void;
   onSign: () => void;
   onLoadSiwe: () => void;
+  onSolanaSignAndSend: () => void;
+  onSolanaSignTransaction: () => void;
   walletVisible: boolean;
   onToggleWallet: () => void;
   onUsdcAction: () => void;
@@ -129,6 +134,8 @@ export function WalletActions({
   onUsdcAmountChange,
   onSign,
   onLoadSiwe,
+  onSolanaSignAndSend,
+  onSolanaSignTransaction,
   walletVisible,
   onToggleWallet,
   onUsdcAction,
@@ -156,6 +163,7 @@ export function WalletActions({
   onGetGrantedPermissions,
 }: IWalletActionsProps) {
   const meta = hostChainMeta(chainId);
+  const isSolana = ChainUtils.isSolanaChainId(chainId);
   const [selectedGrantIds, setSelectedGrantIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -165,8 +173,11 @@ export function WalletActions({
   const [addAssetAddress, setAddAssetAddress] = useState<string>(
     FOCUS_USDT_BASE.assetAddress,
   );
-  const [addAssetIconUrl, setAddAssetIconUrl] = useState(DEMO_ADD_ASSET_ICON_URL);
-  const addAssetAddressValid = /^0x[0-9a-fA-F]{40}$/.test(addAssetAddress.trim());
+  const [addAssetIconUrl, setAddAssetIconUrl] = useState(DEMO_USDT_ICON_URL);
+  const addAssetIsSolana = ChainUtils.isSolanaChainId(addAssetChainId);
+  const addAssetAddressValid = addAssetIsSolana
+    ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addAssetAddress.trim())
+    : /^0x[0-9a-fA-F]{40}$/.test(addAssetAddress.trim());
   const addAssetIconTrimmed = addAssetIconUrl.trim();
   const addAssetIconValid =
     addAssetIconTrimmed.length === 0 ||
@@ -279,7 +290,7 @@ export function WalletActions({
 
       <div className="flex flex-col gap-1.5">
         <Tabs
-          value={signMode}
+          value={isSolana ? "message" : signMode}
           onValueChange={(value) => {
             if (value === "message" || value === "typedData") {
               onSignModeChange(value);
@@ -290,23 +301,21 @@ export function WalletActions({
             <TabsTrigger value="message" className="flex-1">
               Message
             </TabsTrigger>
-            <TabsTrigger value="typedData" className="flex-1">
+            <TabsTrigger
+              value="typedData"
+              className="flex-1"
+              disabled={isSolana}
+              title={
+                isSolana
+                  ? "EIP-712 is EVM-only; Solana uses message signing"
+                  : undefined
+              }
+            >
               Typed Data (EIP-712)
             </TabsTrigger>
           </TabsList>
         </Tabs>
-        {signMode === "message" ? (
-          <>
-            <Label htmlFor="message-input">Message to sign</Label>
-            <Textarea
-              id="message-input"
-              rows={3}
-              value={message}
-              disabled={!ready}
-              onChange={(event) => onMessageChange(event.target.value)}
-            />
-          </>
-        ) : (
+        {!isSolana && signMode === "typedData" ? (
           <>
             <Label htmlFor="typed-data-input">Typed Data JSON</Label>
             <Textarea
@@ -317,6 +326,17 @@ export function WalletActions({
               value={typedDataJson}
               disabled={!ready}
               onChange={(event) => onTypedDataJsonChange(event.target.value)}
+            />
+          </>
+        ) : (
+          <>
+            <Label htmlFor="message-input">Message to sign</Label>
+            <Textarea
+              id="message-input"
+              rows={3}
+              value={message}
+              disabled={!ready}
+              onChange={(event) => onMessageChange(event.target.value)}
             />
           </>
         )}
@@ -331,9 +351,36 @@ export function WalletActions({
           variant="outline"
           disabled={!ready || busy}
           onClick={onLoadSiwe}
+          title={
+            isSolana
+              ? "proxy.solana.signIn — Sign-In With Solana"
+              : undefined
+          }
         >
-          SIWE
+          {isSolana ? "SIWS" : "SIWE"}
         </Button>
+        {isSolana ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!ready || busy}
+              onClick={onSolanaSignAndSend}
+              title="Wallet Standard solana:signAndSendTransaction"
+            >
+              Sign & send SOL
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!ready || busy}
+              onClick={onSolanaSignTransaction}
+              title="Wallet Standard solana:signTransaction"
+            >
+              Sign transaction
+            </Button>
+          </>
+        ) : null}
       </div>
 
       <p
@@ -479,9 +526,38 @@ export function WalletActions({
         <p className="text-muted-foreground text-xs">
           Propose a tracked asset via <code>addAsset</code> (user must confirm
           in the wallet). Optional HTTPS <code>iconUrl</code> is shown after
-          approval.
+          approval. Solana: catalog USDC mint → ATA create (rent) then track —
+          not default-tracked.
         </p>
         <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={!ready || busy}
+              onClick={() => {
+                setAddAssetChainId(FOCUS_USDT_BASE.chainId);
+                setAddAssetAddress(FOCUS_USDT_BASE.assetAddress);
+                setAddAssetIconUrl(DEMO_USDT_ICON_URL);
+              }}
+            >
+              {FOCUS_USDT_BASE.label}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={!ready || busy}
+              onClick={() => {
+                setAddAssetChainId(DEMO_SOLANA_USDC_MAINNET.chainId);
+                setAddAssetAddress(DEMO_SOLANA_USDC_MAINNET.assetAddress);
+                setAddAssetIconUrl(DEMO_USDC_ICON_URL);
+              }}
+            >
+              {DEMO_SOLANA_USDC_MAINNET.label}
+            </Button>
+          </div>
           <div className="flex flex-col gap-1">
             <Label htmlFor="add-asset-chain" className="text-xs font-normal">
               Chain
@@ -491,18 +567,25 @@ export function WalletActions({
               ariaLabel="Add asset chain"
               value={addAssetChainId}
               disabled={!ready || busy}
-              onValueChange={setAddAssetChainId}
+              onValueChange={(next) => {
+                setAddAssetChainId(next);
+                const meta = hostChainMeta(next);
+                if (meta?.usdc) {
+                  setAddAssetAddress(meta.usdc);
+                  setAddAssetIconUrl(DEMO_USDC_ICON_URL);
+                }
+              }}
             />
           </div>
           <div className="flex flex-col gap-1">
             <Label htmlFor="add-asset-address" className="text-xs font-normal">
-              Token address
+              {addAssetIsSolana ? "Mint address" : "Token address"}
             </Label>
             <Input
               id="add-asset-address"
               value={addAssetAddress}
               onChange={(event) => setAddAssetAddress(event.target.value)}
-              placeholder="0x…"
+              placeholder={addAssetIsSolana ? "Base58 mint…" : "0x…"}
               className="font-mono text-xs"
               spellCheck={false}
             />
@@ -667,32 +750,38 @@ export function WalletActions({
           <Button
             type="button"
             variant="outline"
-            disabled={!ready || busy}
+            disabled={!ready || busy || isSolana}
             onClick={onRequestDelegation}
+            title={isSolana ? "EIP-7715 is EVM-only" : undefined}
           >
             Request permissions
           </Button>
           <Button
             type="button"
             variant="outline"
-            disabled={!ready || busy || chainId.toLowerCase() !== "0x2105"}
+            disabled={
+              !ready || busy || isSolana || chainId.toLowerCase() !== "0x2105"
+            }
             onClick={onRequestLiFiDelegation}
+            title={isSolana ? "EIP-7715 is EVM-only" : undefined}
           >
             Request LiFi (Base)
           </Button>
           <Button
             type="button"
             variant="outline"
-            disabled={!ready || busy}
+            disabled={!ready || busy || isSolana}
             onClick={onGetSupportedPermissions}
+            title={isSolana ? "EIP-7715 is EVM-only" : undefined}
           >
             Get supported
           </Button>
           <Button
             type="button"
             variant="outline"
-            disabled={!ready || busy}
+            disabled={!ready || busy || isSolana}
             onClick={onGetGrantedPermissions}
+            title={isSolana ? "EIP-7715 is EVM-only" : undefined}
           >
             Get granted
           </Button>
@@ -713,7 +802,7 @@ export function WalletActions({
                         type="checkbox"
                         className="border-input mt-0.5 size-4 shrink-0 rounded border"
                         checked={checked}
-                        disabled={!ready || busy}
+                        disabled={!ready || busy || isSolana}
                         onChange={() => {
                           setSelectedGrantIds((prev) => {
                             const next = new Set(prev);
@@ -731,7 +820,7 @@ export function WalletActions({
                       type="button"
                       size="sm"
                       variant="outline"
-                      disabled={!ready || busy}
+                      disabled={!ready || busy || isSolana}
                       onClick={() => onCancelDelegation(grant.id)}
                     >
                       Cancel
@@ -752,7 +841,7 @@ export function WalletActions({
                   type="button"
                   size="sm"
                   variant="outline"
-                  disabled={!ready || busy}
+                  disabled={!ready || busy || isSolana}
                   onClick={() => {
                     const ids = [...selectedGrantIds];
                     setSelectedGrantIds(new Set());

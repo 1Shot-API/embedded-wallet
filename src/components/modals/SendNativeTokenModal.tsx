@@ -1,6 +1,8 @@
 import {
   EChainTechnology,
   type EVMAccountAddress,
+  type EVMChainId,
+  type EVMContractAddress,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -105,7 +107,9 @@ export function SendNativeTokenModal({
     setFeeBusy(true);
     setFeeError(null);
     try {
-      const estimate = await estimateNativeTransferFee(asset.chainId);
+      const estimate = await estimateNativeTransferFee(
+        asset.chainId as EVMChainId,
+      );
       setFeeAtoms(estimate.feeAtoms);
     } catch (error: unknown) {
       console.error("[oneshot-wallet] native fee estimate failed", error);
@@ -162,7 +166,9 @@ export function SendNativeTokenModal({
     setFeeBusy(true);
     setFeeError(null);
     try {
-      const estimate = await estimateNativeTransferFee(asset.chainId);
+      const estimate = await estimateNativeTransferFee(
+        asset.chainId as EVMChainId,
+      );
       setFeeAtoms(estimate.feeAtoms);
       if (balance === null) {
         return;
@@ -204,15 +210,15 @@ export function SendNativeTokenModal({
 
     setBusy(true);
     try {
-      await switchChain(asset.chainId);
+      await switchChain(asset.chainId as EVMChainId);
       const hash = await sendNativeTransfer(
-        asset.chainId,
+        asset.chainId as EVMChainId,
         recipient as EVMAccountAddress,
         parsed,
       );
       await recordSentActivity({
-        chainId: asset.chainId,
-        tokenAddress: asset.address,
+        chainId: asset.chainId as EVMChainId,
+        tokenAddress: asset.address as EVMContractAddress,
         owner: evmAddress,
         to: recipient as EVMAccountAddress,
         amount: parsed,

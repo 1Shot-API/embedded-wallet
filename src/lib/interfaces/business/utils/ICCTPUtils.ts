@@ -3,8 +3,16 @@ import type {
   EVMChainId,
   EVMContractAddress,
   HexString,
+  OWSChainId,
+  SolanaAccountAddress,
+  SolanaChainId,
   UriString,
 } from "@1shotapi/ows-types";
+import type {
+  Address,
+  Instruction,
+  TransactionSigner,
+} from "@solana/kit";
 
 import type { SupportedChain } from "../../../types/domain/SupportedChain";
 import type { ECctpTransferSpeed } from "../../../types/enum/ECctpTransferSpeed";
@@ -18,8 +26,14 @@ export interface ICctpContracts {
   messageTransmitterV2: EVMAccountAddress;
 }
 
+/** Solana CCTP V2 program ids (same on mainnet + Devnet). */
+export interface ISolanaCctpPrograms {
+  tokenMessengerMinterV2: string;
+  messageTransmitterV2: string;
+}
+
 export interface ICctpRoute {
-  chainId: EVMChainId;
+  chainId: OWSChainId;
   domain: ECircleDomainId;
   networkType: EChainNetworkType;
   irisBaseUrl: UriString;
@@ -35,7 +49,11 @@ export interface ICctpBurnFees {
 export interface IEncodeDepositForBurnWithHookParams {
   totalBurn: bigint;
   destDomain: ECircleDomainId;
-  mintRecipient: EVMAccountAddress;
+  /**
+   * Destination mint recipient as 32-byte hex.
+   * EVM: left-padded address. Solana dest: ATA pubkey bytes as hex.
+   */
+  mintRecipientBytes32: HexString;
   burnToken: EVMContractAddress;
   maxFee: bigint;
   minFinalityThreshold: number;
@@ -50,6 +68,27 @@ export interface IBuildCctpRelayerWorkParams {
   burnData: HexString;
 }
 
+/** Params for Solana TokenMessengerMinterV2 `deposit_for_burn_with_hook`. */
+export interface IBuildSolanaDepositForBurnWithHookParams {
+  owner: TransactionSigner;
+  ownerAddress: Address;
+  usdcMint: Address;
+  /** Owner's USDC ATA (must exist). */
+  burnTokenAccount: Address;
+  destinationDomain: ECircleDomainId;
+  /** 32-byte mint recipient (padded EVM address). */
+  mintRecipient: Uint8Array;
+  totalBurn: bigint;
+  maxFee: bigint;
+  minFinalityThreshold: number;
+}
+
+export interface ISolanaDepositForBurnWithHookBuilt {
+  instruction: Instruction;
+  /** Ephemeral MessageSent account — must co-sign the transaction. */
+  messageSentSigner: TransactionSigner & { address: Address };
+}
+
 /**
  * CCTP V2 helpers: routes, Iris fee math, contract addresses, burn calldata,
  * and destination filtering. Stateless — safe as a singleton.
@@ -61,10 +100,14 @@ export interface ICCTPUtils {
   readonly slowFinalityThreshold: number;
   /** 32-byte `cctp-forward` hook (Circle Forwarding Service). */
   readonly forwardHookData: HexString;
+  /** Raw hook bytes for Solana `deposit_for_burn_with_hook`. */
+  readonly forwardHookDataBytes: Uint8Array;
 
-  getRoute(chainId: EVMChainId): ICctpRoute | null;
+  getRoute(chainId: OWSChainId): ICctpRoute | null;
 
-  requireRoute(chainId: EVMChainId): ICctpRoute;
+  requireRoute(chainId: OWSChainId): ICctpRoute;
+
+  getSolanaPrograms(): ISolanaCctpPrograms;
 
   finalityThresholdForSpeed(speed: ECctpTransferSpeed): number;
 
@@ -91,6 +134,11 @@ export interface ICCTPUtils {
     params: IEncodeDepositForBurnWithHookParams,
   ): HexString;
 
+  /** Build Solana CCTP V2 `deposit_for_burn_with_hook` (Forwarding Service). */
+  buildSolanaDepositForBurnWithHook(
+    params: IBuildSolanaDepositForBurnWithHookParams,
+  ): Promise<ISolanaDepositForBurnWithHookBuilt>;
+
   shouldSkipUsdcApprove(allowance: bigint, totalBurn: bigint): boolean;
 
   buildRelayerWork(params: IBuildCctpRelayerWorkParams): ITransactionWork[];
@@ -101,6 +149,10 @@ export interface ICCTPUtils {
     chains: readonly SupportedChain[],
     source: SupportedChain,
   ): SupportedChain[];
+
+  isSolanaRoute(chainId: OWSChainId): boolean;
 }
 
 export const ICCTPUtilsType = Symbol.for("business.ICCTPUtils");
+
+export type { SolanaAccountAddress, SolanaChainId, EVMChainId };

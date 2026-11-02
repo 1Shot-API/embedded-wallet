@@ -82,9 +82,9 @@ const MIME: Record<string, string> = {
   ".woff2": "font/woff2",
 };
 
-/** Canonical Signing Layer CSP (omit frame-ancestors for permissionless branding embeds). */
+/** Canonical Signing Layer CSP — Branding and Signing same origin only. */
 const SIGNER_CSP =
-  "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; child-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests";
+  "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; child-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; upgrade-insecure-requests";
 
 function contentType(filePath: string): string {
   return MIME[path.extname(filePath)] ?? "application/octet-stream";

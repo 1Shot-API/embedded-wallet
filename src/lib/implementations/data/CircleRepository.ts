@@ -1,21 +1,20 @@
 import {
   ChainUtils,
-  EVMAccountAddress,
-  EVMTransactionHash,
-  type EVMAccountAddress as EVMAccountAddressType,
-  type EVMTransactionHash as EVMTransactionHashType,
+  parseTransactionHash,
+  type TransactionHash,
 } from "@1shotapi/ows-types";
 
 import {
   type ICctpInFlightBurn,
   type ICircleRepository,
   type IIrisCctpMessage,
-type  IIrisForwardingFee } from "../../interfaces/data/ICircleRepository";
+  type IIrisForwardingFee,
+} from "../../interfaces/data/ICircleRepository";
 import type { ECircleDomainId } from "../../types/enum/ECircleDomainId";
 
 export const CCTP_IN_FLIGHT_KEY_PREFIX = "oneshot.cctpInFlight.";
 
-export function inFlightStorageKey(address: EVMAccountAddressType): string {
+export function inFlightStorageKey(address: string): string {
   return `${CCTP_IN_FLIGHT_KEY_PREFIX}${String(address).toLowerCase()}`;
 }
 
@@ -32,8 +31,8 @@ export function serializeInFlight(record: ICctpInFlightBurn): string {
   const stored: IStoredInFlight = {
     burnTxHash: record.burnTxHash,
     sourceDomain: record.sourceDomain,
-    sourceChainId: record.sourceChainId,
-    destChainId: record.destChainId,
+    sourceChainId: String(record.sourceChainId),
+    destChainId: String(record.destChainId),
     amountAtoms: record.amountAtoms.toString(10),
     address: record.address,
   };
@@ -53,15 +52,13 @@ export function parseInFlight(raw: string): ICctpInFlightBurn | null {
   const row = parsed as Partial<IStoredInFlight>;
   if (
     typeof row.burnTxHash !== "string" ||
-    !row.burnTxHash.startsWith("0x") ||
+    row.burnTxHash.length === 0 ||
     typeof row.sourceDomain !== "number" ||
     typeof row.sourceChainId !== "string" ||
-    !row.sourceChainId.startsWith("0x") ||
     typeof row.destChainId !== "string" ||
-    !row.destChainId.startsWith("0x") ||
     typeof row.amountAtoms !== "string" ||
     typeof row.address !== "string" ||
-    !row.address.startsWith("0x")
+    row.address.length === 0
   ) {
     return null;
   }
@@ -71,14 +68,37 @@ export function parseInFlight(raw: string): ICctpInFlightBurn | null {
   } catch {
     return null;
   }
+  const sourceChainId = parseOwsChainId(row.sourceChainId);
+  const destChainId = parseOwsChainId(row.destChainId);
+  if (!sourceChainId || !destChainId) {
+    return null;
+  }
+  const burnTxHash = parseTransactionHash(row.burnTxHash);
+  if (!burnTxHash) {
+    return null;
+  }
   return {
-    burnTxHash: EVMTransactionHash(row.burnTxHash as `0x${string}`),
+    burnTxHash,
     sourceDomain: row.sourceDomain as ECircleDomainId,
-    sourceChainId: ChainUtils.asEVMChainId(row.sourceChainId),
-    destChainId: ChainUtils.asEVMChainId(row.destChainId),
+    sourceChainId,
+    destChainId,
     amountAtoms,
-    address: EVMAccountAddress(row.address as `0x${string}`),
+    address: row.address,
   };
+}
+
+function parseOwsChainId(value: string): ICctpInFlightBurn["sourceChainId"] | null {
+  try {
+    if (ChainUtils.isSolanaChainId(value)) {
+      return ChainUtils.asSolanaChainId(value);
+    }
+    if (ChainUtils.isBitcoinChainId(value)) {
+      return value;
+    }
+    return ChainUtils.asEVMChainId(value);
+  } catch {
+    return null;
+  }
 }
 
 type IrisFeeAmount = string | number;
@@ -126,7 +146,7 @@ export class CircleRepository implements ICircleRepository {
   async getMessageByBurnTx(
     irisBaseUrl: string,
     sourceDomain: ECircleDomainId,
-    txHash: EVMTransactionHashType,
+    txHash: TransactionHash,
   ): Promise<IIrisCctpMessage | null> {
     const url = `${trimSlash(irisBaseUrl)}/v2/messages/${sourceDomain}?transactionHash=${encodeURIComponent(String(txHash))}`;
     try {
@@ -135,18 +155,24 @@ export class CircleRepository implements ICircleRepository {
       if (!first) {
         return null;
       }
+      const forwardRaw =
+        typeof first.forwardTxHash === "string" && first.forwardTxHash.length > 0
+          ? first.forwardTxHash
+          : null;
+      const forwardTxHash = forwardRaw
+        ? parseTransactionHash(forwardRaw)
+        : null;
       return {
         status: first.status,
-        forwardTxHash:
-          typeof first.forwardTxHash === "string" &&
-          first.forwardTxHash.startsWith("0x")
-            ? EVMTransactionHash(first.forwardTxHash as `0x${string}`)
-            : null,
+        forwardTxHash,
         message: first.message,
         attestation: first.attestation,
       };
     } catch (error: unknown) {
-      if (error instanceof IrisHttpError && (error.status === 404 || error.status === 429)) {
+      if (
+        error instanceof IrisHttpError &&
+        (error.status === 404 || error.status === 429)
+      ) {
         return null;
       }
       throw error;
@@ -164,7 +190,7 @@ export class CircleRepository implements ICircleRepository {
     }
   }
 
-  loadInFlight(address: EVMAccountAddressType): ICctpInFlightBurn | null {
+  loadInFlight(address: string): ICctpInFlightBurn | null {
     try {
       const raw = localStorage.getItem(inFlightStorageKey(address));
       if (!raw) {
@@ -176,7 +202,7 @@ export class CircleRepository implements ICircleRepository {
     }
   }
 
-  clearInFlight(address: EVMAccountAddressType): void {
+  clearInFlight(address: string): void {
     try {
       localStorage.removeItem(inFlightStorageKey(address));
     } catch {

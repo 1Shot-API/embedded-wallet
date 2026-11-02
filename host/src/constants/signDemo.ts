@@ -126,6 +126,38 @@ export function buildSiwePersonalMessage(params: ISiweMessageParams): string {
   ].join("\n");
 }
 
+export interface ISiwsMessageParams {
+  domain: string;
+  address: string;
+  uri: string;
+  /** CAIP-2 Solana chain id, e.g. `solana:mainnet`. */
+  chainId: string;
+  nonce: string;
+  statement?: string;
+  version?: string;
+  issuedAt?: string;
+}
+
+/** SIWS-shaped text for the message box (Phase 5 wires `solana:signIn`). */
+export function buildSiwsPersonalMessage(params: ISiwsMessageParams): string {
+  const version = params.version ?? "1";
+  const issuedAt = params.issuedAt ?? new Date().toISOString();
+  const statement =
+    params.statement ?? "Sign in with Solana to the host playground.";
+  return [
+    `${params.domain} wants you to sign in with your Solana account:`,
+    params.address,
+    "",
+    statement,
+    "",
+    `URI: ${params.uri}`,
+    `Version: ${version}`,
+    `Chain ID: ${params.chainId}`,
+    `Nonce: ${params.nonce}`,
+    `Issued At: ${issuedAt}`,
+  ].join("\n");
+}
+
 /** EIP-712 SignInWithEthereum typed data for `eth_signTypedData_v4`. */
 export function buildSiweTypedData(
   params: ISiweMessageParams,

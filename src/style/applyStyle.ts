@@ -34,9 +34,21 @@ export function mergeStyle(
         ...current.copy.personalSign,
         ...patch.copy?.personalSign,
       },
+      solanaSign: {
+        ...current.copy.solanaSign,
+        ...patch.copy?.solanaSign,
+      },
+      solanaSignAndSend: {
+        ...current.copy.solanaSignAndSend,
+        ...patch.copy?.solanaSignAndSend,
+      },
       siwe: {
         ...current.copy.siwe,
         ...patch.copy?.siwe,
+      },
+      siws: {
+        ...current.copy.siws,
+        ...patch.copy?.siws,
       },
       typedData: {
         ...current.copy.typedData,
@@ -65,6 +77,10 @@ export function mergeStyle(
       cctpBridge: {
         ...current.copy.cctpBridge,
         ...patch.copy?.cctpBridge,
+      },
+      solanaBridge: {
+        ...current.copy.solanaBridge,
+        ...patch.copy?.solanaBridge,
       },
       grantExecutionPermission: {
         ...current.copy.grantExecutionPermission,
@@ -176,6 +192,10 @@ export function mergeStyle(
         ...current.copy.bitcoin,
         ...patch.copy?.bitcoin,
       },
+      solana: {
+        ...current.copy.solana,
+        ...patch.copy?.solana,
+      },
     },
     dark: patch.dark === undefined ? current.dark : patch.dark,
     features: {
@@ -225,7 +245,10 @@ function cloneDefaultStyle(): IResolvedStyle {
       walletSetup: { ...DEFAULT_STYLE.copy.walletSetup },
       passkeyName: { ...DEFAULT_STYLE.copy.passkeyName },
       personalSign: { ...DEFAULT_STYLE.copy.personalSign },
+      solanaSign: { ...DEFAULT_STYLE.copy.solanaSign },
+      solanaSignAndSend: { ...DEFAULT_STYLE.copy.solanaSignAndSend },
       siwe: { ...DEFAULT_STYLE.copy.siwe },
+      siws: { ...DEFAULT_STYLE.copy.siws },
       typedData: { ...DEFAULT_STYLE.copy.typedData },
       sendTransaction: { ...DEFAULT_STYLE.copy.sendTransaction },
       confirmTransfer: { ...DEFAULT_STYLE.copy.confirmTransfer },
@@ -233,6 +256,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       transferTokens: { ...DEFAULT_STYLE.copy.transferTokens },
       sendNativeToken: { ...DEFAULT_STYLE.copy.sendNativeToken },
       cctpBridge: { ...DEFAULT_STYLE.copy.cctpBridge },
+      solanaBridge: { ...DEFAULT_STYLE.copy.solanaBridge },
       grantExecutionPermission: {
         ...DEFAULT_STYLE.copy.grantExecutionPermission,
       },
@@ -276,6 +300,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       importPrivateKey: { ...DEFAULT_STYLE.copy.importPrivateKey },
       advancedOptions: { ...DEFAULT_STYLE.copy.advancedOptions },
       bitcoin: { ...DEFAULT_STYLE.copy.bitcoin },
+      solana: { ...DEFAULT_STYLE.copy.solana },
     },
     features: {
       hideCloseBox: DEFAULT_STYLE.features.hideCloseBox,

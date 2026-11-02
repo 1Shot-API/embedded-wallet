@@ -140,6 +140,11 @@ export class CachedRelayerVaultRepository
   private trackedAssetsSyncInFlight: Promise<void> | null = null;
   /** Another local add/remove landed while a sync assert was in flight. */
   private trackedAssetsDirtyDuringSync = false;
+  /**
+   * Next sign ceremony should mint RelayerAuth and cache the assertion
+   * (in-memory only — not persisted).
+   */
+  private relayerAuthPrefetchArmed = false;
 
   constructor(deps: ICachedRelayerVaultRepositoryDeps) {
     this.client = deps.client;
@@ -427,6 +432,18 @@ export class CachedRelayerVaultRepository
     return this.readBlob().pendingTrackedAssetsUpload;
   }
 
+  armRelayerAuthPrefetch(): void {
+    this.relayerAuthPrefetchArmed = true;
+  }
+
+  hasRelayerAuthPrefetch(): boolean {
+    return this.relayerAuthPrefetchArmed;
+  }
+
+  clearRelayerAuthPrefetch(): void {
+    this.relayerAuthPrefetchArmed = false;
+  }
+
   async applyDecryptedPayloads(
     plaintexts: string[],
     ids: string[],
@@ -565,7 +582,11 @@ export class CachedRelayerVaultRepository
     const delegations: Record<string, IStoredDelegation> = {};
     const blobIds: Record<string, string> = {};
     const pendingEncrypted: IPendingEncryptedBlob[] = [];
-    let trackedAssetsHydrated = false;
+    let bestTrackedAssets: {
+      id: string;
+      timestamp: number;
+      assets: IVaultTrackedAssetRow[];
+    } | null = null;
 
     // Remote blob id → logical id for plaintext already decrypted locally.
     // Refresh must not re-queue those or wipe the in-memory vault.
@@ -607,11 +628,18 @@ export class CachedRelayerVaultRepository
         continue;
       }
       if (wrapper.type === "trackedAssets") {
-        trackedAssetsHydrated = true;
-        blobIds[TRACKED_ASSETS_LOGICAL_ID] = item.id;
-        await this.trackedAssetSync?.replaceUserAssetsFromVault(
-          wrapper.data.assets,
-        );
+        // Prefer newest when orphans remain from pre-replace syncs.
+        const timestamp = Number(wrapper.timestamp);
+        if (
+          bestTrackedAssets == null ||
+          timestamp >= bestTrackedAssets.timestamp
+        ) {
+          bestTrackedAssets = {
+            id: item.id,
+            timestamp,
+            assets: wrapper.data.assets,
+          };
+        }
       } else if (wrapper.type === "credential") {
         // Unencrypted credentials are not expected; treat as hydrate if present.
         credentials[wrapper.data.credentialId] = wrapper.data;
@@ -620,6 +648,15 @@ export class CachedRelayerVaultRepository
         delegations[wrapper.data.delegationId] = wrapper.data;
         blobIds[wrapper.data.delegationId] = item.id;
       }
+    }
+
+    let trackedAssetsHydrated = false;
+    if (bestTrackedAssets) {
+      trackedAssetsHydrated = true;
+      blobIds[TRACKED_ASSETS_LOGICAL_ID] = bestTrackedAssets.id;
+      await this.trackedAssetSync?.replaceUserAssetsFromVault(
+        bestTrackedAssets.assets,
+      );
     }
 
     await this.writeBlob({
@@ -755,6 +792,9 @@ export class CachedRelayerVaultRepository
     const { ids } = await this.client.storeCredentials({
       ...assertion,
       items: [{ payload: JSON.stringify(wrapper), encrypted: false }],
+      ...(previousBlobId
+        ? { deleteCredentialBlobIds: [previousBlobId] }
+        : {}),
     });
     const id = ids[0];
     if (!id) {
@@ -764,16 +804,6 @@ export class CachedRelayerVaultRepository
     next.blobIds[TRACKED_ASSETS_LOGICAL_ID] = id;
     next.pendingTrackedAssetsUpload = false;
     await this.writeBlob(next);
-    if (previousBlobId && previousBlobId !== id) {
-      try {
-        await this.deleteRelayerBlob(previousBlobId);
-      } catch (error: unknown) {
-        console.warn(
-          "[vault] failed to delete previous trackedAssets blob",
-          error,
-        );
-      }
-    }
   }
 
   private async uploadWrapper(
@@ -859,9 +889,15 @@ export class CachedRelayerVaultRepository
     }
 
     const assertion = toRelayerAssertionRequest(challengeId, assertionFields);
+    const previousBlobIds = items
+      .map((item) => item.previousBlobId)
+      .filter((id): id is string => id != null && id.length > 0);
     const { ids } = await this.client.storeCredentials({
       ...assertion,
       items: storeItems,
+      ...(previousBlobIds.length > 0
+        ? { deleteCredentialBlobIds: previousBlobIds }
+        : {}),
     });
     if (ids.length !== items.length) {
       throw new Error("storeCredentials: blob id count mismatch");
@@ -872,12 +908,6 @@ export class CachedRelayerVaultRepository
       next.blobIds[items[i]!.logicalId] = ids[i]!;
     }
     await this.writeBlob(next);
-
-    for (const item of items) {
-      if (item.previousBlobId) {
-        await this.deleteRelayerBlob(item.previousBlobId);
-      }
-    }
 
     // Silence unused when only encrypted (plaintextItems used for clarity).
     void plaintextItems;

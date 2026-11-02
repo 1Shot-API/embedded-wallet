@@ -2,17 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-import { isSafeHttpsIconUrl } from "../lib/utils/tokenIcons";
-
-
-function isSafeAssetImageSrc(src: string): boolean {
-  return (
-    src.startsWith("/") ||
-    src.startsWith("data:") ||
-    src.startsWith("blob:") ||
-    isSafeHttpsIconUrl(src)
-  );
-}
+import { isSafeAssetIconUrl } from "../lib/utils/tokenIcons";
 
 export interface ISafeAssetImageProps {
   /** Resolved icon URL (bundled or HTTPS). Null/empty/unsafe URLs show {@link fallback}. */
@@ -35,7 +25,7 @@ export function SafeAssetImage({
 }: ISafeAssetImageProps) {
   const [failed, setFailed] = useState(false);
   const trimmed = src?.trim();
-  const canLoad = Boolean(trimmed && isSafeAssetImageSrc(trimmed) && !failed);
+  const canLoad = Boolean(trimmed && isSafeAssetIconUrl(trimmed) && !failed);
 
   useEffect(() => {
     setFailed(false);

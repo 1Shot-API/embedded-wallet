@@ -5,26 +5,26 @@ import { AddAssetModal } from "./modals/AddAssetModal";
 import { AdvancedOptionsModal } from "./modals/AdvancedOptionsModal";
 import { CancelDelegationModal } from "./modals/CancelDelegationModal";
 import { CCTPBridge } from "./modals/CCTPBridge";
+import { ConnectModal } from "./modals/ConnectModal";
 import {
   CredentialOfferModal,
   CredentialPresentationModal,
 } from "./modals/CredentialModals";
+import { EVMConfirmTransferModal } from "./modals/EVMConfirmTransferModal";
+import { EVMSendTransactionModal } from "./modals/EVMSendTransactionModal";
+import { EVMSignModal } from "./modals/EVMSignModal";
+import { EVMSiweModal } from "./modals/EVMSiweModal";
+import { EVMTypedDataModal } from "./modals/EVMTypedDataModal";
 import { ExportPrivateKeyModal } from "./modals/ExportPrivateKeyModal";
 import { GrantPermissionConsentModal } from "./modals/GrantPermissionConsentModal";
 import { ImportPrivateKeyModal } from "./modals/ImportPrivateKeyModal";
 import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
-import {
-  ConnectModal,
-  PasskeyNameModal,
-  WalletSetupModal,
-} from "./modals/SetupModals";
-import {
-  PersonalSignModal,
-  SendTransactionModal,
-  ConfirmTransferModal,
-  SiweModal,
-  TypedDataModal,
-} from "./modals/SignModals";
+import { PasskeyNameModal } from "./modals/PasskeyNameModal";
+import { SolanaBridge } from "./modals/SolanaBridge";
+import { SolanaSignAndSendModal } from "./modals/SolanaSignAndSendModal";
+import { SolanaSignModal } from "./modals/SolanaSignModal";
+import { SolanaSiwsModal } from "./modals/SolanaSiwsModal";
+import { WalletSetupModal } from "./modals/WalletSetupModal";
 import { OnrampView } from "./OnrampView";
 
 export function ModalHost() {
@@ -40,15 +40,24 @@ export function ModalHost() {
       return <ConnectModal onResolve={activeModal.resolve} />;
     case "personalSign":
       return (
-        <PersonalSignModal
+        <EVMSignModal
           request={activeModal.request}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    case "solanaSign":
+      return (
+        <SolanaSignModal
+          address={activeModal.address}
+          messages={activeModal.messages}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
         />
       );
     case "typedData":
       return (
-        <TypedDataModal
+        <EVMTypedDataModal
           request={activeModal.request}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
@@ -56,7 +65,7 @@ export function ModalHost() {
       );
     case "siwe":
       return (
-        <SiweModal
+        <EVMSiweModal
           source={activeModal.source}
           request={activeModal.request}
           fields={activeModal.fields}
@@ -64,9 +73,32 @@ export function ModalHost() {
           onReject={activeModal.reject}
         />
       );
+    case "siws":
+      return (
+        <SolanaSiwsModal
+          fields={activeModal.fields}
+          messageBytes={activeModal.messageBytes}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    case "solanaSignAndSend":
+      return (
+        <SolanaSignAndSendModal
+          mode={activeModal.mode}
+          chainId={activeModal.chainId}
+          address={activeModal.address}
+          summaries={activeModal.summaries}
+          messageBytesList={activeModal.messageBytesList}
+          warnings={activeModal.warnings}
+          submit={activeModal.submit}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
     case "sendTransaction":
       return (
-        <SendTransactionModal
+        <EVMSendTransactionModal
           request={activeModal.request}
           execute={activeModal.execute}
           onResolve={activeModal.resolve}
@@ -75,7 +107,7 @@ export function ModalHost() {
       );
     case "confirmTransfer":
       return (
-        <ConfirmTransferModal
+        <EVMConfirmTransferModal
           request={activeModal.request}
           execute={activeModal.execute}
           onResolve={activeModal.resolve}
@@ -176,6 +208,14 @@ export function ModalHost() {
     case "cctpBridge":
       return (
         <CCTPBridge
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    case "solanaBridge":
+      return (
+        <SolanaBridge
           request={activeModal.request}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}

@@ -1,30 +1,8 @@
 import { ChainUtils } from "@1shotapi/ows-types";
-import {
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  useReactTable,
-  type ColumnDef,
-} from "@tanstack/react-table";
 import { RefreshCwIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 import type { TrackedAsset } from "../../lib/types/domain";
 import { EAssetType } from "../../lib/types/enum/EAssetType";
@@ -34,9 +12,6 @@ import { useWallet } from "../../wallet/WalletProvider";
 import { AssetIcon } from "../AssetIcon";
 import { BalanceDisplay } from "../BalanceDisplay";
 
-
-const PAGE_SIZE = 5;
-
 export function AssetList({
   onView,
 }: {
@@ -44,7 +19,8 @@ export function AssetList({
 }) {
   const { style } = useStyle();
   const { balances: copy } = style.copy;
-  const { listTrackedAssets, requestBalanceRefresh } = useWallet();
+  const { listTrackedAssets, requestBalanceRefresh, resolveChain } =
+    useWallet();
   const trackedAssetCount = useWalletSessionStore(
     (state) => state.trackedAssetCount,
   );
@@ -106,59 +82,8 @@ export function AssetList({
     }
   };
 
-  const columns = useMemo<ColumnDef<TrackedAsset>[]>(
-    () => [
-      {
-        id: "asset",
-        header: copy.assetColumn,
-        cell: ({ row }) => (
-          <div className="flex min-w-0 items-center gap-2">
-            <AssetIcon
-              chainId={row.original.chainId}
-              address={row.original.address}
-              symbol={row.original.symbol}
-              iconUrl={row.original.iconUrl}
-            />
-            <span className="truncate font-medium">{row.original.symbol}</span>
-          </div>
-        ),
-      },
-      {
-        id: "balance",
-        header: copy.balanceColumn,
-        meta: { align: "end" as const },
-        cell: ({ row }) => (
-          <BalanceDisplay
-            trackedAssetId={row.original.id}
-            balance={row.original.balance}
-            decimals={row.original.decimals}
-            fallback={
-              row.original.type !== EAssetType.Erc20 &&
-              row.original.type !== EAssetType.Native
-                ? copy.balanceNonErc20
-                : undefined
-            }
-            className="text-xs tabular-nums"
-          />
-        ),
-      },
-    ],
-    [copy.assetColumn, copy.balanceColumn, copy.balanceNonErc20],
-  );
-
-  const table = useReactTable({
-    data: rows,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getRowId: (row) => row.id,
-    initialState: {
-      pagination: { pageSize: PAGE_SIZE },
-    },
-  });
-
-  const pageCount = table.getPageCount();
-  const pageIndex = table.getState().pagination.pageIndex;
+  const networkLabel =
+    resolveChain(chainId)?.label ?? String(chainId);
 
   return (
     <div className="flex flex-col gap-3">
@@ -193,121 +118,51 @@ export function AssetList({
       ) : rows.length === 0 ? (
         <p className="text-muted-foreground m-0 text-sm">{copy.emptyBody}</p>
       ) : (
-        <>
-          <Table className="table-fixed">
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    const align =
-                      (
-                        header.column.columnDef.meta as
-                          | { align?: "end" }
-                          | undefined
-                      )?.align === "end"
-                        ? "text-right"
-                        : "text-left";
-                    const widthClass =
-                      header.column.id === "asset" ? "w-[60%]" : "w-[40%]";
-                    return (
-                      <TableHead
-                        key={header.id}
-                        className={`h-8 px-2 text-xs ${align} ${widthClass}`}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${copy.viewLabel} ${row.original.symbol}`}
-                  className="cursor-pointer"
-                  onClick={() => onView(row.original)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      onView(row.original);
-                    }
-                  }}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const align =
-                      (
-                        cell.column.columnDef.meta as
-                          | { align?: "end" }
-                          | undefined
-                      )?.align === "end"
-                        ? "text-right"
-                        : "text-left";
-                    return (
-                      <TableCell
-                        key={cell.id}
-                        className={`px-2 py-2 align-middle ${align}`}
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {pageCount > 1 ? (
-            <Pagination className="justify-between">
-              <PaginationContent className="w-full justify-between">
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    className={
-                      !table.getCanPreviousPage()
-                        ? "pointer-events-none opacity-40"
-                        : undefined
-                    }
-                    onClick={(event) => {
-                      event.preventDefault();
-                      table.previousPage();
-                    }}
-                  />
-                </PaginationItem>
-                <PaginationItem>
-                  <span className="text-muted-foreground px-2 text-xs">
-                    {pageIndex + 1} / {pageCount}
-                  </span>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    className={
-                      !table.getCanNextPage()
-                        ? "pointer-events-none opacity-40"
-                        : undefined
-                    }
-                    onClick={(event) => {
-                      event.preventDefault();
-                      table.nextPage();
-                    }}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          ) : null}
-        </>
+        <ul className="m-0 list-none p-0">
+          {rows.map((asset) => (
+            <li key={asset.id}>
+              <button
+                type="button"
+                className="hover:bg-muted/60 flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left transition-colors"
+                aria-label={`${copy.viewLabel} ${asset.symbol}`}
+                onClick={() => onView(asset)}
+              >
+                <AssetIcon
+                  chainId={asset.chainId}
+                  address={asset.address}
+                  symbol={asset.symbol}
+                  iconUrl={asset.iconUrl}
+                  size="md"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="m-0 truncate text-sm font-medium">
+                    {asset.name || asset.symbol}
+                  </p>
+                  <p className="text-muted-foreground m-0 truncate text-xs">
+                    {networkLabel}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="m-0 text-sm font-medium tabular-nums">
+                    <BalanceDisplay
+                      trackedAssetId={asset.id}
+                      balance={asset.balance}
+                      decimals={asset.decimals}
+                      fallback={
+                        asset.type !== EAssetType.Erc20 &&
+                        asset.type !== EAssetType.Native
+                          ? copy.balanceNonErc20
+                          : undefined
+                      }
+                      className="inline text-sm font-medium tabular-nums"
+                    />{" "}
+                    {asset.symbol}
+                  </p>
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

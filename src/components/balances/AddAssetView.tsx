@@ -13,14 +13,13 @@ import { useStyle } from "../../style/StyleProvider";
 import { useWalletSessionStore } from "../../wallet/sessionStore";
 import { useWallet } from "../../wallet/WalletProvider";
 import { Modal } from "../Modal";
-
-
+import { SolanaAddAssetModal } from "../modals/SolanaAddAssetModal";
 
 export interface IAddAssetViewProps {
   onClose: () => void;
 }
 
-/** Full-page add-asset flow (current network). */
+/** Full-page add-asset flow (current network). Solana uses catalog + ATA create. */
 export function AddAssetView({ onClose }: IAddAssetViewProps) {
   const { style } = useStyle();
   const { balances: copy } = style.copy;
@@ -30,6 +29,16 @@ export function AddAssetView({ onClose }: IAddAssetViewProps) {
   const [addressInput, setAddressInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+
+  if (ChainUtils.isSolanaChainId(chainId)) {
+    return (
+      <SolanaAddAssetModal
+        chainId={chainId}
+        onClose={onClose}
+        onAdded={onClose}
+      />
+    );
+  }
 
   const onSubmit = async () => {
     if (!ChainUtils.isEVMChainId(chainId)) {

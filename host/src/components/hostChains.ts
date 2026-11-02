@@ -48,6 +48,24 @@ const HOST_CHAIN_SEED: readonly IHostChainMeta[] = [
     isTestnet: true,
     weight: 75,
   },
+  {
+    value: "solana:mainnet",
+    label: "Solana",
+    usdc: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    tokenSymbol: "USDC",
+    blockExplorerUrl: "https://explorer.solana.com",
+    isTestnet: false,
+    weight: 88,
+  },
+  {
+    value: "solana:devnet",
+    label: "Solana Devnet",
+    usdc: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+    tokenSymbol: "USDC",
+    blockExplorerUrl: "https://explorer.solana.com/?cluster=devnet",
+    isTestnet: true,
+    weight: 88,
+  },
   ARC_MAINNET,
   ARC_TESTNET,
   {
@@ -121,9 +139,30 @@ export const FOCUS_USDT_BASE = {
   label: "Tether (Base)",
 } as const;
 
-/** Default HTTPS icon for addAsset playground demos (Trust Wallet assets). */
-export const DEMO_ADD_ASSET_ICON_URL =
+/** HTTPS icon for USDT addAsset demos (Trust Wallet Ethereum USDT). */
+export const DEMO_USDT_ICON_URL =
   "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png";
+
+/**
+ * HTTPS icon for USDC addAsset demos (bundled Circle USDC from embedded-wallet).
+ * Do not use the Trust Wallet USDT asset path for Solana/EVM USDC.
+ */
+export const DEMO_USDC_ICON_URL =
+  "https://raw.githubusercontent.com/1Shot-API/embedded-wallet/refs/heads/develop/src/assets/images/tokens/CircleUSDC.svg";
+
+/** Mainnet Circle USDC mint — catalog-only (not default-tracked; ATA rent). */
+export const DEMO_SOLANA_USDC_MAINNET = {
+  chainId: "solana:mainnet",
+  assetAddress: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  label: "USDC (Solana)",
+} as const;
+
+/** Devnet Circle USDC mint for playground testing. */
+export const DEMO_SOLANA_USDC_DEVNET = {
+  chainId: "solana:devnet",
+  assetAddress: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+  label: "USDC (Solana Devnet)",
+} as const;
 
 /**
  * Playground session / delegatee for `wallet_requestExecutionPermissions`.
