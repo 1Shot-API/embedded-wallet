@@ -266,17 +266,18 @@ export function useWalletAssets({
       } = useWalletSessionStore.getState();
       try {
         if (id) {
-          const owner =
-            solanaAddress && solanaAddress !== "—" ? solanaAddress : evmAddress;
-          // Prefer Solana owner when the id looks Solana (CAIP chain prefix).
+          // Owner must match the asset family. Preferring Solana whenever a
+          // Solana address exists made EVM id refreshes (AssetDetails / focus)
+          // call balanceOf with a base58 owner → null → "—".
           const useSol =
             id.includes("solana:") &&
-            solanaAddress &&
+            Boolean(solanaAddress) &&
             solanaAddress !== "—";
-          await trackedAssetRepository.getBalances(
-            useSol ? solanaAddress! : owner,
-            { id },
-          );
+          if (useSol) {
+            await trackedAssetRepository.getBalances(solanaAddress!, { id });
+          } else {
+            await trackedAssetRepository.getBalances(evmAddress, { id });
+          }
           return;
         }
         const scope = chainId ?? sessionChainId;
