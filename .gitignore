@@ -156,3 +156,6 @@ oneshot-wallet-*-deploy.pub
 *-deploy
 *-deploy.pub
 Circle Onramp Kit Beta testing.md
+
+# Claude Code personal settings (shared settings live in .claude/settings.json)
+.claude/settings.local.json

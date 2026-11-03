@@ -29,6 +29,10 @@ Fiat onramp: Asset Details **Buy** and host RPC `onramp({ chainId?, amount? })` 
 
 CCTP bridge: Asset Details **Bridge** (native USDC with `useCCTPBridge`) and host RPC `bridge({ amount?, sourceChainId?, destinationChainId? })` open `CCTPBridge`. Source omit → session chain. Burns via `TokenMessengerV2.depositForBurnWithHook` + `cctp-forward` hook through the EIP-7710 relayer (same USDC fee as Send). Destination mint is Circle’s Forwarding Service — no dest-chain signature, no native gas, no BridgeKit.
 
+### Signing Layer CSP
+
+`/signer/` ships a locked-down CSP (`nginx.conf` in prod, `SIGNER_CSP` in `vite.config.ts` for dev; keep them identical). **Never add `frame-ancestors` to it.** Browsers evaluate `frame-ancestors` against the whole ancestor chain, so `'self'` blocks the signer whenever the wallet is embedded on a third-party Host (e.g. coinoperated.finance), which is the primary product. The property we actually want — only a same-origin Branding Layer may drive the signer — is enforced at runtime by `@1shotapi/ows-signer` (`isValidParentMessage`: source must be `window.parent`, must be nested, `event.origin` must equal the signer origin). A foreign page that frames `/signer/` gets an inert iframe.
+
 ### Form validation UX
 
 Primary submit actions (e.g. Send in `TransferTokensModal`) stay **disabled until every required field is valid**. Do not leave the button enabled and only reject on click. Empty fields show no error text; invalid non-empty input shows inline errors; the CTA enables only when the whole form is ready.
@@ -87,13 +91,24 @@ Prefer branded primitives from `@1shotapi/ows-types` when a shared type already 
 
 **Trust brands after construction.** Validate shape (`string` / `number` / `boolean`, regex, etc.) **before** wrapping with a branded constructor (`EVMAccountAddress(...)`, `makeTrackedAssetId(...)`, …). Once a value is branded, compare and pass it as that type — do **not** coerce with `String(...)`, `Number(...)`, or similar for identity checks (`===`) or Map/Set keys. Coercion hides type changes (e.g. id becoming a `number`) and creates runtime bugs that are hard to track down. Brand subtypes of `string`/`number` remain assignable to the underlying primitive where an API truly needs it (display, JSON fields typed as `string`).
 
-## Agent Skills
+## Agent Tooling (Claude Code + Cursor)
 
-Host / Branding integrator skills live in [1Shot-API/skills](https://github.com/1Shot-API/skills) — not in this repo, and not project-installed under `.agents/skills/`. Install globally for local Cursor:
+This repo is set up to work the same in Claude Code and Cursor. Keep it that way:
+
+- **Instructions:** this file (`AGENTS.md`) is the single source of truth. Cursor reads it natively; `CLAUDE.md` just imports it (`@AGENTS.md`). Do not add `.cursorrules`, `.cursor/rules`, or Claude-only guidance elsewhere.
+- **Project skills:** `.claude/skills/<name>/SKILL.md`. Claude Code reads this folder and Cursor also loads it for compatibility, so one copy serves both. Do not duplicate skills into `.cursor/skills/` or `.agents/skills/` (Cursor would load them twice). Current third-party project skill: `react-doctor` (`/doctor` triage workflow).
+- **Hooks:** one script, `.claude/hooks/react-doctor.mjs`, runs React Doctor (`--scope changed`) after every file edit and feeds regressions back to the agent. It is registered twice — `.claude/settings.json` (`PostToolUse`) for Claude Code and `.cursor/hooks.json` (`postToolUse`) for Cursor. Edit the script once; keep both registrations pointing at it.
+- **Claude Code permissions:** shared allow/deny rules in `.claude/settings.json` (e.g. `.env*`, deploy keys, and local certs are deny-listed). Personal overrides go in `.claude/settings.local.json` (gitignored).
+
+### First-party 1Shot skills
+
+Host / Branding integrator skills live in [1Shot-API/skills](https://github.com/1Shot-API/skills) — not in this repo, and not project-installed under `.claude/skills/`. Install them at user level:
 
 ```bash
 npm run skills:install
-# 1shot-wallet + ows-branding-layer + public-relayer → ~/.cursor/skills
+# 1shot-wallet + ows-branding-layer + public-relayer → ~/.claude/skills
 ```
+
+`~/.claude/skills` is read by both Claude Code and Cursor. (If you previously installed these into `~/.cursor/skills`, remove those copies to avoid duplicates in Cursor.)
 
 When you change Host RPC (`configure`, `focusWallet`, `onramp`, `bridge`, …), EIP-1193 surface, or other integrator-facing behavior, update **`1shot-wallet`** in `1Shot-API/skills` in the same effort. When Branding Layer conventions change in ways that affect custom branding apps, also update **`ows-branding-layer`**.

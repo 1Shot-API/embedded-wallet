@@ -28,6 +28,7 @@ export default typescript.config(
       "extension/**",
       "**/signer/**",
       ".cursor/**",
+      ".claude/skills/**",
       // Loader stub embeds a regex in a data: URL string — escape noise only.
       "test/hooks/svgImportStub.mjs",
     ],
