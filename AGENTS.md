@@ -29,6 +29,10 @@ Fiat onramp: Asset Details **Buy** and host RPC `onramp({ chainId?, amount? })` 
 
 CCTP bridge: Asset Details **Bridge** (native USDC with `useCCTPBridge`) and host RPC `bridge({ amount?, sourceChainId?, destinationChainId? })` open `CCTPBridge`. Source omit → session chain. Burns via `TokenMessengerV2.depositForBurnWithHook` + `cctp-forward` hook through the EIP-7710 relayer (same USDC fee as Send). Destination mint is Circle’s Forwarding Service — no dest-chain signature, no native gas, no BridgeKit.
 
+### Signing Layer CSP
+
+`/signer/` ships a locked-down CSP (`nginx.conf` in prod, `SIGNER_CSP` in `vite.config.ts` for dev; keep them identical). **Never add `frame-ancestors` to it.** Browsers evaluate `frame-ancestors` against the whole ancestor chain, so `'self'` blocks the signer whenever the wallet is embedded on a third-party Host (e.g. coinoperated.finance), which is the primary product. The property we actually want — only a same-origin Branding Layer may drive the signer — is enforced at runtime by `@1shotapi/ows-signer` (`isValidParentMessage`: source must be `window.parent`, must be nested, `event.origin` must equal the signer origin). A foreign page that frames `/signer/` gets an inert iframe.
+
 ### Form validation UX
 
 Primary submit actions (e.g. Send in `TransferTokensModal`) stay **disabled until every required field is valid**. Do not leave the button enabled and only reject on click. Empty fields show no error text; invalid non-empty input shows inline errors; the CTA enables only when the whole form is ready.

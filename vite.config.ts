@@ -82,9 +82,18 @@ const MIME: Record<string, string> = {
   ".woff2": "font/woff2",
 };
 
-/** Canonical Signing Layer CSP — Branding and Signing same origin only. */
+/**
+ * Canonical Signing Layer CSP (keep in sync with nginx.conf).
+ *
+ * `frame-ancestors` is deliberately omitted: CSP checks it against every
+ * ancestor, so `'self'` would block the supported Host → Branding → Signer
+ * chain whenever the wallet is embedded on a third-party site. The signer
+ * enforces "same-origin Branding parent only" at runtime (ows-signer rpc.js
+ * `isValidParentMessage`), which is what actually keeps foreign Branding
+ * Layers from driving it.
+ */
 const SIGNER_CSP =
-  "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; child-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; upgrade-insecure-requests";
+  "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; child-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests";
 
 function contentType(filePath: string): string {
   return MIME[path.extname(filePath)] ?? "application/octet-stream";
