@@ -140,11 +140,11 @@ transaction status update webhooks to that URL.
 
 ### Agent skill
 
-Integrators / coding agents (global Cursor install):
+Integrators / coding agents (user-level install; `~/.claude/skills` is read by both Claude Code and Cursor):
 
 ```bash
 npm run skills:install
-# or: npx skills add 1Shot-API/skills/1shot-wallet -g -a cursor -y
+# or: npx skills add 1Shot-API/skills/1shot-wallet -g -a claude-code -y
 ```
 
 Source: [1Shot-API/skills/1shot-wallet](https://github.com/1Shot-API/skills/tree/main/1shot-wallet).
