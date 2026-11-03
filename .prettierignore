@@ -7,3 +7,4 @@ coverage
 host/dist
 extension/dist
 package-lock.json
+.claude/skills

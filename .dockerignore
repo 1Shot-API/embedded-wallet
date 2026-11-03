@@ -2,7 +2,8 @@ node_modules
 dist
 .env
 .git
-.agents
+.claude
+.cursor
 *.md
 .DS_Store
 .dockerignore
