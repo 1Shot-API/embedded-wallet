@@ -237,6 +237,8 @@ export class BridgeService implements IBridgeService {
         ? { paymentChainId: payment.paymentChainId }
         : {}),
       relayerUrl: source.relayerUrl,
+      // Bridge modal stays open through Iris mint polling after the burn.
+      retainDisplayDuringSubmit: true,
     });
 
     const burnTxHash = EVMTransactionHash(
