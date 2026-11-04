@@ -229,6 +229,7 @@ const bridgeService: IBridgeService = new BridgeService(
   businessTransactionUtils,
   cctpUtils,
   blockchainProvider,
+  solanaRpc,
 );
 
 const solanaBridgeService: ISolanaBridgeService = new SolanaBridgeService(

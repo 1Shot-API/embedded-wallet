@@ -1,11 +1,13 @@
 import {
   ChainUtils,
+  ConversionUtils,
   EVMAccountAddress,
   HexString,
   UriString,
   type EVMAccountAddress as EVMAccountAddressType,
   type HexString as HexStringType,
   type OWSChainId,
+  type SolanaAccountAddress,
 } from "@1shotapi/ows-types";
 import {
   AccountRole,
@@ -18,10 +20,12 @@ import {
 } from "@solana/kit";
 import { TOKEN_PROGRAM_ADDRESS } from "@solana-program/token";
 import {
+  concatHex,
   encodeFunctionData,
   erc20Abi,
   padHex,
   stringToHex,
+  toHex,
   type Hex,
 } from "viem";
 
@@ -277,6 +281,7 @@ export class CCTPUtils implements ICCTPUtils {
   encodeDepositForBurnWithHook(
     params: IEncodeDepositForBurnWithHookParams,
   ): HexStringType {
+    const hookData = (params.hookData ?? FORWARD_HOOK_DATA) as Hex;
     return HexString(
       encodeFunctionData({
         abi: tokenMessengerV2Abi,
@@ -289,9 +294,30 @@ export class CCTPUtils implements ICCTPUtils {
           padHex("0x", { size: 32 }),
           params.maxFee,
           params.minFinalityThreshold,
-          FORWARD_HOOK_DATA,
+          hookData,
         ],
       }) as Hex,
+    );
+  }
+
+  /**
+   * Circle Forwarding v0 hook with Solana ATA creation (33-byte Circle payload).
+   * @see https://developers.circle.com/cctp/concepts/forwarding-service
+   */
+  encodeSolanaAtaSetupForwardHook(
+    recipientOwner: SolanaAccountAddress,
+  ): HexStringType {
+    const ownerBytes32 = ConversionUtils.solanaAccountToBytes32(
+      recipientOwner,
+    );
+    return HexString(
+      concatHex([
+        stringToHex("cctp-forward", { size: 24 }),
+        toHex(0, { size: 4 }),
+        toHex(33, { size: 4 }),
+        toHex(1, { size: 1 }),
+        ownerBytes32 as Hex,
+      ]),
     );
   }
 

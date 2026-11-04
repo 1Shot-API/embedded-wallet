@@ -10,7 +10,7 @@ import {
   type SolanaMintAddress,
 } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
-import { erc20Abi, type Address } from "viem";
+import { erc20Abi, getAddress, type Address } from "viem";
 
 import type { AssetOwnerAddress } from "../../interfaces/data/IKnownAssetRepository";
 import type { ISolanaRpc } from "../../interfaces/data/ISolanaRpc";
@@ -377,10 +377,11 @@ export class LocalStorageTrackedAssetRepository
       if (!ChainUtils.isEVMChainId(asset.chainId)) return null;
       const client = this.blockchain.getPublicClient(asset.chainId);
       return await client.readContract({
-        address: asset.address as Address,
+        // Catalog rows may carry wrong EIP-55 casing; normalize before viem.
+        address: getAddress(asset.address),
         abi: erc20Abi,
         functionName: "balanceOf",
-        args: [owner as Address],
+        args: [getAddress(owner)],
       });
     } catch (error: unknown) {
       console.warn("[balances] balanceOf failed", error);
