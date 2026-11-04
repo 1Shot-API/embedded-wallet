@@ -239,6 +239,9 @@ export class BridgeService implements IBridgeService {
       relayerUrl: source.relayerUrl,
       // Bridge modal stays open through Iris mint polling after the burn.
       retainDisplayDuringSubmit: true,
+      // Cache RelayerAuth from the burn ceremony so post-burn tracked-asset
+      // sync (unencrypted) does not need a second passkey.
+      prefetchRelayerVaultAssertion: true,
     });
 
     const burnTxHash = EVMTransactionHash(
