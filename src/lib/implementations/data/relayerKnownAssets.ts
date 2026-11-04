@@ -166,7 +166,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   {
     chainId: EChain.Bsc,
     address: EVMContractAddress(
-      "0x8AC76a51cc950d9822D68b83fe1Ad97B32Cd580d",
+      "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
     ),
     symbol: "USDC",
     name: "USD Coin",
@@ -312,7 +312,7 @@ const SEED_ROWS: readonly ISeedRow[] = [
   {
     chainId: EChain.Celo,
     address: EVMContractAddress(
-      "0xcebA9300f2b948710d2653dd7b07f33A8B32118C",
+      "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
     ),
     symbol: "USDC",
     name: "USD Coin",

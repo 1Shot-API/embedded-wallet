@@ -126,8 +126,13 @@ export class CircleRepository implements ICircleRepository {
     irisBaseUrl: string,
     sourceDomain: ECircleDomainId,
     destDomain: ECircleDomainId,
+    options?: { includeRecipientSetup?: boolean },
   ): Promise<IIrisForwardingFee[]> {
-    const url = `${trimSlash(irisBaseUrl)}/v2/burn/USDC/fees/${sourceDomain}/${destDomain}?forward=true`;
+    const params = new URLSearchParams({ forward: "true" });
+    if (options?.includeRecipientSetup) {
+      params.set("includeRecipientSetup", "true");
+    }
+    const url = `${trimSlash(irisBaseUrl)}/v2/burn/USDC/fees/${sourceDomain}/${destDomain}?${params}`;
     const json = await getJson<unknown>(url);
     const rows = Array.isArray(json) ? json : [];
     const fees: IIrisForwardingFee[] = [];

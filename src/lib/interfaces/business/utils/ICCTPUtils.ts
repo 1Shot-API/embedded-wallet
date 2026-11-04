@@ -57,6 +57,12 @@ export interface IEncodeDepositForBurnWithHookParams {
   burnToken: EVMContractAddress;
   maxFee: bigint;
   minFinalityThreshold: number;
+  /**
+   * Circle Forwarding hook bytes. Defaults to static `cctp-forward` v0.
+   * Solana dest without an existing USDC ATA must pass
+   * {@link ICCTPUtils.encodeSolanaAtaSetupForwardHook}.
+   */
+  hookData?: HexString;
 }
 
 export interface IBuildCctpRelayerWorkParams {
@@ -132,6 +138,14 @@ export interface ICCTPUtils {
 
   encodeDepositForBurnWithHook(
     params: IEncodeDepositForBurnWithHookParams,
+  ): HexString;
+
+  /**
+   * Circle Forwarding hook that also creates the Solana USDC ATA.
+   * Pair with Iris `includeRecipientSetup=true` fee quotes.
+   */
+  encodeSolanaAtaSetupForwardHook(
+    recipientOwner: SolanaAccountAddress,
   ): HexString;
 
   /** Build Solana CCTP V2 `deposit_for_burn_with_hook` (Forwarding Service). */

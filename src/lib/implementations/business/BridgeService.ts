@@ -4,11 +4,15 @@ import {
   EVMTransactionHash,
   SolanaAddressUtils,
   type EVMContractAddress,
+  type HexString,
   type TransactionHash,
   type UriString,
   type EVMAccountAddress,
   type EVMChainId,
   type OWSChainId,
+  type SolanaAccountAddress,
+  type SolanaATAAddress,
+  type SolanaChainId,
   type SolanaMintAddress,
 } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
@@ -32,6 +36,7 @@ import type {
   ICircleRepository,
 } from "../../interfaces/data/ICircleRepository";
 import type { IKnownAssetRepository } from "../../interfaces/data/IKnownAssetRepository";
+import type { ISolanaRpc } from "../../interfaces/data/ISolanaRpc";
 import type { ECircleDomainId } from "../../types/enum/ECircleDomainId";
 
 const POLL_MS = 3000;
@@ -49,6 +54,7 @@ export class BridgeService implements IBridgeService {
     protected readonly transactionUtils: ITransactionUtils,
     protected readonly cctpUtils: ICCTPUtils,
     protected readonly blockchain: IBlockchainProvider,
+    protected readonly solanaRpc: ISolanaRpc,
   ) {}
 
   async listDestinations(sourceChainId: EVMChainId) {
@@ -67,6 +73,7 @@ export class BridgeService implements IBridgeService {
     }
 
     let mintRecipientBytes32 = params.mintRecipientBytes32;
+    let solanaHookData: HexString | undefined;
     if (!mintRecipientBytes32) {
       if (this.cctpUtils.isSolanaRoute(params.destChainId)) {
         if (!params.solanaRecipient) {
@@ -86,6 +93,11 @@ export class BridgeService implements IBridgeService {
           destUsdc.address as SolanaMintAddress,
         );
         mintRecipientBytes32 = ConversionUtils.solanaAccountToBytes32(ata);
+        solanaHookData = await this.resolveSolanaAtaSetupHook(
+          params.destChainId,
+          params.solanaRecipient,
+          ata,
+        );
       } else {
         mintRecipientBytes32 = ConversionUtils.addressToBytes32Hex(
           params.owner,
@@ -99,6 +111,7 @@ export class BridgeService implements IBridgeService {
       destRoute.domain,
       params.speed,
       params.amountAtoms,
+      Boolean(solanaHookData),
     );
     const contracts = this.cctpUtils.getContracts(
       sourceRoute.domain,
@@ -117,6 +130,7 @@ export class BridgeService implements IBridgeService {
       burnToken: usdcAddress,
       maxFee: fees.maxFee,
       minFinalityThreshold: fees.minFinalityThreshold,
+      ...(solanaHookData ? { hookData: solanaHookData } : {}),
     });
     const approveData = this.cctpUtils.encodeUsdcApprove(
       contracts.tokenMessengerV2,
@@ -170,12 +184,17 @@ export class BridgeService implements IBridgeService {
       await this.requireRoute(quote.sourceChainId, quote.destChainId);
     const usdcAddress = sourceUsdc.address as EVMContractAddress;
 
+    const solanaHookData = await this.resolveSolanaAtaSetupHook(
+      quote.destChainId,
+      quote.solanaRecipient,
+    );
     const fees = await this.fetchBurnFees(
       sourceRoute.irisBaseUrl,
       sourceRoute.domain,
       destRoute.domain,
       quote.speed,
       quote.amountAtoms,
+      Boolean(solanaHookData),
     );
     const contracts = this.cctpUtils.getContracts(
       sourceRoute.domain,
@@ -194,6 +213,7 @@ export class BridgeService implements IBridgeService {
       burnToken: usdcAddress,
       maxFee: fees.maxFee,
       minFinalityThreshold: fees.minFinalityThreshold,
+      ...(solanaHookData ? { hookData: solanaHookData } : {}),
     });
     const approveData = this.cctpUtils.encodeUsdcApprove(
       contracts.tokenMessengerV2,
@@ -217,6 +237,8 @@ export class BridgeService implements IBridgeService {
         ? { paymentChainId: payment.paymentChainId }
         : {}),
       relayerUrl: source.relayerUrl,
+      // Bridge modal stays open through Iris mint polling after the burn.
+      retainDisplayDuringSubmit: true,
     });
 
     const burnTxHash = EVMTransactionHash(
@@ -278,11 +300,13 @@ export class BridgeService implements IBridgeService {
     destDomain: ECircleDomainId,
     speed: ICctpQuoteParams["speed"],
     amountAtoms: bigint,
+    includeRecipientSetup = false,
   ) {
     const rows = await this.circleRepository.getForwardingFees(
       irisBaseUrl,
       sourceDomain,
       destDomain,
+      includeRecipientSetup ? { includeRecipientSetup: true } : undefined,
     );
     const minFinalityThreshold = this.cctpUtils.finalityThresholdForSpeed(speed);
     const row = this.cctpUtils.pickFeeForThreshold(rows, minFinalityThreshold);
@@ -290,6 +314,49 @@ export class BridgeService implements IBridgeService {
       minFinalityThreshold,
       ...this.cctpUtils.computeBurnFees(amountAtoms, row),
     };
+  }
+
+  /**
+   * Solana Forwarding fails (no mint / forever-pending) when the USDC ATA is
+   * missing unless Iris fees and hook data request recipient ATA setup.
+   */
+  private async resolveSolanaAtaSetupHook(
+    destChainId: OWSChainId,
+    solanaRecipient: SolanaAccountAddress | undefined,
+    knownAta?: SolanaATAAddress,
+  ): Promise<HexString | undefined> {
+    if (!this.cctpUtils.isSolanaRoute(destChainId) || !solanaRecipient) {
+      return undefined;
+    }
+    const solChainId = ChainUtils.asSolanaChainId(destChainId);
+    const destUsdc =
+      await this.knownAssetRepository.getCctpBridgeAsset(solChainId);
+    if (!destUsdc) {
+      throw new Error("No CCTP USDC catalog entry on Solana destination");
+    }
+    const ata =
+      knownAta ??
+      (await deriveUsdcAta(
+        solanaRecipient,
+        destUsdc.address as SolanaMintAddress,
+      ));
+    const needsSetup = await this.needsSolanaAtaSetup(solChainId, ata);
+    if (!needsSetup) {
+      return undefined;
+    }
+    return this.cctpUtils.encodeSolanaAtaSetupForwardHook(solanaRecipient);
+  }
+
+  private async needsSolanaAtaSetup(
+    chainId: SolanaChainId,
+    ata: SolanaATAAddress,
+  ): Promise<boolean> {
+    try {
+      return !(await this.solanaRpc.accountExists(chainId, ata));
+    } catch {
+      // Fail closed — quote/setup for ATA creation rather than a stuck burn.
+      return true;
+    }
   }
 
   private async readAllowance(

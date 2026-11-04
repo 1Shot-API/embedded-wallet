@@ -7,6 +7,7 @@ import {
   type EVMTransactionHash,
   type OWSChainId,
   type SolanaAccountAddress,
+  type SolanaMintAddress,
   type TransactionHash,
 } from "@1shotapi/ows-types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -114,6 +115,7 @@ export function CCTPBridge({
     blockchainProvider,
     resolveChain,
     requestBalanceRefresh,
+    addSolanaTrackedAsset,
     switchChain,
     eventBus,
     configProvider,
@@ -200,6 +202,53 @@ export function CCTPBridge({
     }
     return ChainUtils.asEVMChainId(resolvedDestChainId);
   }, [resolvedDestChainId]);
+
+  /**
+   * After EVM → Solana mint, track dest USDC (ATA already exists via Forwarding)
+   * so Balances shows it without a manual Add Asset.
+   */
+  const ensureDestSolanaUsdcTracked = useCallback(async () => {
+    if (
+      !resolvedDestChainId ||
+      !ChainUtils.isSolanaChainId(resolvedDestChainId)
+    ) {
+      return;
+    }
+    if (!sessionSolana || sessionSolana === "—") return;
+    let recipient: SolanaAccountAddress;
+    try {
+      recipient = SolanaAddressUtils.asAccountAddress(solanaRecipient.trim());
+    } catch {
+      return;
+    }
+    if (String(recipient) !== String(sessionSolana)) return;
+
+    const destSol = ChainUtils.asSolanaChainId(resolvedDestChainId);
+    const destUsdc = await knownAssetRepository.getCctpBridgeAsset(destSol);
+    if (!destUsdc) return;
+    try {
+      await addSolanaTrackedAsset(
+        destSol,
+        destUsdc.address as SolanaMintAddress,
+      );
+      void requestBalanceRefresh(
+        makeTrackedAssetId(destSol, destUsdc.address),
+        destSol,
+      );
+    } catch (err: unknown) {
+      console.warn(
+        "[cctp-bridge] failed to track Solana USDC after mint",
+        err,
+      );
+    }
+  }, [
+    addSolanaTrackedAsset,
+    knownAssetRepository,
+    requestBalanceRefresh,
+    resolvedDestChainId,
+    sessionSolana,
+    solanaRecipient,
+  ]);
 
   const durationMs = () => Date.now() - openedAtRef.current;
 
@@ -354,6 +403,7 @@ export function CCTPBridge({
         setPhase("success");
         // Scope to the bridge source chain — session may be on Bitcoin/etc.
         void requestBalanceRefresh(undefined, request.sourceChainId);
+        void ensureDestSolanaUsdcTracked();
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -363,7 +413,13 @@ export function CCTPBridge({
     return () => {
       cancelled = true;
     };
-  }, [bridgeService, copy.timeoutError, request, requestBalanceRefresh]);
+  }, [
+    bridgeService,
+    copy.timeoutError,
+    ensureDestSolanaUsdcTracked,
+    request,
+    requestBalanceRefresh,
+  ]);
 
   const fetchQuote = useCallback(
     async (opts: {
@@ -547,6 +603,7 @@ export function CCTPBridge({
           : undefined,
         request.sourceChainId,
       );
+      void ensureDestSolanaUsdcTracked();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : copy.timeoutError);
       setPhase("timeout");
@@ -584,6 +641,7 @@ export function CCTPBridge({
             : undefined,
           request.sourceChainId,
         );
+        void ensureDestSolanaUsdcTracked();
         return;
       }
       const stored = await bridgeService.resume(request.ownerAddress);
