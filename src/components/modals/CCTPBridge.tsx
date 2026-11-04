@@ -125,6 +125,8 @@ export function CCTPBridge({
   const openedAtRef = useRef(Date.now());
   const settledRef = useRef(false);
   const autoQuoteStartedRef = useRef(false);
+  /** Track dest Solana USDC once per open — right after burn, while RelayerAuth is fresh. */
+  const destTrackedRef = useRef(false);
   /** Stable promise so settle/open analytics can await hostDomain even if settle races the first getConfig. */
   const [hostDomainPromise] = useState(() =>
     configProvider.getConfig().then(({ hostDomain }) => hostDomain),
@@ -204,10 +206,12 @@ export function CCTPBridge({
   }, [resolvedDestChainId]);
 
   /**
-   * After EVM → Solana mint, track dest USDC (ATA already exists via Forwarding)
-   * so Balances shows it without a manual Add Asset.
+   * EVM → Solana: track dest USDC as soon as the burn lands (while RelayerAuth
+   * from the burn ceremony is still cached; Iris challenge TTL is ~5m). Skip
+   * when already tracked. Balance refresh still runs on mint success.
    */
   const ensureDestSolanaUsdcTracked = useCallback(async () => {
+    if (destTrackedRef.current) return;
     if (
       !resolvedDestChainId ||
       !ChainUtils.isSolanaChainId(resolvedDestChainId)
@@ -223,28 +227,26 @@ export function CCTPBridge({
     }
     if (String(recipient) !== String(sessionSolana)) return;
 
+    destTrackedRef.current = true;
     const destSol = ChainUtils.asSolanaChainId(resolvedDestChainId);
     const destUsdc = await knownAssetRepository.getCctpBridgeAsset(destSol);
     if (!destUsdc) return;
     try {
-      await addSolanaTrackedAsset(
-        destSol,
-        destUsdc.address as SolanaMintAddress,
-      );
-      void requestBalanceRefresh(
-        makeTrackedAssetId(destSol, destUsdc.address),
-        destSol,
-      );
+      // ATA may not exist until Circle mints — derive + track only (no CreateAta).
+      // RelayerAuth comes from the burn ceremony prefetch.
+      await addSolanaTrackedAsset(destSol, destUsdc.address as SolanaMintAddress, {
+        createAtaIfMissing: false,
+      });
     } catch (err: unknown) {
+      destTrackedRef.current = false;
       console.warn(
-        "[cctp-bridge] failed to track Solana USDC after mint",
+        "[cctp-bridge] failed to track Solana USDC after burn",
         err,
       );
     }
   }, [
     addSolanaTrackedAsset,
     knownAssetRepository,
-    requestBalanceRefresh,
     resolvedDestChainId,
     sessionSolana,
     solanaRecipient,
@@ -389,6 +391,9 @@ export function CCTPBridge({
     if (!request.resume) return;
     let cancelled = false;
     setPhase("polling");
+    // Resume has no fresh RelayerAuth; only tracks if not already present
+    // (addSolanaTrackedAsset no-ops when ATA is already tracked).
+    void ensureDestSolanaUsdcTracked();
     void bridgeService
       .pollUntilForwarded(request.resume, (progress) => {
         if (cancelled) return;
@@ -403,7 +408,6 @@ export function CCTPBridge({
         setPhase("success");
         // Scope to the bridge source chain — session may be on Bitcoin/etc.
         void requestBalanceRefresh(undefined, request.sourceChainId);
-        void ensureDestSolanaUsdcTracked();
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -603,7 +607,6 @@ export function CCTPBridge({
           : undefined,
         request.sourceChainId,
       );
-      void ensureDestSolanaUsdcTracked();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : copy.timeoutError);
       setPhase("timeout");
@@ -626,6 +629,10 @@ export function CCTPBridge({
         (progress) => {
           setBurnTxHash(progress.burnTxHash);
           setPhase("polling");
+          // First burn progress: sync dest USDC while RelayerAuth is fresh.
+          if (progress.burnTxHash && !progress.forwardTxHash) {
+            void ensureDestSolanaUsdcTracked();
+          }
           if (progress.forwardTxHash) {
             setForwardTxHash(progress.forwardTxHash);
           }
@@ -641,7 +648,6 @@ export function CCTPBridge({
             : undefined,
           request.sourceChainId,
         );
-        void ensureDestSolanaUsdcTracked();
         return;
       }
       const stored = await bridgeService.resume(request.ownerAddress);

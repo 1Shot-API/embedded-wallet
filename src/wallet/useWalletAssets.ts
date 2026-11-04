@@ -141,36 +141,67 @@ export function useWalletAssets({
    * Catalog Solana mint → ensure ATA (user pays rent) → track with ATA fields.
    * Prefetches RelayerAuth during the create-ATA sign so tracked-assets sync
    * reuses the cached assertion (tracked assets are unencrypted).
+   * No-ops (no passkey) when the mint is already tracked with an ATA.
+   *
+   * Pass `createAtaIfMissing: false` when Circle Forwarding (or another party)
+   * creates the ATA — derive + track only; uses a cached RelayerAuth assertion
+   * when present (e.g. CCTP burn prefetch).
    */
   const addSolanaTrackedAsset = useCallback(
-    async (chainId: SolanaChainId, mint: SolanaMintAddress) => {
+    async (
+      chainId: SolanaChainId,
+      mint: SolanaMintAddress,
+      options?: { createAtaIfMissing?: boolean },
+    ) => {
+      const createAtaIfMissing = options?.createAtaIfMissing !== false;
       const solOwner = useWalletSessionStore.getState().solanaAddress;
       if (!solOwner || solOwner === "—") {
         throw new Error("Solana address not available");
+      }
+      const listed = await trackedAssetRepository.list(chainId);
+      const existing = listed.find(
+        (asset) => asset.address === mint,
+      );
+      if (existing?.ataAddress) {
+        return existing;
       }
       const resolved = await knownAssetRepository.resolveForTracking(
         chainId,
         mint,
         solOwner,
       );
-      credentialRepository.armRelayerAuthPrefetch();
-      let ataResult;
-      try {
-        ataResult = await solanaService.ensureAta({
-          chainId,
-          owner: solOwner,
-          mint,
-        });
-        if (!ataResult.created) {
-          // No sign ceremony — drop unused arm; sync will assert if needed.
+
+      let ataAddress;
+      if (createAtaIfMissing) {
+        credentialRepository.armRelayerAuthPrefetch();
+        try {
+          const ataResult = await solanaService.ensureAta({
+            chainId,
+            owner: solOwner,
+            mint,
+          });
+          if (!ataResult.created) {
+            // No Solana sign — keep any RelayerAuth assertion cached by a prior
+            // ceremony (e.g. CCTP burn prefetch) for the tracked-assets sync.
+            credentialRepository.clearRelayerAuthPrefetch();
+          }
+          ataAddress = ataResult.ataAddress;
+        } catch (error: unknown) {
           credentialRepository.clearRelayerAuthPrefetch();
+          throw error;
         }
-      } catch (error: unknown) {
-        credentialRepository.clearRelayerAuthPrefetch();
-        throw error;
+      } else {
+        // Derive only — do not CreateIdempotent (no second Solana passkey).
+        const derived = await solanaService.recipientAtaExists(
+          chainId,
+          solOwner,
+          mint,
+        );
+        ataAddress = derived.ataAddress;
       }
+
       const tracked = await trackedAssetRepository.add(
-        resolved.withAta(ataResult.ataAddress, true),
+        resolved.withAta(ataAddress, true),
         solOwner,
       );
       await refreshTrackedAssetCount();
