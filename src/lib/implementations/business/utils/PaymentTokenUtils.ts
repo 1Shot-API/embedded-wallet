@@ -77,7 +77,7 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
       return toRelayerPayment(first.row, first.selected);
     }
 
-    // 3. Arc fallback (even when not in execution set).
+    // 3. Arc USDC when it is funded and on the same relayer.
     if (arc) {
       const usdc = arc.tokens.find(
         (t) => t.symbol.toUpperCase() === "USDC" && hasSeedBalance(t),
@@ -87,7 +87,7 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
       if (any) return toRelayerPayment(arc, any);
     }
 
-    // 4. Other wallet relayer chains.
+    // 4. Other chains on the same relayer.
     for (const row of others) {
       const selected = pickPaymentToken(row.tokens);
       if (selected) return toRelayerPayment(row, selected);
@@ -139,10 +139,24 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
       )
     ).filter((row): row is ChainPaymentOptions => row !== null);
 
+    // Cross-chain fees are one multichain call to a single relayer host.
+    // Payment chains must share that host with the work (mainnet and testnet
+    // are different deployments).
+    const allowedRelayerUrl =
+      await this.sharedExecutionRelayerUrl(executionChainIds);
+
     const executionSet = new Set(executionChainIds);
-    const arc = executionSet.has(DEFAULT_CHAIN_ID)
-      ? (execution.find((r) => r.chainId === DEFAULT_CHAIN_ID) ?? null)
-      : await this.loadChainOptions(owner, DEFAULT_CHAIN_ID);
+    let arc: ChainPaymentOptions | null = null;
+    if (allowedRelayerUrl !== null) {
+      if (executionSet.has(DEFAULT_CHAIN_ID)) {
+        arc = execution.find((r) => r.chainId === DEFAULT_CHAIN_ID) ?? null;
+      } else {
+        const arcChain = await this.chainRepository.get(DEFAULT_CHAIN_ID);
+        if (arcChain?.relayerUrl === allowedRelayerUrl) {
+          arc = await this.loadChainOptions(owner, DEFAULT_CHAIN_ID);
+        }
+      }
+    }
 
     const catalog = await this.chainRepository.list();
     const considered = new Set<EVMChainId>([
@@ -150,17 +164,41 @@ export class PaymentTokenUtils implements IPaymentTokenUtils {
       DEFAULT_CHAIN_ID,
     ]);
     const otherIds: EVMChainId[] = [];
-    for (const c of catalog) {
-      if (!c.useRelayer) continue;
-      if (!ChainUtils.isEVMChainId(c.chainId)) continue;
-      if (considered.has(c.chainId)) continue;
-      otherIds.push(c.chainId);
+    if (allowedRelayerUrl !== null) {
+      for (const c of catalog) {
+        if (!c.useRelayer) continue;
+        if (!ChainUtils.isEVMChainId(c.chainId)) continue;
+        if (c.relayerUrl !== allowedRelayerUrl) continue;
+        if (considered.has(c.chainId)) continue;
+        otherIds.push(c.chainId);
+      }
     }
     const others = (
       await Promise.all(otherIds.map((id) => this.loadChainOptions(owner, id)))
     ).filter((row): row is ChainPaymentOptions => row !== null);
 
     return { execution, arc, others };
+  }
+
+  /**
+   * Relayer deployment that can submit this work. Every execution chain must
+   * share one `relayerUrl`. Null when they disagree or a chain is missing.
+   */
+  private async sharedExecutionRelayerUrl(
+    executionChainIds: readonly EVMChainId[],
+  ): Promise<string | null> {
+    if (executionChainIds.length === 0) return null;
+    const chains = await Promise.all(
+      executionChainIds.map((id) => this.chainRepository.get(id)),
+    );
+    const urls = new Set<string>();
+    for (const chain of chains) {
+      if (!chain) return null;
+      urls.add(chain.relayerUrl);
+    }
+    if (urls.size !== 1) return null;
+    const [url] = urls;
+    return url ?? null;
   }
 
   private async loadChainOptions(
