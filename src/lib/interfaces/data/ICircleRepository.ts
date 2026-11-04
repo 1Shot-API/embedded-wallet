@@ -45,6 +45,7 @@ export interface ICircleRepository {
     irisBaseUrl: UriString,
     sourceDomain: ECircleDomainId,
     destDomain: ECircleDomainId,
+    options?: { includeRecipientSetup?: boolean },
   ): Promise<IIrisForwardingFee[]>;
 
   getMessageByBurnTx(

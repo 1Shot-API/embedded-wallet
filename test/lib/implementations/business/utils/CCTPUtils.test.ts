@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { EVMAccountAddress, type EVMChainId } from "@1shotapi/ows-types";
+import {
+  ConversionUtils,
+  EVMAccountAddress,
+  SolanaAccountAddress,
+  type EVMChainId,
+} from "@1shotapi/ows-types";
 import { decodeFunctionData, erc20Abi, pad, padHex } from "viem";
 
 import {
@@ -115,10 +120,11 @@ describe("CCTPUtils", () => {
 
   describe("encoding", () => {
     it("encodes depositForBurnWithHook with padded recipient and cctp-forward hook", () => {
+      const mintRecipientBytes32 = pad(owner, { size: 32 });
       const data = cctp.encodeDepositForBurnWithHook({
         totalBurn: 10_008_000n,
         destDomain: ECircleDomainId.Arc,
-        mintRecipient: owner,
+        mintRecipientBytes32,
         burnToken: usdc,
         maxFee: 8000n,
         minFinalityThreshold: 1000,
@@ -131,7 +137,7 @@ describe("CCTPUtils", () => {
       assert.deepEqual(decoded.args, [
         10_008_000n,
         ECircleDomainId.Arc,
-        pad(owner, { size: 32 }),
+        mintRecipientBytes32,
         usdc,
         padHex("0x", { size: 32 }),
         8000n,
@@ -144,12 +150,51 @@ describe("CCTPUtils", () => {
       );
     });
 
+    it("encodes Solana ATA-setup Forwarding hook (65 bytes)", () => {
+      const recipient = SolanaAccountAddress(
+        "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+      );
+      const hook = cctp.encodeSolanaAtaSetupForwardHook(recipient);
+      assert.equal((hook.length - 2) / 2, 65);
+      assert.equal(hook.slice(0, 50), cctp.forwardHookData.slice(0, 50));
+      // version 0 + length 33 + flag 1
+      assert.equal(hook.slice(50, 68), "000000000000002101");
+      assert.equal(
+        hook.slice(68).toLowerCase(),
+        ConversionUtils.solanaAccountToBytes32(recipient)
+          .slice(2)
+          .toLowerCase(),
+      );
+    });
+
+    it("passes custom hookData into depositForBurnWithHook", () => {
+      const mintRecipientBytes32 = pad(owner, { size: 32 });
+      const recipient = SolanaAccountAddress(
+        "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+      );
+      const hookData = cctp.encodeSolanaAtaSetupForwardHook(recipient);
+      const data = cctp.encodeDepositForBurnWithHook({
+        totalBurn: 1n,
+        destDomain: ECircleDomainId.Solana,
+        mintRecipientBytes32,
+        burnToken: usdc,
+        maxFee: 1n,
+        minFinalityThreshold: 1000,
+        hookData,
+      });
+      const decoded = decodeFunctionData({
+        abi: tokenMessengerV2Abi,
+        data,
+      });
+      assert.equal(decoded.args?.[7], hookData);
+    });
+
     it("skips the approve work item when allowance covers totalBurn", () => {
       const approveData = cctp.encodeUsdcApprove(messenger, 100n);
       const burnData = cctp.encodeDepositForBurnWithHook({
         totalBurn: 100n,
         destDomain: ECircleDomainId.Base,
-        mintRecipient: owner,
+        mintRecipientBytes32: pad(owner, { size: 32 }),
         burnToken: usdc,
         maxFee: 1n,
         minFinalityThreshold: 1000,
