@@ -337,6 +337,7 @@ export type WalletContextValue = {
   addSolanaTrackedAsset: (
     chainId: SolanaChainId,
     mint: SolanaMintAddress,
+    options?: { createAtaIfMissing?: boolean },
   ) => Promise<TrackedAsset>;
   removeTrackedAsset: (
     chainId: KnownAssetChainId,
