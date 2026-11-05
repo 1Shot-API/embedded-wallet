@@ -1,6 +1,6 @@
 # embedded-wallet
 
-1Shot API's free, permissionless embedded wallet. Includes passkey-based verification and OID4 credential management for shared KYC.
+1Shot API's free, permissionless embedded wallet for Ethereum, Solana, and Bitcoin. One passkey unlocks an EVM account, a Solana address, and a native SegWit Bitcoin address. The same wallet handles passkey verification and OID4 credentials for shared KYC or other verifiable credential usercases.
 
 This repo is the **OWS Branding Layer** for the 1Shot Wallet — a frontend-only static app (React + Vite + Tailwind + shadcn/ui) hosted at `wallet.1shotapi.com`.
 
@@ -24,6 +24,16 @@ Before shipping `/create/` changes: run `npm test` (at least
 `test/wallet/createHostEmbed.test.ts`), verify `/create/` without `handoff` shows
 an error with no skeleton, smoke-test Safari/popup handoff end-to-end, and
 confirm top-level `/?createHost=1` still shows normal onboarding.
+
+## One passkey for Ethereum, Solana, and Bitcoin
+
+One passkey session derives the EVM account, the Solana address, and a native SegWit Bitcoin address. Hosts embed one iframe (`https://wallet.1shotapi.com/`). EVM uses EIP-1193 through `OWSProxy`. Solana and Bitcoin are namespaces on that session (`wallet.solana`, `wallet.bitcoin`).
+
+| Chain | Networks | In the wallet | Host API |
+|-------|----------|---------------|----------|
+| EVM | Arc, Ethereum, Base, and their testnets | Balances, send, Circle USDC onramp, CCTP, and EIP-7710 delegations. The 1Shot Relayer sponsors these transactions. | EIP-1193 via `OWSProxy` |
+| Solana | Mainnet and Devnet | SOL and SPL balances and sends, associated-token-account create and close, and USDC arriving through CCTP. Transactions submit through the wallet's Solana RPC. | `getAccountAddress`, `signMessage`, `signTransaction`, `signAndSendTransaction`, and Sign In With Solana |
+| Bitcoin | Mainnet and Testnet | Balance and send from one static native SegWit address. Sends run in the wallet UI. | `bitcoin.getAccountAddresses` (BIP-122, intention `payment`) |
 
 ## Stack
 
@@ -99,6 +109,8 @@ await proxy.rpc("configure", {
 
 proxy.showWallet();
 ```
+
+Solana and Bitcoin use the same iframe after the session is unlocked. Call `wallet.solana` (`getAccountAddress`, `signMessage`, `signTransaction`, `signAndSendTransaction`, Sign In With Solana) and `wallet.bitcoin.getAccountAddresses`.
 
 ### Analytics (`proxy.analytics`)
 
@@ -181,4 +193,4 @@ See [roadmap.md](roadmap.md) (ShadCN + customization phases).
 
 ## Status
 
-Functional Branding Layer (passkey unlock, EIP-1193, signing consent, recovery, credentials) with Phase 0–1 style foundations (`configure` + StyleProvider + shell). ShadCN UI migration in progress.
+Functional Branding Layer for Ethereum, Solana, and Bitcoin (passkey unlock, EIP-1193, Solana signing, Bitcoin SegWit send, signing consent, recovery, credentials) with Phase 0–1 style foundations (`configure` + StyleProvider + shell). ShadCN UI migration in progress.
