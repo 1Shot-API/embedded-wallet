@@ -1,6 +1,6 @@
 # embedded-wallet
 
-1Shot API's free, permissionless embedded wallet for Ethereum, Solana, and Bitcoin. One passkey unlocks an EVM account, a Solana address, and a native SegWit Bitcoin address. The same wallet handles passkey verification and OID4 credentials for shared KYC.
+1Shot API's free, permissionless embedded wallet for Ethereum, Solana, and Bitcoin. One passkey unlocks an EVM account, a Solana address, and a native SegWit Bitcoin address. The same wallet handles passkey verification and OID4 credentials for shared KYC or other verifiable credential usercases.
 
 This repo is the **OWS Branding Layer** for the 1Shot Wallet — a frontend-only static app (React + Vite + Tailwind + shadcn/ui) hosted at `wallet.1shotapi.com`.
 
