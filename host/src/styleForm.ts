@@ -128,8 +128,6 @@ export interface IStyleFormState {
   solanaTxAccountLabel: string;
   solanaTxFeePayerLabel: string;
   solanaTxInstructionsLabel: string;
-  solanaTxSimulationWarning: string;
-  solanaTxDurableNonceWarning: string;
   solanaTxRejectLabel: string;
   solanaTxSignLabel: string;
   solanaTxSignAndSendLabel: string;
@@ -261,7 +259,6 @@ export interface IStyleFormState {
   cancelDelegationConfirm: string;
   cancelDelegationReject: string;
   cancelDelegationSkipOnchainLabel: string;
-  cancelDelegationSkipOnchainAcknowledgement: string;
   cancelDelegationInsufficientBalanceError: string;
   activateOfflinePermissionsTitle: string;
   activateOfflinePermissionsBody: string;
@@ -285,7 +282,6 @@ export interface IStyleFormState {
 
   // Text — Export private key
   exportPrivateKeyTitle: string;
-  exportPrivateKeyBody: string;
   exportPrivateKeyContinue: string;
   exportPrivateKeyCancel: string;
 
@@ -473,10 +469,6 @@ export const ACME_PRESET: IStyleFormState = {
   solanaTxAccountLabel: "Account",
   solanaTxFeePayerLabel: "Fee payer",
   solanaTxInstructionsLabel: "Instructions",
-  solanaTxSimulationWarning:
-    "Simulation failed. The transaction may still fail on-chain.",
-  solanaTxDurableNonceWarning:
-    "This transaction uses a durable nonce. Review carefully before confirming.",
   solanaTxRejectLabel: "Reject",
   solanaTxSignLabel: "Sign",
   solanaTxSignAndSendLabel: "Confirm",
@@ -593,8 +585,6 @@ export const ACME_PRESET: IStyleFormState = {
   cancelDelegationConfirm: "Cancel permission",
   cancelDelegationReject: "Keep",
   cancelDelegationSkipOnchainLabel: "Skip onchain cancellation",
-  cancelDelegationSkipOnchainAcknowledgement:
-    "I acknowledge that this delegation may still be used onchain by anybody that holds it, and that canceling it without submitting an onchain cancellation will only remove it from my wallet",
   cancelDelegationInsufficientBalanceError:
     "Insufficient balance to pay the network fee on {chainName}. Choose another payment token.",
   activateOfflinePermissionsTitle: "Activate offline permissions",
@@ -618,8 +608,6 @@ export const ACME_PRESET: IStyleFormState = {
   passkeyPromptBackupTitle: "Confirm backup",
   passkeyPromptExportPrivateKeyTitle: "Export private key",
   exportPrivateKeyTitle: "Export private key",
-  exportPrivateKeyBody:
-    "Anyone with this private key can control your wallet. Store it safely.",
   exportPrivateKeyContinue: "Export key",
   exportPrivateKeyCancel: "Cancel",
   importPrivateKeyTitle: "Import private key",
@@ -861,8 +849,6 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   cancelDelegationConfirm: "Cancel permission",
   cancelDelegationReject: "Keep",
   cancelDelegationSkipOnchainLabel: "Skip onchain cancellation",
-  cancelDelegationSkipOnchainAcknowledgement:
-    "I acknowledge that this delegation may still be used onchain by anybody that holds it, and that canceling it without submitting an onchain cancellation will only remove it from my wallet",
   cancelDelegationInsufficientBalanceError:
     "Insufficient balance to pay the network fee on {chainName}. Choose another payment token.",
   activateOfflinePermissionsTitle: "Activate offline permissions",
@@ -886,7 +872,6 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   passkeyPromptBackupTitle: "Confirm backup",
   passkeyPromptExportPrivateKeyTitle: "Export private key",
   exportPrivateKeyTitle: "Export private key",
-  exportPrivateKeyBody: "",
   importPrivateKeyTitle: "Import private key",
   importPrivateKeyBody: "",
   advancedOptionsTitle: "Advanced options",
@@ -1152,12 +1137,6 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(solanaSignAndSend, "accountLabel", form.solanaTxAccountLabel);
   put(solanaSignAndSend, "feePayerLabel", form.solanaTxFeePayerLabel);
   put(solanaSignAndSend, "instructionsLabel", form.solanaTxInstructionsLabel);
-  put(solanaSignAndSend, "simulationWarning", form.solanaTxSimulationWarning);
-  put(
-    solanaSignAndSend,
-    "durableNonceWarning",
-    form.solanaTxDurableNonceWarning,
-  );
   put(solanaSignAndSend, "rejectLabel", form.solanaTxRejectLabel);
   put(solanaSignAndSend, "signLabel", form.solanaTxSignLabel);
   put(solanaSignAndSend, "signAndSendLabel", form.solanaTxSignAndSendLabel);
@@ -1277,11 +1256,6 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(cancelDelegation, "confirmLabel", form.cancelDelegationConfirm);
   put(cancelDelegation, "rejectLabel", form.cancelDelegationReject);
   put(cancelDelegation, "skipOnchainLabel", form.cancelDelegationSkipOnchainLabel);
-  put(
-    cancelDelegation,
-    "skipOnchainAcknowledgement",
-    form.cancelDelegationSkipOnchainAcknowledgement,
-  );
   put(
     cancelDelegation,
     "insufficientBalanceError",
@@ -1448,7 +1422,6 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
 
   const exportPrivateKey: Record<string, string> = {};
   put(exportPrivateKey, "title", form.exportPrivateKeyTitle);
-  put(exportPrivateKey, "body", form.exportPrivateKeyBody);
   put(exportPrivateKey, "continueLabel", form.exportPrivateKeyContinue);
   put(exportPrivateKey, "cancelLabel", form.exportPrivateKeyCancel);
   if (Object.keys(exportPrivateKey).length > 0) {

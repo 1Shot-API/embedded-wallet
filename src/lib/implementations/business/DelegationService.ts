@@ -1,7 +1,6 @@
 import {
   ConversionUtils,
   ChainUtils,
-  DomainString,
   EVMAccountAddress,
   EVMContractAddress,
   HexString,
@@ -184,11 +183,7 @@ export class DelegationService implements IDelegationService {
 
       await onDelegationsSigned?.();
 
-      const hostRaw =
-        this.presentationTransactionUtils.resolveHostDomain();
-      const hostDomain = DomainString(
-        hostRaw === "the connected app" ? "unknown" : hostRaw,
-      );
+      const hostDomain = this.presentationTransactionUtils.resolveHostDomain();
       const createdAt = UnixTimestamp(Math.floor(Date.now() / 1000));
 
       const storedList: IStoredDelegation[] = items.map((item, index) => {

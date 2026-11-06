@@ -1,4 +1,5 @@
 import {
+  DomainString,
   type EVMContractAddress,
   EVMAccountAddress,
   type EVMChainId,
@@ -12,13 +13,19 @@ import {
   type Hex,
 } from "viem";
 
+import type { IHostOriginProvider } from "../../interfaces/utils/IHostOriginProvider";
 import type {
   IDecodedErc20Transfer,
   ITransactionUtils,
 } from "../../interfaces/utils/ITransactionUtils";
 
+/** Used in consent copy and stored on grants before any host has connected. */
+const UNKNOWN_HOST_DOMAIN = DomainString("unknown");
+
 /** EVM transfer helpers (decode, amount formatting, host/chain labels). */
 export class TransactionUtils implements ITransactionUtils {
+  constructor(private readonly hostOriginProvider: IHostOriginProvider) {}
+
   tryDecodeErc20Transfer(
     to: EVMContractAddress | null,
     data: HexString,
@@ -62,25 +69,8 @@ export class TransactionUtils implements ITransactionUtils {
     }
   }
 
-  resolveHostDomain(): string {
-    try {
-      const ancestorOrigins = (
-        location as Location & { ancestorOrigins?: DOMStringList }
-      ).ancestorOrigins;
-      if (ancestorOrigins && ancestorOrigins.length > 0) {
-        return new URL(ancestorOrigins[0]!).hostname;
-      }
-    } catch {
-      // fall through
-    }
-    try {
-      if (document.referrer) {
-        return new URL(document.referrer).hostname;
-      }
-    } catch {
-      // fall through
-    }
-    return "the connected app";
+  resolveHostDomain(): DomainString {
+    return this.hostOriginProvider.getHostDomain() ?? UNKNOWN_HOST_DOMAIN;
   }
 
   chainLabelFor(

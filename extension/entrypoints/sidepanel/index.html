@@ -19,6 +19,27 @@
         </button>
       </div>
       <p id="inject-status" class="inject-status" aria-live="polite"></p>
+      <p
+        id="request-origin"
+        class="request-origin hidden"
+        aria-live="polite"
+      ></p>
+      <div
+        id="consent"
+        class="consent hidden"
+        role="group"
+        aria-label="Connection request"
+      >
+        <p class="consent-text">
+          Allow <strong id="consent-origin"></strong> to connect to your wallet?
+        </p>
+        <div class="consent-actions">
+          <button type="button" id="consent-allow">Allow</button>
+          <button type="button" id="consent-deny" class="secondary">
+            Deny
+          </button>
+        </div>
+      </div>
     </header>
     <div id="wallet-wrap">
       <div id="status" class="status" aria-live="polite">Loading wallet…</div>

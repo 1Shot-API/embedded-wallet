@@ -102,6 +102,48 @@ body {
   color: #7ddea2;
 }
 
+/* Names the site behind the in-flight request, even if another tab is focused. */
+.request-origin {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #9aabbd;
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.request-origin.mismatch {
+  color: #ffb86b;
+}
+
+.request-origin.hidden,
+.consent.hidden {
+  display: none;
+}
+
+.consent {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #3d8bfd;
+  border-radius: 6px;
+  background: #16233a;
+}
+
+.consent-text {
+  margin: 0;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.consent-actions {
+  display: flex;
+  gap: 6px;
+}
+
 #wallet-wrap {
   position: relative;
   flex: 1 1 auto;

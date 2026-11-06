@@ -20,6 +20,15 @@ const injectBtn = document.getElementById("inject-btn") as HTMLButtonElement;
 const allowlistBtn = document.getElementById(
   "allowlist-btn",
 ) as HTMLButtonElement;
+const requestOriginLine = document.getElementById("request-origin")!;
+const consentEl = document.getElementById("consent")!;
+const consentOriginEl = document.getElementById("consent-origin")!;
+const consentAllowBtn = document.getElementById(
+  "consent-allow",
+) as HTMLButtonElement;
+const consentDenyBtn = document.getElementById(
+  "consent-deny",
+) as HTMLButtonElement;
 
 function setStatus(message: string, isError = false): void {
   statusEl.textContent = message;
@@ -46,6 +55,53 @@ let activeTabId: number | undefined;
 let activeOrigin: string | undefined;
 const port = browser.runtime.connect({ name: "sidepanel" });
 
+/** In-flight requests by id — the panel always names the site that is asking. */
+const pendingRequests = new Map<string, { origin: string; method: string }>();
+
+function renderRequestOrigin(): void {
+  const first = pendingRequests.values().next().value;
+  if (!first) {
+    requestOriginLine.classList.add("hidden");
+    requestOriginLine.classList.remove("mismatch");
+    requestOriginLine.textContent = "";
+    return;
+  }
+  const others = pendingRequests.size - 1;
+  requestOriginLine.textContent =
+    `Request from ${first.origin} · ${first.method}` +
+    (others > 0 ? ` (+${others} more)` : "");
+  requestOriginLine.classList.remove("hidden");
+  requestOriginLine.classList.toggle(
+    "mismatch",
+    Boolean(activeOrigin) && first.origin !== activeOrigin,
+  );
+}
+
+/** One consent prompt at a time; later requests wait for the current answer. */
+let consentChain: Promise<unknown> = Promise.resolve();
+
+function askConnectConsent(origin: string): Promise<boolean> {
+  const ask = () =>
+    new Promise<boolean>((resolve) => {
+      consentOriginEl.textContent = origin;
+      consentEl.classList.remove("hidden");
+      const settle = (approved: boolean) => {
+        consentAllowBtn.removeEventListener("click", onAllow);
+        consentDenyBtn.removeEventListener("click", onDeny);
+        consentEl.classList.add("hidden");
+        consentOriginEl.textContent = "";
+        resolve(approved);
+      };
+      const onAllow = () => settle(true);
+      const onDeny = () => settle(false);
+      consentAllowBtn.addEventListener("click", onAllow);
+      consentDenyBtn.addEventListener("click", onDeny);
+    });
+  const result = consentChain.then(ask, ask);
+  consentChain = result;
+  return result;
+}
+
 async function refreshActiveTab(): Promise<void> {
   const tab = await queryActiveDappTab();
   activeTabId = tab?.id;
@@ -57,6 +113,7 @@ async function refreshActiveTab(): Promise<void> {
   originLine.textContent = activeOrigin ?? "No active tab — focus a dApp window";
   injectBtn.disabled = activeTabId == null;
   allowlistBtn.disabled = !activeOrigin || activeTabId == null;
+  renderRequestOrigin();
 
   if (activeTabId != null) {
     const status = (await browser.runtime.sendMessage({
@@ -68,6 +125,7 @@ async function refreshActiveTab(): Promise<void> {
         [
           status.injected ? "Provider injected" : "Not injected on this tab",
           status.allowlisted ? "allowlisted" : null,
+          status.connected ? "connected" : null,
         ]
           .filter(Boolean)
           .join(" · "),
@@ -149,7 +207,28 @@ async function handleRequest(
     port.postMessage(payload);
   };
 
+  pendingRequests.set(message.id, {
+    origin: message.origin,
+    method: message.method,
+  });
+  renderRequestOrigin();
+
   try {
+    if (message.requiresConsent) {
+      const approved = await askConnectConsent(message.origin);
+      if (!approved) {
+        reply({
+          type: "eip1193-response",
+          tabId: message.tabId,
+          id: message.id,
+          error: {
+            code: 4001,
+            message: `User rejected connecting ${message.origin}`,
+          },
+        });
+        return;
+      }
+    }
     const live = await ensureProxy();
     console.info("[1Shot sidepanel] eip1193", message.method, message.id);
     const result = await live.ethereum.request({
@@ -178,17 +257,28 @@ async function handleRequest(
         data: err.data,
       },
     });
+  } finally {
+    pendingRequests.delete(message.id);
+    renderRequestOrigin();
   }
 }
 
 port.onMessage.addListener((raw) => {
   const message = raw as ExtRuntimeMessage;
   if (message.type !== "eip1193-request") return;
-  if (typeof message.tabId !== "number" || message.tabId <= 0) {
-    console.warn("[1Shot sidepanel] dropping eip1193-request without tab id");
+  const routed = message as Partial<ExtEip1193RoutedRequestMessage>;
+  if (
+    typeof routed.tabId !== "number" ||
+    routed.tabId <= 0 ||
+    typeof routed.origin !== "string" ||
+    !routed.origin
+  ) {
+    console.warn(
+      "[1Shot sidepanel] dropping eip1193-request without tab id / origin",
+    );
     return;
   }
-  void handleRequest(message as ExtEip1193RoutedRequestMessage);
+  void handleRequest(routed as ExtEip1193RoutedRequestMessage);
 });
 
 injectBtn.addEventListener("click", () => {
