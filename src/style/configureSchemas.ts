@@ -125,6 +125,8 @@ export const styleCopySiweSchema = z.strictObject({
   rejectLabel: z.string(),
   signLabel: z.string(),
   signingHint: z.string(),
+  /** Wallet-owned: shown when the message `domain` is not the requesting site. */
+  domainMismatchWarning: z.string(),
 });
 
 export const styleCopySiwsSchema = z.strictObject({
@@ -143,6 +145,8 @@ export const styleCopySiwsSchema = z.strictObject({
   rejectLabel: z.string(),
   signLabel: z.string(),
   signingHint: z.string(),
+  /** Wallet-owned: shown when the message `domain` is not the requesting site. */
+  domainMismatchWarning: z.string(),
 });
 
 export const styleCopyTypedDataSchema = z.strictObject({
@@ -755,6 +759,8 @@ const passkeyPromptPatchSchema = z.strictObject({
 export const WALLET_OWNED_COPY_PATHS = [
   "solanaSignAndSend.simulationWarning",
   "solanaSignAndSend.durableNonceWarning",
+  "siwe.domainMismatchWarning",
+  "siws.domainMismatchWarning",
   "grantKitScopeTerms.ownershipWarning",
   "grantLiFiApprovePermission.warning",
   "cancelDelegation.skipOnchainAcknowledgement",
@@ -777,8 +783,14 @@ export const styleCopyPatchSchema = z.strictObject({
     .omit({ simulationWarning: true, durableNonceWarning: true })
     .partial()
     .optional(),
-  siwe: styleCopySiweSchema.partial().optional(),
-  siws: styleCopySiwsSchema.partial().optional(),
+  siwe: styleCopySiweSchema
+    .omit({ domainMismatchWarning: true })
+    .partial()
+    .optional(),
+  siws: styleCopySiwsSchema
+    .omit({ domainMismatchWarning: true })
+    .partial()
+    .optional(),
   typedData: styleCopyTypedDataSchema.partial().optional(),
   sendTransaction: styleCopySendTransactionSchema.partial().optional(),
   confirmTransfer: styleCopyConfirmTransferSchema.partial().optional(),

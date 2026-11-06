@@ -19,6 +19,20 @@ export function normalizeSiweHost(value: string): string {
   }
 }
 
+/**
+ * True when the sign-in `domain` (EIP-4361 / CAIP-122 authority) names the
+ * page that is asking, ignoring port and case. A mismatch means the message
+ * would log the user in somewhere other than the requesting site.
+ */
+export function siweDomainMatchesHost(
+  domain: string,
+  hostDomain: string,
+): boolean {
+  const messageHost = normalizeSiweHost(domain);
+  const requester = normalizeSiweHost(hostDomain);
+  return messageHost.length > 0 && requester.length > 0 && messageHost === requester;
+}
+
 /** True when the SIWE URI points at the same host as `domain` (path/query ignored). */
 export function isSiweUriRedundant(uri: string, domain: string): boolean {
   const uriHost = normalizeSiweHost(uri);

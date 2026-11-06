@@ -5,6 +5,7 @@ import { useStyle } from "../../style/StyleProvider";
 import type { IStyleCopyExportPrivateKey } from "../../style/types";
 import { useWallet } from "../../wallet/WalletProvider";
 import { Modal } from "../Modal";
+import { RiskWarning } from "../RiskWarning";
 
 function formatExportError(
   error: unknown,
@@ -101,7 +102,7 @@ export function ExportPrivateKeyModal({
       }
     >
       {phase === "confirm" || phase === "revealing" ? (
-        <p className="mb-4 whitespace-pre-line">{copy.body}</p>
+        <RiskWarning className="mb-4">{copy.body}</RiskWarning>
       ) : null}
       {phase === "revealing" ? (
         <p className="text-muted-foreground m-0 text-[0.9rem]">

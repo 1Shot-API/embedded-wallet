@@ -638,6 +638,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     walletStorage,
     eventBus,
     configProvider,
+    hostOriginProvider,
   });
 
   const switchChain = useCallback(async (next: OWSChainId) => {

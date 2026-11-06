@@ -6,6 +6,7 @@
 import type {
   CredentialOfferApprovalRequest,
   CredentialPresentationApprovalRequest,
+  DomainString,
   EVMAccountAddress,
   EVMChainId,
   EVMContractAddress,
@@ -185,6 +186,8 @@ export type ModalRequest =
       source: "typedData" | "personalSign";
       request: SignTypedDataApprovalRequest | PersonalSignApprovalRequest;
       fields: ISiweFields;
+      /** Browser-attested requester; compared with `fields.domain`. */
+      hostDomain: DomainString;
       resolve: (signature: EVMSignatureHex) => void;
       reject: (error: unknown) => void;
     }
@@ -192,6 +195,8 @@ export type ModalRequest =
       id: string;
       kind: "siws";
       fields: ISiwsFields;
+      /** Browser-attested requester; compared with `fields.domain`. */
+      hostDomain: DomainString;
       messageBytes: Uint8Array;
       resolve: (signature: SolanaSignature) => void;
       reject: (error: unknown) => void;

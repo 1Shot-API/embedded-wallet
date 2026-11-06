@@ -5,6 +5,7 @@ import {
   isSiweUriRedundant,
   normalizeSiweHost,
   resolveSiweEvmChainId,
+  siweDomainMatchesHost,
 } from "@/lib/utils/siweDisplay.ts";
 
 describe("normalizeSiweHost", () => {
@@ -47,5 +48,45 @@ describe("resolveSiweEvmChainId", () => {
 
   it("parses hex chain id", () => {
     assert.equal(String(resolveSiweEvmChainId("0x1")), "0x1");
+  });
+});
+
+describe("siweDomainMatchesHost", () => {
+  it("matches the same host ignoring case and port", () => {
+    assert.equal(
+      siweDomainMatchesHost("app.example.com", "app.example.com"),
+      true,
+    );
+    assert.equal(
+      siweDomainMatchesHost("App.Example.COM", "app.example.com"),
+      true,
+    );
+    assert.equal(siweDomainMatchesHost("localhost:3000", "localhost"), true);
+    assert.equal(
+      siweDomainMatchesHost("https://app.example.com", "app.example.com"),
+      true,
+    );
+  });
+
+  it("rejects a message for another site, including subdomains", () => {
+    assert.equal(siweDomainMatchesHost("bank.example", "evil.example"), false);
+    assert.equal(
+      siweDomainMatchesHost("example.com", "app.example.com"),
+      false,
+    );
+    assert.equal(
+      siweDomainMatchesHost("app.example.com", "example.com"),
+      false,
+    );
+    assert.equal(
+      siweDomainMatchesHost("app.example.com.evil.test", "app.example.com"),
+      false,
+    );
+  });
+
+  it("never matches when either side is empty", () => {
+    assert.equal(siweDomainMatchesHost("", "app.example.com"), false);
+    assert.equal(siweDomainMatchesHost("app.example.com", ""), false);
+    assert.equal(siweDomainMatchesHost("   ", "   "), false);
   });
 });
