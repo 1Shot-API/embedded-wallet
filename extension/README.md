@@ -134,6 +134,25 @@ EIP-6963 announce                               allowlist inject
   before Connect will find 1Shot.
 - Optional host permissions are requested per origin when injecting.
 
+## Per-origin sessions
+
+The side panel is shared by every tab, so the background keeps connections
+per **origin**, taken from the browser's `sender` metadata and never from the
+page:
+
+- Every routed request carries the requesting origin. The panel header shows
+  `Request from <origin> · <method>` while it is in flight and highlights it
+  when that is not the focused tab.
+- `eth_requestAccounts` / `wallet_requestPermissions` from an origin that has
+  not connected yet show an **Allow / Deny** prompt in the panel chrome before
+  the Branding Layer sees the request.
+- Until an origin is connected, `eth_accounts` returns `[]` and signing / chain
+  methods are refused with EIP-1193 `4100` instead of opening a prompt.
+- `accountsChanged` / `chainChanged` / `connect` / `disconnect` go only to
+  injected tabs whose current origin is connected.
+
+Connections live in `storage.session` and reset when the browser closes.
+
 ## Limitations
 
 - Closing the side panel destroys the `OWSProxy` session; the next RPC reopens the panel and recreates the proxy (wallet storage under the extension top-level partition should restore accounts).

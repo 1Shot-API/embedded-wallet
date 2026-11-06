@@ -123,6 +123,20 @@ body.ows-ceremony-open {
   padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
 }
 
+.ows-signer-ui--key-entry .ows-ceremony-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.ows-signer-ui--key-entry .ows-password {
+  margin-top: 12px;
+}
+
+.ows-signer-ui--key-entry .ows-password + .ows-ceremony-text {
+  margin-top: 8px;
+}
+
 .ows-signer-ui:empty {
   display: none;
 }
@@ -167,6 +181,14 @@ body.ows-ceremony-open {
   font-weight: 700;
   line-height: 1.3;
   color: var(--ows-text);
+}
+
+.ows-ceremony-origin {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ows-text-muted);
+  word-break: break-all;
 }
 
 .ows-ceremony-body {

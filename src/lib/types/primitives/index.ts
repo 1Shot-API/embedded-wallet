@@ -7,3 +7,4 @@ export * from "./BitcoinTransactionData";
 export * from "./BitcoinOutputIndex";
 export * from "./BitcoinSatoshiAmount";
 export * from "./SolanaLamports";
+export * from "./OriginString";

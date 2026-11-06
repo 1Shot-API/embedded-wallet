@@ -74,6 +74,10 @@ export function ImportPrivateKeyModal({
     });
   };
 
+  if (phase === "importing") {
+    return null;
+  }
+
   return (
     <Modal
       title={copy.title}
@@ -95,25 +99,18 @@ export function ImportPrivateKeyModal({
                 onClick: startImport,
               },
             ]
-          : phase === "error"
-            ? [
-                {
-                  label: copy.closeLabel,
-                  variant: "secondary",
-                  autoFocus: true,
-                  onClick: () => onResolve(false),
-                },
-              ]
-            : undefined
+          : [
+              {
+                label: copy.closeLabel,
+                variant: "secondary",
+                autoFocus: true,
+                onClick: () => onResolve(false),
+              },
+            ]
       }
     >
-      {phase === "confirm" || phase === "importing" ? (
+      {phase === "confirm" ? (
         <p className="mb-4 whitespace-pre-line">{copy.body}</p>
-      ) : null}
-      {phase === "importing" ? (
-        <p className="text-muted-foreground m-0 text-[0.9rem]">
-          {copy.importingBody}
-        </p>
       ) : null}
       {error ? (
         <p className="text-destructive m-0 text-[0.9rem]">{error}</p>

@@ -1,6 +1,7 @@
 import { DomainString, UriString } from "@1shotapi/ows-types";
 
 import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
+import type { IHostOriginProvider } from "../../interfaces/utils/IHostOriginProvider";
 import { WalletConfig } from "../../types/domain/WalletConfig";
 
 const PRODUCTION_WALLET_HOSTNAME = "wallet.1shotapi.com";
@@ -24,14 +25,17 @@ const DEFAULT_ANKR_BTC_API_KEY =
 export class ConfigProvider implements IConfigProvider {
   private cached: WalletConfig | null = null;
 
+  constructor(private readonly hostOriginProvider: IHostOriginProvider) {}
+
   async getConfig(): Promise<WalletConfig> {
-    if (this.cached) {
+    const hostDomain = this.resolveHostDomain();
+    if (this.cached && this.cached.hostDomain === hostDomain) {
       return this.cached;
     }
 
     this.cached = new WalletConfig(
       this.resolveRelayerBaseUrl(),
-      this.resolveHostDomain(),
+      hostDomain,
       DEFAULT_ASSET_ACTIVITY_STORAGE_KEY,
       DEFAULT_TRACKED_ASSETS_STORAGE_KEY,
       DEFAULT_VAULT_STORAGE_KEY,
@@ -53,33 +57,19 @@ export class ConfigProvider implements IConfigProvider {
   }
 
   /**
-   * Best-effort embedding host hostname for analytics `hostDomain`.
-   * Prefers ancestor / referrer when in an iframe; never empty.
+   * Embedding host hostname for analytics `hostDomain` and host-scoped checks
+   * (e.g. `requestCancelDelegations`). Taken from the browser-attested
+   * handshake origin; falls back to this wallet's own hostname only before a
+   * host has connected or when Branding runs top-level.
    */
   private resolveHostDomain(): DomainString {
+    const fromHost = this.hostOriginProvider.getHostDomain();
+    if (fromHost) {
+      return fromHost;
+    }
     if (typeof window === "undefined") {
       return DomainString("localhost");
     }
-
-    try {
-      const ancestors = (
-        location as Location & { ancestorOrigins?: DOMStringList }
-      ).ancestorOrigins;
-      if (ancestors && ancestors.length > 0) {
-        return DomainString(new URL(ancestors[ancestors.length - 1]!).hostname);
-      }
-    } catch {
-      // fall through
-    }
-
-    try {
-      if (document.referrer) {
-        return DomainString(new URL(document.referrer).hostname);
-      }
-    } catch {
-      // fall through
-    }
-
     return DomainString(window.location.hostname || "localhost");
   }
 }

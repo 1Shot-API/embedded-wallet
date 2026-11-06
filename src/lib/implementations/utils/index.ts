@@ -4,6 +4,7 @@ export { OWSProvider } from "./OWSProvider";
 export { SupportedChainsBlockchainProvider } from "./SupportedChainsBlockchainProvider";
 export { EventBus } from "./EventBus";
 export { TransactionUtils } from "./TransactionUtils";
+export { HostOriginProvider } from "./HostOriginProvider";
 export { SIWEUtils } from "./SIWEUtils";
 export {
   ChainDisplayUtils,

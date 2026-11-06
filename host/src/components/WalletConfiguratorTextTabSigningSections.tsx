@@ -478,18 +478,6 @@ export function WalletConfiguratorTextTabSigningSections({
             value={form.solanaTxInstructionsLabel}
             onChange={(value) => patch("solanaTxInstructionsLabel", value)}
           />
-          <BodyField
-            id="solana-tx-sim-warning"
-            label="Simulation warning"
-            value={form.solanaTxSimulationWarning}
-            onChange={(value) => patch("solanaTxSimulationWarning", value)}
-          />
-          <BodyField
-            id="solana-tx-nonce-warning"
-            label="Durable nonce warning"
-            value={form.solanaTxDurableNonceWarning}
-            onChange={(value) => patch("solanaTxDurableNonceWarning", value)}
-          />
           <TextField
             id="solana-tx-reject"
             label="Reject"

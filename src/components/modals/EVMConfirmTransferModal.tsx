@@ -18,6 +18,8 @@ import { Modal } from "../Modal";
 import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
 import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
 
+import { RequestingHostBadge } from "./RequestingHostBadge";
+
 /** Host ERC-20 transfer consent (decoded `eth_sendTransaction`). */
 export function EVMConfirmTransferModal({
   request,
@@ -132,6 +134,8 @@ export function EVMConfirmTransferModal({
         <p className="text-muted-foreground m-0 text-sm leading-relaxed">
           {body}
         </p>
+
+        <RequestingHostBadge domain={request.domain} />
 
         <div className="flex items-center gap-4">
           <AssetIdentityMark
