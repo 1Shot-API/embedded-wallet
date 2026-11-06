@@ -47,6 +47,7 @@ async function refresh(): Promise<void> {
   const bits = [
     status.injected ? "Provider injected" : "Not injected",
     status.allowlisted ? "allowlisted" : null,
+    status.connected ? "connected" : null,
   ].filter(Boolean);
   setStatus(bits.join(" · "));
   allowlistBtn.disabled = !activeOrigin;

@@ -333,14 +333,7 @@ export function WalletConfiguratorTextTabWalletSections({
             }
           />
           <TextField
-            id="cancel-delegation-skip-onchain-ack"
-            label="Cancel permission skip onchain acknowledgement"
-            value={form.cancelDelegationSkipOnchainAcknowledgement}
-            onChange={(value) =>
-              patch("cancelDelegationSkipOnchainAcknowledgement", value)
-            }
-          />
-          <TextField
+            id="cancel-delegation-insufficient-balance"
             label="Cancel permission — insufficient balance"
             value={form.cancelDelegationInsufficientBalanceError}
             onChange={(value) =>
@@ -498,12 +491,6 @@ export function WalletConfiguratorTextTabWalletSections({
             label="Title"
             value={form.exportPrivateKeyTitle}
             onChange={(value) => patch("exportPrivateKeyTitle", value)}
-          />
-          <BodyField
-            id="export-key-body"
-            label="Body"
-            value={form.exportPrivateKeyBody}
-            onChange={(value) => patch("exportPrivateKeyBody", value)}
           />
           <TextField
             id="export-key-continue"

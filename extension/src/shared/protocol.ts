@@ -21,6 +21,25 @@ export function isInteractiveMethod(method: string): boolean {
   return INTERACTIVE_METHODS.has(method);
 }
 
+/** EIP-1193 methods that establish a per-origin connection to the wallet. */
+export const CONNECT_METHODS = new Set([
+  "eth_requestAccounts",
+  "wallet_requestPermissions",
+]);
+
+export function isConnectMethod(method: string): boolean {
+  return CONNECT_METHODS.has(method);
+}
+
+/**
+ * Interactive methods that may only run for an origin the user has connected.
+ * Everything in {@link INTERACTIVE_METHODS} except the connect methods, so an
+ * allowlisted-but-unconnected tab cannot raise prompts in the shared panel.
+ */
+export function requiresConnectedOrigin(method: string): boolean {
+  return INTERACTIVE_METHODS.has(method) && !CONNECT_METHODS.has(method);
+}
+
 // --- Page ↔ content (window.postMessage) ---
 
 export type InpageToContentRequest = {
@@ -121,9 +140,13 @@ export type ExtEip1193RequestMessage = {
   params?: unknown;
 };
 
-/** EIP-1193 request after background has bound a real tab id. */
+/** EIP-1193 request after background has bound a real tab id and sender origin. */
 export type ExtEip1193RoutedRequestMessage = ExtEip1193RequestMessage & {
   tabId: number;
+  /** Browser-attested origin of the requesting page (`https://host[:port]`). */
+  origin: string;
+  /** Connect request from an origin not yet connected — side panel asks the user first. */
+  requiresConsent: boolean;
 };
 
 export type ExtEip1193ResponseMessage = {
@@ -149,6 +172,8 @@ export type ExtStatusResponse = {
   injected: boolean;
   origin?: string;
   allowlisted: boolean;
+  /** User approved a connect request from this tab's origin in this session. */
+  connected: boolean;
   walletUrl: string;
   preferOneshot: boolean;
   error?: string;

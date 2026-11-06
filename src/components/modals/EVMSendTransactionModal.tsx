@@ -3,18 +3,20 @@ import {
   OwsUserRejectedError,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { IRelayerSendUiCallbacks } from "../../lib/types/domain/RelayerSendUi";
 import { isSignCeremonyDenied } from "../../lib/utils/isSignCeremonyDenied";
 import { useStyle } from "../../style/StyleProvider";
 import type { IConfirmSendPayment } from "../../wallet/modalTypes";
+import { useWallet } from "../../wallet/WalletProvider";
 import { Modal } from "../Modal";
 import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
 import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
 
 import { FieldLabel } from "./FieldLabel";
 import { LabeledBlock } from "./LabeledBlock";
+import { RequestingHostBadge } from "./RequestingHostBadge";
 
 /** Host EIP-1193 `eth_sendTransaction` consent (generic / non-transfer). */
 export function EVMSendTransactionModal({
@@ -32,8 +34,16 @@ export function EVMSendTransactionModal({
   onReject: (error: unknown) => void;
 }) {
   const { style } = useStyle();
+  const { configProvider } = useWallet();
   const { sendTransaction: copy } = style.copy;
   const relayerCopy = style.copy.relayerSubmit;
+  const [hostDomain, setHostDomain] = useState("");
+
+  useEffect(() => {
+    void configProvider.getConfig().then((config) => {
+      setHostDomain(String(config.hostDomain));
+    });
+  }, [configProvider]);
 
   const relayerSubmit = useRelayerConfirmSubmit({
     execute: (payment, ui) =>
@@ -127,6 +137,9 @@ export function EVMSendTransactionModal({
           : undefined
       }
     >
+      <div className="mb-3 flex">
+        <RequestingHostBadge domain={hostDomain} />
+      </div>
       <FieldLabel>{copy.accountLabel}</FieldLabel>
       <p className="mb-3 break-all font-mono text-[0.8rem]">{request.address}</p>
       <LabeledBlock

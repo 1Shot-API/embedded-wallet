@@ -1,7 +1,12 @@
+import { ConnectedOrigins } from "../src/shared/connectedOrigins";
 import { injectProviderIntoTab } from "../src/shared/inject";
 import { openWalletUi } from "../src/shared/openWalletUi";
+import { resolveSenderOrigin, toWebOrigin } from "../src/shared/origins";
 import {
+  isConnectMethod,
   isInteractiveMethod,
+  requiresConnectedOrigin,
+  type ExtEip1193RequestMessage,
   type ExtEip1193ResponseMessage,
   type ExtEip1193RoutedRequestMessage,
   type ExtRuntimeMessage,
@@ -30,6 +35,8 @@ let sidepanelReadyWaiters: Array<() => void> = [];
 
 /** Tabs we successfully injected (for event fan-out). */
 const injectedTabs = new Set<number>();
+/** Origins whose connect request the user approved (per browser session). */
+const connectedOrigins = new ConnectedOrigins();
 
 function notifySidepanelReady(): void {
   const waiters = sidepanelReadyWaiters;
@@ -200,6 +207,10 @@ async function handleEip1193Request(
   });
 }
 
+/**
+ * Fan an EIP-1193 event out to injected tabs whose current origin the user
+ * has connected. Other tabs must not learn the account or chain this way.
+ */
 async function broadcastEvent(event: string, params: unknown[]): Promise<void> {
   const payload: ExtRuntimeMessage = {
     type: "eip1193-event",
@@ -207,12 +218,57 @@ async function broadcastEvent(event: string, params: unknown[]): Promise<void> {
     params,
   };
   for (const tabId of injectedTabs) {
+    const origin = await currentTabOrigin(tabId);
+    if (!origin || !(await connectedOrigins.has(origin))) {
+      continue;
+    }
     try {
       await browser.tabs.sendMessage(tabId, payload);
     } catch {
       injectedTabs.delete(tabId);
     }
   }
+}
+
+/** Origin of the tab's current top-level document, as the browser reports it. */
+async function currentTabOrigin(tabId: number): Promise<string | null> {
+  try {
+    const tab = await browser.tabs.get(tabId);
+    return tab.url ? toWebOrigin(tab.url) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Per-origin session gate for an origin the user has not connected:
+ * `eth_accounts` sees no accounts and interactive methods are refused with
+ * EIP-1193 4100 instead of reaching the shared side panel.
+ */
+function gateUnconnectedOrigin(
+  raw: ExtEip1193RequestMessage,
+  tabId: number,
+  origin: string,
+): ExtEip1193ResponseMessage | null {
+  if (raw.method === "eth_accounts") {
+    return { type: "eip1193-response", tabId, id: raw.id, result: [] };
+  }
+  if (requiresConnectedOrigin(raw.method)) {
+    return {
+      type: "eip1193-response",
+      tabId,
+      id: raw.id,
+      error: {
+        code: 4100,
+        message: `${origin} is not connected to 1Shot Wallet. Call eth_requestAccounts first.`,
+      },
+    };
+  }
+  return null;
+}
+
+function isNonEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length > 0;
 }
 
 async function statusForTab(tabId?: number): Promise<ExtStatusResponse> {
@@ -222,6 +278,7 @@ async function statusForTab(tabId?: number): Promise<ExtStatusResponse> {
       ok: true,
       injected: false,
       allowlisted: false,
+      connected: false,
       walletUrl: settings.walletUrl,
       preferOneshot: settings.preferOneshot,
     };
@@ -236,6 +293,7 @@ async function statusForTab(tabId?: number): Promise<ExtStatusResponse> {
       allowlisted: origin
         ? isOriginAllowlisted(origin, settings.allowlist)
         : false,
+      connected: origin ? await connectedOrigins.has(origin) : false,
       walletUrl: settings.walletUrl,
       preferOneshot: settings.preferOneshot,
     };
@@ -244,6 +302,7 @@ async function statusForTab(tabId?: number): Promise<ExtStatusResponse> {
       ok: false,
       injected: false,
       allowlisted: false,
+      connected: false,
       walletUrl: settings.walletUrl,
       preferOneshot: settings.preferOneshot,
       error: "Tab not found",
@@ -325,7 +384,9 @@ export default defineBackground(() => {
             }
             case "eip1193-request": {
               const tabId = sender.tab?.id;
-              if (typeof tabId !== "number" || tabId <= 0) {
+              // Origin comes from the browser's sender metadata, never from the page.
+              const origin = resolveSenderOrigin(sender);
+              if (typeof tabId !== "number" || tabId <= 0 || !origin) {
                 respond({
                   type: "eip1193-response",
                   tabId: -1,
@@ -333,22 +394,39 @@ export default defineBackground(() => {
                   error: {
                     code: -32603,
                     message:
-                      "EIP-1193 request has no valid tab id (content script sender.tab missing)",
+                      "EIP-1193 request has no trusted sender (top-level http(s) tab required)",
                   },
                 } satisfies ExtEip1193ResponseMessage);
                 break;
               }
+              const connected = await connectedOrigins.has(origin);
+              if (!connected) {
+                const gated = gateUnconnectedOrigin(raw, tabId, origin);
+                if (gated) {
+                  respond(gated);
+                  break;
+                }
+              }
               const message: ExtEip1193RoutedRequestMessage = {
                 ...raw,
                 tabId,
+                origin,
+                requiresConsent: isConnectMethod(raw.method) && !connected,
               };
               injectedTabs.add(tabId);
               console.info("[1Shot] eip1193-request", message.method, {
                 tabId,
+                origin,
                 id: message.id,
                 hasPanel: Boolean(sidepanelPort),
               });
               const response = await handleEip1193Request(message);
+              if (
+                isConnectMethod(raw.method) &&
+                isNonEmptyArray(response.result)
+              ) {
+                await connectedOrigins.add(origin);
+              }
               respond(response);
               break;
             }

@@ -1,10 +1,14 @@
 import { z } from "zod";
 
+/** Link targets a host may configure: `http:` / `https:` only. */
+const HTTP_PROTOCOL = /^https?$/;
+
 /**
  * Definitive `configure` / style shapes for the Branding Layer.
  *
  * Resolved copy/theme types are `z.infer` of these schemas. The RPC patch
- * schema is built with `.partial()` so hosts may omit any key. Do not
+ * schema is built with `.partial()` so hosts may omit any key, minus the
+ * wallet-owned risk copy in {@link WALLET_OWNED_COPY_PATHS}. Do not
  * re-declare parallel interfaces in `types.ts` — extend the schema here.
  */
 
@@ -58,8 +62,9 @@ export const styleCopyPasskeyNameSchema = z.strictObject({
   termsAcceptanceJoiner: z.string(),
   privacyPolicyLabel: z.string(),
   termsAcceptanceError: z.string(),
-  termsOfServiceUrl: z.url(),
-  privacyPolicyUrl: z.url(),
+  /** Rendered as links — http(s) only, so a host cannot supply other schemes. */
+  termsOfServiceUrl: z.url({ protocol: HTTP_PROTOCOL }),
+  privacyPolicyUrl: z.url({ protocol: HTTP_PROTOCOL }),
   cancelLabel: z.string(),
   continueLabel: z.string(),
 });
@@ -736,6 +741,28 @@ const passkeyPromptPatchSchema = z.strictObject({
   exportPrivateKey: styleCopyPasskeyPromptEntrySchema.partial().optional(),
 });
 
+/**
+ * Wallet-owned risk copy — never host-configurable.
+ *
+ * These strings warn the user that a host-initiated action is dangerous, and
+ * the host is the party asking for that action. Letting the embedder replace
+ * them would let a malicious site make a failed simulation, a durable-nonce
+ * transaction, an ownership transfer, an uncapped approval, or a private-key
+ * export read as safe. They stay in the resolved copy (defaults only) and are
+ * omitted from the `configure` patch schema, so a patch that includes them is
+ * rejected as `Invalid params`.
+ */
+export const WALLET_OWNED_COPY_PATHS = [
+  "solanaSignAndSend.simulationWarning",
+  "solanaSignAndSend.durableNonceWarning",
+  "grantKitScopeTerms.ownershipWarning",
+  "grantLiFiApprovePermission.warning",
+  "cancelDelegation.skipOnchainAcknowledgement",
+  "balances.addConfirmWarning",
+  "exportPrivateKey.body",
+  "exportPrivateKey.revealingBody",
+] as const;
+
 export const styleCopyPatchSchema = z.strictObject({
   productName: z.string().optional(),
   tagline: z.string().optional(),
@@ -746,7 +773,10 @@ export const styleCopyPatchSchema = z.strictObject({
   passkeyName: styleCopyPasskeyNameSchema.partial().optional(),
   personalSign: styleCopyPersonalSignSchema.partial().optional(),
   solanaSign: styleCopySolanaSignSchema.partial().optional(),
-  solanaSignAndSend: styleCopySolanaSignAndSendSchema.partial().optional(),
+  solanaSignAndSend: styleCopySolanaSignAndSendSchema
+    .omit({ simulationWarning: true, durableNonceWarning: true })
+    .partial()
+    .optional(),
   siwe: styleCopySiweSchema.partial().optional(),
   siws: styleCopySiwsSchema.partial().optional(),
   typedData: styleCopyTypedDataSchema.partial().optional(),
@@ -759,12 +789,20 @@ export const styleCopyPatchSchema = z.strictObject({
   solanaBridge: styleCopySolanaBridgeSchema.partial().optional(),
   grantExecutionPermission:
     styleCopyGrantExecutionPermissionSchema.partial().optional(),
-  grantKitScopeTerms: styleCopyGrantKitScopeTermsSchema.partial().optional(),
+  grantKitScopeTerms: styleCopyGrantKitScopeTermsSchema
+    .omit({ ownershipWarning: true })
+    .partial()
+    .optional(),
   grantLiFiSwapPermission:
     styleCopyGrantLiFiSwapPermissionSchema.partial().optional(),
-  grantLiFiApprovePermission:
-    styleCopyGrantLiFiApprovePermissionSchema.partial().optional(),
-  cancelDelegation: styleCopyCancelDelegationSchema.partial().optional(),
+  grantLiFiApprovePermission: styleCopyGrantLiFiApprovePermissionSchema
+    .omit({ warning: true })
+    .partial()
+    .optional(),
+  cancelDelegation: styleCopyCancelDelegationSchema
+    .omit({ skipOnchainAcknowledgement: true })
+    .partial()
+    .optional(),
   activateOfflinePermissions:
     styleCopyActivateOfflinePermissionsSchema.partial().optional(),
   relayerSubmit: styleCopyRelayerSubmitSchema.partial().optional(),
@@ -774,8 +812,14 @@ export const styleCopyPatchSchema = z.strictObject({
     styleCopyCredentialPresentationSchema.partial().optional(),
   credentials: styleCopyCredentialsSchema.partial().optional(),
   delegations: styleCopyDelegationsSchema.partial().optional(),
-  balances: styleCopyBalancesSchema.partial().optional(),
-  exportPrivateKey: styleCopyExportPrivateKeySchema.partial().optional(),
+  balances: styleCopyBalancesSchema
+    .omit({ addConfirmWarning: true })
+    .partial()
+    .optional(),
+  exportPrivateKey: styleCopyExportPrivateKeySchema
+    .omit({ body: true, revealingBody: true })
+    .partial()
+    .optional(),
   importPrivateKey: styleCopyImportPrivateKeySchema.partial().optional(),
   advancedOptions: styleCopyAdvancedOptionsSchema.partial().optional(),
   bitcoin: styleCopyBitcoinSchema.partial().optional(),

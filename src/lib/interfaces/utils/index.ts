@@ -11,5 +11,7 @@ export type {
   ITransactionUtils,
 } from "./ITransactionUtils";
 export { ITransactionUtilsType } from "./ITransactionUtils";
+export type { IHostOriginProvider } from "./IHostOriginProvider";
+export { IHostOriginProviderType } from "./IHostOriginProvider";
 export type { ISIWEUtils } from "./ISIWEUtils";
 export { ISIWEUtilsType } from "./ISIWEUtils";

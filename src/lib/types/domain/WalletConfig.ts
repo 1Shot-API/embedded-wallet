@@ -9,8 +9,9 @@ export class WalletConfig {
     /** Origin for credential + activity REST (no trailing slash). */
     public readonly relayerBaseUrl: UriString,
     /**
-     * Embedding host hostname for analytics (`hostDomain` on OWS events).
-     * Resolved once when config is first requested.
+     * Embedding host hostname for analytics (`hostDomain` on OWS events) and
+     * host-scoped authorization. Derived from the browser-attested handshake
+     * origin; {@link ConfigProvider} rebuilds the config once it is known.
      */
     public readonly hostDomain: DomainString,
     /** IndexedDB cache key for optimistic send history. */

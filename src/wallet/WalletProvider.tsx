@@ -67,6 +67,7 @@ import {
   SupportedChainsBlockchainProvider,
   EventBus,
   TransactionUtils,
+  HostOriginProvider,
   AnalyticsBridge,
   runWithAnalytics,
 } from "../lib/implementations/utils";
@@ -96,6 +97,7 @@ import type {
   ICircleProvider,
   IConfigProvider,
   IEventBus,
+  IHostOriginProvider,
   IOWSProvider,
   ITransactionUtils,
 } from "../lib/interfaces/utils";
@@ -135,8 +137,13 @@ import { useWalletAssets } from "./useWalletAssets";
 import { useWalletAuth } from "./useWalletAuth";
 import { useWalletBoot } from "./useWalletBoot";
 
+/** Records the Host origin from the Postmate handshake; starts before `wallet.start()`. */
+const hostOriginProvider: IHostOriginProvider = new HostOriginProvider(
+  typeof window === "undefined" ? null : window,
+);
+hostOriginProvider.start();
 /** Filled once the Signing Layer iframe finishes loading / wallet handshake. */
-const configProvider: IConfigProvider = new ConfigProvider();
+const configProvider: IConfigProvider = new ConfigProvider(hostOriginProvider);
 const circleProvider: ICircleProvider = new CircleProvider(configProvider);
 const owsProvider: IOWSProvider = new OWSProvider();
 const chainRepository: IChainRepository = new HardcodedChainRepository();
@@ -154,7 +161,9 @@ const analyticsBridge = new AnalyticsBridge({
   configProvider,
 });
 analyticsBridge.start();
-const transactionUtils: ITransactionUtils = new TransactionUtils();
+const transactionUtils: ITransactionUtils = new TransactionUtils(
+  hostOriginProvider,
+);
 const knownAssetRepository: IKnownAssetRepository =
   new HardcodedKnownAssetRepository(blockchainProvider, solanaRpc);
 

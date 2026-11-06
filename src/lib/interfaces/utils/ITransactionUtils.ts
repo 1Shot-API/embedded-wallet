@@ -1,4 +1,5 @@
 import type {
+  DomainString,
   EVMAccountAddress,
   EVMContractAddress,
   HexString,
@@ -23,8 +24,11 @@ export interface ITransactionUtils {
     decimals: number | null | undefined,
   ): string;
 
-  /** Best-effort host domain for consent copy (`ancestorOrigins` / referrer). */
-  resolveHostDomain(): string;
+  /**
+   * Hostname of the embedding Host page, from the browser-attested handshake
+   * origin (see `IHostOriginProvider`). `unknown` until a host has connected.
+   */
+  resolveHostDomain(): DomainString;
 
   chainLabelFor(
     chainId: OWSChainId,
