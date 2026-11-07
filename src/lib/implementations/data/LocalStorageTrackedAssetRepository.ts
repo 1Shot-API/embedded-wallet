@@ -82,6 +82,7 @@ export class LocalStorageTrackedAssetRepository
   private storageKey: string | null = null;
   private migratedKeys = new Set<string>();
   private changeListener: (() => void) | null = null;
+  private hydratedListener: (() => void) | null = null;
 
   constructor(
     private readonly blockchain: IBlockchainProvider,
@@ -99,6 +100,10 @@ export class LocalStorageTrackedAssetRepository
 
   setChangeListener(listener: (() => void) | null): void {
     this.changeListener = listener;
+  }
+
+  setHydratedListener(listener: (() => void) | null): void {
+    this.hydratedListener = listener;
   }
 
   async exportUserAssetsForVault(): Promise<IVaultTrackedAssetRow[]> {
@@ -142,8 +147,10 @@ export class LocalStorageTrackedAssetRepository
       );
       next.push(tracked);
     }
+    // No change-listener: that would upload the rows we just downloaded.
     await this.writeAssets(storageKey, next, false);
     syncTrackedAssetIconUrls(this.mergeWithDefaults(next));
+    this.hydratedListener?.();
   }
 
   private async resolveStorageKey(): Promise<string> {
@@ -397,7 +404,7 @@ export class LocalStorageTrackedAssetRepository
       return null;
     }
     try {
-      let ata = asset.ataAddress;
+      const ata = asset.ataAddress;
       if (!ata) {
         // Without a stored ATA, balance is unknown until Add Asset / ensureAta.
         return 0n;

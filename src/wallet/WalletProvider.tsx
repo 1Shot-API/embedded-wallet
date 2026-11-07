@@ -176,6 +176,13 @@ const trackedAssetRepository = new LocalStorageTrackedAssetRepository(
   solanaRpc,
   { storage: walletKvStore },
 );
+// Vault recover replaces the stored rows without the upload change-listener;
+// bump the count so Balances / Solana lists repaint with the hydrated assets.
+trackedAssetRepository.setHydratedListener(() => {
+  void trackedAssetRepository.list().then((listed) => {
+    useWalletSessionStore.getState().setTrackedAssetCount(listed.length);
+  });
+});
 const assetActivityRepository: IAssetActivityRepository =
   new CompositeAssetActivityRepository(
     new BlockscoutAssetActivityRepository(eventBus, configProvider, {
