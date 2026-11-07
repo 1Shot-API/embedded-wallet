@@ -1,5 +1,5 @@
 import {
-  DomainString,
+  type DomainString,
   type EVMContractAddress,
   EVMAccountAddress,
   type EVMChainId,
@@ -19,8 +19,7 @@ import type {
   ITransactionUtils,
 } from "../../interfaces/utils/ITransactionUtils";
 
-/** Used in consent copy and stored on grants before any host has connected. */
-const UNKNOWN_HOST_DOMAIN = DomainString("unknown");
+import { UNKNOWN_HOST_DOMAIN } from "./HostOriginProvider";
 
 /** EVM transfer helpers (decode, amount formatting, host/chain labels). */
 export class TransactionUtils implements ITransactionUtils {

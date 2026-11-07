@@ -50,8 +50,10 @@ export function OwnershipTransferPermissionTerms({
       : copy.newOwnerAnyLabel;
 
   return (
-    <PermissionGrantTermsCard kindLabel={copy.ownershipTransferKindLabel}>
-      <p className="text-sm text-destructive">{copy.ownershipWarning}</p>
+    <PermissionGrantTermsCard
+      kindLabel={copy.ownershipTransferKindLabel}
+      warning={copy.ownershipWarning}
+    >
       <ConsentSummaryRow label={copy.contractLabel}>
         <span className="truncate text-sm font-medium">{contractLabel}</span>
       </ConsentSummaryRow>

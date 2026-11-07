@@ -125,6 +125,8 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       rejectLabel: "Cancel",
       signLabel: "Sign in",
       signingHint: "Confirm in the signing panel…",
+      domainMismatchWarning:
+        "This message signs you in to {domain}, but the request comes from {host}. A site that asks you to sign in somewhere else may be trying to use your account there. Only continue if you expected this.",
     },
     siws: {
       title: "Sign-in request",
@@ -142,6 +144,8 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       rejectLabel: "Cancel",
       signLabel: "Sign in",
       signingHint: "Confirm in the signing panel…",
+      domainMismatchWarning:
+        "This message signs you in to {domain}, but the request comes from {host}. A site that asks you to sign in somewhere else may be trying to use your account there. Only continue if you expected this.",
     },
     typedData: {
       title: "Signature request",

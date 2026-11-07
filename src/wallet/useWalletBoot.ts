@@ -61,6 +61,7 @@ import type {
   ISIWEUtils,
   ITransactionUtils,
 } from "../lib/interfaces/utils";
+import type { IHostOriginProvider } from "../lib/interfaces/utils/IHostOriginProvider";
 import type { SupportedChain } from "../lib/types/domain";
 import {
   DelegationCancelAbortedEvent,
@@ -92,6 +93,7 @@ import { loadCachedEvmAddress, loadCredentialId } from "../storage";
 import { registerConfigureRpc } from "../style/registerConfigure";
 import { styleController } from "../style/styleController";
 
+import { Eip1193HandlerRegistry } from "./Eip1193HandlerRegistry";
 import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
 import { type GrantPermissionModalKind ,type 
   ActiveModal,type 
@@ -103,6 +105,7 @@ import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerBridgeRpc } from "./registerBridge";
 import { type IPasskeyRegistrationResult , registerCreateAccountRpc } from "./registerCreateAccount";
 import { registerFocusModeRpc } from "./registerFocusMode";
+import { registerForwardEip1193Rpc } from "./registerForwardEip1193";
 import { registerGetBitcoinBalanceRpc } from "./registerGetBitcoinBalance";
 import { registerGetUpgradedRpc } from "./registerGetUpgraded";
 import { registerOnrampRpc } from "./registerOnramp";
@@ -226,6 +229,7 @@ export interface IUseWalletBootParams {
   walletStorage: AccountConnectStorage;
   eventBus: IEventBus;
   configProvider: IConfigProvider;
+  hostOriginProvider: IHostOriginProvider;
 }
 
 const siweUtils: ISIWEUtils = new SIWEUtils();
@@ -261,6 +265,7 @@ export function useWalletBoot({
   walletStorage,
   eventBus,
   configProvider,
+  hostOriginProvider,
 }: IUseWalletBootParams): void {
   useEffect(() => {
     let cancelled = false;
@@ -316,6 +321,8 @@ export function useWalletBoot({
       const signer = createDeferredSigner(awaitSigner);
 
       const wallet = OWSWallet.prepare({ debug: true });
+      // Must wrap `registerEip1193` before any handler below is registered.
+      const eip1193Handlers = new Eip1193HandlerRegistry(wallet);
       walletRef.current = wallet;
       owsProvider.setWallet(wallet);
 
@@ -328,6 +335,10 @@ export function useWalletBoot({
       ) => pushModal(build);
 
       registerConfigureRpc(wallet, chainRepository);
+      registerForwardEip1193Rpc(wallet, {
+        hostOriginProvider,
+        handlers: eip1193Handlers,
+      });
 
       const warmVaultFromRelayer = async (): Promise<void> => {
         try {
@@ -689,6 +700,15 @@ export function useWalletBoot({
                 const stored = await delegationService.findByPermissionContext(
                   params.permissionContext,
                 );
+                const { hostDomain } = await configProvider.getConfig();
+                if (
+                  stored &&
+                  stored.hostDomain.toLowerCase() !== hostDomain.toLowerCase()
+                ) {
+                  throw new OwsInvalidParamsError(
+                    "Cannot revoke a permission granted to a different host",
+                  );
+                }
                 const chainId =
                   stored?.chainId ?? rpcHelper.getChainId();
                 const chain = resolveChain(chainId);
@@ -713,7 +733,6 @@ export function useWalletBoot({
                 const domain =
                   stored?.hostDomain ??
                   transactionUtils.resolveHostDomain();
-                const { hostDomain } = await configProvider.getConfig();
                 const started = performance.now();
                 const account = analyticsAccountAddress(owner);
                 await runWithAnalytics(
@@ -804,7 +823,10 @@ export function useWalletBoot({
               delegationService.getSupportedExecutionPermissions(),
             getGrantedExecutionPermissions: async () => {
               await ensureReady();
-              return delegationService.getGrantedExecutionPermissions();
+              const { hostDomain } = await configProvider.getConfig();
+              return delegationService.getGrantedExecutionPermissions(
+                hostDomain,
+              );
             },
           },
         },
@@ -937,6 +959,7 @@ export function useWalletBoot({
                       source: "personalSign",
                       request,
                       fields: siweFields,
+                      hostDomain,
                       resolve,
                       reject,
                     }
@@ -990,6 +1013,7 @@ export function useWalletBoot({
                       source: "typedData",
                       request,
                       fields: siweFields,
+                      hostDomain,
                       resolve,
                       reject,
                     }

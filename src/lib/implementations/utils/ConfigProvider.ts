@@ -4,6 +4,8 @@ import type { IConfigProvider } from "../../interfaces/utils/IConfigProvider";
 import type { IHostOriginProvider } from "../../interfaces/utils/IHostOriginProvider";
 import { WalletConfig } from "../../types/domain/WalletConfig";
 
+import { UNKNOWN_HOST_DOMAIN } from "./HostOriginProvider";
+
 const PRODUCTION_WALLET_HOSTNAME = "wallet.1shotapi.com";
 const PRODUCTION_RELAYER_BASE_URL = UriString("https://relayer.1shotapi.com");
 const DEVELOPMENT_RELAYER_BASE_URL = UriString("https://relayer.1shotapi.dev");
@@ -57,15 +59,20 @@ export class ConfigProvider implements IConfigProvider {
   }
 
   /**
-   * Embedding host hostname for analytics `hostDomain` and host-scoped checks
-   * (e.g. `requestCancelDelegations`). Taken from the browser-attested
-   * handshake origin; falls back to this wallet's own hostname only before a
-   * host has connected or when Branding runs top-level.
+   * Requesting page hostname for analytics `hostDomain` and host-scoped checks
+   * (e.g. `requestCancelDelegations`, `wallet_getGrantedExecutionPermissions`).
+   * Taken from the browser-attested handshake origin (or the origin an
+   * extension host relays). An embedded wallet whose host is still unknown
+   * reports {@link UNKNOWN_HOST_DOMAIN}; only a top-level wallet, which has no
+   * host at all, reports its own hostname.
    */
   private resolveHostDomain(): DomainString {
     const fromHost = this.hostOriginProvider.getHostDomain();
     if (fromHost) {
       return fromHost;
+    }
+    if (this.hostOriginProvider.isEmbedded()) {
+      return UNKNOWN_HOST_DOMAIN;
     }
     if (typeof window === "undefined") {
       return DomainString("localhost");

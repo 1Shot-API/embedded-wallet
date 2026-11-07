@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { faviconUrl, truncateAddress } from "../../lib/utils/identityDisplay";
 import { ConsentSummaryRow } from "../ConsentSummaryRow";
+import { RiskWarning } from "../RiskWarning";
 import { SafeAssetImage } from "../SafeAssetImage";
 
 const grantCardClassName =
@@ -136,14 +137,20 @@ export function PermissionGrantHostContextRows({
   );
 }
 
-/** Permission / rule terms: kind label and read-only summary rows. */
+/**
+ * Permission / rule terms: kind label and read-only summary rows.
+ * `intro` is host-themed explanatory text; `warning` is wallet-owned risk
+ * copy and renders in the fixed-style {@link RiskWarning} box.
+ */
 export function PermissionGrantTermsCard({
   kindLabel,
   intro,
+  warning,
   children,
 }: {
   kindLabel: string;
   intro?: string;
+  warning?: string;
   children: ReactNode;
 }) {
   return (
@@ -156,6 +163,7 @@ export function PermissionGrantTermsCard({
           {intro}
         </p>
       ) : null}
+      {warning ? <RiskWarning>{warning}</RiskWarning> : null}
       <dl className="m-0 flex flex-col gap-2.5">{children}</dl>
     </div>
   );

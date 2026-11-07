@@ -2,22 +2,30 @@ import type {
   PersonalSignApprovalRequest,
   SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
-import { OwsUserRejectedError, type EVMSignatureHex } from "@1shotapi/ows-types";
+import {
+  OwsUserRejectedError,
+  type DomainString,
+  type EVMSignatureHex,
+} from "@1shotapi/ows-types";
 import { useRef, useState } from "react";
 import type { TypedDataDefinition } from "viem";
 
+import { UNKNOWN_HOST_DOMAIN } from "../../lib/implementations/utils/HostOriginProvider";
 import type { ISiweFields } from "../../lib/types/domain/SiweFields";
 import { isSignCeremonyDenied } from "../../lib/utils/isSignCeremonyDenied";
 import {
   isSiweUriRedundant,
   resolveSiweEvmChainId,
+  siweDomainMatchesHost,
 } from "../../lib/utils/siweDisplay";
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { CopyableText } from "../CopyableText";
 import { Modal } from "../Modal";
+import { RiskWarning } from "../RiskWarning";
 
 import { NetworkIdentityMark } from "./NetworkIdentityMark";
+import { RequestingHostBadge } from "./RequestingHostBadge";
 import { SignInMetadataRow } from "./SignInMetadataRow";
 import { SignInSectionLabel } from "./SignInSectionLabel";
 
@@ -26,12 +34,15 @@ export function EVMSiweModal({
   source,
   request,
   fields,
+  hostDomain,
   onResolve,
   onReject,
 }: {
   source: "typedData" | "personalSign";
   request: SignTypedDataApprovalRequest | PersonalSignApprovalRequest;
   fields: ISiweFields;
+  /** Browser-attested requester, never the message's own `domain`. */
+  hostDomain: DomainString;
   onResolve: (signature: EVMSignatureHex) => void;
   onReject: (error: unknown) => void;
 }) {
@@ -42,7 +53,13 @@ export function EVMSiweModal({
   const signGenerationRef = useRef(0);
 
   const accountAddress = fields.address?.trim() || String(request.address);
-  const body = siwe.body.replaceAll("{domain}", fields.domain);
+  const body = siwe.body.replaceAll("{domain}", hostDomain);
+  const domainMismatch =
+    hostDomain === UNKNOWN_HOST_DOMAIN ||
+    !siweDomainMatchesHost(fields.domain, hostDomain);
+  const domainMismatchWarning = siwe.domainMismatchWarning
+    .replaceAll("{domain}", fields.domain)
+    .replaceAll("{host}", hostDomain);
   const evmChainId = resolveSiweEvmChainId(fields.chainId);
   const chain = evmChainId ? resolveChain(evmChainId) : null;
   const networkDisplay =
@@ -116,9 +133,7 @@ export function EVMSiweModal({
           {body}
         </p>
 
-        <div
-          className={`flex items-center gap-3 ${fields.domain.trim() ? "justify-between" : "justify-start"}`}
-        >
+        <div className="flex items-center justify-between gap-3">
           <div className="flex shrink-0 items-center gap-2">
             <NetworkIdentityMark
               label={networkDisplay}
@@ -132,15 +147,12 @@ export function EVMSiweModal({
               {networkDisplay}
             </span>
           </div>
-          {fields.domain.trim() ? (
-            <span
-              className="border-border text-foreground min-w-0 max-w-[55%] truncate rounded-full border px-2.5 py-1 text-sm font-medium"
-              title={fields.domain}
-            >
-              {fields.domain}
-            </span>
-          ) : null}
+          <RequestingHostBadge domain={hostDomain} />
         </div>
+
+        {domainMismatch ? (
+          <RiskWarning>{domainMismatchWarning}</RiskWarning>
+        ) : null}
 
         <div className="flex flex-col gap-1.5">
           <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">

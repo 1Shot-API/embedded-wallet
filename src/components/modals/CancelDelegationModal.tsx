@@ -15,6 +15,7 @@ import type {
 } from "../../wallet/modalTypes";
 import { Modal } from "../Modal";
 import { PaymentFeePicker } from "../PaymentFeePicker";
+import { RiskWarning } from "../RiskWarning";
 
 type CancelPhase = "confirm" | "signing" | "finalFee" | "submitting";
 
@@ -357,9 +358,9 @@ export function CancelDelegationModal({
             </span>
           </label>
           {skipOnchain ? (
-            <p className="text-destructive m-0 mt-2 text-[0.85rem] leading-snug">
+            <RiskWarning className="mt-2">
               {copy.skipOnchainAcknowledgement}
-            </p>
+            </RiskWarning>
           ) : null}
           {localError ? (
             <p className="text-destructive m-0 mt-2 text-[0.85rem]" role="alert">
