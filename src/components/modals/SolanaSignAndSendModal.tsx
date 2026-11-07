@@ -14,6 +14,7 @@ import type { ESolanaTxConsentMode } from "../../wallet/modalTypes";
 import { useWallet } from "../../wallet/WalletProvider";
 import { CopyableText } from "../CopyableText";
 import { Modal } from "../Modal";
+import { RiskWarning } from "../RiskWarning";
 import { SafeAssetImage } from "../SafeAssetImage";
 
 import { FieldLabel } from "./FieldLabel";
@@ -232,16 +233,13 @@ export function SolanaSignAndSendModal({
         ))}
 
         {warnings.length > 0 ? (
-          <div className="border-border bg-muted/40 flex flex-col gap-2 rounded-lg border p-3">
+          <RiskWarning>
             {warnings.map((warning) => (
-              <p
-                key={warning}
-                className="text-foreground m-0 text-sm leading-relaxed"
-              >
+              <p key={warning} className="m-0">
                 {warning}
               </p>
             ))}
-          </div>
+          </RiskWarning>
         ) : null}
 
         {submitError ? (

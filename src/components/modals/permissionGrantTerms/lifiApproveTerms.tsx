@@ -125,7 +125,7 @@ export function LiFiApprovePermissionTerms({
   return (
     <PermissionGrantTermsCard
       kindLabel={copy.permissionKindLabel}
-      intro={copy.warning}
+      warning={copy.warning}
     >
       <ConsentSummaryRow label={copy.tokenLabel}>
         {tokenIconUrl ? (

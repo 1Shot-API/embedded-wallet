@@ -69,6 +69,7 @@ export function ModalHost() {
           source={activeModal.source}
           request={activeModal.request}
           fields={activeModal.fields}
+          hostDomain={activeModal.hostDomain}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
         />
@@ -77,6 +78,7 @@ export function ModalHost() {
       return (
         <SolanaSiwsModal
           fields={activeModal.fields}
+          hostDomain={activeModal.hostDomain}
           messageBytes={activeModal.messageBytes}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}

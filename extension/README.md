@@ -140,14 +140,22 @@ The side panel is shared by every tab, so the background keeps connections
 per **origin**, taken from the browser's `sender` metadata and never from the
 page:
 
-- Every routed request carries the requesting origin. The panel header shows
-  `Request from <origin> · <method>` while it is in flight and highlights it
-  when that is not the focused tab.
+- Every routed request carries the requesting origin. Prompting methods and
+  connection-scoped reads run **one at a time** in the panel and go to the
+  Branding Layer through its `forwardEip1193` RPC with that origin, so the
+  wallet's own consent badge, analytics, and EIP-7715 grant scoping name the
+  dapp instead of the extension id. Chain reads (`eth_call`, `eth_chainId`, …)
+  go straight through and never wait behind a prompt.
+- The panel header shows `Request from <origin> · <method>` for the request
+  the wallet is handling right now (not merely the oldest pending one) and
+  highlights it when that is not the focused tab.
 - `eth_requestAccounts` / `wallet_requestPermissions` from an origin that has
   not connected yet show an **Allow / Deny** prompt in the panel chrome before
   the Branding Layer sees the request.
-- Until an origin is connected, `eth_accounts` returns `[]` and signing / chain
-  methods are refused with EIP-1193 `4100` instead of opening a prompt.
+- Until an origin is connected, `eth_accounts`, `wallet_getPermissions` and
+  `wallet_getGrantedExecutionPermissions` return `[]`, and signing / chain /
+  EIP-7715 grant and revoke methods are refused with EIP-1193 `4100` instead
+  of opening a prompt.
 - `accountsChanged` / `chainChanged` / `connect` / `disconnect` go only to
   injected tabs whose current origin is connected.
 

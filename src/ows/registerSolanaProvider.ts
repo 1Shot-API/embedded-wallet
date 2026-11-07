@@ -427,6 +427,7 @@ export function registerSolanaProvider(
               id,
               kind: "siws",
               fields,
+              hostDomain,
               messageBytes,
               resolve,
               reject,
