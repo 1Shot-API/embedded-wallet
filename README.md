@@ -42,7 +42,7 @@ One passkey session derives the EVM account, the Solana address, and a native Se
 | `/` | React Branding Layer (Vite bundle) |
 | `/signer/` | Static `@1shotapi/ows-signer` ES modules |
 | `/create/` | First-party Host page for Safari passkey create |
-| `extension/` | MV3 Chrome/Firefox extension (MetaMask-style host) |
+| `extension/` | MV3 Chrome/Firefox extension (MetaMask-style host). **Shelved:** the wallet refuses extension embedders — see [`extension/README.md`](extension/README.md) |
 
 Production deliverable: a static **nginx** Docker image (no server-side runtime).
 

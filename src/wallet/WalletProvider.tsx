@@ -137,7 +137,11 @@ import { useWalletAssets } from "./useWalletAssets";
 import { useWalletAuth } from "./useWalletAuth";
 import { useWalletBoot } from "./useWalletBoot";
 
-/** Records the Host origin from the Postmate handshake; starts before `wallet.start()`. */
+/**
+ * Records the Host origin from the Postmate handshake and refuses handshakes
+ * from top-level openers, non-parent windows, and browser-extension embedders.
+ * Must start before `wallet.start()` so it runs ahead of Postmate's listener.
+ */
 const hostOriginProvider: IHostOriginProvider = new HostOriginProvider(
   typeof window === "undefined" ? null : window,
 );
@@ -645,7 +649,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     walletStorage,
     eventBus,
     configProvider,
-    hostOriginProvider,
   });
 
   const switchChain = useCallback(async (next: OWSChainId) => {

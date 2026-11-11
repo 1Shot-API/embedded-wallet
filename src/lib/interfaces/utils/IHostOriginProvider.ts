@@ -3,7 +3,8 @@ import type { DomainString } from "@1shotapi/ows-types";
 import type { OriginString } from "../../types/primitives/OriginString";
 
 /**
- * Identity of the page a request comes from.
+ * Identity of the Host Layer page that embeds this Branding Layer, and the
+ * gate that decides whether any page may become the Postmate RPC peer.
  *
  * The host origin is taken from values the browser sets and the embedding
  * page cannot forge or suppress: `MessageEvent.origin` of the Postmate
@@ -11,36 +12,26 @@ import type { OriginString } from "../../types/primitives/OriginString";
  * where the browser exposes it. `document.referrer` is never used — an
  * embedder can blank it with `Referrer-Policy: no-referrer`.
  *
- * A browser-extension host (the 1Shot extension side panel) is itself the
- * party that attests page origins, so it may name the page it is acting for
- * per request via {@link runForOrigin}; that relayed origin then becomes the
- * requester for everything that reads {@link getHostDomain}.
+ * The gate refuses every handshake when the wallet runs top-level (a page
+ * that `window.open`s the wallet must not drive it) and when the embedder is
+ * a browser-extension page. Extension embedding is disabled while the 1Shot
+ * extension is shelved: any installed extension could frame the wallet, and
+ * the wallet cannot tell which extension it is. Re-enabling it needs a new
+ * trust model (for example pinned published extension ids) — see
+ * `extension/README.md`.
  */
 export interface IHostOriginProvider {
-  /** Start observing the handshake. Idempotent; call before `OWSWallet.start()`. */
+  /** Install the handshake gate. Idempotent; call before `OWSWallet.start()`. */
   start(): void;
 
   /** True when this Branding Layer runs inside another document. */
   isEmbedded(): boolean;
 
-  /** Direct embedder origin such as `https://app.example.com`; `null` until a host connects or when top-level. */
+  /** Embedder origin such as `https://app.example.com`; `null` until a host connects, when top-level, or when the embedder was refused. */
   getHostOrigin(): OriginString | null;
 
-  /** Origin the current request is attributed to: the relayed origin inside {@link runForOrigin}, else {@link getHostOrigin}. */
-  getRequesterOrigin(): OriginString | null;
-
-  /** Hostname of {@link getRequesterOrigin}; `null` when the origin is unknown. */
+  /** Hostname of {@link getHostOrigin}; `null` when the origin is unknown. */
   getHostDomain(): DomainString | null;
-
-  /** True when the embedder is a browser-extension page (`chrome-extension:`, `moz-extension:`, …). */
-  isExtensionHost(): boolean;
-
-  /**
-   * Run `work` with `origin` as the requester. Calls are serialized so the
-   * requester never changes underneath an in-flight request. Only meaningful
-   * for an extension host; callers must check {@link isExtensionHost} first.
-   */
-  runForOrigin<T>(origin: OriginString, work: () => Promise<T>): Promise<T>;
 }
 
 export const IHostOriginProviderType = Symbol.for("IHostOriginProvider");

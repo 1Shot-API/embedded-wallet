@@ -1,3 +1,10 @@
+/**
+ * SHELVED: the wallet refuses to be embedded by a browser-extension page, so
+ * `OWSProxy.create` below never completes its handshake, and the
+ * `forwardEip1193` RPC used by `runOriginBound` no longer exists. Known open
+ * issue if this is revived: a background timeout (120 s) does not cancel the
+ * request here, so it can still prompt later. See `extension/README.md`.
+ */
 import {
   EWalletPresentationMode,
   OWSProxy,

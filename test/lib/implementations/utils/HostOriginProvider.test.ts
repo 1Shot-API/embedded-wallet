@@ -5,7 +5,6 @@ import {
   HostOriginProvider,
   type IHostOriginWindow,
 } from "@/lib/implementations/utils/HostOriginProvider.ts";
-import { OriginString } from "@/lib/types/primitives/OriginString.ts";
 
 type Listener = (event: MessageEvent) => void;
 
@@ -49,7 +48,19 @@ function fakeWindow(options: {
     }
     return { stopped };
   };
-  return { win, parent, listeners, post };
+  /** Stand-in for Postmate's child listener, registered after ours (`wallet.start()`). */
+  const watchPostmate = () => {
+    const seen = { handshakes: 0 };
+    listeners.push((event) => {
+      if (
+        (event.data as { postmate?: string } | null)?.postmate === "handshake"
+      ) {
+        seen.handshakes += 1;
+      }
+    });
+    return seen;
+  };
+  return { win, parent, listeners, post, watchPostmate };
 }
 
 const HANDSHAKE = {
@@ -58,14 +69,25 @@ const HANDSHAKE = {
 };
 
 describe("HostOriginProvider", () => {
-  it("knows nothing when the wallet runs top-level", () => {
-    const { win, listeners } = fakeWindow({ embedded: false });
+  it("refuses every handshake when the wallet runs top-level", () => {
+    const { win, parent, post, watchPostmate } = fakeWindow({
+      embedded: false,
+    });
     const provider = new HostOriginProvider(win);
     provider.start();
+    const postmate = watchPostmate();
+
+    // A page that window.open()s the wallet posts from its own window.
+    const opener = post({ name: "opener" }, "https://evil.example", HANDSHAKE);
+    // Even a message whose source is the wallet's own window.
+    const self = post(parent, "https://wallet.1shotapi.com", HANDSHAKE);
+
+    assert.equal(opener.stopped, true);
+    assert.equal(self.stopped, true);
+    assert.equal(postmate.handshakes, 0);
     assert.equal(provider.isEmbedded(), false);
     assert.equal(provider.getHostOrigin(), null);
     assert.equal(provider.getHostDomain(), null);
-    assert.equal(listeners.length, 0);
   });
 
   it("records the origin of the Postmate handshake from the parent", () => {
@@ -83,29 +105,63 @@ describe("HostOriginProvider", () => {
   });
 
   it("stops a handshake from any window other than the parent before Postmate sees it", () => {
-    const { win, parent, post, listeners } = fakeWindow({ embedded: true });
+    const { win, parent, post, watchPostmate } = fakeWindow({ embedded: true });
     const provider = new HostOriginProvider(win);
     provider.start();
-    let postmateSawHandshake = 0;
-    // Postmate's child listener registers after ours (wallet.start()).
-    listeners.push((event) => {
-      if ((event.data as { postmate?: string }).postmate === "handshake") {
-        postmateSawHandshake += 1;
-      }
-    });
+    const postmate = watchPostmate();
 
     const racer = post({ name: "opener" }, "https://evil.example", HANDSHAKE);
     assert.equal(racer.stopped, true);
-    assert.equal(postmateSawHandshake, 0);
+    assert.equal(postmate.handshakes, 0);
     assert.equal(provider.getHostOrigin(), null);
 
     const real = post(parent, "https://app.example.com", HANDSHAKE);
     assert.equal(real.stopped, false);
-    assert.equal(postmateSawHandshake, 1);
+    assert.equal(postmate.handshakes, 1);
     assert.equal(provider.getHostOrigin(), "https://app.example.com");
   });
 
-  it("ignores parent messages that are not the handshake", () => {
+  it("refuses browser-extension embedders, even as the parent", () => {
+    for (const origin of [
+      "chrome-extension://abcdefghijklmnop",
+      "moz-extension://0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0",
+      "safari-web-extension://ABCDEF",
+    ]) {
+      const { win, parent, post, watchPostmate } = fakeWindow({
+        embedded: true,
+        ancestorOrigins: [origin],
+      });
+      const provider = new HostOriginProvider(win);
+      provider.start();
+      const postmate = watchPostmate();
+      assert.equal(provider.getHostOrigin(), null, `${origin} seed`);
+
+      const result = post(parent, origin, HANDSHAKE);
+
+      assert.equal(result.stopped, true, origin);
+      assert.equal(postmate.handshakes, 0, origin);
+      assert.equal(provider.getHostOrigin(), null, origin);
+      assert.equal(provider.getHostDomain(), null, origin);
+    }
+  });
+
+  it("refuses opaque origins and drops an ancestorOrigins seed when the parent is refused", () => {
+    const { win, parent, post, watchPostmate } = fakeWindow({
+      embedded: true,
+      ancestorOrigins: ["https://host.example"],
+    });
+    const provider = new HostOriginProvider(win);
+    provider.start();
+    const postmate = watchPostmate();
+    assert.equal(provider.getHostOrigin(), "https://host.example");
+
+    assert.equal(post(parent, "null", HANDSHAKE).stopped, true);
+
+    assert.equal(postmate.handshakes, 0);
+    assert.equal(provider.getHostOrigin(), null);
+  });
+
+  it("ignores messages that are not the handshake", () => {
     const { win, parent, post } = fakeWindow({ embedded: true });
     const provider = new HostOriginProvider(win);
     provider.start();
@@ -125,16 +181,6 @@ describe("HostOriginProvider", () => {
     assert.equal(provider.getHostOrigin(), null);
   });
 
-  it("ignores opaque origins", () => {
-    const { win, parent, post } = fakeWindow({ embedded: true });
-    const provider = new HostOriginProvider(win);
-    provider.start();
-
-    post(parent, "null", HANDSHAKE);
-
-    assert.equal(provider.getHostOrigin(), null);
-  });
-
   it("seeds from ancestorOrigins before the handshake arrives", () => {
     const { win } = fakeWindow({
       embedded: true,
@@ -148,112 +194,12 @@ describe("HostOriginProvider", () => {
   });
 
   it("registers a single listener even when started twice", () => {
-    const { win, listeners } = fakeWindow({ embedded: true });
-    const provider = new HostOriginProvider(win);
-    provider.start();
-    provider.start();
-    assert.equal(listeners.length, 1);
-  });
-
-  it("recognizes browser-extension embedders", () => {
-    const { win, parent, post } = fakeWindow({ embedded: true });
-    const provider = new HostOriginProvider(win);
-    provider.start();
-    assert.equal(provider.isExtensionHost(), false);
-
-    post(parent, "https://app.example.com", HANDSHAKE);
-    assert.equal(provider.isExtensionHost(), false);
-
-    const {
-      win: chromeWin,
-      parent: chromeParent,
-      post: chromePost,
-    } = fakeWindow({ embedded: true });
-    const chromeProvider = new HostOriginProvider(chromeWin);
-    chromeProvider.start();
-    chromePost(chromeParent, "chrome-extension://abcdefghijklmnop", HANDSHAKE);
-    assert.equal(chromeProvider.isExtensionHost(), true);
-    assert.equal(chromeProvider.getHostDomain(), "abcdefghijklmnop");
-
-    const { win: mozWin } = fakeWindow({
-      embedded: true,
-      ancestorOrigins: ["moz-extension://0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0"],
-    });
-    const mozProvider = new HostOriginProvider(mozWin);
-    mozProvider.start();
-    assert.equal(mozProvider.isExtensionHost(), true);
-  });
-
-  it("attributes work to the relayed origin and restores the host afterwards", async () => {
-    const { win, parent, post } = fakeWindow({ embedded: true });
-    const provider = new HostOriginProvider(win);
-    provider.start();
-    post(parent, "chrome-extension://abcdefghijklmnop", HANDSHAKE);
-
-    const seen: Array<string | null> = [];
-    const result = await provider.runForOrigin(
-      OriginString("https://dapp.example"),
-      async () => {
-        seen.push(provider.getHostDomain());
-        await Promise.resolve();
-        seen.push(provider.getRequesterOrigin());
-        return 42;
-      },
-    );
-
-    assert.equal(result, 42);
-    assert.deepEqual(seen, ["dapp.example", "https://dapp.example"]);
-    assert.equal(provider.getHostDomain(), "abcdefghijklmnop");
-    assert.equal(
-      provider.getRequesterOrigin(),
-      "chrome-extension://abcdefghijklmnop",
-    );
-    assert.equal(
-      provider.getHostOrigin(),
-      "chrome-extension://abcdefghijklmnop",
-    );
-  });
-
-  it("serializes relayed work so the requester never changes mid-request", async () => {
-    const { win, parent, post } = fakeWindow({ embedded: true });
-    const provider = new HostOriginProvider(win);
-    provider.start();
-    post(parent, "chrome-extension://abcdefghijklmnop", HANDSHAKE);
-
-    let releaseFirst!: () => void;
-    const firstGate = new Promise<void>((resolve) => {
-      releaseFirst = resolve;
-    });
-    const log: string[] = [];
-
-    const first = provider.runForOrigin(
-      OriginString("https://one.example"),
-      async () => {
-        log.push(`start:${provider.getHostDomain()}`);
-        await firstGate;
-        log.push(`end:${provider.getHostDomain()}`);
-        throw new Error("first failed");
-      },
-    );
-    const second = provider.runForOrigin(
-      OriginString("https://two.example"),
-      async () => {
-        log.push(`start:${provider.getHostDomain()}`);
-        return "ok";
-      },
-    );
-
-    await Promise.resolve();
-    assert.deepEqual(log, ["start:one.example"]);
-    releaseFirst();
-
-    await assert.rejects(first, /first failed/);
-    assert.equal(await second, "ok");
-    assert.deepEqual(log, [
-      "start:one.example",
-      "end:one.example",
-      "start:two.example",
-    ]);
-    assert.equal(provider.getHostDomain(), "abcdefghijklmnop");
+    for (const embedded of [true, false]) {
+      const { win, listeners } = fakeWindow({ embedded });
+      const provider = new HostOriginProvider(win);
+      provider.start();
+      provider.start();
+      assert.equal(listeners.length, 1);
+    }
   });
 });
