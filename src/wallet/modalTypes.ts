@@ -78,12 +78,22 @@ export type IRelayerConfirmSendResult = {
 /** Result from TX confirm when canceling or selecting payment (legacy shape). */
 export type IConfirmSendResult = false | IConfirmSendPayment;
 
+/** Decoded ERC-20 `transfer` shown in place of raw calldata. */
+export type ISendCallsModalTransfer = {
+  tokenAddress: EVMContractAddress;
+  symbol: string;
+  /** Formatted with the token decimals. */
+  amount: string;
+  recipient: string;
+  iconUrl?: string;
+};
+
 /** One call shown on the EIP-5792 batch confirm modal. */
 export type ISendCallsModalCall = {
   to: string;
   data: string;
   value: string;
-  summary?: string;
+  transfer?: ISendCallsModalTransfer;
 };
 
 export type ISendCallsModalRequest = {

@@ -58,7 +58,10 @@ import {
 } from "../lib/implementations/data/CallBundleRepository";
 import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
-import type { IRelayerConfirmSendResult } from "./modalTypes";
+import type {
+  IRelayerConfirmSendResult,
+  ISendCallsModalCall,
+} from "./modalTypes";
 
 type DisplaySession = {
   hide: () => Promise<void>;
@@ -395,31 +398,46 @@ export function registerWalletCalls(
         };
       });
 
+      const trackedAssets = await options.trackedAssetRepository.list(
+        body.chainId,
+      );
       const calls = await Promise.all(
         body.calls.map(async (call) => {
           const data = call.data ?? HexString("0x");
-          const transfer = options.transactionUtils.tryDecodeErc20Transfer(
+          const decoded = options.transactionUtils.tryDecodeErc20Transfer(
             EVMContractAddress(call.to),
             data,
           );
-          let summary: string | undefined;
-          if (transfer) {
+          let transfer: ISendCallsModalCall["transfer"];
+          if (decoded) {
             const known = await options.knownAssetRepository.getKnownAsset(
               body.chainId,
-              transfer.tokenAddress,
+              decoded.tokenAddress,
             );
-            const tracked = (
-              await options.trackedAssetRepository.list(body.chainId)
-            ).find((asset) => asset.address === transfer.tokenAddress);
-            const decimals = tracked?.decimals ?? known?.decimals ?? null;
-            const symbol = tracked?.symbol ?? known?.symbol ?? "tokens";
-            summary = `Send ${options.transactionUtils.formatTokenAmount(transfer.amount, decimals)} ${symbol} to ${transfer.recipient}`;
+            const tracked = trackedAssets.find(
+              (asset) => asset.address === decoded.tokenAddress,
+            );
+            const decimals = tracked?.decimals ?? known?.decimals;
+            const symbol = tracked?.symbol ?? known?.symbol;
+            if (decimals != null && symbol) {
+              const iconUrl = tracked?.iconUrl ?? known?.iconUrl;
+              transfer = {
+                tokenAddress: decoded.tokenAddress,
+                symbol,
+                amount: options.transactionUtils.formatTokenAmount(
+                  decoded.amount,
+                  decimals,
+                ),
+                recipient: decoded.recipient,
+                ...(iconUrl ? { iconUrl } : {}),
+              };
+            }
           }
           return {
             to: call.to,
             data,
             value: call.value ?? "0x0",
-            ...(summary ? { summary } : {}),
+            ...(transfer ? { transfer } : {}),
           };
         }),
       );
