@@ -14,7 +14,7 @@ Prefer **clean code over backwards compatibility**. Do not add legacy redirects,
 | `/signer/` | Signing Layer (`@1shotapi/ows-signer`) |
 | `/create/` | First-party Host for Safari passkey create (`createAccount` RPC) |
 | `/mobile/` | First-party Host PWA + WalletConnect (Inline OWSProxy ↔ Reown WalletKit) |
-| `extension/` | MV3 Chrome/Firefox extension (side-panel Inline OWSProxy + MAIN-world EIP-1193 shim) |
+| `extension/` | MV3 Chrome/Firefox extension (side-panel Inline OWSProxy + MAIN-world EIP-1193 shim). **Shelved:** `HostOriginProvider` refuses extension embedders; do not loosen that without the redesign in `extension/README.md` |
 | `src/lib/types/primitives/` | Wallet-local branded types (one file each) |
 | `src/lib/types/enum/` | Domain enums (`EAssetType`, `EWalletEventKind`, …) |
 | `src/lib/types/domain/` | Domain DTOs (e.g. `KnownAsset`, `TrackedAsset`, `WalletConfig`) |

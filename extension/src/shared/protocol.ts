@@ -73,9 +73,11 @@ export function isOriginBoundMethod(method: string): boolean {
 }
 
 /**
- * Branding Layer custom RPC that runs an EIP-1193 method as a given page
- * origin. Only honored when the wallet's embedder is an extension page; see
- * `src/wallet/registerForwardEip1193.ts` in the wallet.
+ * Branding Layer custom RPC that ran an EIP-1193 method as a given page
+ * origin. REMOVED from the wallet: the wallet now refuses extension embedders
+ * entirely because it cannot verify which extension frames it. The extension
+ * is shelved; see the notice at the top of `extension/README.md` before
+ * re-enabling it.
  */
 export const WALLET_FORWARD_EIP1193_RPC_METHOD = "forwardEip1193";
 

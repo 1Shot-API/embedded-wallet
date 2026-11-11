@@ -61,7 +61,6 @@ import type {
   ISIWEUtils,
   ITransactionUtils,
 } from "../lib/interfaces/utils";
-import type { IHostOriginProvider } from "../lib/interfaces/utils/IHostOriginProvider";
 import type { SupportedChain } from "../lib/types/domain";
 import {
   DelegationCancelAbortedEvent,
@@ -93,7 +92,6 @@ import { loadCachedEvmAddress, loadCredentialId } from "../storage";
 import { registerConfigureRpc } from "../style/registerConfigure";
 import { styleController } from "../style/styleController";
 
-import { Eip1193HandlerRegistry } from "./Eip1193HandlerRegistry";
 import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
 import { type GrantPermissionModalKind ,type 
   ActiveModal,type 
@@ -105,7 +103,6 @@ import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerBridgeRpc } from "./registerBridge";
 import { type IPasskeyRegistrationResult , registerCreateAccountRpc } from "./registerCreateAccount";
 import { registerFocusModeRpc } from "./registerFocusMode";
-import { registerForwardEip1193Rpc } from "./registerForwardEip1193";
 import { registerGetBitcoinBalanceRpc } from "./registerGetBitcoinBalance";
 import { registerGetUpgradedRpc } from "./registerGetUpgraded";
 import { registerOnrampRpc } from "./registerOnramp";
@@ -229,7 +226,6 @@ export interface IUseWalletBootParams {
   walletStorage: AccountConnectStorage;
   eventBus: IEventBus;
   configProvider: IConfigProvider;
-  hostOriginProvider: IHostOriginProvider;
 }
 
 const siweUtils: ISIWEUtils = new SIWEUtils();
@@ -265,7 +261,6 @@ export function useWalletBoot({
   walletStorage,
   eventBus,
   configProvider,
-  hostOriginProvider,
 }: IUseWalletBootParams): void {
   useEffect(() => {
     let cancelled = false;
@@ -321,8 +316,6 @@ export function useWalletBoot({
       const signer = createDeferredSigner(awaitSigner);
 
       const wallet = OWSWallet.prepare({ debug: true });
-      // Must wrap `registerEip1193` before any handler below is registered.
-      const eip1193Handlers = new Eip1193HandlerRegistry(wallet);
       walletRef.current = wallet;
       owsProvider.setWallet(wallet);
 
@@ -335,10 +328,6 @@ export function useWalletBoot({
       ) => pushModal(build);
 
       registerConfigureRpc(wallet, chainRepository);
-      registerForwardEip1193Rpc(wallet, {
-        hostOriginProvider,
-        handlers: eip1193Handlers,
-      });
 
       const warmVaultFromRelayer = async (): Promise<void> => {
         try {
