@@ -12,6 +12,11 @@ export interface ISendTransactionResult {
   transactionHash: EVMTransactionHash;
 }
 
+/** Relayer accepted the task. The hash is not known until inclusion. */
+export interface IAcceptedRelayerSend {
+  relayerTransactionId: RelayerTransactionId;
+}
+
 export interface IRelayerPaymentToken {
   address: EVMContractAddress;
   symbol: string;

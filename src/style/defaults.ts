@@ -171,6 +171,22 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       rejectLabel: "Reject",
       signLabel: "Sign",
     },
+    sendCalls: {
+      title: "Send calls",
+      body: "{domain} wants to send these calls together. One confirmation covers the whole batch.",
+      callLabel: "Call {index}",
+      rejectLabel: "Reject",
+      signLabel: "Confirm",
+    },
+    showCallsStatus: {
+      title: "Call status",
+      closeLabel: "Close",
+      pendingLabel: "Pending",
+      confirmedLabel: "Confirmed",
+      failedLabel: "Failed",
+      revertedLabel: "Reverted",
+      callLabel: "Call {index}",
+    },
     confirmTransfer: {
       title: "Confirm transfer",
       body: "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",

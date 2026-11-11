@@ -20,6 +20,8 @@ export const INTERACTIVE_METHODS = new Set([
   "wallet_watchAsset",
   "wallet_requestExecutionPermissions",
   "wallet_revokeExecutionPermission",
+  "wallet_sendCalls",
+  "wallet_showCallsStatus",
 ]);
 
 export function isInteractiveMethod(method: string): boolean {
@@ -44,10 +46,22 @@ export const CONNECTION_SCOPED_READ_METHODS = new Set([
   "eth_accounts",
   "wallet_getPermissions",
   "wallet_getGrantedExecutionPermissions",
+  "wallet_getCapabilities",
+  "wallet_getCallsStatus",
 ]);
 
 export function isConnectionScopedRead(method: string): boolean {
   return CONNECTION_SCOPED_READ_METHODS.has(method);
+}
+
+/**
+ * EIP-5792 reads an unconnected origin must reject with 4100.
+ * Other connection-scoped reads still return an empty list.
+ */
+export function isUnauthorizedUntilConnected(method: string): boolean {
+  return (
+    method === "wallet_getCapabilities" || method === "wallet_getCallsStatus"
+  );
 }
 
 /**

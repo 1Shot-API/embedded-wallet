@@ -175,6 +175,24 @@ export const styleCopySendTransactionSchema = z.strictObject({
   signLabel: z.string(),
 });
 
+export const styleCopySendCallsSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  callLabel: z.string(),
+  rejectLabel: z.string(),
+  signLabel: z.string(),
+});
+
+export const styleCopyShowCallsStatusSchema = z.strictObject({
+  title: z.string(),
+  closeLabel: z.string(),
+  pendingLabel: z.string(),
+  confirmedLabel: z.string(),
+  failedLabel: z.string(),
+  revertedLabel: z.string(),
+  callLabel: z.string(),
+});
+
 export const styleCopyConfirmTransferSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
@@ -705,6 +723,8 @@ export const styleCopyResolvedSchema = z.strictObject({
   siws: styleCopySiwsSchema,
   typedData: styleCopyTypedDataSchema,
   sendTransaction: styleCopySendTransactionSchema,
+  sendCalls: styleCopySendCallsSchema,
+  showCallsStatus: styleCopyShowCallsStatusSchema,
   confirmTransfer: styleCopyConfirmTransferSchema,
   onramp: styleCopyOnrampSchema,
   transferTokens: styleCopyTransferTokensSchema,
@@ -793,6 +813,8 @@ export const styleCopyPatchSchema = z.strictObject({
     .optional(),
   typedData: styleCopyTypedDataSchema.partial().optional(),
   sendTransaction: styleCopySendTransactionSchema.partial().optional(),
+  sendCalls: styleCopySendCallsSchema.partial().optional(),
+  showCallsStatus: styleCopyShowCallsStatusSchema.partial().optional(),
   confirmTransfer: styleCopyConfirmTransferSchema.partial().optional(),
   onramp: styleCopyOnrampSchema.partial().optional(),
   transferTokens: styleCopyTransferTokensSchema.partial().optional(),
@@ -883,6 +905,10 @@ export type IStyleCopySiws = z.infer<typeof styleCopySiwsSchema>;
 export type IStyleCopyTypedData = z.infer<typeof styleCopyTypedDataSchema>;
 export type IStyleCopySendTransaction = z.infer<
   typeof styleCopySendTransactionSchema
+>;
+export type IStyleCopySendCalls = z.infer<typeof styleCopySendCallsSchema>;
+export type IStyleCopyShowCallsStatus = z.infer<
+  typeof styleCopyShowCallsStatusSchema
 >;
 export type IStyleCopyConfirmTransfer = z.infer<
   typeof styleCopyConfirmTransferSchema

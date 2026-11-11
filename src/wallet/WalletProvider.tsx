@@ -646,6 +646,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     eventBus,
     configProvider,
     hostOriginProvider,
+    blockchain: blockchainProvider,
+    relayerRepository: oneshotRelayerRepository,
   });
 
   const switchChain = useCallback(async (next: OWSChainId) => {

@@ -21,7 +21,11 @@ import {
   type EVMChainId,
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
-import { OWSWallet, RpcHelper } from "@1shotapi/ows-wallet-utils";
+import {
+  OWSWallet,
+  RpcHelper,
+  type IBlockchainProvider,
+} from "@1shotapi/ows-wallet-utils";
 import { useEffect, type RefObject } from "react";
 
 import { DEMO_HOLDER_PRIVATE_JWK } from "../demo/demo-keys";
@@ -51,6 +55,7 @@ import type { IPaymentTokenUtils } from "../lib/interfaces/business/utils/IPayme
 import type {
   IChainRepository,
   IKnownAssetRepository,
+  IOneshotRelayerRepository,
   ISolanaRpc,
   ITrackedAssetRepository,
 } from "../lib/interfaces/data";
@@ -86,6 +91,7 @@ import {
   type AccountConnectStorage,
 } from "../ows/registerAccountConnect";
 import { registerApprovalSigning } from "../ows/registerApprovalSigning";
+import { registerWalletCalls } from "./registerWalletCalls";
 import { registerBitcoinProvider } from "../ows/registerBitcoinProvider";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
 import { registerSolanaProvider } from "../ows/registerSolanaProvider";
@@ -230,6 +236,8 @@ export interface IUseWalletBootParams {
   eventBus: IEventBus;
   configProvider: IConfigProvider;
   hostOriginProvider: IHostOriginProvider;
+  blockchain: IBlockchainProvider;
+  relayerRepository: IOneshotRelayerRepository;
 }
 
 const siweUtils: ISIWEUtils = new SIWEUtils();
@@ -266,6 +274,8 @@ export function useWalletBoot({
   eventBus,
   configProvider,
   hostOriginProvider,
+  blockchain,
+  relayerRepository,
 }: IUseWalletBootParams): void {
   useEffect(() => {
     let cancelled = false;
@@ -935,6 +945,20 @@ export function useWalletBoot({
         createNewWallet,
         createNewWalletFromUi,
         createPasskeyRegistrationOnly,
+      });
+
+      registerWalletCalls(wallet, {
+        storage: walletStorage,
+        hostOriginProvider,
+        chainRepository,
+        transactionService,
+        transactionUtils,
+        knownAssetRepository,
+        trackedAssetRepository,
+        relayerRepository,
+        blockchain,
+        ensureOnboardedForSigning,
+        ask,
       });
 
       registerApprovalSigning(wallet, signer, {

@@ -12,13 +12,13 @@ export type RelayerConfirmPhase =
   | "finalFee"
   | "submitting";
 
-export type IUseRelayerConfirmSubmitOptions = {
+export type IUseRelayerConfirmSubmitOptions<TResult = EVMTransactionHash> = {
   execute: (
     payment: IRelayerConfirmSendResult,
     ui: IRelayerSendUiCallbacks,
-  ) => Promise<EVMTransactionHash>;
+  ) => Promise<TResult>;
   onRegisterAwaitingConfirmation?: (notify: () => void) => void;
-  onResolve: (hash: EVMTransactionHash) => void;
+  onResolve: (result: TResult) => void;
   onReject: (error: unknown) => void;
   rejectMessage: string;
   retainDisplayDuringSubmit?: boolean;
@@ -31,7 +31,7 @@ export type IUseRelayerConfirmSubmitOptions = {
  * Shared relayer confirm flow: estimated fee → sign → optional final-fee
  * re-confirm → submit.
  */
-export function useRelayerConfirmSubmit({
+export function useRelayerConfirmSubmit<TResult = EVMTransactionHash>({
   execute,
   onRegisterAwaitingConfirmation,
   onResolve,
@@ -41,7 +41,7 @@ export function useRelayerConfirmSubmit({
   signingMessage,
   waitingMessage,
   finalFeeNotice,
-}: IUseRelayerConfirmSubmitOptions) {
+}: IUseRelayerConfirmSubmitOptions<TResult>) {
   const [quote, setQuote] = useState<IPaymentQuote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [phase, setPhase] = useState<RelayerConfirmPhase>("confirm");
@@ -95,9 +95,9 @@ export function useRelayerConfirmSubmit({
             finalFeeGateRef.current = { resolve, reject };
           }),
       })
-        .then((hash) => {
+        .then((result) => {
           if (abortedRef.current) return;
-          onResolve(hash);
+          onResolve(result);
         })
         .catch((err: unknown) => {
           if (abortedRef.current) return;

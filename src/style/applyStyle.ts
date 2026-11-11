@@ -58,6 +58,14 @@ export function mergeStyle(
         ...current.copy.sendTransaction,
         ...patch.copy?.sendTransaction,
       },
+      sendCalls: {
+        ...current.copy.sendCalls,
+        ...patch.copy?.sendCalls,
+      },
+      showCallsStatus: {
+        ...current.copy.showCallsStatus,
+        ...patch.copy?.showCallsStatus,
+      },
       confirmTransfer: {
         ...current.copy.confirmTransfer,
         ...patch.copy?.confirmTransfer,
@@ -251,6 +259,8 @@ function cloneDefaultStyle(): IResolvedStyle {
       siws: { ...DEFAULT_STYLE.copy.siws },
       typedData: { ...DEFAULT_STYLE.copy.typedData },
       sendTransaction: { ...DEFAULT_STYLE.copy.sendTransaction },
+      sendCalls: { ...DEFAULT_STYLE.copy.sendCalls },
+      showCallsStatus: { ...DEFAULT_STYLE.copy.showCallsStatus },
       confirmTransfer: { ...DEFAULT_STYLE.copy.confirmTransfer },
       onramp: { ...DEFAULT_STYLE.copy.onramp },
       transferTokens: { ...DEFAULT_STYLE.copy.transferTokens },

@@ -10,6 +10,7 @@ import type { IRelayerSendUiCallbacks } from "../../types/domain/RelayerSendUi";
 import type { IWalletUpgradeStatus } from "../../types/domain/WalletUpgradeStatus";
 import type { TokenAmount } from "../../types/primitives";
 import type {
+  IAcceptedRelayerSend,
   IRelayerAuthorizationEntry,
   ISendTransactionResult,
 } from "../data/IOneshotRelayerRepository";
@@ -135,6 +136,20 @@ export interface ITransactionService {
       authorizationList?: IRelayerAuthorizationEntry[];
     } & IRelayerSendUiCallbacks,
   ): Promise<ISendTransactionResult>;
+
+  /**
+   * Same ExactCalldata path as {@link sendTransaction} for several calls.
+   * Returns when the relayer accepts the task, before the receipt exists.
+   */
+  sendCalls(
+    chainId: EVMChainId,
+    work: readonly ITransactionWork[],
+    options: {
+      paymentToken: EVMContractAddress;
+      feeAtoms: TokenAmount;
+      paymentChainId?: EVMChainId;
+    } & IRelayerSendUiCallbacks,
+  ): Promise<IAcceptedRelayerSend>;
 
   /**
    * Plain native value transfer via eth_sendRawTransaction — never the
