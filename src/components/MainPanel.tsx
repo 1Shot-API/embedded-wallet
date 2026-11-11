@@ -4,7 +4,7 @@ import {
   type OWSChainId,
 } from "@1shotapi/ows-types";
 import { CheckIcon, CopyIcon, XIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,7 @@ import { copyText } from "@/lib/clipboard";
 import type { TrackedAsset } from "../lib/types/domain";
 import { useStyle } from "../style/StyleProvider";
 import { resolveActiveAddress } from "../wallet/activeAddress";
-import {
-  EWalletMode,
-  useWalletSessionStore,
-} from "../wallet/sessionStore";
+import { EWalletMode, useWalletSessionStore } from "../wallet/sessionStore";
 import { useWallet } from "../wallet/WalletProvider";
 
 import { AccountMetaChip } from "./AccountMetaChip";
@@ -28,7 +25,6 @@ import { CredentialsTab } from "./credentials/CredentialsTab";
 import { DelegationsTab } from "./delegations/DelegationsTab";
 import { SelectNetworkModal } from "./modals/SelectNetworkModal";
 import { SolanaDetails } from "./SolanaDetails";
-
 
 const TRUNCATE_CHARS = 5;
 const COPY_FEEDBACK_MS = 1500;
@@ -115,10 +111,9 @@ export function MainPanel() {
     })),
   );
   const [networkModalOpen, setNetworkModalOpen] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<TrackedAsset | null>(
-    null,
-  );
+  const [selectedAsset, setSelectedAsset] = useState<TrackedAsset | null>(null);
   const [mainTab, setMainTab] = useState("balances");
+  const [solanaAssetOpen, setSolanaAssetOpen] = useState(false);
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -139,8 +134,13 @@ export function MainPanel() {
     };
   }, []);
 
+  const onSolanaDetailChange = useCallback((active: boolean) => {
+    setSolanaAssetOpen(active);
+  }, []);
+
   useEffect(() => {
     setSelectedAsset(null);
+    setSolanaAssetOpen(false);
   }, [chainId]);
 
   if (mode === EWalletMode.Focused) {
@@ -188,8 +188,8 @@ export function MainPanel() {
     solanaAddress,
     bitcoinAddress: ChainUtils.isBitcoinChainId(chainId)
       ? chainId === BITCOIN_MAINNET_CHAIN_ID
-        ? bitcoinMainnetAddress ?? undefined
-        : bitcoinTestnetAddress ?? undefined
+        ? (bitcoinMainnetAddress ?? undefined)
+        : (bitcoinTestnetAddress ?? undefined)
       : undefined,
   });
   const hasAddress = Boolean(active.address && active.address !== "—");
@@ -223,79 +223,91 @@ export function MainPanel() {
 
   const onSelectNetwork = (next: OWSChainId) => {
     setNetworkModalOpen(false);
-    if (
-      String(next).toLowerCase() !== String(chainId).toLowerCase()
-    ) {
+    if (String(next).toLowerCase() !== String(chainId).toLowerCase()) {
       void switchChain(next);
     }
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <section
-        className="grid grid-cols-2 gap-2"
-        aria-label="Account"
-      >
-        <AccountMetaChip
-          ariaLabel={networkLabel}
-          value={networkLabel}
-          onClick={() => setNetworkModalOpen(true)}
-          icon={
-            selectedChain ? (
-              <img
-                src={selectedChain.logoUrl}
-                alt=""
-                className="size-7 rounded-full object-cover"
-              />
-            ) : (
-              <span className="bg-muted size-7 rounded-full" aria-hidden />
-            )
-          }
-        />
-        <AccountMetaChip
-          ariaLabel={copyFeedbackLabel}
-          title={hasAddress ? active.address : undefined}
-          value={hasAddress ? formatTruncated(active.address) : "—"}
-          disabled={!hasAddress}
-          onClick={onCopyAddress}
-          icon={
-            <span className="bg-muted text-muted-foreground flex size-7 items-center justify-center rounded-full">
-              {copyState === "copied" ? (
-                <CheckIcon className="size-3.5" />
+    <div
+      className={
+        solanaAssetOpen
+          ? "flex min-h-0 flex-1 flex-col gap-3"
+          : "flex flex-col gap-4"
+      }
+    >
+      {solanaAssetOpen ? null : (
+        <section className="grid grid-cols-2 gap-2" aria-label="Account">
+          <AccountMetaChip
+            ariaLabel={networkLabel}
+            value={networkLabel}
+            onClick={() => setNetworkModalOpen(true)}
+            icon={
+              selectedChain ? (
+                <img
+                  src={selectedChain.logoUrl}
+                  alt=""
+                  className="size-7 rounded-full object-cover"
+                />
               ) : (
-                <CopyIcon className="size-3.5" />
-              )}
-            </span>
-          }
-        />
-      </section>
+                <span className="bg-muted size-7 rounded-full" aria-hidden />
+              )
+            }
+          />
+          <AccountMetaChip
+            ariaLabel={copyFeedbackLabel}
+            title={hasAddress ? active.address : undefined}
+            value={hasAddress ? formatTruncated(active.address) : "—"}
+            disabled={!hasAddress}
+            onClick={onCopyAddress}
+            icon={
+              <span className="bg-muted text-muted-foreground flex size-7 items-center justify-center rounded-full">
+                {copyState === "copied" ? (
+                  <CheckIcon className="size-3.5" />
+                ) : (
+                  <CopyIcon className="size-3.5" />
+                )}
+              </span>
+            }
+          />
+        </section>
+      )}
 
       {showBitcoinShell ? (
         <BitcoinDetails />
       ) : (
         <Tabs
-          value={activeMainTab}
+          value={solanaAssetOpen ? "balances" : activeMainTab}
           onValueChange={setMainTab}
-          className="gap-3"
+          className={
+            solanaAssetOpen ? "flex min-h-0 flex-1 flex-col gap-3" : "gap-3"
+          }
         >
-          <TabsList variant="line" className="w-full justify-start">
-            <TabsTrigger value="balances">
-              {style.copy.balances.tabLabel}
-            </TabsTrigger>
-            {showCredentials ? (
-              <TabsTrigger value="credentials">
-                {style.copy.credentials.tabLabel}
+          {solanaAssetOpen ? null : (
+            <TabsList variant="line" className="w-full justify-start">
+              <TabsTrigger value="balances">
+                {style.copy.balances.tabLabel}
               </TabsTrigger>
-            ) : null}
-            {showDelegations ? (
-              <TabsTrigger value="delegations">
-                {style.copy.delegations.tabLabel}
-              </TabsTrigger>
-            ) : null}
-          </TabsList>
-          <TabsContent value="balances">
+              {showCredentials ? (
+                <TabsTrigger value="credentials">
+                  {style.copy.credentials.tabLabel}
+                </TabsTrigger>
+              ) : null}
+              {showDelegations ? (
+                <TabsTrigger value="delegations">
+                  {style.copy.delegations.tabLabel}
+                </TabsTrigger>
+              ) : null}
+            </TabsList>
+          )}
+          <TabsContent
+            value="balances"
+            className={
+              solanaAssetOpen ? "flex min-h-0 flex-1 flex-col" : undefined
+            }
+          >
             {showSolanaShell ? (
-              <SolanaDetails />
+              <SolanaDetails onActiveDetailChange={onSolanaDetailChange} />
             ) : (
               <BalancesTab onView={setSelectedAsset} />
             )}

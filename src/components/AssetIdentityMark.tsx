@@ -51,7 +51,7 @@ export function AssetIdentityMark({
       />
       <SafeAssetImage
         src={chainLogoUrl}
-        className="border-background absolute -right-0.5 -bottom-0.5 size-6 rounded-full border-2 object-cover"
+        className="border-background absolute -right-0.5 -bottom-0.5 size-6 rounded-full border-2 bg-white object-cover"
       />
     </div>
   );
