@@ -34,3 +34,5 @@ export {
   RelayerCredentialsError,
 } from "./utils/RelayerCredentialsClient";
 export type { IRelayerCredentialsClientDeps } from "./utils/RelayerCredentialsClient";
+export { RelayerClearSigningRepository } from "./RelayerClearSigningRepository";
+export type { RelayerClearSigningRepositoryOptions } from "./RelayerClearSigningRepository";

@@ -1,0 +1,150 @@
+{
+  "found": true,
+  "registrySha": "3bebbd05cbc2d2d2bf9c41a8edbf5e5cc88e4eb4",
+  "path": "registry/1inch/calldata-AggregationRouterV6.json",
+  "descriptor": {
+    "context": {
+      "$id": "AggregationRouterV6",
+      "contract": {
+        "deployments": [
+          {
+            "chainId": 1,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          },
+          {
+            "chainId": 10,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          },
+          {
+            "chainId": 56,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          },
+          {
+            "chainId": 100,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          },
+          {
+            "chainId": 137,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          },
+          {
+            "chainId": 146,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          },
+          {
+            "chainId": 250,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          },
+          {
+            "chainId": 8217,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          },
+          {
+            "chainId": 8453,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          },
+          {
+            "chainId": 42161,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          },
+          {
+            "chainId": 43114,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          },
+          {
+            "chainId": 59144,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          },
+          {
+            "chainId": 1313161554,
+            "address": "0x111111125421cA6dc452d289314280a0f8842A65"
+          }
+        ]
+      }
+    },
+    "metadata": {
+      "owner": "1inch Network",
+      "info": {
+        "url": "https://1inch.io/",
+        "deploymentDate": "2024-02-12T03:44:35Z"
+      },
+      "enums": {
+        "takerTraits": {
+          "0": "None",
+          "16": "None",
+          "32": "None",
+          "64": "Unwrap",
+          "80": "Unwrap",
+          "96": "Unwrap"
+        }
+      },
+      "constants": {
+        "addressAsEth": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        "addressAsNull": "0x0000000000000000000000000000000000000000"
+      },
+      "contractName": "AggregationRouterV6"
+    },
+    "format": {
+      "$id": "clipperSwap",
+      "intent": "Swap",
+      "fields": [
+        {
+          "label": "Amount to Send",
+          "format": "tokenAmount",
+          "params": {
+            "nativeCurrencyAddress": [
+              "$.metadata.constants.addressAsEth",
+              "$.metadata.constants.addressAsNull"
+            ],
+            "tokenPath": "srcToken.[-20:]"
+          },
+          "path": "inputAmount",
+          "visible": "always"
+        },
+        {
+          "label": "Minimum to Receive",
+          "format": "tokenAmount",
+          "params": {
+            "nativeCurrencyAddress": [
+              "$.metadata.constants.addressAsEth",
+              "$.metadata.constants.addressAsNull"
+            ],
+            "tokenPath": "dstToken"
+          },
+          "path": "outputAmount",
+          "visible": "always"
+        },
+        {
+          "label": "Beneficiary",
+          "format": "addressName",
+          "path": "@.from",
+          "visible": "always"
+        },
+        {
+          "label": "Expiration time",
+          "format": "date",
+          "params": {
+            "encoding": "timestamp"
+          },
+          "path": "goodUntil.[-4:]"
+        },
+        {
+          "label": "Clipper Exchange",
+          "path": "clipperExchange",
+          "visible": "never"
+        },
+        {
+          "label": "R",
+          "path": "r",
+          "visible": "never"
+        },
+        {
+          "label": "Vs",
+          "path": "vs",
+          "visible": "never"
+        }
+      ],
+      "key": "clipperSwap(address clipperExchange, uint256 srcToken, address dstToken, uint256 inputAmount, uint256 outputAmount, uint256 goodUntil, bytes32 r, bytes32 vs)"
+    }
+  }
+}

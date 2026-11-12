@@ -170,6 +170,13 @@ export interface IStyleFormState {
   callsStatusReverted: string;
   callsStatusCallLabel: string;
 
+  // Text — Clear signing (ERC-7730)
+  clearMoreDetailsLabel: string;
+  clearRawTransactionLabel: string;
+  clearRawMessageLabel: string;
+  clearNativeValueLabel: string;
+  clearProvenanceText: string;
+
   // Text — Credential offer
   credOfferTitle: string;
   credOfferBody: string;
@@ -520,6 +527,11 @@ export const ACME_PRESET: IStyleFormState = {
   callsStatusFailed: "Failed",
   callsStatusReverted: "Reverted",
   callsStatusCallLabel: "Call {index}",
+  clearMoreDetailsLabel: "More details",
+  clearRawTransactionLabel: "Raw transaction",
+  clearRawMessageLabel: "Raw message",
+  clearNativeValueLabel: "Also sends",
+  clearProvenanceText: "Described by the ERC-7730 clear-signing registry",
   credOfferTitle: "Accept this credential?",
   credOfferBody: "Review the offer before accepting.",
   credOfferAccept: "Accept",
@@ -1221,6 +1233,16 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(showCallsStatus, "callLabel", form.callsStatusCallLabel);
   if (Object.keys(showCallsStatus).length > 0) {
     copy.showCallsStatus = showCallsStatus;
+  }
+
+  const clearSigning: Record<string, string> = {};
+  put(clearSigning, "moreDetailsLabel", form.clearMoreDetailsLabel);
+  put(clearSigning, "rawTransactionLabel", form.clearRawTransactionLabel);
+  put(clearSigning, "rawMessageLabel", form.clearRawMessageLabel);
+  put(clearSigning, "nativeValueLabel", form.clearNativeValueLabel);
+  put(clearSigning, "provenanceText", form.clearProvenanceText);
+  if (Object.keys(clearSigning).length > 0) {
+    copy.clearSigning = clearSigning;
   }
 
   const confirmTransfer: Record<string, string> = {};

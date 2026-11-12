@@ -31,6 +31,7 @@ import type {
 } from "../circle/solanaBridgeTypes";
 import type { ISolanaTxSummary } from "../lib/implementations/utils/SolanaTxUtils";
 import type { ITransactionWork } from "../lib/interfaces/business/ITransactionService";
+import type { IClearSigningPresentation } from "../lib/types/domain/ClearSigningPresentation";
 import type { IRelayerPayment } from "../lib/types/domain/RelayerPayment";
 import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 import type { ISiweFields } from "../lib/types/domain/SiweFields";
@@ -212,6 +213,8 @@ export type ModalRequest =
       id: string;
       kind: "typedData";
       request: SignTypedDataApprovalRequest;
+      /** ERC-7730 rendering of the message, or `null` for the generic field tree. */
+      clearSigning: IClearSigningPresentation | null;
       resolve: (signature: EVMSignatureHex) => void;
       reject: (error: unknown) => void;
     }
@@ -279,6 +282,8 @@ export type ModalRequest =
       id: string;
       kind: "sendTransaction";
       request: SendTransactionApprovalRequest & { useRelayer?: boolean };
+      /** ERC-7730 rendering of the call, or `null` for the raw to / value / data view. */
+      clearSigning: IClearSigningPresentation | null;
       execute: (
         payment: IConfirmSendPayment,
         ui?: IRelayerSendUiCallbacks,

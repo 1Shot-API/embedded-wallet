@@ -10,3 +10,4 @@ export type { TransactionUtilsOptions as BusinessTransactionUtilsOptions } from 
 export { PaymentTokenUtils } from "./utils/PaymentTokenUtils";
 export { CCTPUtils } from "./utils/CCTPUtils";
 export { LiFiUtils } from "./utils/LiFiUtils";
+export { ClearSigningService } from "./ClearSigningService";

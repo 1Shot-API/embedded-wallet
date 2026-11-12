@@ -40,6 +40,7 @@ import {
   BridgeService,
   BusinessTransactionUtils,
   CCTPUtils,
+  ClearSigningService,
   DelegationService,
   LiFiUtils,
   PaymentTokenUtils,
@@ -58,9 +59,11 @@ import { HardcodedChainRepository } from "../lib/implementations/data/HardcodedC
 import { HardcodedKnownAssetRepository } from "../lib/implementations/data/HardcodedKnownAssetRepository";
 import { LocalStorageTrackedAssetRepository } from "../lib/implementations/data/LocalStorageTrackedAssetRepository";
 import { OneshotRelayerRepository } from "../lib/implementations/data/OneshotRelayerRepository";
+import { RelayerClearSigningRepository } from "../lib/implementations/data/RelayerClearSigningRepository";
 import { SolanaAssetActivityRepository } from "../lib/implementations/data/SolanaAssetActivityRepository";
 import { RelayerCredentialsClient } from "../lib/implementations/data/utils/RelayerCredentialsClient";
 import {
+  ClearSigningEnvironment,
   ConfigProvider,
   CircleProvider,
   OWSProvider,
@@ -74,6 +77,7 @@ import {
 import type {
   IBridgeService,
   IBitcoinService,
+  IClearSigningService,
   IDelegationService,
   ISolanaBridgeService,
   ISolanaService,
@@ -241,6 +245,16 @@ const transactionService: ITransactionService = new TransactionService({
   evmRepository,
   transactionUtils: businessTransactionUtils,
 });
+
+const clearSigningService: IClearSigningService = new ClearSigningService(
+  new RelayerClearSigningRepository(configProvider),
+  new ClearSigningEnvironment(
+    chainRepository,
+    knownAssetRepository,
+    trackedAssetRepository,
+    blockchainProvider,
+  ),
+);
 
 const bridgeService: IBridgeService = new BridgeService(
   chainRepository,
@@ -658,6 +672,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     hostOriginProvider,
     blockchain: blockchainProvider,
     relayerRepository: oneshotRelayerRepository,
+    clearSigningService,
   });
 
   const switchChain = useCallback(async (next: OWSChainId) => {
