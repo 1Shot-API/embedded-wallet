@@ -4,7 +4,7 @@ import {
 } from "@1shotapi/ows-provider";
 import type { IOWSAnalyticsEvent } from "@1shotapi/ows-types";
 import { getWallets } from "@wallet-standard/app";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AnalyticsPanel } from "./components/AnalyticsPanel";
 import { AppHeader } from "./components/AppHeader";
@@ -41,6 +41,10 @@ export function App() {
     walletActionProps,
     handleApplyStyle,
   } = useHostTestActions({ proxyRef, lastStyleRef });
+  const getEthereumProvider = useCallback(
+    () => proxyRef.current?.ethereum ?? null,
+    [],
+  );
 
   // Presentation is create-time only. Switching Test ↔ Design destroys and
   // recreates the proxy against the right container (reparenting breaks Postmate).
@@ -199,7 +203,10 @@ export function App() {
         <SidebarInset className="bg-muted min-h-svh">
           <AppHeader />
           {mode === "test" ? (
-            <TestPanel {...walletActionProps} />
+            <TestPanel
+              {...walletActionProps}
+              getEthereumProvider={getEthereumProvider}
+            />
           ) : mode === "design" ? (
             <DesignPanel
               ready={ready}
