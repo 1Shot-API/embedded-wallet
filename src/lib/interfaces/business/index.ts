@@ -85,3 +85,5 @@ export type {
 export { ICCTPUtilsType } from "./utils/ICCTPUtils";
 export type { ILiFiSwapTerms, ILiFiUtils } from "./utils/ILiFiUtils";
 export { ILiFiUtilsType } from "./utils/ILiFiUtils";
+export type { IClearSigningService } from "./IClearSigningService";
+export { IClearSigningServiceType } from "./IClearSigningService";

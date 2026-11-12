@@ -58,6 +58,10 @@ export function mergeStyle(
         ...current.copy.sendTransaction,
         ...patch.copy?.sendTransaction,
       },
+      clearSigning: {
+        ...current.copy.clearSigning,
+        ...patch.copy?.clearSigning,
+      },
       sendCalls: {
         ...current.copy.sendCalls,
         ...patch.copy?.sendCalls,
@@ -259,6 +263,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       siws: { ...DEFAULT_STYLE.copy.siws },
       typedData: { ...DEFAULT_STYLE.copy.typedData },
       sendTransaction: { ...DEFAULT_STYLE.copy.sendTransaction },
+      clearSigning: { ...DEFAULT_STYLE.copy.clearSigning },
       sendCalls: { ...DEFAULT_STYLE.copy.sendCalls },
       showCallsStatus: { ...DEFAULT_STYLE.copy.showCallsStatus },
       confirmTransfer: { ...DEFAULT_STYLE.copy.confirmTransfer },

@@ -631,6 +631,42 @@ export function WalletConfiguratorTextTabSigningSections({
         </AccordionContent>
       </AccordionItem>
 
+      <AccordionItem value="clear-signing">
+        <AccordionTrigger>Clear signing (ERC-7730)</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <TextField
+            id="clear-more-details"
+            label="More details"
+            value={form.clearMoreDetailsLabel}
+            onChange={(value) => patch("clearMoreDetailsLabel", value)}
+          />
+          <TextField
+            id="clear-raw-tx"
+            label="Raw transaction"
+            value={form.clearRawTransactionLabel}
+            onChange={(value) => patch("clearRawTransactionLabel", value)}
+          />
+          <TextField
+            id="clear-raw-message"
+            label="Raw message"
+            value={form.clearRawMessageLabel}
+            onChange={(value) => patch("clearRawMessageLabel", value)}
+          />
+          <TextField
+            id="clear-native-value"
+            label="Attached native value"
+            value={form.clearNativeValueLabel}
+            onChange={(value) => patch("clearNativeValueLabel", value)}
+          />
+          <TextField
+            id="clear-provenance"
+            label="Provenance"
+            value={form.clearProvenanceText}
+            onChange={(value) => patch("clearProvenanceText", value)}
+          />
+        </AccordionContent>
+      </AccordionItem>
+
       <AccordionItem value="send-calls">
         <AccordionTrigger>Send calls</AccordionTrigger>
         <AccordionContent className="flex flex-col gap-3">

@@ -21,3 +21,5 @@ export {
   runWithAnalytics,
 } from "./runWithAnalytics";
 export { registerSmartAccountsEnvironments } from "./registerSmartAccountsEnvironments";
+export { ClearSigningEnvironment } from "./ClearSigningEnvironment";
+export type { ClearSigningEnvironmentOptions } from "./ClearSigningEnvironment";
