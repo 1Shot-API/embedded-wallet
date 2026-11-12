@@ -183,7 +183,45 @@ export const DEMO_WETH_BASE =
 export const DEMO_LIFI_QUOTE_SIGNER =
   "0x2222222222222222222222222222222222222222" as const;
 
-export type UsdcMode = "balance" | "send";
+export type UsdcMode = "balance" | "send" | "approve";
+
+export interface IClearSigningApproveToken {
+  address: string;
+  label: string;
+}
+
+/**
+ * ERC-20s whose `approve` the ERC-7730 registry describes for a specific deployment (the
+ * relayer only indexes address-bound descriptors, and the registry's generic ERC-20 file has
+ * none — so approving catalog USDC falls back to the generic transaction dialog). Approving
+ * needs gas but no token balance.
+ */
+export const CLEAR_SIGNING_APPROVE_TOKENS: Readonly<
+  Record<string, IClearSigningApproveToken>
+> = {
+  "0xaa36a7": {
+    address: "0x731eFa688F3679688cf60A3993b8658138953ED6",
+    label: "LBTC (Lombard)",
+  },
+  "0x1": {
+    address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    label: "USDT",
+  },
+  "0x89": {
+    address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+    label: "USDT",
+  },
+  "0x2105": {
+    address: "0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452",
+    label: "wstETH (Lido)",
+  },
+};
+
+export function clearSigningApproveToken(
+  chainId: string,
+): IClearSigningApproveToken | undefined {
+  return CLEAR_SIGNING_APPROVE_TOKENS[chainId.toLowerCase()];
+}
 
 export function hostChainMeta(chainId: string) {
   return HOST_CHAINS.find((chain) => chain.value === chainId) ?? null;

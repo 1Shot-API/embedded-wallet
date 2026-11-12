@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { ChainSelector, type IChainSelectorOption } from "./ChainSelector";
 import {
+  clearSigningApproveToken,
   DEMO_SOLANA_USDC_MAINNET,
   DEMO_USDC_ICON_URL,
   DEMO_USDT_ICON_URL,
@@ -49,6 +50,8 @@ export interface IWalletActionsProps {
   usdcMode: UsdcMode;
   usdcDestination: string;
   usdcAmount: string;
+  /** Approve mode token override; empty ⇒ the session chain's catalog USDC. */
+  usdcApproveToken: string;
   status: string;
   statusIsError: boolean;
   signature: string | null;
@@ -65,6 +68,9 @@ export interface IWalletActionsProps {
   onUsdcModeChange: (mode: UsdcMode) => void;
   onUsdcDestinationChange: (address: string) => void;
   onUsdcAmountChange: (amount: string) => void;
+  onUsdcApproveTokenChange: (address: string) => void;
+  /** Load a Permit2 `PermitSingle` that the ERC-7730 registry can clear-sign. */
+  onLoadPermit2TypedData: () => void;
   onSign: () => void;
   onLoadSiwe: () => void;
   onSolanaSignAndSend: () => void;
@@ -117,6 +123,7 @@ export function WalletActions({
   usdcMode,
   usdcDestination,
   usdcAmount,
+  usdcApproveToken,
   status,
   statusIsError,
   signature,
@@ -133,6 +140,8 @@ export function WalletActions({
   onUsdcModeChange,
   onUsdcDestinationChange,
   onUsdcAmountChange,
+  onUsdcApproveTokenChange,
+  onLoadPermit2TypedData,
   onSign,
   onLoadSiwe,
   onSolanaSignAndSend,
@@ -228,6 +237,7 @@ export function WalletActions({
     }
   }
   const tokenSymbol = meta?.tokenSymbol ?? "USDC";
+  const approvePreset = clearSigningApproveToken(chainId);
   const accountLabel = account
     ? `${account.slice(0, 6)}…${account.slice(-4)}`
     : ready
@@ -329,6 +339,21 @@ export function WalletActions({
               disabled={!ready}
               onChange={(event) => onTypedDataJsonChange(event.target.value)}
             />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!ready || busy}
+                onClick={onLoadPermit2TypedData}
+                title="Uniswap Permit2 PermitSingle for this chain's USDC — listed in the ERC-7730 clear-signing registry"
+              >
+                Load Permit2 (clear-signable)
+              </Button>
+              <p className="text-muted-foreground m-0 text-xs">
+                The default Ether Mail sample is not in the registry.
+              </p>
+            </div>
           </>
         ) : (
           <>
@@ -406,7 +431,7 @@ export function WalletActions({
           value={usdcMode}
           disabled={!ready || busy}
           onValueChange={(value) => {
-            if (value === "balance" || value === "send") {
+            if (value === "balance" || value === "send" || value === "approve") {
               onUsdcModeChange(value);
             }
           }}
@@ -417,6 +442,7 @@ export function WalletActions({
           <SelectContent>
             <SelectItem value="balance">Check Balance</SelectItem>
             <SelectItem value="send">Send {tokenSymbol}</SelectItem>
+            <SelectItem value="approve">Approve</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-muted-foreground font-mono text-xs break-all">
@@ -424,10 +450,49 @@ export function WalletActions({
         </p>
       </div>
 
-      {usdcMode === "send" ? (
+      {usdcMode === "approve" ? (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="usdc-approve-token-input">Token contract</Label>
+          <Input
+            id="usdc-approve-token-input"
+            className="font-mono text-[0.85rem]"
+            spellCheck={false}
+            autoComplete="off"
+            placeholder={meta?.usdc || "0x…"}
+            value={usdcApproveToken}
+            disabled={!ready}
+            onChange={(event) => onUsdcApproveTokenChange(event.target.value)}
+          />
+          <p className="text-muted-foreground m-0 text-xs">
+            Empty uses this chain&apos;s {tokenSymbol}. The ERC-7730 registry has
+            no {tokenSymbol} approve descriptor, so that shows the generic
+            dialog.
+            {approvePreset ? (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  className="text-foreground underline underline-offset-2 disabled:opacity-50"
+                  disabled={!ready || busy}
+                  onClick={() => onUsdcApproveTokenChange(approvePreset.address)}
+                >
+                  Use {approvePreset.label}
+                </button>{" "}
+                for the clear-signing view (needs gas, not a balance).
+              </>
+            ) : (
+              " No clear-signable approve token is known for this chain (Sepolia has LBTC)."
+            )}
+          </p>
+        </div>
+      ) : null}
+
+      {usdcMode === "send" || usdcMode === "approve" ? (
         <>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="usdc-destination-input">Destination</Label>
+            <Label htmlFor="usdc-destination-input">
+              {usdcMode === "approve" ? "Spender" : "Destination"}
+            </Label>
             <Input
               id="usdc-destination-input"
               className="font-mono text-[0.85rem]"
@@ -442,13 +507,15 @@ export function WalletActions({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="usdc-amount-input">Amount (USDC)</Label>
+            <Label htmlFor="usdc-amount-input">
+              {usdcMode === "approve" ? "Amount" : "Amount (USDC)"}
+            </Label>
             <Input
               id="usdc-amount-input"
               spellCheck={false}
               autoComplete="off"
-              inputMode="decimal"
-              placeholder="1.0"
+              inputMode={usdcMode === "approve" ? "text" : "decimal"}
+              placeholder={usdcMode === "approve" ? "1.0 or max" : "1.0"}
               value={usdcAmount}
               disabled={!ready}
               onChange={(event) => onUsdcAmountChange(event.target.value)}
@@ -464,7 +531,11 @@ export function WalletActions({
           disabled={!ready || busy}
           onClick={onUsdcAction}
         >
-          {usdcMode === "send" ? `Send ${tokenSymbol}` : "Check Balance"}
+          {usdcMode === "send"
+            ? `Send ${tokenSymbol}`
+            : usdcMode === "approve"
+              ? "Approve"
+              : "Check Balance"}
         </Button>
         {usdcMode === "send" ? (
           <Button

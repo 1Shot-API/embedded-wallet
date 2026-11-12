@@ -21,6 +21,7 @@ import {
   formatUnits,
   getAddress,
   isAddress,
+  maxUint256,
   parseUnits,
   type Address,
   type Hex,
@@ -47,6 +48,7 @@ import {
   buildSiweTypedData,
   defaultTypedDataJsonForChain,
   parseTypedDataJson,
+  permit2TypedDataJsonForChain,
   randomSiweNonce,
   syncDemoTypedDataChainId,
   type SignMode,
@@ -156,6 +158,8 @@ export function useHostTestActions({
   const [usdcMode, setUsdcMode] = useState<UsdcMode>("balance");
   const [usdcDestination, setUsdcDestination] = useState("");
   const [usdcAmount, setUsdcAmount] = useState("");
+  /** Approve mode token override; empty ⇒ the session chain's catalog USDC. */
+  const [usdcApproveToken, setUsdcApproveToken] = useState("");
   const [bridgeSourceChainId, setBridgeSourceChainId] = useState(
     BRIDGE_SESSION_SOURCE,
   );
@@ -224,7 +228,10 @@ export function useHostTestActions({
   }, [ready, proxyRef]);
 
   useEffect(() => {
-    setTypedDataJson((prev) => syncDemoTypedDataChainId(prev, chainId));
+    setTypedDataJson((prev) =>
+      syncDemoTypedDataChainId(prev, chainId, hostChainMeta(chainId)?.usdc),
+    );
+    setUsdcApproveToken("");
   }, [chainId]);
 
   useEffect(() => {
@@ -835,9 +842,113 @@ export function useHostTestActions({
     })();
   };
 
+  const handleApproveUsdc = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    const meta = hostChainMeta(chainId);
+    const tokenRaw = usdcApproveToken.trim() || meta?.usdc || "";
+    if (!isAddress(tokenRaw)) {
+      reportStatus(
+        meta?.usdc
+          ? "Enter a valid token contract address."
+          : "USDC is not configured for this chain — enter a token contract.",
+        true,
+      );
+      clearUsdcOutputs();
+      return;
+    }
+    const spenderRaw = usdcDestination.trim();
+    if (!isAddress(spenderRaw)) {
+      reportStatus("Enter a valid spender address.", true);
+      clearUsdcOutputs();
+      return;
+    }
+    const amountRaw = usdcAmount.trim();
+    if (amountRaw === "") {
+      reportStatus("Enter an amount (0 revokes, \"max\" is unlimited).", true);
+      clearUsdcOutputs();
+      return;
+    }
+
+    setBusy(true);
+    clearUsdcOutputs();
+    reportStatus("Preparing approve…");
+
+    void (async () => {
+      try {
+        const account = await resolveAndStoreAccount(proxy);
+        const token = getAddress(tokenRaw) as Address;
+        let amount: bigint;
+        if (amountRaw.toLowerCase() === "max") {
+          amount = maxUint256;
+        } else {
+          const decimals = await createPublicClient({
+            transport: custom(proxy.ethereum),
+          }).readContract({
+            address: token,
+            abi: erc20Abi,
+            functionName: "decimals",
+          });
+          try {
+            amount = parseUnits(amountRaw, decimals);
+          } catch {
+            throw new Error("Enter a valid amount.");
+          }
+        }
+        const data = encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [getAddress(spenderRaw) as Address, amount],
+        }) as Hex;
+
+        reportStatus("Approve the transaction in the wallet…");
+        const hash = (await proxy.ethereum.request({
+          method: "eth_sendTransaction",
+          params: [
+            {
+              from: account,
+              to: EVMAccountAddress(token),
+              data: HexString(data),
+              value: HexString("0x0"),
+              chainId: EVMChainId(chainId as `0x${string}`),
+            },
+          ],
+        })) as EVMTransactionHash;
+
+        setUsdcOutput(`Transaction hash:
+${hash}`);
+        setTxHash(hash);
+        if (meta) {
+          setTxExplorerUrl(`${meta.blockExplorerUrl}/tx/${hash}`);
+        }
+        reportStatus(`Approve sent. Hash ${hash}`);
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "Failed to send approve",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  const handleLoadPermit2TypedData = () => {
+    if (!chainId.startsWith("0x")) return;
+    setSignMode("typedData");
+    setTypedDataJson(
+      permit2TypedDataJsonForChain(chainId, hostChainMeta(chainId)?.usdc),
+    );
+    reportStatus(
+      "Permit2 PermitSingle loaded (in the ERC-7730 registry) — click Sign to see clear signing.",
+    );
+  };
+
   const handleUsdcAction = () => {
     if (usdcMode === "send") {
       handleSendUsdc();
+    } else if (usdcMode === "approve") {
+      handleApproveUsdc();
     } else {
       handleCheckUsdcBalance();
     }
@@ -1361,6 +1472,7 @@ export function useHostTestActions({
     usdcMode,
     usdcDestination,
     usdcAmount,
+    usdcApproveToken,
     status,
     statusIsError,
     signature,
@@ -1377,6 +1489,8 @@ export function useHostTestActions({
     onUsdcModeChange: handleUsdcModeChange,
     onUsdcDestinationChange: setUsdcDestination,
     onUsdcAmountChange: setUsdcAmount,
+    onUsdcApproveTokenChange: setUsdcApproveToken,
+    onLoadPermit2TypedData: handleLoadPermit2TypedData,
     onSign: handleSign,
     onLoadSiwe: handleLoadSiwe,
     onSolanaSignAndSend: handleSolanaSignAndSend,
