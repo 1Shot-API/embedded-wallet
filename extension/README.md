@@ -4,6 +4,23 @@ MetaMask-style host for the 1Shot Branding Layer: a thin MAIN-world EIP-1193 / E
 
 This avoids page `frame-src` CSP, hostile host CSS, and per-dApp third-party storage partitions.
 
+> **Shelved — does not work against the current wallet.** The Branding Layer
+> refuses to complete the Postmate handshake when its embedder is a
+> browser-extension page (`chrome-extension:`, `moz-extension:`,
+> `safari-web-extension:`), and the `forwardEip1193` RPC this side panel
+> calls has been removed. Reason: any installed extension can frame the wallet,
+> the wallet cannot tell which extension it is, and so any extension could have
+> it name any site on its consent screens. Two more issues are open against
+> this code: a request that times out in the background (120 s) is never
+> cancelled in the side panel, so it can still prompt and send later.
+>
+> **Before re-enabling**, design a different protection: at minimum pin the
+> published Chrome extension ids in the wallet and refuse (or visibly label as
+> "reported by an extension") origins relayed from Firefox, where extension
+> origins are per-install UUIDs; restore an origin-relay RPC only behind that
+> check; and cancel side-panel requests when the background times them out.
+> See `HostOriginProvider` in the wallet (`src/lib/implementations/utils`).
+
 > Use of 1Shot-hosted public infrastructure is subject to the [Public Infrastructure Terms](https://1shotapi.com/legal/public-infrastructure-terms) and [Acceptable Use Policy](https://1shotapi.com/legal/acceptable-use-policy). By accessing or using those hosted services, you agree to those terms.
 
 ## Requirements

@@ -5,10 +5,11 @@ import {
   HttpOid4vpClient,
   ParseUtils,
 } from "@1shotapi/ows-oid4";
-import { OWSSigner ,type 
-  PersonalSignApprovalRequest,type 
-  SendTransactionApprovalRequest,type 
-  SignTypedDataApprovalRequest,
+import {
+  OWSSigner,
+  type PersonalSignApprovalRequest,
+  type SendTransactionApprovalRequest,
+  type SignTypedDataApprovalRequest,
 } from "@1shotapi/ows-signer-utils";
 import {
   ChainUtils,
@@ -99,19 +100,21 @@ import { loadCachedEvmAddress, loadCredentialId } from "../storage";
 import { registerConfigureRpc } from "../style/registerConfigure";
 import { styleController } from "../style/styleController";
 
-import { Eip1193HandlerRegistry } from "./Eip1193HandlerRegistry";
 import { hydrateBitcoinAddressesFromCachedSecp } from "./hydrateBitcoinAddresses";
-import { type GrantPermissionModalKind ,type 
-  ActiveModal,type 
-  IGrantExecutionPermissionResult,type 
-  IRelayerConfirmSendResult,
+import {
+  type GrantPermissionModalKind,
+  type ActiveModal,
+  type IGrantExecutionPermissionResult,
+  type IRelayerConfirmSendResult,
 } from "./modalTypes";
 import { pushModal } from "./pushModal";
 import { registerAddAssetRpc } from "./registerAddAsset";
 import { registerBridgeRpc } from "./registerBridge";
-import { type IPasskeyRegistrationResult , registerCreateAccountRpc } from "./registerCreateAccount";
+import {
+  type IPasskeyRegistrationResult,
+  registerCreateAccountRpc,
+} from "./registerCreateAccount";
 import { registerFocusModeRpc } from "./registerFocusMode";
-import { registerForwardEip1193Rpc } from "./registerForwardEip1193";
 import { registerGetBitcoinBalanceRpc } from "./registerGetBitcoinBalance";
 import { registerGetUpgradedRpc } from "./registerGetUpgraded";
 import { registerOnrampRpc } from "./registerOnramp";
@@ -164,9 +167,7 @@ function createDeferredSigner(
         if (loadError !== undefined) {
           throw loadError instanceof Error
             ? loadError
-            : new Error(
-                `Signing Layer failed to load: ${String(loadError)}`,
-              );
+            : new Error(`Signing Layer failed to load: ${String(loadError)}`);
         }
         throw new Error(
           "Signing Layer not ready — await ensureReady() before using the signer",
@@ -331,12 +332,10 @@ export function useWalletBoot({
       const signer = createDeferredSigner(awaitSigner);
 
       const wallet = OWSWallet.prepare({ debug: true });
-      // Must wrap `registerEip1193` before any handler below is registered.
-      const eip1193Handlers = new Eip1193HandlerRegistry(wallet);
       walletRef.current = wallet;
       owsProvider.setWallet(wallet);
 
-      const ask = <T,>(
+      const ask = <T>(
         build: (handlers: {
           id: string;
           resolve: (value: T) => void;
@@ -345,10 +344,6 @@ export function useWalletBoot({
       ) => pushModal(build);
 
       registerConfigureRpc(wallet, chainRepository);
-      registerForwardEip1193Rpc(wallet, {
-        hostOriginProvider,
-        handlers: eip1193Handlers,
-      });
 
       const warmVaultFromRelayer = async (): Promise<void> => {
         try {
@@ -403,7 +398,10 @@ export function useWalletBoot({
         new Map(
           catalog
             .filter((chain) => ChainUtils.isEVMChainId(chain.chainId))
-            .map((chain) => [chain.chainId as typeof defaultChainId, chain.rpcUrl]),
+            .map((chain) => [
+              chain.chainId as typeof defaultChainId,
+              chain.rpcUrl,
+            ]),
         ),
         wallet,
         signer,
@@ -424,7 +422,8 @@ export function useWalletBoot({
                   const permissionType = request.permission.type;
                   const isLiFiSwap = permissionType === LIFI_SWAP_PERIODIC;
                   const isLiFiApprove = permissionType === LIFI_SWAP_APPROVE;
-                  const kitGrantKind = grantKindForPermissionType(permissionType);
+                  const kitGrantKind =
+                    grantKindForPermissionType(permissionType);
                   const chain = resolveChain(request.chainId);
                   if (!chain?.useRelayer) {
                     throw new OwsInvalidParamsError(
@@ -470,10 +469,10 @@ export function useWalletBoot({
 
                 const requestedChainIds = [
                   ...new Map(
-                    prepared.map(({ request }) => [
-                      request.chainId,
-                      request.chainId,
-                    ] as const),
+                    prepared.map(
+                      ({ request }) =>
+                        [request.chainId, request.chainId] as const,
+                    ),
                   ).values(),
                 ];
 
@@ -507,9 +506,7 @@ export function useWalletBoot({
 
                   // Payment chain must be upgraded too (fee ExactCalldata).
                   if (
-                    !upgradeChainIds.some(
-                      (id) => id === payment.paymentChainId,
-                    )
+                    !upgradeChainIds.some((id) => id === payment.paymentChainId)
                   ) {
                     const paymentNeedsUpgrade =
                       await transactionService.needsWalletUpgrade(
@@ -599,23 +596,22 @@ export function useWalletBoot({
 
                 let approvedResults: IGrantExecutionPermissionResult[];
                 try {
-                  approvedResults =
-                    await ask<IGrantExecutionPermissionResult[]>(
-                      ({ id, resolve, reject }) => ({
-                        id,
-                        kind: "grantExecutionPermissions",
-                        request: {
-                          domain,
-                          items: prepared.map(({ request, chain, grantKind }) => ({
-                            request,
-                            chainName: chain.label,
-                            grantKind,
-                          })),
-                        },
-                        resolve,
-                        reject,
-                      }),
-                    );
+                  approvedResults = await ask<
+                    IGrantExecutionPermissionResult[]
+                  >(({ id, resolve, reject }) => ({
+                    id,
+                    kind: "grantExecutionPermissions",
+                    request: {
+                      domain,
+                      items: prepared.map(({ request, chain, grantKind }) => ({
+                        request,
+                        chainName: chain.label,
+                        grantKind,
+                      })),
+                    },
+                    resolve,
+                    reject,
+                  }));
                 } catch (error: unknown) {
                   const durationMs = Math.round(
                     performance.now() - signStartedBatch,
@@ -661,7 +657,9 @@ export function useWalletBoot({
                       items: approvedItems,
                       onDelegationsSigned: onSigningAuthenticated,
                     });
-                  const durationMs = Math.round(performance.now() - signStarted);
+                  const durationMs = Math.round(
+                    performance.now() - signStarted,
+                  );
                   for (const stored of storedList) {
                     eventBus.emitAnalytics(
                       new DelegationCreatedEvent(
@@ -674,7 +672,9 @@ export function useWalletBoot({
                   }
                   return storedList.map((stored) => stored.permissionResponse);
                 } catch (error: unknown) {
-                  const durationMs = Math.round(performance.now() - signStarted);
+                  const durationMs = Math.round(
+                    performance.now() - signStarted,
+                  );
                   const chainId = approvedItems[0]!.request.chainId;
                   if (isAnalyticsCancelled(error)) {
                     eventBus.emitAnalytics(
@@ -719,8 +719,7 @@ export function useWalletBoot({
                     "Cannot revoke a permission granted to a different host",
                   );
                 }
-                const chainId =
-                  stored?.chainId ?? rpcHelper.getChainId();
+                const chainId = stored?.chainId ?? rpcHelper.getChainId();
                 const chain = resolveChain(chainId);
                 if (!chain?.useRelayer) {
                   throw new OwsInvalidParamsError(
@@ -741,8 +740,7 @@ export function useWalletBoot({
                   permissionContext: params.permissionContext,
                 });
                 const domain =
-                  stored?.hostDomain ??
-                  transactionUtils.resolveHostDomain();
+                  stored?.hostDomain ?? transactionUtils.resolveHostDomain();
                 const started = performance.now();
                 const account = analyticsAccountAddress(owner);
                 await runWithAnalytics(
@@ -1304,7 +1302,9 @@ export function useWalletBoot({
           console.error("[oneshot-wallet] Signing Layer failed to load", error);
           useWalletSessionStore
             .getState()
-            .setBootError(error instanceof Error ? error.message : String(error));
+            .setBootError(
+              error instanceof Error ? error.message : String(error),
+            );
         });
 
       const listed = await credentialRepository.list();

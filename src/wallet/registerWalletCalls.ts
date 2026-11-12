@@ -100,7 +100,7 @@ function parseParams<T>(schema: z.ZodType<T>, params: unknown): T {
 function requireRequesterOrigin(
   hostOriginProvider: IHostOriginProvider,
 ): string {
-  const origin = hostOriginProvider.getRequesterOrigin();
+  const origin = hostOriginProvider.getHostOrigin();
   if (!origin) {
     throw new OwsRpcError(
       "The requested account is not connected",
