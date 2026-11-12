@@ -730,6 +730,111 @@ export function useHostTestActions({
     })();
   };
 
+  const handleSendCalls = () => {
+    const proxy = proxyRef.current;
+    if (!proxy) return;
+    const meta = hostChainMeta(chainId);
+    if (!meta?.usdc) {
+      reportStatus("USDC is not configured for this chain.", true);
+      clearUsdcOutputs();
+      return;
+    }
+
+    const destinationRaw = usdcDestination.trim();
+    if (!isAddress(destinationRaw)) {
+      reportStatus("Enter a valid destination address.", true);
+      clearUsdcOutputs();
+      return;
+    }
+
+    let amount: bigint;
+    try {
+      amount = parseUnits(usdcAmount.trim(), USDC_DECIMALS);
+    } catch {
+      reportStatus("Enter a valid USDC amount.", true);
+      clearUsdcOutputs();
+      return;
+    }
+    if (amount <= 0n) {
+      reportStatus("Amount must be greater than zero.", true);
+      clearUsdcOutputs();
+      return;
+    }
+
+    setBusy(true);
+    clearUsdcOutputs();
+    reportStatus("Preparing a two-call batch…");
+
+    void (async () => {
+      try {
+        const account = await resolveAndStoreAccount(proxy);
+        const to = getAddress(destinationRaw) as Address;
+        const token = EVMAccountAddress(meta.usdc as `0x${string}`);
+        const activeChainId = `0x${BigInt(chainId).toString(16)}`;
+        const encodeTransfer = (value: bigint) =>
+          encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "transfer",
+            args: [to, value],
+          });
+
+        const sent = (await proxy.ethereum.request({
+          method: "wallet_sendCalls",
+          params: [
+            {
+              version: "2.0.0",
+              from: account,
+              chainId: activeChainId,
+              atomicRequired: false,
+              calls: [
+                {
+                  to: token,
+                  data: encodeTransfer(amount),
+                  value: "0x0",
+                },
+                {
+                  to: token,
+                  data: encodeTransfer(0n),
+                  value: "0x0",
+                },
+              ],
+            },
+          ],
+        })) as { id: string };
+
+        setUsdcOutput(`Bundle id:\n${sent.id}\n\nWaiting for status…`);
+        reportStatus(`Batch accepted. Id ${sent.id}`);
+
+        let last = "";
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+          const status = await proxy.ethereum.request({
+            method: "wallet_getCallsStatus",
+            params: [sent.id],
+          });
+          last = JSON.stringify(status, null, 2);
+          setUsdcOutput(`Bundle id:\n${sent.id}\n\n${last}`);
+          const code =
+            status && typeof status === "object" && "status" in status
+              ? Number((status as { status: number }).status)
+              : 0;
+          if (code === 200 || code === 400 || code === 500) {
+            reportStatus(`Batch status ${code}`);
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+        reportStatus("Batch still pending. Poll wallet_getCallsStatus again.");
+      } catch (error) {
+        reportStatus(
+          error instanceof Error ? error.message : "Failed to send calls",
+          true,
+        );
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
   const handleUsdcAction = () => {
     if (usdcMode === "send") {
       handleSendUsdc();
@@ -1279,6 +1384,7 @@ export function useHostTestActions({
     walletVisible,
     onToggleWallet: handleToggleWallet,
     onUsdcAction: handleUsdcAction,
+    onSendCalls: handleSendCalls,
     onFocusUsdcArc: handleFocusUsdcArc,
     onFocusUsdtBase: handleFocusUsdtBase,
     onUnfocusWallet: handleUnfocusWallet,

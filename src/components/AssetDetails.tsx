@@ -10,7 +10,7 @@ import {
   QrCodeIcon,
   SendIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useState ,type  ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { openCctpBridge } from "../circle/openCctpBridge";
@@ -23,7 +23,7 @@ import { useWalletSessionStore } from "../wallet/sessionStore";
 import { useLiveTrackedBalance } from "../wallet/useLiveTrackedBalance";
 import { useWallet } from "../wallet/WalletProvider";
 
-
+import { AssetActionButton } from "./AssetActionButton";
 import { AssetIdentityMark } from "./AssetIdentityMark";
 import { BalanceDisplay } from "./BalanceDisplay";
 import { ReceiveModal } from "./modals/ReceiveModal";
@@ -43,8 +43,12 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
   const { style } = useStyle();
   const { balances: copy } = style.copy;
   const { requestBalanceRefresh, resolveChain, getKnownAsset } = useWallet();
-  const { evmAddress, solanaAddress, bitcoinMainnetAddress, bitcoinTestnetAddress } =
-    useWalletSessionStore(
+  const {
+    evmAddress,
+    solanaAddress,
+    bitcoinMainnetAddress,
+    bitcoinTestnetAddress,
+  } = useWalletSessionStore(
     useShallow((state) => ({
       evmAddress: state.evmAddress,
       solanaAddress: state.solanaAddress,
@@ -211,39 +215,39 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
           aria-label="Asset actions"
         >
           {showBuy ? (
-            <ActionButton
+            <AssetActionButton
               label="Buy"
               variant="outline"
               disabled={!hasEvmWallet || buyBusy}
               onClick={openBuy}
             >
               <PlusIcon className="size-5" />
-            </ActionButton>
+            </AssetActionButton>
           ) : null}
-          <ActionButton
+          <AssetActionButton
             label={copy.sendLabel}
             variant="primary"
             disabled={!canSend}
             onClick={openSend}
           >
             <SendIcon className="size-5" />
-          </ActionButton>
-          <ActionButton
+          </AssetActionButton>
+          <AssetActionButton
             label={copy.receiveLabel}
             variant="outline"
             onClick={() => setReceiveOpen(true)}
           >
             <QrCodeIcon className="size-5" />
-          </ActionButton>
+          </AssetActionButton>
           {canBridge ? (
-            <ActionButton
+            <AssetActionButton
               label={copy.bridgeLabel}
               variant="outline"
               disabled={!hasEvmWallet || bridgeBusy}
               onClick={openBridge}
             >
               <ArrowLeftRightIcon className="size-5" />
-            </ActionButton>
+            </AssetActionButton>
           ) : null}
         </nav>
       </div>
@@ -275,45 +279,6 @@ export function AssetDetails({ asset: assetProp }: IAssetDetailsProps) {
           }}
         />
       ) : null}
-    </div>
-  );
-}
-
-function ActionButton({
-  label,
-  variant,
-  children,
-  disabled = false,
-  onClick,
-}: {
-  label: string;
-  variant: "primary" | "outline";
-  children: ReactNode;
-  disabled?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <button
-        type="button"
-        disabled={disabled}
-        aria-label={label}
-        onClick={onClick}
-        className={
-          variant === "primary"
-            ? "bg-primary text-primary-foreground flex size-12 items-center justify-center rounded-full opacity-90 disabled:opacity-50"
-            : "border-border bg-background text-foreground flex size-12 items-center justify-center rounded-full border disabled:opacity-50"
-        }
-      >
-        {children}
-      </button>
-      <span
-        className={`text-xs font-medium ${
-          variant === "primary" ? "text-primary" : "text-foreground"
-        }`}
-      >
-        {label}
-      </span>
     </div>
   );
 }

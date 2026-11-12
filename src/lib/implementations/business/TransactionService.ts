@@ -13,6 +13,7 @@ import type { ITransactionUtils } from "../../interfaces/business/utils/ITransac
 import type { IChainRepository } from "../../interfaces/data/IChainRepository";
 import type { IEVMRepository } from "../../interfaces/data/IEVMRepository";
 import type {
+  IAcceptedRelayerSend,
   IOneshotRelayerRepository,
   IRelayerAuthorizationEntry,
   ISendTransactionResult,
@@ -155,6 +156,41 @@ export class TransactionService implements ITransactionService {
         : {}),
       authorizationList: options.authorizationList,
       relayerUrl: chain.relayerUrl,
+      onFinalFeeRequired: options.onFinalFeeRequired,
+      onAwaitingConfirmation: options.onAwaitingConfirmation,
+      retainDisplayDuringSubmit: options.retainDisplayDuringSubmit,
+    });
+  }
+
+  async sendCalls(
+    chainId: EVMChainId,
+    work: readonly ITransactionWork[],
+    options: {
+      paymentToken: EVMContractAddress;
+      feeAtoms: TokenAmount;
+      paymentChainId?: EVMChainId;
+    } & IRelayerSendUiCallbacks,
+  ): Promise<IAcceptedRelayerSend> {
+    if (work.length === 0) {
+      throw new Error("sendCalls requires at least one call");
+    }
+    const chain = await this.options.chainRepository.get(chainId);
+    if (!chain) {
+      throw new Error(`Unsupported chain: ${chainId}`);
+    }
+    if (!chain.useRelayer) {
+      throw new Error(`Chain ${chainId} does not use the relayer`);
+    }
+    return this.options.transactionUtils.sendViaRelayer({
+      chainId,
+      work: [...work],
+      paymentToken: options.paymentToken,
+      feeAtoms: options.feeAtoms,
+      ...(options.paymentChainId
+        ? { paymentChainId: options.paymentChainId }
+        : {}),
+      relayerUrl: chain.relayerUrl,
+      waitForReceipt: false,
       onFinalFeeRequired: options.onFinalFeeRequired,
       onAwaitingConfirmation: options.onAwaitingConfirmation,
       retainDisplayDuringSubmit: options.retainDisplayDuringSubmit,

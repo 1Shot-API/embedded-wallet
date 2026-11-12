@@ -34,6 +34,9 @@ export const EIP155_METHODS = [
   "eth_signTypedData_v4",
   "wallet_switchEthereumChain",
   "wallet_getCapabilities",
+  "wallet_sendCalls",
+  "wallet_getCallsStatus",
+  "wallet_showCallsStatus",
 ] as const;
 
 export const EIP155_EVENTS = ["accountsChanged", "chainChanged"] as const;

@@ -78,6 +78,41 @@ export type IRelayerConfirmSendResult = {
 /** Result from TX confirm when canceling or selecting payment (legacy shape). */
 export type IConfirmSendResult = false | IConfirmSendPayment;
 
+/** Decoded ERC-20 `transfer` shown in place of raw calldata. */
+export type ISendCallsModalTransfer = {
+  tokenAddress: EVMContractAddress;
+  symbol: string;
+  /** Formatted with the token decimals. */
+  amount: string;
+  recipient: string;
+  iconUrl?: string;
+};
+
+/** One call shown on the EIP-5792 batch confirm modal. */
+export type ISendCallsModalCall = {
+  to: string;
+  data: string;
+  value: string;
+  transfer?: ISendCallsModalTransfer;
+};
+
+export type ISendCallsModalRequest = {
+  domain: string;
+  account: EVMAccountAddress;
+  chainId: EVMChainId;
+  chainName: string;
+  calls: ISendCallsModalCall[];
+  work: ITransactionWork[];
+};
+
+export type IShowCallsStatusRequest = {
+  bundleId: string;
+  chainName: string;
+  status: 100 | 200 | 400 | 500;
+  calls: Array<Pick<ISendCallsModalCall, "to" | "data" | "value">>;
+  transactionHash?: string;
+};
+
 export type GrantPermissionModalKind =
   | "grantExecutionPermission"
   | "grantErc20TransferPermission"
@@ -222,6 +257,23 @@ export type ModalRequest =
         value: SolanaSignature[] | SolanaTransactionHash,
       ) => void;
       reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "sendCalls";
+      request: ISendCallsModalRequest;
+      execute: (
+        payment: IRelayerConfirmSendResult,
+        ui?: IRelayerSendUiCallbacks,
+      ) => Promise<string>;
+      resolve: (bundleId: string) => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
+      kind: "showCallsStatus";
+      request: IShowCallsStatusRequest;
+      resolve: (value: null) => void;
     }
   | {
       id: string;

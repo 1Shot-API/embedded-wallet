@@ -156,6 +156,20 @@ export interface IStyleFormState {
   txSignLabel: string;
   txReject: string;
 
+  // Text — Send calls (EIP-5792)
+  callsTitle: string;
+  callsBody: string;
+  callsCallLabel: string;
+  callsReject: string;
+  callsSign: string;
+  callsStatusTitle: string;
+  callsStatusClose: string;
+  callsStatusPending: string;
+  callsStatusConfirmed: string;
+  callsStatusFailed: string;
+  callsStatusReverted: string;
+  callsStatusCallLabel: string;
+
   // Text — Credential offer
   credOfferTitle: string;
   credOfferBody: string;
@@ -493,6 +507,19 @@ export const ACME_PRESET: IStyleFormState = {
   txTitle: "Approve transaction",
   txSignLabel: "Sign",
   txReject: "Reject",
+  callsTitle: "Approve calls",
+  callsBody:
+    "{domain} wants to send these calls together. One confirmation covers the whole batch.",
+  callsCallLabel: "Call {index}",
+  callsReject: "Reject",
+  callsSign: "Confirm",
+  callsStatusTitle: "Call status",
+  callsStatusClose: "Close",
+  callsStatusPending: "Pending",
+  callsStatusConfirmed: "Confirmed",
+  callsStatusFailed: "Failed",
+  callsStatusReverted: "Reverted",
+  callsStatusCallLabel: "Call {index}",
   credOfferTitle: "Accept this credential?",
   credOfferBody: "Review the offer before accepting.",
   credOfferAccept: "Accept",
@@ -736,6 +763,8 @@ export const DEFAULTS_PRESET: IStyleFormState = {
   typedTitle: "Signature request",
   txTitle: "Send transaction",
   txSignLabel: "Sign",
+  callsTitle: "Send calls",
+  callsSign: "Confirm",
   siweTitle: "Sign-in request",
   siweBody:
     "{domain} is requesting to sign in with your Ethereum account. This will not spend tokens or change on-chain balances.",
@@ -1170,6 +1199,28 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(sendTransaction, "rejectLabel", form.txReject);
   if (Object.keys(sendTransaction).length > 0) {
     copy.sendTransaction = sendTransaction;
+  }
+
+  const sendCalls: Record<string, string> = {};
+  put(sendCalls, "title", form.callsTitle);
+  put(sendCalls, "body", form.callsBody);
+  put(sendCalls, "callLabel", form.callsCallLabel);
+  put(sendCalls, "rejectLabel", form.callsReject);
+  put(sendCalls, "signLabel", form.callsSign);
+  if (Object.keys(sendCalls).length > 0) {
+    copy.sendCalls = sendCalls;
+  }
+
+  const showCallsStatus: Record<string, string> = {};
+  put(showCallsStatus, "title", form.callsStatusTitle);
+  put(showCallsStatus, "closeLabel", form.callsStatusClose);
+  put(showCallsStatus, "pendingLabel", form.callsStatusPending);
+  put(showCallsStatus, "confirmedLabel", form.callsStatusConfirmed);
+  put(showCallsStatus, "failedLabel", form.callsStatusFailed);
+  put(showCallsStatus, "revertedLabel", form.callsStatusReverted);
+  put(showCallsStatus, "callLabel", form.callsStatusCallLabel);
+  if (Object.keys(showCallsStatus).length > 0) {
+    copy.showCallsStatus = showCallsStatus;
   }
 
   const confirmTransfer: Record<string, string> = {};

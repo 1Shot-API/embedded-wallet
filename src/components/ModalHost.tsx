@@ -11,6 +11,7 @@ import {
   CredentialPresentationModal,
 } from "./modals/CredentialModals";
 import { EVMConfirmTransferModal } from "./modals/EVMConfirmTransferModal";
+import { EVMSendCallsModal } from "./modals/EVMSendCallsModal";
 import { EVMSendTransactionModal } from "./modals/EVMSendTransactionModal";
 import { EVMSignModal } from "./modals/EVMSignModal";
 import { EVMSiweModal } from "./modals/EVMSiweModal";
@@ -20,6 +21,7 @@ import { GrantPermissionConsentModal } from "./modals/GrantPermissionConsentModa
 import { ImportPrivateKeyModal } from "./modals/ImportPrivateKeyModal";
 import { OpenCreateTabModal } from "./modals/OpenCreateTabModal";
 import { PasskeyNameModal } from "./modals/PasskeyNameModal";
+import { ShowCallsStatusModal } from "./modals/ShowCallsStatusModal";
 import { SolanaBridge } from "./modals/SolanaBridge";
 import { SolanaSignAndSendModal } from "./modals/SolanaSignAndSendModal";
 import { SolanaSignModal } from "./modals/SolanaSignModal";
@@ -96,6 +98,22 @@ export function ModalHost() {
           submit={activeModal.submit}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
+        />
+      );
+    case "sendCalls":
+      return (
+        <EVMSendCallsModal
+          request={activeModal.request}
+          execute={activeModal.execute}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    case "showCallsStatus":
+      return (
+        <ShowCallsStatusModal
+          request={activeModal.request}
+          onResolve={activeModal.resolve}
         />
       );
     case "sendTransaction":

@@ -12,6 +12,8 @@ export type {
   IStyleCopySiwe,
   IStyleCopyTypedData,
   IStyleCopySendTransaction,
+  IStyleCopySendCalls,
+  IStyleCopyShowCallsStatus,
   IStyleCopyConfirmTransfer,
   IStyleCopyOnramp,
   IStyleCopyTransferTokens,

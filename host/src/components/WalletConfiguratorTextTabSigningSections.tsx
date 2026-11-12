@@ -630,6 +630,90 @@ export function WalletConfiguratorTextTabSigningSections({
           />
         </AccordionContent>
       </AccordionItem>
+
+      <AccordionItem value="send-calls">
+        <AccordionTrigger>Send calls</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <TextField
+            id="calls-title"
+            label="Title"
+            value={form.callsTitle}
+            onChange={(value) => patch("callsTitle", value)}
+          />
+          <TextField
+            id="calls-body"
+            label="Body"
+            value={form.callsBody}
+            onChange={(value) => patch("callsBody", value)}
+          />
+          <TextField
+            id="calls-label"
+            label="Call label"
+            value={form.callsCallLabel}
+            onChange={(value) => patch("callsCallLabel", value)}
+          />
+          <TextField
+            id="calls-reject"
+            label="Reject"
+            value={form.callsReject}
+            onChange={(value) => patch("callsReject", value)}
+          />
+          <TextField
+            id="calls-sign"
+            label="Confirm"
+            value={form.callsSign}
+            onChange={(value) => patch("callsSign", value)}
+          />
+        </AccordionContent>
+      </AccordionItem>
+
+      <AccordionItem value="calls-status">
+        <AccordionTrigger>Call status</AccordionTrigger>
+        <AccordionContent className="flex flex-col gap-3">
+          <TextField
+            id="calls-status-title"
+            label="Title"
+            value={form.callsStatusTitle}
+            onChange={(value) => patch("callsStatusTitle", value)}
+          />
+          <TextField
+            id="calls-status-close"
+            label="Close"
+            value={form.callsStatusClose}
+            onChange={(value) => patch("callsStatusClose", value)}
+          />
+          <TextField
+            id="calls-status-pending"
+            label="Pending"
+            value={form.callsStatusPending}
+            onChange={(value) => patch("callsStatusPending", value)}
+          />
+          <TextField
+            id="calls-status-confirmed"
+            label="Confirmed"
+            value={form.callsStatusConfirmed}
+            onChange={(value) => patch("callsStatusConfirmed", value)}
+          />
+          <TextField
+            id="calls-status-failed"
+            label="Failed"
+            value={form.callsStatusFailed}
+            onChange={(value) => patch("callsStatusFailed", value)}
+          />
+          <TextField
+            id="calls-status-reverted"
+            label="Reverted"
+            value={form.callsStatusReverted}
+            onChange={(value) => patch("callsStatusReverted", value)}
+          />
+          <TextField
+            id="calls-status-call"
+            label="Call label"
+            value={form.callsStatusCallLabel}
+            onChange={(value) => patch("callsStatusCallLabel", value)}
+          />
+        </AccordionContent>
+      </AccordionItem>
     </>
   );
 }
