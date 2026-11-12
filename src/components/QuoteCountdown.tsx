@@ -72,7 +72,10 @@ export function QuoteCountdown({
   useEffect(() => {
     void refresh(true);
     return () => {
+      // Orphan any in-flight fetch: its result and its `finally` are ignored (generation
+      // mismatch), so release the in-flight latch here or the next refresh is skipped forever.
       generationRef.current += 1;
+      inFlightRef.current = false;
     };
     // Intentionally depend on getNewQuote so token/key remounts refresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh closes over refs

@@ -67,10 +67,11 @@ export function isDemoEip712TypedData(record: Record<string, unknown>): boolean 
   return (domain as Record<string, unknown>).name === DEMO_EIP712_DOMAIN_NAME;
 }
 
-/** Keep demo Ether Mail typed data `domain.chainId` in sync with the host chain. */
+/** Keep demo typed data (Ether Mail, Permit2) in sync with the host chain. */
 export function syncDemoTypedDataChainId(
   json: string,
   chainIdHex: string,
+  permit2Token?: string,
 ): string {
   const chainId = hostEvmChainIdDecimal(chainIdHex);
   if (chainId === null) {
@@ -78,6 +79,13 @@ export function syncDemoTypedDataChainId(
   }
   try {
     const parsed = parseTypedDataJson(json);
+    if (isPermit2DemoTypedData(parsed)) {
+      // The token is per-chain, so rebuild the preset rather than patching chainId.
+      const domain = parsed.domain as Record<string, unknown>;
+      return domain.chainId === chainId
+        ? json
+        : permit2TypedDataJsonForChain(chainIdHex, permit2Token);
+    }
     if (!isDemoEip712TypedData(parsed)) {
       return json;
     }
@@ -93,6 +101,81 @@ export function syncDemoTypedDataChainId(
   } catch {
     return json;
   }
+}
+
+/** Uniswap Permit2 — same address on every chain it is deployed to. */
+export const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+export const PERMIT2_DOMAIN_NAME = "Permit2";
+/** Demo spender for the Permit2 preset (Uniswap Universal Router on Ethereum). */
+const PERMIT2_DEMO_SPENDER = "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD";
+/** Fallback token when the session chain has no catalog USDC. */
+const PERMIT2_FALLBACK_TOKEN = "0x0000000000000000000000000000000000000001";
+
+/**
+ * Permit2 `PermitSingle` typed data. Unlike the Ether Mail demo, this one is in the ERC-7730
+ * clear-signing registry (`registry/uniswap/eip712-uniswap-permit2.json`, deployed on Sepolia,
+ * Base Sepolia, Arc Testnet and most mainnets), so the wallet renders the clear-signing view.
+ */
+export function buildPermit2TypedData(
+  chainIdHex: string,
+  token: string | undefined,
+  nowSeconds = Math.floor(Date.now() / 1000),
+): Record<string, unknown> {
+  const chainId = hostEvmChainIdDecimal(chainIdHex);
+  if (chainId === null) {
+    throw new Error("Permit2 demo requires an EVM chain id.");
+  }
+  return {
+    domain: {
+      name: PERMIT2_DOMAIN_NAME,
+      chainId,
+      verifyingContract: PERMIT2_ADDRESS,
+    },
+    types: {
+      EIP712Domain: [
+        { name: "name", type: "string" },
+        { name: "chainId", type: "uint256" },
+        { name: "verifyingContract", type: "address" },
+      ],
+      PermitSingle: [
+        { name: "details", type: "PermitDetails" },
+        { name: "spender", type: "address" },
+        { name: "sigDeadline", type: "uint256" },
+      ],
+      PermitDetails: [
+        { name: "token", type: "address" },
+        { name: "amount", type: "uint160" },
+        { name: "expiration", type: "uint48" },
+        { name: "nonce", type: "uint48" },
+      ],
+    },
+    primaryType: "PermitSingle",
+    message: {
+      details: {
+        token: token || PERMIT2_FALLBACK_TOKEN,
+        amount: "1000000",
+        expiration: String(nowSeconds + 30 * 24 * 60 * 60),
+        nonce: "0",
+      },
+      spender: PERMIT2_DEMO_SPENDER,
+      sigDeadline: String(nowSeconds + 30 * 60),
+    },
+  };
+}
+
+export function permit2TypedDataJsonForChain(
+  chainIdHex: string,
+  token: string | undefined,
+): string {
+  return JSON.stringify(buildPermit2TypedData(chainIdHex, token), null, 2);
+}
+
+function isPermit2DemoTypedData(record: Record<string, unknown>): boolean {
+  const domain = record.domain;
+  if (!domain || typeof domain !== "object" || Array.isArray(domain)) {
+    return false;
+  }
+  return (domain as Record<string, unknown>).name === PERMIT2_DOMAIN_NAME;
 }
 
 export interface ISiweMessageParams {
