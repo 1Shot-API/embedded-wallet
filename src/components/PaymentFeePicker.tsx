@@ -189,26 +189,33 @@ export function PaymentFeePicker({
     return tokenOptions;
   }, [quote, tokenOptions]);
 
+  // Callers often pass `work` as a fresh literal each render; key the quote callback on the
+  // content (workKey) so a parent re-render does not refetch / reset the fee display.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on workKey
+  const stableWork = useMemo(() => work, [workKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on workKey
+  const stableWorkByChain = useMemo(() => workByChain, [workKey]);
+
   const fetchQuote = useCallback(
     async (token?: EVMContractAddress) => {
-      if (workByChain && workByChain.length > 0) {
+      if (stableWorkByChain && stableWorkByChain.length > 0) {
         return transactionService.quotePaymentMultichain(
           ownerAddress,
-          workByChain,
+          stableWorkByChain,
           token,
         );
       }
-      if (!work) {
+      if (!stableWork) {
         throw new Error("PaymentFeePicker requires work or workByChain");
       }
       return transactionService.quotePayment(
         chainId,
         ownerAddress,
-        work,
+        stableWork,
         token,
       );
     },
-    [chainId, ownerAddress, transactionService, work, workByChain],
+    [chainId, ownerAddress, transactionService, stableWork, stableWorkByChain],
   );
 
   const getNewQuote = useCallback(async (): Promise<string> => {
