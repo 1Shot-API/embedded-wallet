@@ -61,6 +61,7 @@ export function ModalHost() {
       return (
         <EVMTypedDataModal
           request={activeModal.request}
+          clearSigning={activeModal.clearSigning}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
         />
@@ -120,6 +121,7 @@ export function ModalHost() {
       return (
         <EVMSendTransactionModal
           request={activeModal.request}
+          clearSigning={activeModal.clearSigning}
           execute={activeModal.execute}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}

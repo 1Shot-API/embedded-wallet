@@ -175,6 +175,14 @@ export const styleCopySendTransactionSchema = z.strictObject({
   signLabel: z.string(),
 });
 
+export const styleCopyClearSigningSchema = z.strictObject({
+  moreDetailsLabel: z.string(),
+  rawTransactionLabel: z.string(),
+  rawMessageLabel: z.string(),
+  nativeValueLabel: z.string(),
+  provenanceText: z.string(),
+});
+
 export const styleCopySendCallsSchema = z.strictObject({
   title: z.string(),
   body: z.string(),
@@ -723,6 +731,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   siws: styleCopySiwsSchema,
   typedData: styleCopyTypedDataSchema,
   sendTransaction: styleCopySendTransactionSchema,
+  clearSigning: styleCopyClearSigningSchema,
   sendCalls: styleCopySendCallsSchema,
   showCallsStatus: styleCopyShowCallsStatusSchema,
   confirmTransfer: styleCopyConfirmTransferSchema,
@@ -813,6 +822,7 @@ export const styleCopyPatchSchema = z.strictObject({
     .optional(),
   typedData: styleCopyTypedDataSchema.partial().optional(),
   sendTransaction: styleCopySendTransactionSchema.partial().optional(),
+  clearSigning: styleCopyClearSigningSchema.partial().optional(),
   sendCalls: styleCopySendCallsSchema.partial().optional(),
   showCallsStatus: styleCopyShowCallsStatusSchema.partial().optional(),
   confirmTransfer: styleCopyConfirmTransferSchema.partial().optional(),
@@ -905,6 +915,9 @@ export type IStyleCopySiws = z.infer<typeof styleCopySiwsSchema>;
 export type IStyleCopyTypedData = z.infer<typeof styleCopyTypedDataSchema>;
 export type IStyleCopySendTransaction = z.infer<
   typeof styleCopySendTransactionSchema
+>;
+export type IStyleCopyClearSigning = z.infer<
+  typeof styleCopyClearSigningSchema
 >;
 export type IStyleCopySendCalls = z.infer<typeof styleCopySendCallsSchema>;
 export type IStyleCopyShowCallsStatus = z.infer<

@@ -61,3 +61,5 @@ export type {
   IVaultTrackedAssetSync,
 } from "./IVaultTrackedAssetSync";
 export { IVaultTrackedAssetSyncType } from "./IVaultTrackedAssetSync";
+export type { IClearSigningRepository } from "./IClearSigningRepository";
+export { IClearSigningRepositoryType } from "./IClearSigningRepository";

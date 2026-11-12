@@ -4,6 +4,7 @@ import { ExternalLinkIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { TypedDataDefinition } from "viem";
 
+import type { IClearSigningPresentation } from "../../lib/types/domain/ClearSigningPresentation";
 import {
   domainFieldEntries,
   formatEip712Primitive,
@@ -25,19 +26,26 @@ import { Eip712FieldTree } from "../Eip712FieldTree";
 import { Modal } from "../Modal";
 import { SafeAssetImage } from "../SafeAssetImage";
 
-/** Host EIP-712 typed-data consent. */
+import { ClearSigningDetails } from "./ClearSigningDetails";
+
+/**
+ * Host EIP-712 typed-data consent. With an ERC-7730 `clearSigning` presentation the message is
+ * shown as intent + labeled fields (raw field tree collapsed); otherwise as the raw field tree.
+ */
 export function EVMTypedDataModal({
   request,
+  clearSigning,
   onResolve,
   onReject,
 }: {
   request: SignTypedDataApprovalRequest;
+  clearSigning: IClearSigningPresentation | null;
   onResolve: (signature: EVMSignatureHex) => void;
   onReject: (error: unknown) => void;
 }) {
   const { getSigner, resolveChain, configProvider } = useWallet();
   const { style } = useStyle();
-  const { typedData: copy } = style.copy;
+  const { typedData: copy, clearSigning: clearCopy } = style.copy;
   const { typedData } = request;
   const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
   const [hostDomain, setHostDomain] = useState("");
@@ -73,6 +81,30 @@ export function EVMTypedDataModal({
     .filter(Boolean)
     .join(" · ");
 
+  const rawMessage = (
+    <div className="border-border rounded-md border px-3 py-2.5">
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+          {copy.messageSectionLabel}
+        </span>
+        <span
+          className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase"
+          title={copy.primaryTypeLabel}
+        >
+          {typedData.primaryType}
+        </span>
+      </div>
+      {domainSummary ? (
+        <p className="text-muted-foreground m-0 mb-2 truncate text-xs">
+          {domainSummary}
+        </p>
+      ) : null}
+      <div className="max-h-[min(40vh,280px)] overflow-y-auto pr-1">
+        <Eip712FieldTree value={typedData.message} />
+      </div>
+    </div>
+  );
+
   const cancel = () => {
     signGenerationRef.current += 1;
     onReject(new OwsUserRejectedError("User rejected the signing request"));
@@ -103,7 +135,7 @@ export function EVMTypedDataModal({
 
   return (
     <Modal
-      title={copy.title}
+      title={clearSigning ? clearSigning.display.intent : copy.title}
       onBackdropDismiss={phase === "confirm" ? cancel : undefined}
       actions={
         phase === "confirm"
@@ -187,27 +219,22 @@ export function EVMTypedDataModal({
           ) : null}
         </dl>
 
-        <div className="border-border rounded-md border px-3 py-2.5">
-          <div className="mb-2 flex items-baseline justify-between gap-3">
-            <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              {copy.messageSectionLabel}
-            </span>
-            <span
-              className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase"
-              title={copy.primaryTypeLabel}
-            >
-              {typedData.primaryType}
-            </span>
-          </div>
-          {domainSummary ? (
-            <p className="text-muted-foreground m-0 mb-2 truncate text-xs">
-              {domainSummary}
-            </p>
-          ) : null}
-          <div className="max-h-[min(40vh,280px)] overflow-y-auto pr-1">
-            <Eip712FieldTree value={typedData.message} />
-          </div>
-        </div>
+        {clearSigning ? (
+          <>
+            <ClearSigningDetails
+              presentation={clearSigning}
+              chainId={evmChainId}
+            />
+            <details>
+              <summary className="text-muted-foreground cursor-pointer text-xs font-medium select-none">
+                {clearCopy.rawMessageLabel}
+              </summary>
+              <div className="mt-2">{rawMessage}</div>
+            </details>
+          </>
+        ) : (
+          rawMessage
+        )}
       </div>
 
       {phase === "signing" ? (

@@ -41,6 +41,7 @@ import {
 } from "../lib/implementations/utils";
 import { SIWEUtils } from "../lib/implementations/utils/SIWEUtils";
 import type {
+  IClearSigningService,
   IDelegationService,
   IBitcoinService,
   ISolanaService,
@@ -239,6 +240,7 @@ export interface IUseWalletBootParams {
   hostOriginProvider: IHostOriginProvider;
   blockchain: IBlockchainProvider;
   relayerRepository: IOneshotRelayerRepository;
+  clearSigningService: IClearSigningService;
 }
 
 const siweUtils: ISIWEUtils = new SIWEUtils();
@@ -277,6 +279,7 @@ export function useWalletBoot({
   hostOriginProvider,
   blockchain,
   relayerRepository,
+  clearSigningService,
 }: IUseWalletBootParams): void {
   useEffect(() => {
     let cancelled = false;
@@ -1024,6 +1027,13 @@ export function useWalletBoot({
           const started = performance.now();
           const account = analyticsAccountAddress(request.address);
           const siweFields = siweUtils.tryParseTypedData(request.typedData);
+          // SIWE keeps its dedicated modal; anything else tries ERC-7730 first.
+          const clearSigning = siweFields
+            ? null
+            : await clearSigningService.describeTypedData(
+                request.typedData,
+                request.address,
+              );
           return runWithAnalytics(
             (event) => eventBus.emitAnalytics(event),
             () =>
@@ -1043,6 +1053,7 @@ export function useWalletBoot({
                       id,
                       kind: "typedData",
                       request,
+                      clearSigning,
                       resolve,
                       reject,
                     },
@@ -1199,6 +1210,14 @@ export function useWalletBoot({
                   }),
                 );
               } else {
+                const clearSigning =
+                  await clearSigningService.describeTransaction(
+                    request.chainId,
+                    request.address,
+                    EVMContractAddress(request.to),
+                    request.data,
+                    request.value,
+                  );
                 hash = await ask<EVMTransactionHash>(
                   ({ id, resolve, reject }) => ({
                     id,
@@ -1207,6 +1226,7 @@ export function useWalletBoot({
                       ...request,
                       useRelayer,
                     },
+                    clearSigning,
                     execute: executeSend,
                     resolve,
                     reject,

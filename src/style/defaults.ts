@@ -171,6 +171,13 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       rejectLabel: "Reject",
       signLabel: "Sign",
     },
+    clearSigning: {
+      moreDetailsLabel: "More details",
+      rawTransactionLabel: "Raw transaction",
+      rawMessageLabel: "Raw message",
+      nativeValueLabel: "Also sends",
+      provenanceText: "Described by the ERC-7730 clear-signing registry",
+    },
     sendCalls: {
       title: "Send calls",
       body: "{domain} wants to send these calls together. One confirmation covers the whole batch.",

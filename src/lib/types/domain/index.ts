@@ -37,3 +37,5 @@ export type {
 export type { ISiweFields } from "./SiweFields";
 export type { IWalletUpgradeStatus } from "./WalletUpgradeStatus";
 export { WalletConfig } from "./WalletConfig";
+export { ClearSigningPresentation } from "./ClearSigningPresentation";
+export type { IClearSigningPresentation } from "./ClearSigningPresentation";
