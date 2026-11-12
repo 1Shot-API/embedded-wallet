@@ -1,11 +1,10 @@
-import { InfoIcon } from "lucide-react";
-
 import { useStyle } from "../../style/StyleProvider";
 import type { IAddAssetApprovalRequest } from "../../wallet/registerAddAsset";
 import { useWallet } from "../../wallet/WalletProvider";
 import { AssetIdentityMark } from "../AssetIdentityMark";
 import { CopyableText } from "../CopyableText";
 import { Modal } from "../Modal";
+import { RiskWarning } from "../RiskWarning";
 
 export function AddAssetModal({
   request,
@@ -89,13 +88,7 @@ export function AddAssetModal({
           </p>
         ) : null}
 
-        <div className="bg-primary/5 flex gap-2.5 rounded-xl px-3 py-3 text-sm leading-relaxed">
-          <InfoIcon
-            className="text-primary mt-0.5 size-4 shrink-0"
-            aria-hidden
-          />
-          <p className="text-muted-foreground m-0">{copy.addConfirmWarning}</p>
-        </div>
+        <RiskWarning>{copy.addConfirmWarning}</RiskWarning>
       </div>
     </Modal>
   );

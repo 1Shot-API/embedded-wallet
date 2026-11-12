@@ -1,14 +1,23 @@
+/**
+ * SHELVED: the wallet refuses to be embedded by a browser-extension page, so
+ * `OWSProxy.create` below never completes its handshake, and the
+ * `forwardEip1193` RPC used by `runOriginBound` no longer exists. Known open
+ * issue if this is revived: a background timeout (120 s) does not cancel the
+ * request here, so it can still prompt later. See `extension/README.md`.
+ */
 import {
   EWalletPresentationMode,
   OWSProxy,
 } from "@1shotapi/ows-provider";
 
 import { queryActiveDappTab } from "../../src/shared/activeTab";
-import type {
-  ExtEip1193ResponseMessage,
-  ExtEip1193RoutedRequestMessage,
-  ExtRuntimeMessage,
-  ExtStatusResponse,
+import {
+  isOriginBoundMethod,
+  WALLET_FORWARD_EIP1193_RPC_METHOD,
+  type ExtEip1193ResponseMessage,
+  type ExtEip1193RoutedRequestMessage,
+  type ExtRuntimeMessage,
+  type ExtStatusResponse,
 } from "../../src/shared/protocol";
 import { getSettings } from "../../src/shared/storage";
 
@@ -55,51 +64,49 @@ let activeTabId: number | undefined;
 let activeOrigin: string | undefined;
 const port = browser.runtime.connect({ name: "sidepanel" });
 
-/** In-flight requests by id — the panel always names the site that is asking. */
-const pendingRequests = new Map<string, { origin: string; method: string }>();
+/**
+ * Origin-bound requests run one at a time: the wallet shows one prompt, and
+ * the header names exactly the site behind it. `current` is the request the
+ * wallet is handling now; `waiting` counts requests queued behind it.
+ */
+let originBoundChain: Promise<unknown> = Promise.resolve();
+let current: { origin: string; method: string } | null = null;
+let waiting = 0;
 
 function renderRequestOrigin(): void {
-  const first = pendingRequests.values().next().value;
-  if (!first) {
+  if (!current) {
     requestOriginLine.classList.add("hidden");
     requestOriginLine.classList.remove("mismatch");
     requestOriginLine.textContent = "";
     return;
   }
-  const others = pendingRequests.size - 1;
   requestOriginLine.textContent =
-    `Request from ${first.origin} · ${first.method}` +
-    (others > 0 ? ` (+${others} more)` : "");
+    `Request from ${current.origin} · ${current.method}` +
+    (waiting > 0 ? ` (+${waiting} waiting)` : "");
   requestOriginLine.classList.remove("hidden");
   requestOriginLine.classList.toggle(
     "mismatch",
-    Boolean(activeOrigin) && first.origin !== activeOrigin,
+    Boolean(activeOrigin) && current.origin !== activeOrigin,
   );
 }
 
-/** One consent prompt at a time; later requests wait for the current answer. */
-let consentChain: Promise<unknown> = Promise.resolve();
-
+/** Allow / Deny for a connect request. Called only from the serialized lane. */
 function askConnectConsent(origin: string): Promise<boolean> {
-  const ask = () =>
-    new Promise<boolean>((resolve) => {
-      consentOriginEl.textContent = origin;
-      consentEl.classList.remove("hidden");
-      const settle = (approved: boolean) => {
-        consentAllowBtn.removeEventListener("click", onAllow);
-        consentDenyBtn.removeEventListener("click", onDeny);
-        consentEl.classList.add("hidden");
-        consentOriginEl.textContent = "";
-        resolve(approved);
-      };
-      const onAllow = () => settle(true);
-      const onDeny = () => settle(false);
-      consentAllowBtn.addEventListener("click", onAllow);
-      consentDenyBtn.addEventListener("click", onDeny);
-    });
-  const result = consentChain.then(ask, ask);
-  consentChain = result;
-  return result;
+  return new Promise<boolean>((resolve) => {
+    consentOriginEl.textContent = origin;
+    consentEl.classList.remove("hidden");
+    const settle = (approved: boolean) => {
+      consentAllowBtn.removeEventListener("click", onAllow);
+      consentDenyBtn.removeEventListener("click", onDeny);
+      consentEl.classList.add("hidden");
+      consentOriginEl.textContent = "";
+      resolve(approved);
+    };
+    const onAllow = () => settle(true);
+    const onDeny = () => settle(false);
+    consentAllowBtn.addEventListener("click", onAllow);
+    consentDenyBtn.addEventListener("click", onDeny);
+  });
 }
 
 async function refreshActiveTab(): Promise<void> {
@@ -200,19 +207,60 @@ async function ensureProxy(): Promise<OWSProxy> {
   return connecting;
 }
 
-async function handleRequest(
+function reply(payload: ExtEip1193ResponseMessage): void {
+  port.postMessage(payload);
+}
+
+function replyError(
+  message: ExtEip1193RoutedRequestMessage,
+  error: unknown,
+): void {
+  const err = error as { code?: number; message?: string; data?: unknown };
+  console.warn("[1Shot sidepanel] eip1193 error", message.method, err);
+  reply({
+    type: "eip1193-response",
+    tabId: message.tabId,
+    id: message.id,
+    error: {
+      code: typeof err.code === "number" ? err.code : 4001,
+      message:
+        err.message || (error instanceof Error ? error.message : String(error)),
+      data: err.data,
+    },
+  });
+}
+
+/** Chain reads: no prompt, no requester identity needed, may overlap. */
+async function runPassthrough(
   message: ExtEip1193RoutedRequestMessage,
 ): Promise<void> {
-  const reply = (payload: ExtEip1193ResponseMessage) => {
-    port.postMessage(payload);
-  };
+  try {
+    const live = await ensureProxy();
+    const result = await live.ethereum.request({
+      method: message.method,
+      params: message.params as never,
+    });
+    reply({
+      type: "eip1193-response",
+      tabId: message.tabId,
+      id: message.id,
+      result,
+    });
+  } catch (error) {
+    replyError(message, error);
+  }
+}
 
-  pendingRequests.set(message.id, {
-    origin: message.origin,
-    method: message.method,
-  });
+/**
+ * Prompts and connection-scoped reads: one at a time, forwarded with the
+ * browser-attested origin so the wallet attributes the request to the page.
+ */
+async function runOriginBound(
+  message: ExtEip1193RoutedRequestMessage,
+): Promise<void> {
+  waiting = Math.max(0, waiting - 1);
+  current = { origin: message.origin, method: message.method };
   renderRequestOrigin();
-
   try {
     if (message.requiresConsent) {
       const approved = await askConnectConsent(message.origin);
@@ -231,9 +279,10 @@ async function handleRequest(
     }
     const live = await ensureProxy();
     console.info("[1Shot sidepanel] eip1193", message.method, message.id);
-    const result = await live.ethereum.request({
+    const result = await live.rpc(WALLET_FORWARD_EIP1193_RPC_METHOD, {
+      origin: message.origin,
       method: message.method,
-      params: message.params as never,
+      params: message.params,
     });
     console.info("[1Shot sidepanel] eip1193 ok", message.method, message.id);
     reply({
@@ -243,24 +292,22 @@ async function handleRequest(
       result,
     });
   } catch (error) {
-    const err = error as { code?: number; message?: string; data?: unknown };
-    console.warn("[1Shot sidepanel] eip1193 error", message.method, err);
-    reply({
-      type: "eip1193-response",
-      tabId: message.tabId,
-      id: message.id,
-      error: {
-        code: typeof err.code === "number" ? err.code : 4001,
-        message:
-          err.message ||
-          (error instanceof Error ? error.message : String(error)),
-        data: err.data,
-      },
-    });
+    replyError(message, error);
   } finally {
-    pendingRequests.delete(message.id);
+    current = null;
     renderRequestOrigin();
   }
+}
+
+function handleRequest(message: ExtEip1193RoutedRequestMessage): void {
+  if (!isOriginBoundMethod(message.method)) {
+    void runPassthrough(message);
+    return;
+  }
+  waiting += 1;
+  renderRequestOrigin();
+  const run = () => runOriginBound(message);
+  originBoundChain = originBoundChain.then(run, run);
 }
 
 port.onMessage.addListener((raw) => {
@@ -278,7 +325,7 @@ port.onMessage.addListener((raw) => {
     );
     return;
   }
-  void handleRequest(routed as ExtEip1193RoutedRequestMessage);
+  handleRequest(routed as ExtEip1193RoutedRequestMessage);
 });
 
 injectBtn.addEventListener("click", () => {

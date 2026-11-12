@@ -4,7 +4,9 @@ import { openWalletUi } from "../src/shared/openWalletUi";
 import { resolveSenderOrigin, toWebOrigin } from "../src/shared/origins";
 import {
   isConnectMethod,
+  isConnectionScopedRead,
   isInteractiveMethod,
+  isUnauthorizedUntilConnected,
   requiresConnectedOrigin,
   type ExtEip1193RequestMessage,
   type ExtEip1193ResponseMessage,
@@ -242,15 +244,28 @@ async function currentTabOrigin(tabId: number): Promise<string | null> {
 
 /**
  * Per-origin session gate for an origin the user has not connected:
- * `eth_accounts` sees no accounts and interactive methods are refused with
- * EIP-1193 4100 instead of reaching the shared side panel.
+ * connection-scoped reads (`eth_accounts`, `wallet_getPermissions`,
+ * `wallet_getGrantedExecutionPermissions`) see nothing. EIP-5792 capability
+ * and status reads, and interactive methods, are refused with EIP-1193 4100
+ * instead of reaching the shared panel.
  */
 function gateUnconnectedOrigin(
   raw: ExtEip1193RequestMessage,
   tabId: number,
   origin: string,
 ): ExtEip1193ResponseMessage | null {
-  if (raw.method === "eth_accounts") {
+  if (isUnauthorizedUntilConnected(raw.method)) {
+    return {
+      type: "eip1193-response",
+      tabId,
+      id: raw.id,
+      error: {
+        code: 4100,
+        message: `${origin} is not connected to 1Shot Wallet. Call eth_requestAccounts first.`,
+      },
+    };
+  }
+  if (isConnectionScopedRead(raw.method)) {
     return { type: "eip1193-response", tabId, id: raw.id, result: [] };
   }
   if (requiresConnectedOrigin(raw.method)) {

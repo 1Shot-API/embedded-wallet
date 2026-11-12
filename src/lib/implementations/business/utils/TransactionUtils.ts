@@ -44,11 +44,13 @@ import {
   NATIVE_TRANSFER_GAS,
   maxNativeSendable,
   withNativeFeeHeadroom,
+  type ISendViaRelayerArgs,
   type ITransactionUtils,
 } from "../../../interfaces/business/utils/ITransactionUtils";
 import type { IChainRepository } from "../../../interfaces/data/IChainRepository";
 import type { IDelegationRepository } from "../../../interfaces/data/IDelegationRepository";
 import type {
+  IAcceptedRelayerSend,
   IOneshotRelayerRepository,
   IRelayer7710Params,
   IRelayerAuthorizationEntry,
@@ -1540,19 +1542,15 @@ export class TransactionUtils implements ITransactionUtils {
     };
   }
 
-  async sendViaRelayer(args: {
-    chainId: EVMChainId;
-    work: ITransactionWork | ITransactionWork[];
-    paymentToken: EVMContractAddress;
-    feeAtoms: TokenAmount;
-    paymentChainId?: EVMChainId;
-    authorizationList?: IRelayerAuthorizationEntry[];
-    relayerUrl: string;
-    prefetchRelayerVaultAssertion?: boolean;
-    retainDisplayDuringSubmit?: boolean;
-    onAwaitingConfirmation?: () => void;
-    onFinalFeeRequired?: (fee: IFinalRelayerFee) => Promise<void>;
-  }): Promise<ISendTransactionResult> {
+  async sendViaRelayer(
+    args: ISendViaRelayerArgs & { waitForReceipt: false },
+  ): Promise<IAcceptedRelayerSend>;
+  async sendViaRelayer(
+    args: ISendViaRelayerArgs & { waitForReceipt?: true },
+  ): Promise<ISendTransactionResult>;
+  async sendViaRelayer(
+    args: ISendViaRelayerArgs,
+  ): Promise<ISendTransactionResult | IAcceptedRelayerSend> {
     const paymentChainId = args.paymentChainId ?? args.chainId;
     if (paymentChainId !== args.chainId) {
       return this.sendViaRelayerCrossChain({
@@ -1860,6 +1858,10 @@ export class TransactionUtils implements ITransactionUtils {
         params,
       );
 
+      if (args.waitForReceipt === false) {
+        return { relayerTransactionId: taskId };
+      }
+
       try {
         const hash = await this.pollUntilTerminal(relayerUrl, taskId);
         // Only cache "upgraded" after the type-4 tx confirms on-chain.
@@ -1909,7 +1911,8 @@ export class TransactionUtils implements ITransactionUtils {
     retainDisplayDuringSubmit?: boolean;
     onAwaitingConfirmation?: () => void;
     onFinalFeeRequired?: (fee: IFinalRelayerFee) => Promise<void>;
-  }): Promise<ISendTransactionResult> {
+    waitForReceipt?: boolean;
+  }): Promise<ISendTransactionResult | IAcceptedRelayerSend> {
     const {
       chainId: executionChainId,
       paymentChainId,
@@ -2219,6 +2222,13 @@ export class TransactionUtils implements ITransactionUtils {
           paymentChain.relayerUrl,
           params,
         );
+      const workTaskId = taskIds[taskIds.length - 1] ?? taskIds[0];
+      if (!workTaskId) {
+        throw new Error("Relayer did not return a task id");
+      }
+      if (args.waitForReceipt === false) {
+        return { relayerTransactionId: workTaskId };
+      }
 
       try {
         const hashes = await Promise.all(

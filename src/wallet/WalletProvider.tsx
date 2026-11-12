@@ -137,7 +137,11 @@ import { useWalletAssets } from "./useWalletAssets";
 import { useWalletAuth } from "./useWalletAuth";
 import { useWalletBoot } from "./useWalletBoot";
 
-/** Records the Host origin from the Postmate handshake; starts before `wallet.start()`. */
+/**
+ * Records the Host origin from the Postmate handshake and refuses handshakes
+ * from top-level openers, non-parent windows, and browser-extension embedders.
+ * Must start before `wallet.start()` so it runs ahead of Postmate's listener.
+ */
 const hostOriginProvider: IHostOriginProvider = new HostOriginProvider(
   typeof window === "undefined" ? null : window,
 );
@@ -176,6 +180,13 @@ const trackedAssetRepository = new LocalStorageTrackedAssetRepository(
   solanaRpc,
   { storage: walletKvStore },
 );
+// Vault recover replaces the stored rows without the upload change-listener;
+// bump the count so Balances / Solana lists repaint with the hydrated assets.
+trackedAssetRepository.setHydratedListener(() => {
+  void trackedAssetRepository.list().then((listed) => {
+    useWalletSessionStore.getState().setTrackedAssetCount(listed.length);
+  });
+});
 const assetActivityRepository: IAssetActivityRepository =
   new CompositeAssetActivityRepository(
     new BlockscoutAssetActivityRepository(eventBus, configProvider, {
@@ -327,9 +338,7 @@ export type WalletContextValue = {
    * deletes vault rows on success. `transactionHashes` is null when the user
    * skipped on-chain cancellation.
    */
-  cancelStoredDelegations: (
-    delegationIds: readonly DelegationId[],
-  ) => Promise<{
+  cancelStoredDelegations: (delegationIds: readonly DelegationId[]) => Promise<{
     results: Array<{
       chainId: EVMChainId;
       transactionHash: EVMTransactionHash;
@@ -338,7 +347,9 @@ export type WalletContextValue = {
     transactionHashes: EVMTransactionHash[] | null;
   }>;
   listTrackedAssets: (chainId?: KnownAssetChainId) => Promise<TrackedAsset[]>;
-  listSolanaKnownAssets: (chainId: SolanaChainId) => Promise<SolanaKnownAsset[]>;
+  listSolanaKnownAssets: (
+    chainId: SolanaChainId,
+  ) => Promise<SolanaKnownAsset[]>;
   addTrackedAsset: (
     chainId: EVMChainId,
     address: EVMContractAddress,
@@ -436,14 +447,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [...chainRepository.getCatalog()].filter((c) => c.enabled),
   );
 
-  const resolveChain = useCallback((chainId: OWSChainId): SupportedChain | null => {
-    const key = String(chainId).toLowerCase();
-    return (
-      chainRepository
-        .getCatalog()
-        .find((chain) => String(chain.chainId).toLowerCase() === key) ?? null
-    );
-  }, []);
+  const resolveChain = useCallback(
+    (chainId: OWSChainId): SupportedChain | null => {
+      const key = String(chainId).toLowerCase();
+      return (
+        chainRepository
+          .getCatalog()
+          .find((chain) => String(chain.chainId).toLowerCase() === key) ?? null
+      );
+    },
+    [],
+  );
 
   const refreshAllowedChains = useCallback(async () => {
     const listed = await chainRepository.list();
@@ -462,7 +476,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         try {
           await rpc.switchChain(next.chainId);
         } catch (error: unknown) {
-          console.warn("[oneshot-wallet] failed to switch after allowlist", error);
+          console.warn(
+            "[oneshot-wallet] failed to switch after allowlist",
+            error,
+          );
         }
       } else {
         walletRef.current?.providerEvents.emit("chainChanged", next.chainId);
@@ -480,7 +497,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const solanaAddress = useWalletSessionStore((state) => state.solanaAddress);
   const unlocked = useWalletSessionStore((state) => state.unlocked);
   useEffect(() => {
-    if (!unlocked || !evmAddress || String(evmAddress).toLowerCase() === "0x0") {
+    if (
+      !unlocked ||
+      !evmAddress ||
+      String(evmAddress).toLowerCase() === "0x0"
+    ) {
       return;
     }
     let cancelled = false;
@@ -571,11 +592,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     createNewWalletRef.current = createNewWallet;
     createNewWalletFromUiRef.current = createNewWalletFromUi;
     createPasskeyRegistrationOnlyRef.current = createPasskeyRegistrationOnly;
-  }, [
-    createNewWallet,
-    createNewWalletFromUi,
-    createPasskeyRegistrationOnly,
-  ]);
+  }, [createNewWallet, createNewWalletFromUi, createPasskeyRegistrationOnly]);
 
   const {
     listCredentials,
@@ -638,13 +655,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     walletStorage,
     eventBus,
     configProvider,
+    hostOriginProvider,
+    blockchain: blockchainProvider,
+    relayerRepository: oneshotRelayerRepository,
   });
 
   const switchChain = useCallback(async (next: OWSChainId) => {
-    if (
-      ChainUtils.isBitcoinChainId(next) ||
-      ChainUtils.isSolanaChainId(next)
-    ) {
+    if (ChainUtils.isBitcoinChainId(next) || ChainUtils.isSolanaChainId(next)) {
       const session = useWalletSessionStore.getState();
       session.setChainId(next);
       if (session.focusedAssetAddress) {
@@ -760,11 +777,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 
   const sendNativeTransfer = useCallback(
-    async (
-      chainId: EVMChainId,
-      to: EVMAccountAddress,
-      value: bigint,
-    ) => {
+    async (chainId: EVMChainId, to: EVMAccountAddress, value: bigint) => {
       const { hostDomain } = await configProvider.getConfig();
       const started = performance.now();
       const accountAddress = (): EVMAccountAddress =>
@@ -851,8 +864,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
 
       const owner =
-        useWalletSessionStore.getState().evmAddress ||
-        loadCachedEvmAddress();
+        useWalletSessionStore.getState().evmAddress || loadCachedEvmAddress();
       if (!owner) {
         throw new Error("Wallet address is required to cancel a permission");
       }
@@ -924,11 +936,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         transactionHashes,
       };
     },
-    [
-      ensureOnboardedForSigning,
-      onSigningAuthenticated,
-      resolveChain,
-    ],
+    [ensureOnboardedForSigning, onSigningAuthenticated, resolveChain],
   );
 
   const openExportPrivateKey = useCallback(async () => {
@@ -977,14 +985,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const display = await wallet.requestDisplay();
       let choice: import("./modalTypes").AdvancedOptionsChoice = "close";
       try {
-        choice = await pushModal<
-          import("./modalTypes").AdvancedOptionsChoice
-        >(({ id, resolve }) => ({
-          id,
-          kind: "advancedOptions",
-          allowExport,
-          resolve,
-        }));
+        choice = await pushModal<import("./modalTypes").AdvancedOptionsChoice>(
+          ({ id, resolve }) => ({
+            id,
+            kind: "advancedOptions",
+            allowExport,
+            resolve,
+          }),
+        );
       } finally {
         // Change Account lands on OnboardingPanel — keep the wallet open.
         if (choice === "changeAccount") {

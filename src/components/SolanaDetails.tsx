@@ -1,14 +1,10 @@
+import { ChainUtils, type SolanaAccountAddress } from "@1shotapi/ows-types";
 import {
-  ChainUtils,
-  type SolanaAccountAddress,
-  type SolanaMintAddress,
-} from "@1shotapi/ows-types";
-import {
-  ArrowLeftIcon,
   ArrowLeftRightIcon,
   QrCodeIcon,
   RefreshCwIcon,
   SendIcon,
+  XIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatUnits } from "viem";
@@ -18,14 +14,20 @@ import { Button } from "@/components/ui/button";
 
 import solanaLogo from "../assets/images/chains/solana-logo.svg";
 import { openSolanaBridge } from "../circle/openSolanaBridge";
-import type { TrackedAsset } from "../lib/types/domain";
+import { FormatUtils } from "../lib/implementations/utils/FormatUtils";
+import {
+  isSolanaTrackedAsset,
+  type SolanaTrackedAsset,
+  type TrackedAsset,
+} from "../lib/types/domain";
 import { EAssetType } from "../lib/types/enum/EAssetType";
 import type { SolanaLamports } from "../lib/types/primitives/SolanaLamports";
-import { resolveAssetIconUrl } from "../lib/utils/tokenIcons";
 import { useStyle } from "../style/StyleProvider";
 import { useWalletSessionStore } from "../wallet/sessionStore";
 import { useWallet } from "../wallet/WalletProvider";
 
+import { AssetActionButton } from "./AssetActionButton";
+import { AssetIdentityMark } from "./AssetIdentityMark";
 import {
   SolanaAssetList,
   type SolanaListSelection,
@@ -44,22 +46,25 @@ function formatSol(
 ): string {
   if (lamports === null) return unavailable;
   try {
-    return formatUnits(lamports, SOL_DECIMALS);
+    return FormatUtils.formatDisplayTokenAmount(lamports, SOL_DECIMALS);
   } catch {
     return unavailable;
   }
 }
 
 type DetailView =
-  | { kind: "native" }
-  | { kind: "spl"; asset: TrackedAsset }
-  | null;
+  { kind: "native" } | { kind: "spl"; asset: TrackedAsset } | null;
+
+export interface ISolanaDetailsProps {
+  /** Account chrome hides while an asset detail is open. */
+  onActiveDetailChange?: (active: boolean) => void;
+}
 
 /**
  * Solana shell: native SOL + tracked SPL list/detail with Add Asset (ATA),
  * Send / Receive. ATA addresses are never shown in primary UI.
  */
-export function SolanaDetails() {
+export function SolanaDetails({ onActiveDetailChange }: ISolanaDetailsProps) {
   const { style } = useStyle();
   const balances = style.copy.balances;
   const solanaCopy = style.copy.solana;
@@ -90,13 +95,15 @@ export function SolanaDetails() {
   const networkLabel = chain?.label ?? solanaCopy.assetName;
   const logoUrl = chain?.logoUrl ?? solanaLogo;
 
-  const [balanceLamports, setBalanceLamports] =
-    useState<SolanaLamports | null>(null);
+  const [balanceLamports, setBalanceLamports] = useState<SolanaLamports | null>(
+    null,
+  );
   const [splAssets, setSplAssets] = useState<TrackedAsset[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<DetailView>(null);
+  const detailRef = useRef<DetailView>(null);
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -125,17 +132,27 @@ export function SolanaDetails() {
         setLoading(true);
       }
       setError(null);
+      const retainOpenSpl = (listed: TrackedAsset[]) => {
+        const current = detailRef.current;
+        if (current?.kind !== "spl") return;
+        const next = listed.find((asset) => asset.id === current.asset.id);
+        if (!next) {
+          detailRef.current = null;
+          setDetail(null);
+          onActiveDetailChange?.(false);
+          return;
+        }
+        const updated: DetailView = { kind: "spl", asset: next };
+        detailRef.current = updated;
+        setDetail(updated);
+      };
       try {
         // Paint tracked SPL rows from local store first so add/remove shows up
         // even if balance RPC is slow or fails (same pattern as EVM AssetList).
         const listed = await listTrackedAssets(solChainId);
         if (requestId !== requestIdRef.current) return;
         setSplAssets(listed.filter((a) => a.type === EAssetType.Spl));
-        setDetail((current) => {
-          if (current?.kind !== "spl") return current;
-          const next = listed.find((a) => a.id === current.asset.id);
-          return next ? { kind: "spl", asset: next } : null;
-        });
+        retainOpenSpl(listed);
 
         const [balance, refreshed] = await Promise.all([
           solanaService.getBalance(solChainId, address),
@@ -149,11 +166,7 @@ export function SolanaDetails() {
         if (requestId !== requestIdRef.current) return;
         setBalanceLamports(balance);
         setSplAssets(refreshed.filter((a) => a.type === EAssetType.Spl));
-        setDetail((current) => {
-          if (current?.kind !== "spl") return current;
-          const next = refreshed.find((a) => a.id === current.asset.id);
-          return next ? { kind: "spl", asset: next } : null;
-        });
+        retainOpenSpl(refreshed);
       } catch (err: unknown) {
         if (requestId !== requestIdRef.current) return;
         setError(
@@ -175,6 +188,7 @@ export function SolanaDetails() {
       listTrackedAssets,
       requestBalanceRefresh,
       solanaCopy.loadFailedError,
+      onActiveDetailChange,
       solanaService,
       solChainId,
     ],
@@ -183,6 +197,38 @@ export function SolanaDetails() {
   useEffect(() => {
     void refresh();
   }, [refresh, unlocked]);
+
+  useEffect(() => {
+    detailRef.current = null;
+    setDetail(null);
+  }, [solChainId]);
+
+  const showDetail = useCallback(
+    (next: Exclude<DetailView, null>) => {
+      detailRef.current = next;
+      setDetail(next);
+      onActiveDetailChange?.(true);
+    },
+    [onActiveDetailChange],
+  );
+
+  const hideDetail = useCallback(() => {
+    detailRef.current = null;
+    setDetail(null);
+    onActiveDetailChange?.(false);
+  }, [onActiveDetailChange]);
+
+  const detailKey =
+    detail == null
+      ? null
+      : detail.kind === "native"
+        ? "native"
+        : detail.asset.id;
+
+  useEffect(() => {
+    if (detailKey == null) return;
+    void refresh({ quiet: true });
+  }, [detailKey, refresh]);
 
   // Same signal EVM AssetList uses — pick up add/remove without relying on
   // modal callbacks alone.
@@ -194,24 +240,24 @@ export function SolanaDetails() {
 
   const onSelect = (selection: SolanaListSelection) => {
     if (selection.kind === "native") {
-      setDetail({ kind: "native" });
+      showDetail({ kind: "native" });
       return;
     }
     setRemoveError(null);
-    setDetail({ kind: "spl", asset: selection.asset });
+    showDetail({ kind: "spl", asset: selection.asset });
   };
 
   const stopTrackingSpl = useCallback(
     async (asset: TrackedAsset) => {
       await removeTrackedAsset(asset.chainId, asset.address);
-      setDetail(null);
+      hideDetail();
       await refresh({ quiet: true });
     },
-    [refresh, removeTrackedAsset],
+    [hideDetail, refresh, removeTrackedAsset],
   );
 
   const closeAtaAndRemove = useCallback(
-    async (asset: TrackedAsset) => {
+    async (asset: SolanaTrackedAsset) => {
       if (!address) return;
       setRemoveBusy(true);
       setRemoveError(null);
@@ -220,12 +266,8 @@ export function SolanaDetails() {
           setRemoveError(solanaCopy.closeAtaMustEmptyError);
           return;
         }
-        await closeSolanaAtaAndUntrack(
-          solChainId,
-          asset.address as SolanaMintAddress,
-          address,
-        );
-        setDetail(null);
+        await closeSolanaAtaAndUntrack(solChainId, asset.address, address);
+        hideDetail();
         await refresh({ quiet: true });
       } catch (err: unknown) {
         const message =
@@ -242,6 +284,7 @@ export function SolanaDetails() {
     [
       address,
       closeSolanaAtaAndUntrack,
+      hideDetail,
       refresh,
       solChainId,
       solanaCopy.closeAtaFailedError,
@@ -268,175 +311,174 @@ export function SolanaDetails() {
   }, [detail, getKnownAsset]);
 
   if (detail) {
-    const isNative = detail.kind === "native";
-    const spl = detail.kind === "spl" ? detail.asset : null;
+    const spl =
+      detail.kind === "spl" && isSolanaTrackedAsset(detail.asset)
+        ? detail.asset
+        : null;
     const splBalanceEmpty = spl?.balance === 0n;
+    const burnAta = spl?.ataAddress;
     const rentLabel = formatUnits(
       solanaService.estimateAtaRentLamports(),
       SOL_DECIMALS,
     );
-    const detailLogo = isNative
-      ? logoUrl
-      : (resolveAssetIconUrl(
-          spl!.chainId as never,
-          spl!.address as never,
-          spl!.symbol,
-          spl!.iconUrl,
-        ) ?? logoUrl);
-    const detailTitle = isNative ? solanaCopy.assetName : spl!.name;
-    const detailAmount = isNative
-      ? `${formatSol(balanceLamports, balances.balanceUnavailable)} ${solanaCopy.assetSymbol}`
-      : spl!.balance === null
+    const detailSymbol = spl ? spl.symbol : solanaCopy.assetSymbol;
+    const detailAmount = spl
+      ? spl.balance === null
         ? balances.balanceUnavailable
-        : `${formatUnits(spl!.balance, spl!.decimals)} ${spl!.symbol}`;
+        : FormatUtils.formatDisplayTokenAmount(spl.balance, spl.decimals)
+      : loading
+        ? solanaCopy.loadingBody
+        : formatSol(balanceLamports, balances.balanceUnavailable);
 
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-2">
-        <div className="flex items-center justify-between">
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex shrink-0 justify-end">
           <Button
             type="button"
-            size="icon-sm"
             variant="outline"
+            size="icon-sm"
             aria-label={balances.closeLabel}
-            onClick={() => setDetail(null)}
+            onClick={hideDetail}
           >
-            <ArrowLeftIcon className="size-3.5" />
+            <XIcon />
           </Button>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="outline"
-            aria-label={balances.refreshLabel}
-            disabled={!address || refreshing || loading}
-            onClick={() => {
-              void refresh({ quiet: true });
-            }}
-          >
-            <RefreshCwIcon
-              className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
-            />
-          </Button>
-        </div>
-
-        <div className="flex flex-col items-center gap-3 py-4">
-          <img
-            src={detailLogo}
-            alt=""
-            className="size-16 rounded-full object-cover"
-          />
-          <div className="text-center">
-            <p className="text-muted-foreground m-0 text-xs font-medium tracking-wide uppercase">
-              {networkLabel}
-            </p>
-            <p className="m-0 mt-1 text-lg font-medium">{detailTitle}</p>
-            <p className="m-0 mt-1 text-2xl font-semibold tabular-nums">
-              {loading ? solanaCopy.loadingBody : detailAmount}
-            </p>
-            {error ? (
-              <p className="text-destructive m-0 mt-2 text-sm">{error}</p>
-            ) : null}
-          </div>
         </div>
 
         <div
-          className={`grid gap-2 ${canBridge && spl ? "grid-cols-3" : "grid-cols-2"}`}
+          className="flex min-h-0 flex-1 flex-col gap-5"
+          aria-label={`${detailSymbol} details`}
         >
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!canAct}
-            onClick={() => setReceiveOpen(true)}
-          >
-            <QrCodeIcon />
-            {balances.receiveLabel}
-          </Button>
-          <Button
-            type="button"
-            disabled={!canAct}
-            onClick={() => {
-              void refresh({ quiet: true });
-              setSendOpen(true);
-            }}
-          >
-            <SendIcon />
-            {balances.sendLabel}
-          </Button>
-          {canBridge && spl && address && spl.ataAddress ? (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!canAct || bridgeBusy}
-              onClick={() => {
-                setBridgeBusy(true);
-                void openSolanaBridge({
-                  sourceChainId: solChainId,
-                  ownerAddress: address,
-                  mint: spl.address as SolanaMintAddress,
-                  burnAta: spl.ataAddress!,
-                  balance: spl.balance,
-                })
-                  .catch(() => {
-                    /* user closed or rejected */
-                  })
-                  .finally(() => {
-                    setBridgeBusy(false);
-                    void refresh({ quiet: true });
-                  });
-              }}
+          <div className="flex shrink-0 flex-col gap-5">
+            <header className="flex flex-col items-center gap-2 pt-2 text-center">
+              {spl ? (
+                <AssetIdentityMark
+                  chainId={spl.chainId}
+                  address={spl.address}
+                  symbol={spl.symbol}
+                  iconUrl={spl.iconUrl}
+                  chainLogoUrl={chain?.logoUrl}
+                />
+              ) : (
+                <img
+                  src={logoUrl}
+                  alt=""
+                  className="size-16 rounded-full object-cover"
+                />
+              )}
+              <div className="flex flex-col gap-0.5">
+                <h2 className="text-foreground text-lg font-semibold tracking-tight">
+                  {detailSymbol}
+                </h2>
+                <p className="text-muted-foreground text-xs">{networkLabel}</p>
+              </div>
+              <p className="text-primary m-0 text-3xl font-semibold tracking-tight">
+                {detailAmount}
+              </p>
+              {error ? (
+                <p className="text-destructive m-0 text-sm">{error}</p>
+              ) : null}
+            </header>
+
+            <nav
+              className="flex items-start justify-center gap-6"
+              aria-label="Asset actions"
             >
-              <ArrowLeftRightIcon />
-              {balances.bridgeLabel}
-            </Button>
+              <AssetActionButton
+                label={balances.sendLabel}
+                variant="primary"
+                disabled={!canAct}
+                onClick={() => {
+                  void refresh({ quiet: true });
+                  setSendOpen(true);
+                }}
+              >
+                <SendIcon className="size-5" />
+              </AssetActionButton>
+              <AssetActionButton
+                label={balances.receiveLabel}
+                variant="outline"
+                disabled={!canAct}
+                onClick={() => setReceiveOpen(true)}
+              >
+                <QrCodeIcon className="size-5" />
+              </AssetActionButton>
+              {canBridge && spl && address && burnAta ? (
+                <AssetActionButton
+                  label={balances.bridgeLabel}
+                  variant="outline"
+                  disabled={!canAct || bridgeBusy}
+                  onClick={() => {
+                    setBridgeBusy(true);
+                    void openSolanaBridge({
+                      sourceChainId: solChainId,
+                      ownerAddress: address,
+                      mint: spl.address,
+                      burnAta,
+                      balance: spl.balance,
+                    })
+                      .catch(() => {
+                        /* user closed or rejected */
+                      })
+                      .finally(() => {
+                        setBridgeBusy(false);
+                        void refresh({ quiet: true });
+                      });
+                  }}
+                >
+                  <ArrowLeftRightIcon className="size-5" />
+                </AssetActionButton>
+              ) : null}
+            </nav>
+          </div>
+
+          {spl ? <TransactionHistory asset={spl} owner={address} /> : null}
+
+          {spl ? (
+            <div className="mt-2 flex flex-col items-center gap-3 pt-2">
+              {splBalanceEmpty ? (
+                <p className="text-muted-foreground m-0 text-center text-sm leading-relaxed">
+                  {solanaCopy.closeAtaBody.replace("{rent}", rentLabel)}
+                </p>
+              ) : (
+                <p className="text-muted-foreground m-0 text-center text-sm leading-relaxed">
+                  {solanaCopy.stopTrackingBody}
+                </p>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                className="self-center"
+                disabled={!canAct || removeBusy}
+                onClick={() => {
+                  if (splBalanceEmpty) {
+                    void closeAtaAndRemove(spl);
+                    return;
+                  }
+                  setRemoveBusy(true);
+                  setRemoveError(null);
+                  void stopTrackingSpl(spl)
+                    .catch((err: unknown) => {
+                      setRemoveError(
+                        err instanceof Error
+                          ? err.message
+                          : solanaCopy.closeAtaFailedError,
+                      );
+                    })
+                    .finally(() => setRemoveBusy(false));
+                }}
+              >
+                {splBalanceEmpty
+                  ? removeBusy
+                    ? solanaCopy.closeAtaBusyLabel
+                    : solanaCopy.closeAtaLabel
+                  : solanaCopy.stopTrackingLabel}
+              </Button>
+              {removeError ? (
+                <p className="text-destructive m-0 text-sm">{removeError}</p>
+              ) : null}
+            </div>
           ) : null}
         </div>
-
-        {spl ? <TransactionHistory asset={spl} owner={address} /> : null}
-
-        {spl ? (
-          <div className="mt-2 flex flex-col items-center gap-3 pt-2">
-            {splBalanceEmpty ? (
-              <p className="text-muted-foreground m-0 text-center text-sm leading-relaxed">
-                {solanaCopy.closeAtaBody.replace("{rent}", rentLabel)}
-              </p>
-            ) : (
-              <p className="text-muted-foreground m-0 text-center text-sm leading-relaxed">
-                {solanaCopy.stopTrackingBody}
-              </p>
-            )}
-            <Button
-              type="button"
-              size="sm"
-              className="self-center"
-              disabled={!canAct || removeBusy}
-              onClick={() => {
-                if (splBalanceEmpty) {
-                  void closeAtaAndRemove(spl);
-                  return;
-                }
-                setRemoveBusy(true);
-                setRemoveError(null);
-                void stopTrackingSpl(spl)
-                  .catch((err: unknown) => {
-                    setRemoveError(
-                      err instanceof Error
-                        ? err.message
-                        : solanaCopy.closeAtaFailedError,
-                    );
-                  })
-                  .finally(() => setRemoveBusy(false));
-              }}
-            >
-              {splBalanceEmpty
-                ? removeBusy
-                  ? solanaCopy.closeAtaBusyLabel
-                  : solanaCopy.closeAtaLabel
-                : solanaCopy.stopTrackingLabel}
-            </Button>
-            {removeError ? (
-              <p className="text-destructive m-0 text-sm">{removeError}</p>
-            ) : null}
-          </div>
-        ) : null}
 
         {receiveOpen && address ? (
           <ReceiveModal
@@ -447,7 +489,7 @@ export function SolanaDetails() {
           />
         ) : null}
 
-        {sendOpen && address && isNative ? (
+        {sendOpen && address && detail.kind === "native" ? (
           <SolanaSendModal
             chainId={solChainId}
             fromAddress={address}
@@ -492,9 +534,7 @@ export function SolanaDetails() {
           />
         </Button>
       </div>
-      {error ? (
-        <p className="text-destructive m-0 text-sm">{error}</p>
-      ) : null}
+      {error ? <p className="text-destructive m-0 text-sm">{error}</p> : null}
       <SolanaAssetList
         balanceLamports={balanceLamports}
         loading={loading}

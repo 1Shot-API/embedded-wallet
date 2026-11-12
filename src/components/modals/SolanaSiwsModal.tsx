@@ -1,26 +1,39 @@
-import { OwsUserRejectedError, type SolanaSignature } from "@1shotapi/ows-types";
+import {
+  OwsUserRejectedError,
+  type DomainString,
+  type SolanaSignature,
+} from "@1shotapi/ows-types";
 import { useRef, useState } from "react";
 
+import { UNKNOWN_HOST_DOMAIN } from "../../lib/implementations/utils/HostOriginProvider";
 import type { ISiwsFields } from "../../lib/types/domain/SiwsFields";
 import { isSignCeremonyDenied } from "../../lib/utils/isSignCeremonyDenied";
-import { isSiweUriRedundant } from "../../lib/utils/siweDisplay";
+import {
+  isSiweUriRedundant,
+  siweDomainMatchesHost,
+} from "../../lib/utils/siweDisplay";
 import { useStyle } from "../../style/StyleProvider";
 import { useWallet } from "../../wallet/WalletProvider";
 import { CopyableText } from "../CopyableText";
 import { Modal } from "../Modal";
+import { RiskWarning } from "../RiskWarning";
 import { SafeAssetImage } from "../SafeAssetImage";
 
+import { RequestingHostBadge } from "./RequestingHostBadge";
 import { SignInMetadataRow } from "./SignInMetadataRow";
 import { SignInSectionLabel } from "./SignInSectionLabel";
 
 /** Host/Standard `solana:signIn` (SIWS) consent — structured fields, not raw bytes. */
 export function SolanaSiwsModal({
   fields,
+  hostDomain,
   messageBytes,
   onResolve,
   onReject,
 }: {
   fields: ISiwsFields;
+  /** Browser-attested requester, never the message's own `domain`. */
+  hostDomain: DomainString;
   messageBytes: Uint8Array;
   onResolve: (signature: SolanaSignature) => void;
   onReject: (error: unknown) => void;
@@ -31,7 +44,13 @@ export function SolanaSiwsModal({
   const [phase, setPhase] = useState<"confirm" | "signing">("confirm");
   const signGenerationRef = useRef(0);
 
-  const body = siws.body.replaceAll("{domain}", fields.domain);
+  const body = siws.body.replaceAll("{domain}", hostDomain);
+  const domainMismatch =
+    hostDomain === UNKNOWN_HOST_DOMAIN ||
+    !siweDomainMatchesHost(fields.domain, hostDomain);
+  const domainMismatchWarning = siws.domainMismatchWarning
+    .replaceAll("{domain}", fields.domain)
+    .replaceAll("{host}", hostDomain);
   const chain = resolveChain(fields.chainId);
   const networkDisplay = chain?.label ?? String(fields.chainId);
   const showUri =
@@ -92,9 +111,7 @@ export function SolanaSiwsModal({
           {body}
         </p>
 
-        <div
-          className={`flex items-center gap-3 ${fields.domain.trim() ? "justify-between" : "justify-start"}`}
-        >
+        <div className="flex items-center justify-between gap-3">
           <div className="flex shrink-0 items-center gap-2">
             {chain?.logoUrl ? (
               <SafeAssetImage
@@ -110,15 +127,12 @@ export function SolanaSiwsModal({
               {networkDisplay}
             </span>
           </div>
-          {fields.domain.trim() ? (
-            <span
-              className="border-border text-foreground min-w-0 max-w-[55%] truncate rounded-full border px-2.5 py-1 text-sm font-medium"
-              title={fields.domain}
-            >
-              {fields.domain}
-            </span>
-          ) : null}
+          <RequestingHostBadge domain={hostDomain} />
         </div>
+
+        {domainMismatch ? (
+          <RiskWarning>{domainMismatchWarning}</RiskWarning>
+        ) : null}
 
         <div className="flex flex-col gap-1.5">
           <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">

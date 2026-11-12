@@ -43,6 +43,12 @@ export interface ITrackedAssetRepository {
       | { id: TrackedAssetId }
       | { chainId: EVMChainId | SolanaChainId },
   ): Promise<TrackedAsset[]>;
+  /**
+   * Fires after a vault recover replaces the stored rows. Unlike the upload
+   * change-listener this never triggers a relayer sync; it exists so the UI
+   * can repaint lists with the hydrated assets.
+   */
+  setHydratedListener(listener: (() => void) | null): void;
 }
 
 export const ITrackedAssetRepositoryType = Symbol.for(

@@ -183,6 +183,13 @@ describe("buildApprovedNamespaces", () => {
       [...approved.eip155.methods].sort(),
       [...EIP155_METHODS].sort(),
     );
+    for (const method of [
+      "wallet_sendCalls",
+      "wallet_getCallsStatus",
+      "wallet_showCallsStatus",
+    ]) {
+      assert.ok(EIP155_METHODS.includes(method), method);
+    }
     assert.deepEqual(
       [...approved.eip155.events].sort(),
       [...EIP155_EVENTS].sort(),

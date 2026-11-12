@@ -1,4 +1,5 @@
 import type {
+  DomainString,
   EVMChainId,
   EVMContractAddress,
   HexString,
@@ -167,7 +168,13 @@ export interface IDelegationService {
 
   getSupportedExecutionPermissions(): Promise<SupportedExecutionPermissions>;
 
-  getGrantedExecutionPermissions(): Promise<IExecutionPermissionResponse[]>;
+  /**
+   * EIP-7715 responses for grants made to `hostDomain` only. A host never
+   * sees grants another site holds, even though they share one vault.
+   */
+  getGrantedExecutionPermissions(
+    hostDomain: DomainString,
+  ): Promise<IExecutionPermissionResponse[]>;
 
   findByPermissionContext(
     permissionContext: HexString,

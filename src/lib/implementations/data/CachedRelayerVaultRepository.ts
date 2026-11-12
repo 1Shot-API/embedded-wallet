@@ -7,6 +7,9 @@ import {
   EVMContractAddress,
   EVMContractAddressSchema,
   HexString,
+  SolanaATAAddressSchema,
+  SolanaChainIdSchema,
+  SolanaMintAddressSchema,
   UnixTimestamp,
   type COSEPublicKey,
   type CredentialFilter,
@@ -67,10 +70,7 @@ export type { IVaultStore, IVaultSnapshot };
 /** Logical id for the single replaceable tracked-assets vault blob. */
 export const TRACKED_ASSETS_LOGICAL_ID = "trackedAssets";
 
-const vaultTrackedAssetRowSchema = z.object({
-  chainId: EVMChainIdSchema,
-  address: EVMContractAddressSchema,
-  type: z.enum(EAssetType).catch(EAssetType.Erc20),
+const vaultTrackedAssetRowBaseSchema = z.object({
   name: z.string(),
   symbol: z.string(),
   decimals: z.number(),
@@ -82,6 +82,33 @@ const vaultTrackedAssetRowSchema = z.object({
       value != null && value.length > 0 ? value : undefined,
     ),
 });
+
+/** EVM rows: hex chain id + contract address. */
+const vaultEvmTrackedAssetRowSchema = vaultTrackedAssetRowBaseSchema.extend({
+  chainId: EVMChainIdSchema,
+  address: EVMContractAddressSchema,
+  type: z.enum(EAssetType).catch(EAssetType.Erc20),
+});
+
+/** SPL rows: Solana CAIP-2 chain id + base58 mint, plus the user's ATA when known. */
+const vaultSolanaTrackedAssetRowSchema =
+  vaultTrackedAssetRowBaseSchema.extend({
+    chainId: SolanaChainIdSchema,
+    address: SolanaMintAddressSchema,
+    type: z.literal(EAssetType.Spl).catch(EAssetType.Spl),
+    ataAddress: SolanaATAAddressSchema.nullish(),
+    ataRentPaid: z.boolean().nullish(),
+  });
+
+/**
+ * One row of the relayer `trackedAssets` blob, as written by
+ * `exportUserAssetsForVault`. Both chain families must parse: a row that
+ * fails here is dropped from recover, and the next upload erases it remotely.
+ */
+export const vaultTrackedAssetRowSchema = z.union([
+  vaultEvmTrackedAssetRowSchema,
+  vaultSolanaTrackedAssetRowSchema,
+]);
 
 /** Relayer payload — encrypted (credential/delegation) or plaintext (trackedAssets). */
 export type VaultRemoteBlob =
@@ -1222,7 +1249,14 @@ export class CachedRelayerVaultRepository
 
   private parseTrackedAssetRow(value: unknown): IVaultTrackedAssetRow | null {
     const parsed = vaultTrackedAssetRowSchema.safeParse(value);
-    if (!parsed.success) return null;
+    if (!parsed.success) {
+      console.warn(
+        "[vault] skipping unparseable tracked asset row",
+        (value as { id?: unknown } | null)?.id,
+        parsed.error.issues,
+      );
+      return null;
+    }
     return parsed.data;
   }
 

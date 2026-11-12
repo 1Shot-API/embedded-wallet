@@ -72,6 +72,7 @@ export interface IWalletActionsProps {
   walletVisible: boolean;
   onToggleWallet: () => void;
   onUsdcAction: () => void;
+  onSendCalls: () => void;
   onFocusUsdcArc: () => void;
   onFocusUsdtBase: () => void;
   onUnfocusWallet: () => void;
@@ -139,6 +140,7 @@ export function WalletActions({
   walletVisible,
   onToggleWallet,
   onUsdcAction,
+  onSendCalls,
   onFocusUsdcArc,
   onFocusUsdtBase,
   onUnfocusWallet,
@@ -464,6 +466,16 @@ export function WalletActions({
         >
           {usdcMode === "send" ? `Send ${tokenSymbol}` : "Check Balance"}
         </Button>
+        {usdcMode === "send" ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready || busy}
+            onClick={onSendCalls}
+          >
+            Send two calls
+          </Button>
+        ) : null}
       </div>
 
       {usdcOutput ? (

@@ -125,6 +125,8 @@ export const styleCopySiweSchema = z.strictObject({
   rejectLabel: z.string(),
   signLabel: z.string(),
   signingHint: z.string(),
+  /** Wallet-owned: shown when the message `domain` is not the requesting site. */
+  domainMismatchWarning: z.string(),
 });
 
 export const styleCopySiwsSchema = z.strictObject({
@@ -143,6 +145,8 @@ export const styleCopySiwsSchema = z.strictObject({
   rejectLabel: z.string(),
   signLabel: z.string(),
   signingHint: z.string(),
+  /** Wallet-owned: shown when the message `domain` is not the requesting site. */
+  domainMismatchWarning: z.string(),
 });
 
 export const styleCopyTypedDataSchema = z.strictObject({
@@ -169,6 +173,24 @@ export const styleCopySendTransactionSchema = z.strictObject({
   chainLabel: z.string(),
   rejectLabel: z.string(),
   signLabel: z.string(),
+});
+
+export const styleCopySendCallsSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  callLabel: z.string(),
+  rejectLabel: z.string(),
+  signLabel: z.string(),
+});
+
+export const styleCopyShowCallsStatusSchema = z.strictObject({
+  title: z.string(),
+  closeLabel: z.string(),
+  pendingLabel: z.string(),
+  confirmedLabel: z.string(),
+  failedLabel: z.string(),
+  revertedLabel: z.string(),
+  callLabel: z.string(),
 });
 
 export const styleCopyConfirmTransferSchema = z.strictObject({
@@ -701,6 +723,8 @@ export const styleCopyResolvedSchema = z.strictObject({
   siws: styleCopySiwsSchema,
   typedData: styleCopyTypedDataSchema,
   sendTransaction: styleCopySendTransactionSchema,
+  sendCalls: styleCopySendCallsSchema,
+  showCallsStatus: styleCopyShowCallsStatusSchema,
   confirmTransfer: styleCopyConfirmTransferSchema,
   onramp: styleCopyOnrampSchema,
   transferTokens: styleCopyTransferTokensSchema,
@@ -755,6 +779,8 @@ const passkeyPromptPatchSchema = z.strictObject({
 export const WALLET_OWNED_COPY_PATHS = [
   "solanaSignAndSend.simulationWarning",
   "solanaSignAndSend.durableNonceWarning",
+  "siwe.domainMismatchWarning",
+  "siws.domainMismatchWarning",
   "grantKitScopeTerms.ownershipWarning",
   "grantLiFiApprovePermission.warning",
   "cancelDelegation.skipOnchainAcknowledgement",
@@ -777,10 +803,18 @@ export const styleCopyPatchSchema = z.strictObject({
     .omit({ simulationWarning: true, durableNonceWarning: true })
     .partial()
     .optional(),
-  siwe: styleCopySiweSchema.partial().optional(),
-  siws: styleCopySiwsSchema.partial().optional(),
+  siwe: styleCopySiweSchema
+    .omit({ domainMismatchWarning: true })
+    .partial()
+    .optional(),
+  siws: styleCopySiwsSchema
+    .omit({ domainMismatchWarning: true })
+    .partial()
+    .optional(),
   typedData: styleCopyTypedDataSchema.partial().optional(),
   sendTransaction: styleCopySendTransactionSchema.partial().optional(),
+  sendCalls: styleCopySendCallsSchema.partial().optional(),
+  showCallsStatus: styleCopyShowCallsStatusSchema.partial().optional(),
   confirmTransfer: styleCopyConfirmTransferSchema.partial().optional(),
   onramp: styleCopyOnrampSchema.partial().optional(),
   transferTokens: styleCopyTransferTokensSchema.partial().optional(),
@@ -871,6 +905,10 @@ export type IStyleCopySiws = z.infer<typeof styleCopySiwsSchema>;
 export type IStyleCopyTypedData = z.infer<typeof styleCopyTypedDataSchema>;
 export type IStyleCopySendTransaction = z.infer<
   typeof styleCopySendTransactionSchema
+>;
+export type IStyleCopySendCalls = z.infer<typeof styleCopySendCallsSchema>;
+export type IStyleCopyShowCallsStatus = z.infer<
+  typeof styleCopyShowCallsStatusSchema
 >;
 export type IStyleCopyConfirmTransfer = z.infer<
   typeof styleCopyConfirmTransferSchema

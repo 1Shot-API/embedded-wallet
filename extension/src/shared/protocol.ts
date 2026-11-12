@@ -1,6 +1,9 @@
 import { CONTENT_SOURCE, INPAGE_SOURCE, PROTOCOL_VERSION } from "./constants";
 
-/** EIP-1193 methods that require opening the side panel for user interaction. */
+/**
+ * EIP-1193 methods that require opening the side panel for user interaction,
+ * including the EIP-7715 grant / revoke prompts.
+ */
 export const INTERACTIVE_METHODS = new Set([
   "eth_requestAccounts",
   "eth_sendTransaction",
@@ -15,6 +18,10 @@ export const INTERACTIVE_METHODS = new Set([
   "wallet_addEthereumChain",
   "wallet_switchEthereumChain",
   "wallet_watchAsset",
+  "wallet_requestExecutionPermissions",
+  "wallet_revokeExecutionPermission",
+  "wallet_sendCalls",
+  "wallet_showCallsStatus",
 ]);
 
 export function isInteractiveMethod(method: string): boolean {
@@ -32,6 +39,32 @@ export function isConnectMethod(method: string): boolean {
 }
 
 /**
+ * Read methods whose result reveals the connected account or what it granted.
+ * An origin that has not connected gets `[]` from these instead of data.
+ */
+export const CONNECTION_SCOPED_READ_METHODS = new Set([
+  "eth_accounts",
+  "wallet_getPermissions",
+  "wallet_getGrantedExecutionPermissions",
+  "wallet_getCapabilities",
+  "wallet_getCallsStatus",
+]);
+
+export function isConnectionScopedRead(method: string): boolean {
+  return CONNECTION_SCOPED_READ_METHODS.has(method);
+}
+
+/**
+ * EIP-5792 reads an unconnected origin must reject with 4100.
+ * Other connection-scoped reads still return an empty list.
+ */
+export function isUnauthorizedUntilConnected(method: string): boolean {
+  return (
+    method === "wallet_getCapabilities" || method === "wallet_getCallsStatus"
+  );
+}
+
+/**
  * Interactive methods that may only run for an origin the user has connected.
  * Everything in {@link INTERACTIVE_METHODS} except the connect methods, so an
  * allowlisted-but-unconnected tab cannot raise prompts in the shared panel.
@@ -39,6 +72,28 @@ export function isConnectMethod(method: string): boolean {
 export function requiresConnectedOrigin(method: string): boolean {
   return INTERACTIVE_METHODS.has(method) && !CONNECT_METHODS.has(method);
 }
+
+/**
+ * Methods the wallet must attribute to the requesting page: every prompt and
+ * every connection-scoped read. The side panel runs these one at a time and
+ * forwards them through the wallet's `forwardEip1193` RPC with the origin, so
+ * the wallet's consent UI, analytics, and grant scoping name the page rather
+ * than the extension. Anything else (chain reads) goes straight through.
+ */
+export function isOriginBoundMethod(method: string): boolean {
+  return (
+    INTERACTIVE_METHODS.has(method) || CONNECTION_SCOPED_READ_METHODS.has(method)
+  );
+}
+
+/**
+ * Branding Layer custom RPC that ran an EIP-1193 method as a given page
+ * origin. REMOVED from the wallet: the wallet now refuses extension embedders
+ * entirely because it cannot verify which extension frames it. The extension
+ * is shelved; see the notice at the top of `extension/README.md` before
+ * re-enabling it.
+ */
+export const WALLET_FORWARD_EIP1193_RPC_METHOD = "forwardEip1193";
 
 // --- Page ↔ content (window.postMessage) ---
 

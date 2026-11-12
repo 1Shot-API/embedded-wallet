@@ -10,6 +10,7 @@ import type { IRelayerSendUiCallbacks } from "../../../types/domain/RelayerSendU
 import type { IWalletUpgradeStatus } from "../../../types/domain/WalletUpgradeStatus";
 import type { TokenAmount } from "../../../types/primitives";
 import type {
+  IAcceptedRelayerSend,
   IRelayerAuthorizationEntry,
   ISendTransactionResult,
 } from "../../data/IOneshotRelayerRepository";
@@ -25,6 +26,24 @@ import type {
  * Distinct from presentation {@link import("../../utils/ITransactionUtils").ITransactionUtils}
  * (decode ERC-20, format amounts, host domain labels).
  */
+export type ISendViaRelayerArgs = {
+  chainId: EVMChainId;
+  work: ITransactionWork | ITransactionWork[];
+  paymentToken: EVMContractAddress;
+  feeAtoms: TokenAmount;
+  /** Defaults to `chainId`. */
+  paymentChainId?: EVMChainId;
+  authorizationList?: IRelayerAuthorizationEntry[];
+  relayerUrl: string;
+  /** Batch relayer vault auth into the coalesced sign ceremony via executeBatch. */
+  prefetchRelayerVaultAssertion?: boolean;
+  /**
+   * When `false`, return once `relayer_send7710Transaction` accepts the task.
+   * Defaults to waiting for a transaction hash.
+   */
+  waitForReceipt?: boolean;
+} & IRelayerSendUiCallbacks;
+
 export interface ITransactionUtils {
   needsWalletUpgrade(
     chainId: EVMChainId,
@@ -87,19 +106,15 @@ export interface ITransactionUtils {
    * estimate, send, poll. `work` may be one item (Send) or several
    * (e.g. USDC approve + CCTP burn) — still one fee and one passkey ceremony.
    * When `paymentChainId` differs from `chainId`, fee is multichain.
+   *
+   * `waitForReceipt: false` returns after the relayer accepts the task.
    */
-  sendViaRelayer(args: {
-    chainId: EVMChainId;
-    work: ITransactionWork | ITransactionWork[];
-    paymentToken: EVMContractAddress;
-    feeAtoms: TokenAmount;
-    /** Defaults to `chainId`. */
-    paymentChainId?: EVMChainId;
-    authorizationList?: IRelayerAuthorizationEntry[];
-    relayerUrl: string;
-    /** Batch relayer vault auth into the coalesced sign ceremony via executeBatch. */
-    prefetchRelayerVaultAssertion?: boolean;
-  } & IRelayerSendUiCallbacks): Promise<ISendTransactionResult>;
+  sendViaRelayer(
+    args: ISendViaRelayerArgs & { waitForReceipt: false },
+  ): Promise<IAcceptedRelayerSend>;
+  sendViaRelayer(
+    args: ISendViaRelayerArgs & { waitForReceipt?: true },
+  ): Promise<ISendTransactionResult>;
 
   /**
    * One Multichain (or single-chain) 7710 submit for ExactCalldata work on

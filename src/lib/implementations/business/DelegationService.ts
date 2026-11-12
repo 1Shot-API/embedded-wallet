@@ -6,6 +6,7 @@ import {
   HexString,
   UnixTimestamp,
   type CeremonyUiParams,
+  type DomainString,
   type EVMChainId,
   type IExecutionPermission,
   type IExecutionPermissionResponse,
@@ -477,13 +478,17 @@ export class DelegationService implements IDelegationService {
     };
   }
 
-  async getGrantedExecutionPermissions(): Promise<
-    IExecutionPermissionResponse[]
-  > {
+  async getGrantedExecutionPermissions(
+    hostDomain: DomainString,
+  ): Promise<IExecutionPermissionResponse[]> {
+    const hostKey = hostDomain.toLowerCase();
     const summaries =
       await this.delegationRepository.listDelegations();
     const responses: IExecutionPermissionResponse[] = [];
     for (const summary of summaries) {
+      if (summary.hostDomain.toLowerCase() !== hostKey) {
+        continue;
+      }
       const full = await this.delegationRepository.getDelegation(
         summary.delegationId,
       );
