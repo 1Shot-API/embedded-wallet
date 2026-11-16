@@ -4,7 +4,7 @@ import {
 } from "@1shotapi/ows-provider";
 import type { IOWSAnalyticsEvent } from "@1shotapi/ows-types";
 import { getWallets } from "@wallet-standard/app";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 import { AnalyticsPanel } from "./components/AnalyticsPanel";
 import { AppHeader } from "./components/AppHeader";
@@ -20,6 +20,9 @@ import { useHostTestActions } from "./hooks/useHostTestActions";
 const WALLET_SIZE_X = 360;
 const WALLET_SIZE_Y = 600;
 const MAX_ANALYTICS_EVENTS = 50;
+
+// The connector's Branding iframe outlives the Wagmi tab, so Test mode afterwards runs a second one.
+const WagmiPanel = lazy(() => import("./components/WagmiPanel"));
 
 export function App() {
   const flyoutContainerRef = useRef<HTMLDivElement | null>(null);
@@ -49,8 +52,9 @@ export function App() {
   // Presentation is create-time only. Switching Test ↔ Design destroys and
   // recreates the proxy against the right container (reparenting breaks Postmate).
   // Injected mode intentionally skips OWSProxy — extension provides window.ethereum.
+  // Wagmi mode also skips it — the oneShotWallet connector owns its own iframe.
   useEffect(() => {
-    if (mode === "injected") {
+    if (mode === "injected" || mode === "wagmi") {
       setReady(false);
       setWalletVisible(false);
       proxyRef.current?.destroy();
@@ -215,6 +219,10 @@ export function App() {
             />
           ) : mode === "injected" ? (
             <InjectedPanel />
+          ) : mode === "wagmi" ? (
+            <Suspense fallback={null}>
+              <WagmiPanel />
+            </Suspense>
           ) : (
             <div className="mx-auto w-full max-w-2xl px-6 pb-6">
               <AnalyticsPanel

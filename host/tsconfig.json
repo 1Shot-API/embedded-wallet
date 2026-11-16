@@ -17,7 +17,16 @@
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@1shotapi/wagmi-connector": [
+        "../../prf-wallet/packages/ows-wagmi/dist/index.d.ts"
+      ],
+      "@1shotapi/ows-provider/evm": [
+        "../../prf-wallet/packages/ows-provider/dist/evm.d.ts"
+      ],
+      "@wagmi/core": ["../node_modules/@wagmi/core"],
+      "viem": ["../node_modules/viem"],
+      "viem/*": ["../node_modules/viem/*"]
     }
   },
   "include": ["src/**/*", "vite.config.mjs"]
