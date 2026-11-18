@@ -207,9 +207,17 @@ export const styleCopyConfirmTransferSchema = z.strictObject({
   amountLabel: z.string(),
   tokenLabel: z.string(),
   receiverLabel: z.string(),
+  intentLabel: z.string(),
   chainLabel: z.string(),
   rejectLabel: z.string(),
   confirmLabel: z.string(),
+});
+
+export const styleCopyConfirmApproveSchema = z.strictObject({
+  title: z.string(),
+  body: z.string(),
+  spenderLabel: z.string(),
+  intentLabel: z.string(),
 });
 
 export const styleCopyOnrampSchema = z.strictObject({
@@ -735,6 +743,7 @@ export const styleCopyResolvedSchema = z.strictObject({
   sendCalls: styleCopySendCallsSchema,
   showCallsStatus: styleCopyShowCallsStatusSchema,
   confirmTransfer: styleCopyConfirmTransferSchema,
+  confirmApprove: styleCopyConfirmApproveSchema,
   onramp: styleCopyOnrampSchema,
   transferTokens: styleCopyTransferTokensSchema,
   sendNativeToken: styleCopySendNativeTokenSchema,
@@ -826,6 +835,7 @@ export const styleCopyPatchSchema = z.strictObject({
   sendCalls: styleCopySendCallsSchema.partial().optional(),
   showCallsStatus: styleCopyShowCallsStatusSchema.partial().optional(),
   confirmTransfer: styleCopyConfirmTransferSchema.partial().optional(),
+  confirmApprove: styleCopyConfirmApproveSchema.partial().optional(),
   onramp: styleCopyOnrampSchema.partial().optional(),
   transferTokens: styleCopyTransferTokensSchema.partial().optional(),
   sendNativeToken: styleCopySendNativeTokenSchema.partial().optional(),
@@ -925,6 +935,9 @@ export type IStyleCopyShowCallsStatus = z.infer<
 >;
 export type IStyleCopyConfirmTransfer = z.infer<
   typeof styleCopyConfirmTransferSchema
+>;
+export type IStyleCopyConfirmApprove = z.infer<
+  typeof styleCopyConfirmApproveSchema
 >;
 export type IStyleCopyOnramp = z.infer<typeof styleCopyOnrampSchema>;
 export type IStyleCopyTransferTokens = z.infer<

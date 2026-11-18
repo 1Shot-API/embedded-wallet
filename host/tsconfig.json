@@ -17,7 +17,10 @@
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@wagmi/core": ["../node_modules/@wagmi/core"],
+      "viem": ["../node_modules/viem"],
+      "viem/*": ["../node_modules/viem/*"]
     }
   },
   "include": ["src/**/*", "vite.config.mjs"]

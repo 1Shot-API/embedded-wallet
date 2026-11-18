@@ -15,6 +15,7 @@ export type AccountConnectStorage = {
   /** True after the user has approved eth_accounts at least once this store. */
   loadAccountsPermissionGranted: () => boolean;
   saveAccountsPermissionGranted: () => void;
+  clearAccountsPermissionGranted: () => void;
 };
 
 export type RegisterAccountConnectOptions = {
@@ -45,7 +46,7 @@ type DisplayHandle = {
 const DISPLAY_ACQUIRE_TIMEOUT_MS = 2_000;
 
 /**
- * Register `eth_accounts` / `eth_requestAccounts` (+ MetaMask-style permission
+ * Register `eth_accounts` / `eth_requestAccounts` (+ EIP-2255 permission
  * methods) on the wallet (pre-`start()`).
  *
  * EIP-1193 notes:
@@ -53,6 +54,8 @@ const DISPLAY_ACQUIRE_TIMEOUT_MS = 2_000;
  * - Reconnect (`eth_requestAccounts` with grant + cache) returns silently —
  *   no `accountsChanged` / `connect` spam on every dApp refresh.
  * - Those events fire only when the user newly approves a connect.
+ * - `wallet_revokePermissions` for `eth_accounts` drops the grant (Host
+ *   disconnect) but keeps the cached address so reconnect is one approval.
  */
 export function registerAccountConnect(
   wallet: OWSWallet,
@@ -139,6 +142,16 @@ export function registerAccountConnect(
         date: Date.now(),
       } satisfies WalletPermission,
     ];
+  });
+
+  wallet.registerEip1193("wallet_revokePermissions", async (params) => {
+    const revoked = normalizeRequestedPermissions(params);
+    if (!revoked.includes("eth_accounts") || !hasGrantedAccounts()) {
+      return null;
+    }
+    options.storage.clearAccountsPermissionGranted();
+    wallet.providerEvents.emit("accountsChanged", []);
+    return null;
   });
 
   wallet.registerEip1193("wallet_getPermissions", async () => {

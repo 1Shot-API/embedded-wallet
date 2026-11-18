@@ -238,6 +238,11 @@ export interface IStyleFormState {
   confirmTransferBody: string;
   confirmTransferConfirm: string;
   confirmTransferReject: string;
+  confirmTransferIntentLabel: string;
+  confirmApproveTitle: string;
+  confirmApproveBody: string;
+  confirmApproveSpenderLabel: string;
+  confirmApproveIntentLabel: string;
 
   // Text — Circle onramp (Buy)
   onrampTitle: string;
@@ -587,6 +592,12 @@ export const ACME_PRESET: IStyleFormState = {
     "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
   confirmTransferConfirm: "Confirm",
   confirmTransferReject: "Reject",
+  confirmTransferIntentLabel: "Transfer",
+  confirmApproveTitle: "Confirm approval",
+  confirmApproveBody:
+    "{domain} is requesting permission to spend tokens from your wallet. Review the amount and spender before confirming.",
+  confirmApproveSpenderLabel: "Spender",
+  confirmApproveIntentLabel: "Approve",
   onrampTitle: "Onramp with Circle",
   onrampBody:
     "Purchase {token} on {network} with Circle Onramp. Pay with card or bank transfer—you receive {token} 1-to-1.",
@@ -853,6 +864,12 @@ export const DEFAULTS_PRESET: IStyleFormState = {
     "{domain} is requesting to send tokens from your wallet. Review the amount and recipient before confirming.",
   confirmTransferConfirm: "Confirm",
   confirmTransferReject: "Reject",
+  confirmTransferIntentLabel: "Transfer",
+  confirmApproveTitle: "Confirm approval",
+  confirmApproveBody:
+    "{domain} is requesting permission to spend tokens from your wallet. Review the amount and spender before confirming.",
+  confirmApproveSpenderLabel: "Spender",
+  confirmApproveIntentLabel: "Approve",
   onrampTitle: "Onramp with Circle",
   onrampBody:
     "Purchase {token} on {network} with Circle Onramp. Pay with card or bank transfer—you receive {token} 1-to-1.",
@@ -1250,8 +1267,18 @@ function buildNestedCopyFromForm(form: IStyleFormState): Record<string, unknown>
   put(confirmTransfer, "body", form.confirmTransferBody);
   put(confirmTransfer, "confirmLabel", form.confirmTransferConfirm);
   put(confirmTransfer, "rejectLabel", form.confirmTransferReject);
+  put(confirmTransfer, "intentLabel", form.confirmTransferIntentLabel);
   if (Object.keys(confirmTransfer).length > 0) {
     copy.confirmTransfer = confirmTransfer;
+  }
+
+  const confirmApprove: Record<string, string> = {};
+  put(confirmApprove, "title", form.confirmApproveTitle);
+  put(confirmApprove, "body", form.confirmApproveBody);
+  put(confirmApprove, "spenderLabel", form.confirmApproveSpenderLabel);
+  put(confirmApprove, "intentLabel", form.confirmApproveIntentLabel);
+  if (Object.keys(confirmApprove).length > 0) {
+    copy.confirmApprove = confirmApprove;
   }
 
   const onramp: Record<string, string> = {};

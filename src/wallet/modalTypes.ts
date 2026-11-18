@@ -44,13 +44,15 @@ export type ESolanaTxConsentMode = "sign" | "signAndSend";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
-/** Friendly host ERC-20 transfer consent (decoded transfer calldata). */
+/** Friendly host ERC-20 transfer or approval consent. */
 export interface IConfirmTransferRequest {
   domain: string;
+  purpose: "transfer" | "approve";
   amount: string;
   tokenName: string;
   tokenSymbol: string;
   tokenAddress: EVMContractAddress;
+  /** Recipient of a transfer, or spender of an approval. */
   receiver: string;
   chainName: string;
   chainId: EVMChainId;
@@ -79,12 +81,14 @@ export type IRelayerConfirmSendResult = {
 /** Result from TX confirm when canceling or selecting payment (legacy shape). */
 export type IConfirmSendResult = false | IConfirmSendPayment;
 
-/** Decoded ERC-20 `transfer` shown in place of raw calldata. */
+/** Decoded ERC-20 transfer or approval shown in place of raw calldata. */
 export type ISendCallsModalTransfer = {
+  purpose: "transfer" | "approve";
   tokenAddress: EVMContractAddress;
   symbol: string;
-  /** Formatted with the token decimals. */
+  /** Formatted with the token decimals. An approval at or above 2^255 is "Unlimited". */
   amount: string;
+  /** Recipient of a transfer, or spender of an approval. */
   recipient: string;
   iconUrl?: string;
 };
@@ -95,6 +99,8 @@ export type ISendCallsModalCall = {
   data: string;
   value: string;
   transfer?: ISendCallsModalTransfer;
+  /** ERC-7730 rendering. Null means the registry had no descriptor for this call. */
+  clearSigning?: IClearSigningPresentation | null;
 };
 
 export type ISendCallsModalRequest = {

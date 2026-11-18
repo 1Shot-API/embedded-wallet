@@ -3,6 +3,7 @@ import {
   type EVMTransactionHash,
 } from "@1shotapi/ows-types";
 import { useRef, useState } from "react";
+import { formatUnits } from "viem";
 
 import type { IRelayerSendUiCallbacks } from "../../lib/types/domain/RelayerSendUi";
 import { isSignCeremonyDenied } from "../../lib/utils/isSignCeremonyDenied";
@@ -37,10 +38,25 @@ export function EVMConfirmTransferModal({
 }) {
   const { style } = useStyle();
   const { resolveChain } = useWallet();
-  const { confirmTransfer: copy, account: accountCopy } = style.copy;
+  const {
+    confirmTransfer,
+    confirmApprove,
+    clearSigning: clearCopy,
+    account: accountCopy,
+  } = style.copy;
+  const approving = request.purpose === "approve";
+  const copy = approving ? confirmApprove : confirmTransfer;
   const relayerCopy = style.copy.relayerSubmit;
   const body = copy.body.replace("{domain}", request.domain);
+  const counterpartyLabel = approving
+    ? confirmApprove.spenderLabel
+    : confirmTransfer.receiverLabel;
   const chain = resolveChain(request.chainId);
+  const attachedValue =
+    approving && request.work.value != null && request.work.value > 0n
+      ? request.work.value
+      : null;
+  const native = chain?.nativeCurrency ?? { symbol: "ETH", decimals: 18 };
 
   const submit = useRelayerConfirmSubmit({
     execute: (payment, ui) =>
@@ -111,12 +127,12 @@ export function EVMConfirmTransferModal({
         showActions
           ? [
               {
-                label: copy.rejectLabel,
+                label: confirmTransfer.rejectLabel,
                 variant: "secondary",
                 onClick: cancel,
               },
               {
-                label: copy.confirmLabel,
+                label: confirmTransfer.confirmLabel,
                 variant: "primary",
                 autoFocus: true,
                 disabled: request.useRelayer ? !canConfirm : false,
@@ -156,7 +172,7 @@ export function EVMConfirmTransferModal({
 
         <div className="flex flex-col gap-1.5">
           <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-            {copy.receiverLabel}
+            {counterpartyLabel}
           </span>
           <CopyableText
             text={request.receiver}
@@ -166,6 +182,16 @@ export function EVMConfirmTransferModal({
             copyFailedLabel={accountCopy.addressCopyFailedLabel}
           />
         </div>
+        {attachedValue != null ? (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+              {clearCopy.nativeValueLabel}
+            </span>
+            <span className="text-sm font-medium">
+              {formatUnits(attachedValue, native.decimals)} {native.symbol}
+            </span>
+          </div>
+        ) : null}
       </div>
       {request.useRelayer ? (
         <RelayerConfirmModalChrome

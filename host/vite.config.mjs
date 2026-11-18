@@ -22,15 +22,17 @@ export default defineConfig({
   },
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [{ find: "@", replacement: path.resolve(__dirname, "./src") }],
+    dedupe: ["@wagmi/core", "viem"],
   },
   server: {
     port: Number(process.env.HOST_PORT ?? process.env.PORT ?? 5173),
     host: "0.0.0.0",
     allowedHosts: true,
     strictPort: true,
+    fs: {
+      allow: [path.resolve(__dirname, "..")],
+    },
     ...(https ? { https } : {}),
   },
   preview: {
