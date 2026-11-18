@@ -200,9 +200,16 @@ export const DEFAULT_STYLE: IResolvedStyle = {
       amountLabel: "Amount",
       tokenLabel: "Token",
       receiverLabel: "To",
+      intentLabel: "Transfer",
       chainLabel: "Network",
       rejectLabel: "Reject",
       confirmLabel: "Confirm",
+    },
+    confirmApprove: {
+      title: "Confirm approval",
+      body: "{domain} is requesting permission to spend tokens from your wallet. Review the amount and spender before confirming.",
+      spenderLabel: "Spender",
+      intentLabel: "Approve",
     },
     onramp: {
       title: "Onramp with Circle",

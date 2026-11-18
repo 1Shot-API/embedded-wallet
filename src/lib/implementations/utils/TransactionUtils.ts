@@ -15,20 +15,23 @@ import {
 
 import type { IHostOriginProvider } from "../../interfaces/utils/IHostOriginProvider";
 import type {
-  IDecodedErc20Transfer,
+  IDecodedErc20Call,
   ITransactionUtils,
 } from "../../interfaces/utils/ITransactionUtils";
 
 import { UNKNOWN_HOST_DOMAIN } from "./HostOriginProvider";
 
-/** EVM transfer helpers (decode, amount formatting, host/chain labels). */
+/** 2^255. Approvals at or above this display as unlimited. */
+const UNLIMITED_APPROVAL = 1n << 255n;
+
+/** EVM token helpers (ERC-20 decode, amount formatting, host/chain labels). */
 export class TransactionUtils implements ITransactionUtils {
   constructor(private readonly hostOriginProvider: IHostOriginProvider) {}
 
-  tryDecodeErc20Transfer(
+  tryDecodeErc20(
     to: EVMContractAddress | null,
     data: HexString,
-  ): IDecodedErc20Transfer | null {
+  ): IDecodedErc20Call | null {
     if (!to || !data || String(data) === "0x" || data.length < 10) {
       return null;
     }
@@ -37,18 +40,31 @@ export class TransactionUtils implements ITransactionUtils {
         abi: erc20Abi,
         data: data as Hex,
       });
-      if (decoded.functionName !== "transfer") {
-        return null;
+      if (decoded.functionName === "transfer") {
+        const [recipient, amount] = decoded.args as readonly [
+          `0x${string}`,
+          bigint,
+        ];
+        return {
+          kind: "transfer",
+          tokenAddress: to,
+          recipient: EVMAccountAddress(getAddress(recipient)),
+          amount,
+        };
       }
-      const [recipient, amount] = decoded.args as readonly [
-        `0x${string}`,
-        bigint,
-      ];
-      return {
-        tokenAddress: to,
-        recipient: EVMAccountAddress(getAddress(recipient)),
-        amount,
-      };
+      if (decoded.functionName === "approve") {
+        const [spender, amount] = decoded.args as readonly [
+          `0x${string}`,
+          bigint,
+        ];
+        return {
+          kind: "approve",
+          tokenAddress: to,
+          spender: EVMAccountAddress(getAddress(spender)),
+          amount,
+        };
+      }
+      return null;
     } catch {
       return null;
     }
@@ -66,6 +82,11 @@ export class TransactionUtils implements ITransactionUtils {
     } catch {
       return amount.toString();
     }
+  }
+
+  formatErc20ApproveAmount(amount: bigint, decimals: number): string {
+    if (amount >= UNLIMITED_APPROVAL) return "Unlimited";
+    return this.formatTokenAmount(amount, decimals);
   }
 
   resolveHostDomain(): DomainString {

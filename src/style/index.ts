@@ -15,6 +15,7 @@ export type {
   IStyleCopySendCalls,
   IStyleCopyShowCallsStatus,
   IStyleCopyConfirmTransfer,
+  IStyleCopyConfirmApprove,
   IStyleCopyOnramp,
   IStyleCopyTransferTokens,
   IStyleCopySendNativeToken,

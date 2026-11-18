@@ -1,5 +1,6 @@
 import {
   BarChart3Icon,
+  BlocksIcon,
   FlaskConicalIcon,
   PaletteIcon,
   PlugZapIcon,
@@ -18,7 +19,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-export type HostMode = "test" | "design" | "analytics" | "injected";
+export type HostMode = "test" | "design" | "analytics" | "injected" | "wagmi";
 
 export interface IAppSidebarProps {
   mode: HostMode;
@@ -54,6 +55,12 @@ const NAV_ITEMS: {
     label: "Injected",
     description: "window.ethereum / EIP-6963 only (extension)",
     icon: PlugZapIcon,
+  },
+  {
+    mode: "wagmi",
+    label: "Wagmi",
+    description: "oneShotWallet() wagmi connector",
+    icon: BlocksIcon,
   },
 ];
 
@@ -95,7 +102,9 @@ export function AppSidebar({ mode, onModeChange }: IAppSidebarProps) {
                   ? "Configurator on the left; wallet flyout stays open on the right."
                   : mode === "injected"
                     ? "No OWSProxy here. Inject the extension on this tab, then Connect."
-                    : "Events accumulate across tabs. Switch to Test to generate traffic."}
+                    : mode === "wagmi"
+                      ? "wagmi owns the wallet iframe via the oneShotWallet connector."
+                      : "Events accumulate across tabs. Switch to Test to generate traffic."}
             </p>
           </SidebarGroupContent>
         </SidebarGroup>

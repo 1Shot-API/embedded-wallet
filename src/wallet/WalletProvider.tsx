@@ -131,6 +131,7 @@ import {
   loadCachedEvmAddress,
   loadAccountsPermissionGranted,
   saveAccountsPermissionGranted,
+  clearAccountsPermissionGranted,
   saveCachedAddresses,
   clearWalletStorage,
 } from "../storage";
@@ -298,6 +299,7 @@ const walletStorage: AccountConnectStorage = {
   },
   loadAccountsPermissionGranted,
   saveAccountsPermissionGranted,
+  clearAccountsPermissionGranted,
 };
 
 /** Imperative wallet APIs that need refs / boot (not UI session state). */

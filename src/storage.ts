@@ -192,6 +192,10 @@ export function saveAccountsPermissionGranted(): void {
   localStorage.setItem(ETH_ACCOUNTS_GRANTED_KEY, "1");
 }
 
+export function clearAccountsPermissionGranted(): void {
+  localStorage.removeItem(ETH_ACCOUNTS_GRANTED_KEY);
+}
+
 export function loadCachedSecp256k1PublicKey(): `0x${string}` | undefined {
   const value = localStorage.getItem(SECP256K1_PUBLIC_KEY_KEY);
   if (!value || !value.startsWith("0x")) {

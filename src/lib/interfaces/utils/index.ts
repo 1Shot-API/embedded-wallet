@@ -7,7 +7,7 @@ export { IEventBusType } from "./IEventBus";
 export type { IOWSProvider } from "./IOWSProvider";
 export { IOWSProviderType } from "./IOWSProvider";
 export type {
-  IDecodedErc20Transfer,
+  IDecodedErc20Call,
   ITransactionUtils,
 } from "./ITransactionUtils";
 export { ITransactionUtilsType } from "./ITransactionUtils";

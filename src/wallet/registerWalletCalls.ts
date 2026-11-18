@@ -1,7 +1,3 @@
-import type {
-  IBlockchainProvider,
-  OWSWallet,
-} from "@1shotapi/ows-wallet-utils";
 import {
   ChainUtils,
   EVMChainId,
@@ -12,9 +8,13 @@ import {
   RelayerTransactionId,
   type EVMAccountAddress,
 } from "@1shotapi/ows-types";
+import type {
+  IBlockchainProvider,
+  OWSWallet,
+} from "@1shotapi/ows-wallet-utils";
 import { getSmartAccountsEnvironment } from "@metamask/smart-accounts-kit";
 import type { Hex } from "viem";
-import { z } from "zod";
+import { type z } from "zod";
 
 import {
   MAX_CALLS_PER_BUNDLE,
@@ -42,6 +42,11 @@ import {
   unsupportedCapabilityName,
   type IParsedSendCallsParams,
 } from "../lib/eip5792/schema";
+import {
+  CallBundleRepository,
+  type IStoredCallBundle,
+} from "../lib/implementations/data/CallBundleRepository";
+import type { IClearSigningService } from "../lib/interfaces/business/IClearSigningService";
 import type {
   ITransactionService,
   ITransactionWork,
@@ -50,14 +55,12 @@ import type { IChainRepository } from "../lib/interfaces/data/IChainRepository";
 import type { IKnownAssetRepository } from "../lib/interfaces/data/IKnownAssetRepository";
 import type { IOneshotRelayerRepository } from "../lib/interfaces/data/IOneshotRelayerRepository";
 import type { ITrackedAssetRepository } from "../lib/interfaces/data/ITrackedAssetRepository";
-import type { ITransactionUtils } from "../lib/interfaces/utils/ITransactionUtils";
 import type { IHostOriginProvider } from "../lib/interfaces/utils/IHostOriginProvider";
-import {
-  CallBundleRepository,
-  type IStoredCallBundle,
-} from "../lib/implementations/data/CallBundleRepository";
+import type { ITransactionUtils } from "../lib/interfaces/utils/ITransactionUtils";
 import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
+import { EAssetType } from "../lib/types/enum/EAssetType";
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
+
 import type {
   IRelayerConfirmSendResult,
   ISendCallsModalCall,
@@ -77,6 +80,7 @@ export type RegisterWalletCallsOptions = {
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   relayerRepository: IOneshotRelayerRepository;
+  clearSigningService: IClearSigningService;
   blockchain: IBlockchainProvider;
   ensureOnboardedForSigning: () => Promise<void>;
   bundles?: CallBundleRepository;
@@ -404,12 +408,13 @@ export function registerWalletCalls(
       const calls = await Promise.all(
         body.calls.map(async (call) => {
           const data = call.data ?? HexString("0x");
-          const decoded = options.transactionUtils.tryDecodeErc20Transfer(
+          const decoded = options.transactionUtils.tryDecodeErc20(
             EVMContractAddress(call.to),
             data,
           );
           let transfer: ISendCallsModalCall["transfer"];
-          if (decoded) {
+          let clearSigning: ISendCallsModalCall["clearSigning"];
+          if (decoded?.kind === "transfer" || decoded?.kind === "approve") {
             const known = await options.knownAssetRepository.getKnownAsset(
               body.chainId,
               decoded.tokenAddress,
@@ -417,27 +422,59 @@ export function registerWalletCalls(
             const tracked = trackedAssets.find(
               (asset) => asset.address === decoded.tokenAddress,
             );
-            const decimals = tracked?.decimals ?? known?.decimals;
-            const symbol = tracked?.symbol ?? known?.symbol;
-            if (decimals != null && symbol) {
-              const iconUrl = tracked?.iconUrl ?? known?.iconUrl;
+            const asset = tracked ?? known;
+            const iconUrl = tracked?.iconUrl ?? known?.iconUrl;
+            const transferDecimals = tracked?.decimals ?? known?.decimals;
+            const transferSymbol = tracked?.symbol ?? known?.symbol;
+            if (
+              decoded.kind === "transfer" &&
+              transferDecimals != null &&
+              transferSymbol
+            ) {
               transfer = {
+                purpose: "transfer",
                 tokenAddress: decoded.tokenAddress,
-                symbol,
+                symbol: transferSymbol,
                 amount: options.transactionUtils.formatTokenAmount(
                   decoded.amount,
-                  decimals,
+                  transferDecimals,
                 ),
                 recipient: decoded.recipient,
                 ...(iconUrl ? { iconUrl } : {}),
               };
+            } else if (
+              decoded.kind === "approve" &&
+              asset?.type === EAssetType.Erc20 &&
+              asset.symbol &&
+              asset.decimals != null
+            ) {
+              transfer = {
+                purpose: "approve",
+                tokenAddress: decoded.tokenAddress,
+                symbol: asset.symbol,
+                amount: options.transactionUtils.formatErc20ApproveAmount(
+                  decoded.amount,
+                  asset.decimals,
+                ),
+                recipient: decoded.spender,
+                ...(iconUrl ? { iconUrl } : {}),
+              };
             }
+          } else if (call.to) {
+            clearSigning = await options.clearSigningService.describeTransaction(
+              body.chainId,
+              account,
+              EVMContractAddress(call.to),
+              data,
+              call.value ?? HexString("0x0"),
+            );
           }
           return {
             to: call.to,
             data,
             value: call.value ?? "0x0",
             ...(transfer ? { transfer } : {}),
+            ...(clearSigning !== undefined ? { clearSigning } : {}),
           };
         }),
       );

@@ -177,12 +177,28 @@ describe("ClearSigningService.describeTransaction", () => {
       new FakeRepository(null),
       environment,
     );
+    const approve = HexString(
+      encodeFunctionData({
+        abi: [parseAbiItem("function approve(address spender, uint256 amount)")],
+        args: [SPENDER, 2_000_000n],
+      }),
+    );
     assert.equal(
       await service.describeTransaction(
         BASE,
         SIGNER,
         ONEINCH,
         clipperSwapData,
+        HexString("0x0"),
+      ),
+      null,
+    );
+    assert.equal(
+      await service.describeTransaction(
+        BASE,
+        SIGNER,
+        EVMContractAddress(USDC_BASE),
+        approve,
         HexString("0x0"),
       ),
       null,
