@@ -11,11 +11,12 @@ import type {
 import { useWallet } from "../../wallet/WalletProvider";
 import { AssetIdentityMark } from "../AssetIdentityMark";
 import { CopyableText } from "../CopyableText";
-import { SafeAssetImage } from "../SafeAssetImage";
 import { Modal } from "../Modal";
 import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
+import { SafeAssetImage } from "../SafeAssetImage";
 import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
 
+import { ClearSigningDetails } from "./ClearSigningDetails";
 import { FieldLabel } from "./FieldLabel";
 import { LabeledBlock } from "./LabeledBlock";
 import { RequestingHostBadge } from "./RequestingHostBadge";
@@ -57,6 +58,7 @@ export function EVMSendCallsModal({
     sendTransaction: txCopy,
     confirmTransfer,
     account: accountCopy,
+    clearSigning: clearCopy,
   } = style.copy;
   const chain = resolveChain(request.chainId);
   const relayerCopy = style.copy.relayerSubmit;
@@ -163,14 +165,34 @@ export function EVMSendCallsModal({
                   />
                 </div>
               </div>
+            ) : call.clearSigning ? (
+              <div className="flex flex-col gap-3">
+                <p className="text-foreground m-0 text-sm font-semibold">
+                  {call.clearSigning.display.intent}
+                </p>
+                <ClearSigningDetails
+                  presentation={call.clearSigning}
+                  chainId={request.chainId}
+                />
+                {hasNativeValue(call.value) ? (
+                  <LabeledBlock label={txCopy.valueLabel} content={call.value} />
+                ) : null}
+                <details className="mb-1">
+                  <summary className="text-muted-foreground mb-2 cursor-pointer text-xs font-medium select-none">
+                    {clearCopy.rawTransactionLabel}
+                  </summary>
+                  <LabeledBlock label={txCopy.contractLabel} content={call.to} />
+                  <LabeledBlock label={txCopy.dataLabel} content={call.data} />
+                </details>
+              </div>
             ) : (
-              <LabeledBlock label={txCopy.contractLabel} content={call.to} />
-            )}
-            {hasNativeValue(call.value) ? (
-              <LabeledBlock label={txCopy.valueLabel} content={call.value} />
-            ) : null}
-            {call.transfer ? null : (
-              <LabeledBlock label={txCopy.dataLabel} content={call.data} />
+              <>
+                <LabeledBlock label={txCopy.contractLabel} content={call.to} />
+                {hasNativeValue(call.value) ? (
+                  <LabeledBlock label={txCopy.valueLabel} content={call.value} />
+                ) : null}
+                <LabeledBlock label={txCopy.dataLabel} content={call.data} />
+              </>
             )}
           </li>
         ))}

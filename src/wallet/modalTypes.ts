@@ -95,6 +95,8 @@ export type ISendCallsModalCall = {
   data: string;
   value: string;
   transfer?: ISendCallsModalTransfer;
+  /** ERC-7730 rendering. Null means the registry had no descriptor for this call. */
+  clearSigning?: IClearSigningPresentation | null;
 };
 
 export type ISendCallsModalRequest = {

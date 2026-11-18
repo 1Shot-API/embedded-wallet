@@ -957,6 +957,7 @@ export function useWalletBoot({
         knownAssetRepository,
         trackedAssetRepository,
         relayerRepository,
+        clearSigningService,
         blockchain,
         ensureOnboardedForSigning,
         ask,

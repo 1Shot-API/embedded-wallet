@@ -14,6 +14,7 @@ import type { IChainRepository } from "../../interfaces/data/IChainRepository";
 import type { IKnownAssetRepository } from "../../interfaces/data/IKnownAssetRepository";
 import type { ITrackedAssetRepository } from "../../interfaces/data/ITrackedAssetRepository";
 import type { SupportedChain } from "../../types/domain/SupportedChain";
+import { EAssetType } from "../../types/enum/EAssetType";
 
 const DEFAULT_ONCHAIN_TIMEOUT_MS = 1500;
 const FALLBACK_NATIVE: IClearSigningTokenMetadata = {
@@ -73,6 +74,20 @@ export class ClearSigningEnvironment implements IClearSigningEnvironment {
     return this.chain(chainId)?.label ?? null;
   }
 
+  /**
+   * Tracked ERC-20, then a catalog ERC-20. No on-chain read: an unknown
+   * contract is not treated as an ERC-20 just because it shares a selector.
+   * ERC-721 `approve` uses that same selector, so other asset types stay out.
+   */
+  async localErc20(
+    chainId: EVMChainId,
+    address: EVMContractAddress,
+  ): Promise<{ name: string; symbol: string; decimals: number } | null> {
+    const asset = await this.localAsset(chainId, address);
+    if (asset?.type !== EAssetType.Erc20) return null;
+    return { name: asset.name, symbol: asset.symbol, decimals: asset.decimals };
+  }
+
   /** Token contracts resolve to their asset name; the wallet has no address book otherwise. */
   async getAddressName(
     chainId: EVMChainId,
@@ -100,7 +115,12 @@ export class ClearSigningEnvironment implements IClearSigningEnvironment {
   private async localAsset(
     chainId: EVMChainId,
     address: EVMContractAddress,
-  ): Promise<{ name: string; symbol: string; decimals: number } | null> {
+  ): Promise<{
+    name: string;
+    symbol: string;
+    decimals: number;
+    type: EAssetType;
+  } | null> {
     const wanted = String(address).toLowerCase();
     const tracked = (await this.trackedAssetRepository.list(chainId)).find(
       (asset) => String(asset.address).toLowerCase() === wanted,

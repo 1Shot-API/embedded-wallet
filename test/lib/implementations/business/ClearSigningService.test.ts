@@ -188,6 +188,75 @@ describe("ClearSigningService.describeTransaction", () => {
       null,
     );
   });
+
+  it("clear-signs approve on a local token after a registry miss", async () => {
+    const service = new ClearSigningService(new FakeRepository(null), {
+      ...environment,
+      localErc20: async () => ({
+        name: "USD Coin",
+        symbol: "USDC",
+        decimals: 6,
+      }),
+    });
+    const data = HexString(
+      encodeFunctionData({
+        abi: [parseAbiItem("function approve(address spender, uint256 amount)")],
+        args: [SPENDER, 2_000_000n],
+      }),
+    );
+    const presentation = await service.describeTransaction(
+      BASE,
+      SIGNER,
+      EVMContractAddress(USDC_BASE),
+      data,
+      HexString("0x0"),
+    );
+    assert.ok(presentation);
+    assert.equal(presentation.display.intent, "Approve");
+    assert.equal(presentation.path, "local/erc20-approve");
+    const byLabel = new Map(
+      presentation.display.fields.map((field) => [field.label, field.value]),
+    );
+    assert.equal(byLabel.get("Spender"), SPENDER);
+    assert.equal(byLabel.get("Amount"), "2 USDC");
+  });
+
+  it("labels a max approval Unlimited and ignores unknown contracts", async () => {
+    const service = new ClearSigningService(new FakeRepository(null), {
+      ...environment,
+      localErc20: async (_chainId, address) =>
+        address.toLowerCase() === USDC_BASE.toLowerCase()
+          ? { name: "USD Coin", symbol: "USDC", decimals: 6 }
+          : null,
+    });
+    const unlimited = HexString(
+      encodeFunctionData({
+        abi: [parseAbiItem("function approve(address spender, uint256 amount)")],
+        args: [SPENDER, (1n << 256n) - 1n],
+      }),
+    );
+    const presentation = await service.describeTransaction(
+      BASE,
+      SIGNER,
+      EVMContractAddress(USDC_BASE),
+      unlimited,
+      HexString("0x0"),
+    );
+    assert.ok(presentation);
+    assert.ok(
+      presentation.display.fields.some((f) => f.value === "Unlimited USDC"),
+    );
+    assert.equal(
+      await service.describeTransaction(
+        BASE,
+        SIGNER,
+        ONEINCH,
+        unlimited,
+        HexString("0x0"),
+      ),
+      null,
+    );
+  });
 });
 
 describe("ClearSigningService.describeTypedData", () => {

@@ -1,7 +1,3 @@
-import type {
-  IBlockchainProvider,
-  OWSWallet,
-} from "@1shotapi/ows-wallet-utils";
 import {
   ChainUtils,
   EVMChainId,
@@ -12,9 +8,13 @@ import {
   RelayerTransactionId,
   type EVMAccountAddress,
 } from "@1shotapi/ows-types";
+import type {
+  IBlockchainProvider,
+  OWSWallet,
+} from "@1shotapi/ows-wallet-utils";
 import { getSmartAccountsEnvironment } from "@metamask/smart-accounts-kit";
 import type { Hex } from "viem";
-import { z } from "zod";
+import { type z } from "zod";
 
 import {
   MAX_CALLS_PER_BUNDLE,
@@ -42,6 +42,11 @@ import {
   unsupportedCapabilityName,
   type IParsedSendCallsParams,
 } from "../lib/eip5792/schema";
+import {
+  CallBundleRepository,
+  type IStoredCallBundle,
+} from "../lib/implementations/data/CallBundleRepository";
+import type { IClearSigningService } from "../lib/interfaces/business/IClearSigningService";
 import type {
   ITransactionService,
   ITransactionWork,
@@ -50,14 +55,11 @@ import type { IChainRepository } from "../lib/interfaces/data/IChainRepository";
 import type { IKnownAssetRepository } from "../lib/interfaces/data/IKnownAssetRepository";
 import type { IOneshotRelayerRepository } from "../lib/interfaces/data/IOneshotRelayerRepository";
 import type { ITrackedAssetRepository } from "../lib/interfaces/data/ITrackedAssetRepository";
-import type { ITransactionUtils } from "../lib/interfaces/utils/ITransactionUtils";
 import type { IHostOriginProvider } from "../lib/interfaces/utils/IHostOriginProvider";
-import {
-  CallBundleRepository,
-  type IStoredCallBundle,
-} from "../lib/implementations/data/CallBundleRepository";
+import type { ITransactionUtils } from "../lib/interfaces/utils/ITransactionUtils";
 import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
+
 import type {
   IRelayerConfirmSendResult,
   ISendCallsModalCall,
@@ -77,6 +79,7 @@ export type RegisterWalletCallsOptions = {
   knownAssetRepository: IKnownAssetRepository;
   trackedAssetRepository: ITrackedAssetRepository;
   relayerRepository: IOneshotRelayerRepository;
+  clearSigningService: IClearSigningService;
   blockchain: IBlockchainProvider;
   ensureOnboardedForSigning: () => Promise<void>;
   bundles?: CallBundleRepository;
@@ -409,6 +412,16 @@ export function registerWalletCalls(
             data,
           );
           let transfer: ISendCallsModalCall["transfer"];
+          let clearSigning: ISendCallsModalCall["clearSigning"];
+          if (!decoded && call.to) {
+            clearSigning = await options.clearSigningService.describeTransaction(
+              body.chainId,
+              account,
+              EVMContractAddress(call.to),
+              data,
+              call.value ?? HexString("0x0"),
+            );
+          }
           if (decoded) {
             const known = await options.knownAssetRepository.getKnownAsset(
               body.chainId,
@@ -438,6 +451,7 @@ export function registerWalletCalls(
             data,
             value: call.value ?? "0x0",
             ...(transfer ? { transfer } : {}),
+            ...(clearSigning !== undefined ? { clearSigning } : {}),
           };
         }),
       );
