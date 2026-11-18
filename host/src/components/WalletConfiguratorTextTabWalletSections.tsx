@@ -173,6 +173,36 @@ export function WalletConfiguratorTextTabWalletSections({
             onChange={(value) => patch("confirmTransferReject", value)}
           />
           <TextField
+            id="confirm-transfer-intent"
+            label="Confirm transfer intent"
+            value={form.confirmTransferIntentLabel}
+            onChange={(value) => patch("confirmTransferIntentLabel", value)}
+          />
+          <TextField
+            id="confirm-approve-title"
+            label="Confirm approval title"
+            value={form.confirmApproveTitle}
+            onChange={(value) => patch("confirmApproveTitle", value)}
+          />
+          <BodyField
+            id="confirm-approve-body"
+            label="Confirm approval body"
+            value={form.confirmApproveBody}
+            onChange={(value) => patch("confirmApproveBody", value)}
+          />
+          <TextField
+            id="confirm-approve-spender"
+            label="Confirm approval spender"
+            value={form.confirmApproveSpenderLabel}
+            onChange={(value) => patch("confirmApproveSpenderLabel", value)}
+          />
+          <TextField
+            id="confirm-approve-intent"
+            label="Confirm approval intent"
+            value={form.confirmApproveIntentLabel}
+            onChange={(value) => patch("confirmApproveIntentLabel", value)}
+          />
+          <TextField
             id="onramp-title"
             label="Onramp title"
             value={form.onrampTitle}

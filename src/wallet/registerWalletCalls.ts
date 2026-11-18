@@ -58,6 +58,7 @@ import type { ITrackedAssetRepository } from "../lib/interfaces/data/ITrackedAss
 import type { IHostOriginProvider } from "../lib/interfaces/utils/IHostOriginProvider";
 import type { ITransactionUtils } from "../lib/interfaces/utils/ITransactionUtils";
 import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
+import { EAssetType } from "../lib/types/enum/EAssetType";
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
 
 import type {
@@ -407,22 +408,13 @@ export function registerWalletCalls(
       const calls = await Promise.all(
         body.calls.map(async (call) => {
           const data = call.data ?? HexString("0x");
-          const decoded = options.transactionUtils.tryDecodeErc20Transfer(
+          const decoded = options.transactionUtils.tryDecodeErc20(
             EVMContractAddress(call.to),
             data,
           );
           let transfer: ISendCallsModalCall["transfer"];
           let clearSigning: ISendCallsModalCall["clearSigning"];
-          if (!decoded && call.to) {
-            clearSigning = await options.clearSigningService.describeTransaction(
-              body.chainId,
-              account,
-              EVMContractAddress(call.to),
-              data,
-              call.value ?? HexString("0x0"),
-            );
-          }
-          if (decoded) {
+          if (decoded?.kind === "transfer" || decoded?.kind === "approve") {
             const known = await options.knownAssetRepository.getKnownAsset(
               body.chainId,
               decoded.tokenAddress,
@@ -430,21 +422,52 @@ export function registerWalletCalls(
             const tracked = trackedAssets.find(
               (asset) => asset.address === decoded.tokenAddress,
             );
-            const decimals = tracked?.decimals ?? known?.decimals;
-            const symbol = tracked?.symbol ?? known?.symbol;
-            if (decimals != null && symbol) {
-              const iconUrl = tracked?.iconUrl ?? known?.iconUrl;
+            const asset = tracked ?? known;
+            const iconUrl = tracked?.iconUrl ?? known?.iconUrl;
+            const transferDecimals = tracked?.decimals ?? known?.decimals;
+            const transferSymbol = tracked?.symbol ?? known?.symbol;
+            if (
+              decoded.kind === "transfer" &&
+              transferDecimals != null &&
+              transferSymbol
+            ) {
               transfer = {
+                purpose: "transfer",
                 tokenAddress: decoded.tokenAddress,
-                symbol,
+                symbol: transferSymbol,
                 amount: options.transactionUtils.formatTokenAmount(
                   decoded.amount,
-                  decimals,
+                  transferDecimals,
                 ),
                 recipient: decoded.recipient,
                 ...(iconUrl ? { iconUrl } : {}),
               };
+            } else if (
+              decoded.kind === "approve" &&
+              asset?.type === EAssetType.Erc20 &&
+              asset.symbol &&
+              asset.decimals != null
+            ) {
+              transfer = {
+                purpose: "approve",
+                tokenAddress: decoded.tokenAddress,
+                symbol: asset.symbol,
+                amount: options.transactionUtils.formatErc20ApproveAmount(
+                  decoded.amount,
+                  asset.decimals,
+                ),
+                recipient: decoded.spender,
+                ...(iconUrl ? { iconUrl } : {}),
+              };
             }
+          } else if (call.to) {
+            clearSigning = await options.clearSigningService.describeTransaction(
+              body.chainId,
+              account,
+              EVMContractAddress(call.to),
+              data,
+              call.value ?? HexString("0x0"),
+            );
           }
           return {
             to: call.to,

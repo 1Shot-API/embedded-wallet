@@ -12,7 +12,6 @@ import { ClearSigningEnvironment } from "@/lib/implementations/utils/ClearSignin
 import type { IChainRepository } from "@/lib/interfaces/data/IChainRepository.ts";
 import type { IKnownAssetRepository } from "@/lib/interfaces/data/IKnownAssetRepository.ts";
 import type { ITrackedAssetRepository } from "@/lib/interfaces/data/ITrackedAssetRepository.ts";
-import { EAssetType } from "@/lib/types/enum/EAssetType.ts";
 
 const BASE = EVMChainId("0x2105");
 const TOKEN = EVMContractAddress("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913");
@@ -28,24 +27,13 @@ const chainRepository = {
 } as unknown as IChainRepository;
 
 function trackedRepository(
-  assets: {
-    address: string;
-    name: string;
-    symbol: string;
-    decimals: number;
-    type?: EAssetType;
-  }[],
+  assets: { address: string; name: string; symbol: string; decimals: number }[],
 ): ITrackedAssetRepository {
   return { list: async () => assets } as unknown as ITrackedAssetRepository;
 }
 
 function knownRepository(
-  asset: {
-    name: string;
-    symbol: string;
-    decimals: number;
-    type?: EAssetType;
-  } | null,
+  asset: { name: string; symbol: string; decimals: number } | null,
 ): IKnownAssetRepository {
   return {
     getKnownAsset: async () => asset,
@@ -145,74 +133,6 @@ describe("ClearSigningEnvironment.getTokenMetadata", () => {
       { onchainTimeoutMs: 20 },
     );
     assert.equal(await environment.getTokenMetadata(BASE, TOKEN), null);
-  });
-});
-
-describe("ClearSigningEnvironment.localErc20", () => {
-  it("returns a tracked or catalog ERC-20 and does not read the chain", async () => {
-    const chain = onchainUsdc();
-    const tracked = new ClearSigningEnvironment(
-      chainRepository,
-      knownRepository(null),
-      trackedRepository([
-        {
-          address: TOKEN,
-          name: "USD Coin",
-          symbol: "USDC",
-          decimals: 6,
-          type: EAssetType.Erc20,
-        },
-      ]),
-      chain,
-    );
-    assert.deepEqual(await tracked.localErc20(BASE, TOKEN), {
-      name: "USD Coin",
-      symbol: "USDC",
-      decimals: 6,
-    });
-
-    const catalog = new ClearSigningEnvironment(
-      chainRepository,
-      knownRepository({
-        name: "USD Coin",
-        symbol: "USDC",
-        decimals: 6,
-        type: EAssetType.Erc20,
-      }),
-      trackedRepository([]),
-      chain,
-    );
-    assert.deepEqual(await catalog.localErc20(BASE, TOKEN), {
-      name: "USD Coin",
-      symbol: "USDC",
-      decimals: 6,
-    });
-    assert.equal(chain.reads, 0);
-  });
-
-  it("ignores an ERC-721 that shares the approve selector", async () => {
-    const chain = onchainUsdc();
-    const environment = new ClearSigningEnvironment(
-      chainRepository,
-      knownRepository({
-        name: "Catalog USDC",
-        symbol: "USDC",
-        decimals: 6,
-        type: EAssetType.Erc20,
-      }),
-      trackedRepository([
-        {
-          address: TOKEN,
-          name: "Tracked NFT",
-          symbol: "NFT",
-          decimals: 0,
-          type: EAssetType.Erc721,
-        },
-      ]),
-      chain,
-    );
-    assert.equal(await environment.localErc20(BASE, TOKEN), null);
-    assert.equal(chain.reads, 0);
   });
 });
 

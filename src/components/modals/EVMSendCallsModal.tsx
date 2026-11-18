@@ -1,5 +1,6 @@
 import type { EVMAccountAddress, EVMChainId } from "@1shotapi/ows-types";
 import { useEffect, useState } from "react";
+import { formatUnits } from "viem";
 
 import type { IRelayerSendUiCallbacks } from "../../lib/types/domain/RelayerSendUi";
 import { truncateAddress } from "../../lib/utils/identityDisplay";
@@ -36,6 +37,21 @@ function hasNativeValue(value: string): boolean {
   }
 }
 
+/** Formatted native amount for an approval card. Unparseable values stay hidden. */
+function formatNativeAmount(
+  value: string,
+  decimals: number,
+  symbol: string,
+): string | null {
+  try {
+    const wei = BigInt(value.trim());
+    if (wei <= 0n) return null;
+    return `${formatUnits(wei, decimals)} ${symbol}`;
+  } catch {
+    return null;
+  }
+}
+
 /** EIP-5792 `wallet_sendCalls` consent. Resolves the relayer task id. */
 export function EVMSendCallsModal({
   request,
@@ -57,10 +73,12 @@ export function EVMSendCallsModal({
     sendCalls: copy,
     sendTransaction: txCopy,
     confirmTransfer,
+    confirmApprove,
     account: accountCopy,
     clearSigning: clearCopy,
   } = style.copy;
   const chain = resolveChain(request.chainId);
+  const native = chain?.nativeCurrency ?? { symbol: "ETH", decimals: 18 };
   const relayerCopy = style.copy.relayerSubmit;
   const [hostDomain, setHostDomain] = useState(request.domain);
 
@@ -133,13 +151,23 @@ export function EVMSendCallsModal({
         </span>
       </p>
       <ul className="m-0 list-none p-0">
-        {request.calls.map((call, index) => (
+        {request.calls.map((call, index) => {
+          const approveNative =
+            call.transfer?.purpose === "approve"
+              ? formatNativeAmount(call.value, native.decimals, native.symbol)
+              : null;
+          return (
           <li key={`${call.to}-${index}`} className="mt-3">
             <FieldLabel>
               {fill(copy.callLabel, { index: String(index + 1) })}
             </FieldLabel>
             {call.transfer ? (
               <div className="flex flex-col gap-3">
+                <p className="text-foreground m-0 text-sm font-semibold">
+                  {call.transfer.purpose === "approve"
+                    ? confirmApprove.intentLabel
+                    : confirmTransfer.intentLabel}
+                </p>
                 <div className="flex items-center gap-4">
                   <AssetIdentityMark
                     chainId={request.chainId}
@@ -154,7 +182,9 @@ export function EVMSendCallsModal({
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                    {confirmTransfer.receiverLabel}
+                    {call.transfer.purpose === "approve"
+                      ? confirmApprove.spenderLabel
+                      : confirmTransfer.receiverLabel}
                   </span>
                   <CopyableText
                     text={call.transfer.recipient}
@@ -164,6 +194,14 @@ export function EVMSendCallsModal({
                     copyFailedLabel={accountCopy.addressCopyFailedLabel}
                   />
                 </div>
+                {approveNative ? (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                      {clearCopy.nativeValueLabel}
+                    </span>
+                    <span className="text-sm font-medium">{approveNative}</span>
+                  </div>
+                ) : null}
               </div>
             ) : call.clearSigning ? (
               <div className="flex flex-col gap-3">
@@ -195,7 +233,8 @@ export function EVMSendCallsModal({
               </>
             )}
           </li>
-        ))}
+          );
+        })}
       </ul>
       <RelayerConfirmModalChrome
         chainId={request.chainId as EVMChainId}

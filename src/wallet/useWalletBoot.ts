@@ -70,6 +70,7 @@ import type {
 } from "../lib/interfaces/utils";
 import type { IHostOriginProvider } from "../lib/interfaces/utils/IHostOriginProvider";
 import type { SupportedChain } from "../lib/types/domain";
+import { EAssetType } from "../lib/types/enum/EAssetType";
 import {
   DelegationCancelAbortedEvent,
   DelegationCancelledEvent,
@@ -93,7 +94,6 @@ import {
   type AccountConnectStorage,
 } from "../ows/registerAccountConnect";
 import { registerApprovalSigning } from "../ows/registerApprovalSigning";
-import { registerWalletCalls } from "./registerWalletCalls";
 import { registerBitcoinProvider } from "../ows/registerBitcoinProvider";
 import { registerCredentialsProvider } from "../ows/registerCredentialsProvider";
 import { registerSolanaProvider } from "../ows/registerSolanaProvider";
@@ -121,6 +121,7 @@ import { registerGetUpgradedRpc } from "./registerGetUpgraded";
 import { registerOnrampRpc } from "./registerOnramp";
 import { registerRequestCancelDelegationsRpc } from "./registerRequestCancelDelegations";
 import { registerSwitchChainRpc } from "./registerSwitchChain";
+import { registerWalletCalls } from "./registerWalletCalls";
 import { useWalletSessionStore } from "./sessionStore";
 import { wrapSignerWithCeremonyCopy } from "./wrapSignerWithCeremonyCopy";
 import { wrapSignerWithVaultDecrypt } from "./wrapSignerWithVaultDecrypt";
@@ -1106,7 +1107,7 @@ export function useWalletBoot({
               const chain = resolveChain(request.chainId);
               const useRelayer = chain?.useRelayer === true;
 
-              const transfer = transactionUtils.tryDecodeErc20Transfer(
+              const erc20 = transactionUtils.tryDecodeErc20(
                 request.to ? EVMContractAddress(request.to) : null,
                 request.data,
               );
@@ -1166,36 +1167,34 @@ export function useWalletBoot({
                 data: request.data,
                 value: workValue,
               };
-              if (transfer) {
+              if (erc20?.kind === "transfer") {
                 const known = await knownAssetRepository.getKnownAsset(
                   request.chainId,
-                  transfer.tokenAddress,
+                  erc20.tokenAddress,
                 );
                 const tracked = (
                   await trackedAssetRepository.list(request.chainId)
                 ).find(
                   (asset) =>
                     asset.chainId === request.chainId &&
-                    asset.address === transfer.tokenAddress,
+                    asset.address === erc20.tokenAddress,
                 );
-                const tokenName =
-                  tracked?.name ?? known?.name ?? transfer.tokenAddress;
-                const tokenSymbol = tracked?.symbol ?? known?.symbol ?? "TOKEN";
-                const decimals = tracked?.decimals ?? known?.decimals ?? null;
                 hash = await ask<EVMTransactionHash>(
                   ({ id, resolve, reject }) => ({
                     id,
                     kind: "confirmTransfer",
                     request: {
                       domain: transactionUtils.resolveHostDomain(),
+                      purpose: "transfer",
                       amount: transactionUtils.formatTokenAmount(
-                        transfer.amount,
-                        decimals,
+                        erc20.amount,
+                        tracked?.decimals ?? known?.decimals ?? null,
                       ),
-                      tokenName,
-                      tokenSymbol,
-                      tokenAddress: transfer.tokenAddress,
-                      receiver: transfer.recipient,
+                      tokenName:
+                        tracked?.name ?? known?.name ?? erc20.tokenAddress,
+                      tokenSymbol: tracked?.symbol ?? known?.symbol ?? "TOKEN",
+                      tokenAddress: erc20.tokenAddress,
+                      receiver: erc20.recipient,
                       chainName: transactionUtils.chainLabelFor(
                         request.chainId,
                         chainRepository.getCatalog(),
@@ -1210,6 +1209,69 @@ export function useWalletBoot({
                     reject,
                   }),
                 );
+              } else if (erc20?.kind === "approve") {
+                const known = await knownAssetRepository.getKnownAsset(
+                  request.chainId,
+                  erc20.tokenAddress,
+                );
+                const tracked = (
+                  await trackedAssetRepository.list(request.chainId)
+                ).find(
+                  (asset) =>
+                    asset.chainId === request.chainId &&
+                    asset.address === erc20.tokenAddress,
+                );
+                const asset = tracked ?? known;
+                if (
+                  asset?.type === EAssetType.Erc20 &&
+                  asset.symbol &&
+                  asset.decimals != null
+                ) {
+                  hash = await ask<EVMTransactionHash>(
+                    ({ id, resolve, reject }) => ({
+                      id,
+                      kind: "confirmTransfer",
+                      request: {
+                        domain: transactionUtils.resolveHostDomain(),
+                        purpose: "approve",
+                        amount: transactionUtils.formatErc20ApproveAmount(
+                          erc20.amount,
+                          asset.decimals,
+                        ),
+                        tokenName: asset.name,
+                        tokenSymbol: asset.symbol,
+                        tokenAddress: erc20.tokenAddress,
+                        receiver: erc20.spender,
+                        chainName: transactionUtils.chainLabelFor(
+                          request.chainId,
+                          chainRepository.getCatalog(),
+                        ),
+                        chainId: request.chainId,
+                        ownerAddress: request.address,
+                        useRelayer,
+                        work: sendWork,
+                      },
+                      execute: executeSend,
+                      resolve,
+                      reject,
+                    }),
+                  );
+                } else {
+                  hash = await ask<EVMTransactionHash>(
+                    ({ id, resolve, reject }) => ({
+                      id,
+                      kind: "sendTransaction",
+                      request: {
+                        ...request,
+                        useRelayer,
+                      },
+                      clearSigning: null,
+                      execute: executeSend,
+                      resolve,
+                      reject,
+                    }),
+                  );
+                }
               } else {
                 const clearSigning =
                   await clearSigningService.describeTransaction(

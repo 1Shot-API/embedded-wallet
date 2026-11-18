@@ -74,6 +74,10 @@ export function mergeStyle(
         ...current.copy.confirmTransfer,
         ...patch.copy?.confirmTransfer,
       },
+      confirmApprove: {
+        ...current.copy.confirmApprove,
+        ...patch.copy?.confirmApprove,
+      },
       onramp: {
         ...current.copy.onramp,
         ...patch.copy?.onramp,
@@ -267,6 +271,7 @@ function cloneDefaultStyle(): IResolvedStyle {
       sendCalls: { ...DEFAULT_STYLE.copy.sendCalls },
       showCallsStatus: { ...DEFAULT_STYLE.copy.showCallsStatus },
       confirmTransfer: { ...DEFAULT_STYLE.copy.confirmTransfer },
+      confirmApprove: { ...DEFAULT_STYLE.copy.confirmApprove },
       onramp: { ...DEFAULT_STYLE.copy.onramp },
       transferTokens: { ...DEFAULT_STYLE.copy.transferTokens },
       sendNativeToken: { ...DEFAULT_STYLE.copy.sendNativeToken },
