@@ -19,8 +19,8 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
-    "@1shotapi/ows-provider": "^0.5.1",
-    "@1shotapi/ows-types": "^0.16.0"
+    "@1shotapi/ows-provider": "^0.9.0",
+    "@1shotapi/ows-types": "^0.18.0"
   },
   "devDependencies": {
     "@types/chrome": "^0.2.7",
