@@ -103,7 +103,7 @@ export function AppSidebar({ mode, onModeChange }: IAppSidebarProps) {
                   : mode === "injected"
                     ? "No OWSProxy here. Inject the extension on this tab, then Connect."
                     : mode === "wagmi"
-                      ? "wagmi owns the wallet iframe via the oneShotWallet connector. Needs a built ../prf-wallet."
+                      ? "wagmi owns the wallet iframe via the oneShotWallet connector."
                       : "Events accumulate across tabs. Switch to Test to generate traffic."}
             </p>
           </SidebarGroupContent>
