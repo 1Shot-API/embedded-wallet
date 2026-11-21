@@ -25,6 +25,8 @@ export interface IEVMRepository {
     data: HexString,
     value?: bigint,
     gasOverrides?: IEvmGasOverrides,
+    /** After the passkey signature, before broadcast and the receipt wait. */
+    onSigned?: () => void,
   ): Promise<ISendTransactionResult>;
 }
 

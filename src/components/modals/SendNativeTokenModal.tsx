@@ -22,6 +22,7 @@ import {
 } from "../AddressInput";
 import { Modal } from "../Modal";
 import { TokenAmountInput } from "../TokenAmountInput";
+import { TransactionInFlight } from "../TransactionInFlight";
 
 import { SentTransactionModal } from "./SentTransactionModal";
 
@@ -74,18 +75,21 @@ export function SendNativeTokenModal({
 }: ISendNativeTokenModalProps) {
   const { style } = useStyle();
   const copy = style.copy.sendNativeToken;
+  const { signingMessage, waitingMessage } = style.copy.relayerSubmit;
   const {
     switchChain,
     sendNativeTransfer,
     estimateNativeTransferFee,
     recordSentActivity,
     addressUtils,
+    resolveChain,
   } = useWallet();
   const [amount, setAmount] = useState("");
   const [recipientText, setRecipientText] = useState("");
   const [recipient, setRecipient] = useState<AddressInputValue>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [awaitingChain, setAwaitingChain] = useState(false);
   const [feeBusy, setFeeBusy] = useState(false);
   const [feeAtoms, setFeeAtoms] = useState<bigint | null>(null);
   const [feeError, setFeeError] = useState<string | null>(null);
@@ -192,6 +196,7 @@ export function SendNativeTokenModal({
 
   async function handleSend(): Promise<void> {
     setSubmitError(null);
+    setAwaitingChain(false);
 
     if (!canSubmit || !recipient || !evmAddress || feeAtoms === null) {
       return;
@@ -215,6 +220,7 @@ export function SendNativeTokenModal({
         asset.chainId as EVMChainId,
         recipient as EVMAccountAddress,
         parsed,
+        () => setAwaitingChain(true),
       );
       await recordSentActivity({
         chainId: asset.chainId as EVMChainId,
@@ -234,6 +240,7 @@ export function SendNativeTokenModal({
       );
     } finally {
       setBusy(false);
+      setAwaitingChain(false);
     }
   }
 
@@ -255,6 +262,25 @@ export function SendNativeTokenModal({
         transactionHash={sentHash}
         onClose={onClose}
       />
+    );
+  }
+
+  if (busy) {
+    return (
+      <Modal title={copy.title}>
+        <TransactionInFlight
+          status={awaitingChain ? waitingMessage : signingMessage}
+          entries={[
+            {
+              amount: amount.trim(),
+              symbol: asset.symbol,
+              chainLabel: resolveChain(asset.chainId)?.label,
+              recipient: recipient ?? recipientText,
+              recipientLabel: copy.recipientLabel,
+            },
+          ]}
+        />
+      </Modal>
     );
   }
 
