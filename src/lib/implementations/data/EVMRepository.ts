@@ -35,6 +35,7 @@ export class EVMRepository implements IEVMRepository {
     data: HexString,
     value?: bigint,
     gasOverrides?: IEvmGasOverrides,
+    onSigned?: () => void,
   ): Promise<ISendTransactionResult> {
     const [signer, chainRpc] = await Promise.all([
       this.owsProvider.getSigner(),
@@ -86,6 +87,7 @@ export class EVMRepository implements IEVMRepository {
     if (!signed) {
       throw new OwsInvalidParamsError("signTransaction returned no signature");
     }
+    onSigned?.();
 
     const client = this.blockchain.getPublicClient(chainId);
     const hash = await client.request({
@@ -97,13 +99,17 @@ export class EVMRepository implements IEVMRepository {
         "eth_sendRawTransaction returned an invalid transaction hash",
       );
     }
+    const transactionHash = EVMTransactionHash(hash as `0x${string}`);
+    await client.waitForTransactionReceipt({
+      hash: transactionHash,
+    });
 
     return {
       // Interim local id: 0x-prefixed hex slice of the broadcast hash.
       relayerTransactionId: RelayerTransactionId(
         `0x${hash.slice(2, 18)}` as `0x${string}`,
       ),
-      transactionHash: EVMTransactionHash(hash as `0x${string}`),
+      transactionHash,
     };
   }
 }

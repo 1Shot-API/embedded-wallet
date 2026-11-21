@@ -159,6 +159,8 @@ export interface ITransactionService {
     chainId: EVMChainId,
     to: EVMAccountAddress,
     value: bigint,
+    /** After the passkey signature, before broadcast and the receipt wait. */
+    onSigned?: () => void,
   ): Promise<ISendTransactionResult>;
 
   /** Fee preview for native Send Max / summary UI. */

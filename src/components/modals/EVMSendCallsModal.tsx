@@ -15,6 +15,7 @@ import { CopyableText } from "../CopyableText";
 import { Modal } from "../Modal";
 import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
 import { SafeAssetImage } from "../SafeAssetImage";
+import { TransactionInFlight } from "../TransactionInFlight";
 import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
 
 import { ClearSigningDetails } from "./ClearSigningDetails";
@@ -93,11 +94,14 @@ export function EVMSendCallsModal({
     onResolve,
     onReject,
     rejectMessage: "User rejected the request",
+    retainDisplayDuringSubmit: true,
     signingMessage: relayerCopy.signingMessage,
     waitingMessage: relayerCopy.waitingMessage,
     finalFeeNotice: relayerCopy.finalFeeNotice,
   });
 
+  const inFlight =
+    submit.phase === "signing" || submit.phase === "submitting";
   const showActions = submit.phase === "confirm" || submit.phase === "finalFee";
 
   return (
@@ -126,6 +130,41 @@ export function EVMSendCallsModal({
           : undefined
       }
     >
+      {inFlight ? (
+        <TransactionInFlight
+          status={
+            submit.phase === "signing"
+              ? relayerCopy.signingMessage
+              : relayerCopy.submittedMessage
+          }
+          entries={request.calls.map((call) => {
+            if (call.transfer) {
+              return {
+                amount: call.transfer.amount,
+                symbol: call.transfer.symbol,
+                chainLabel: request.chainName,
+                recipient: call.transfer.recipient,
+                recipientLabel:
+                  call.transfer.purpose === "approve"
+                    ? confirmApprove.spenderLabel
+                    : confirmTransfer.receiverLabel,
+              };
+            }
+            const attached = formatNativeAmount(
+              call.value,
+              native.decimals,
+              native.symbol,
+            );
+            return {
+              subject: call.to,
+              subjectLabel: txCopy.contractLabel,
+              chainLabel: request.chainName,
+              ...(attached ? { amount: attached } : {}),
+            };
+          })}
+        />
+      ) : (
+      <>
       <div className="mb-3 flex">
         <RequestingHostBadge domain={hostDomain} />
       </div>
@@ -274,6 +313,8 @@ export function EVMSendCallsModal({
         work={request.work}
         submit={submit}
       />
+      </>
+      )}
     </Modal>
   );
 }

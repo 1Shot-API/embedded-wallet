@@ -29,6 +29,7 @@ import {
 import { Modal } from "../Modal";
 import { PaymentFeePicker } from "../PaymentFeePicker";
 import { TokenAmountInput } from "../TokenAmountInput";
+import { TransactionInFlight } from "../TransactionInFlight";
 
 import { SentTransactionModal } from "./SentTransactionModal";
 
@@ -77,6 +78,7 @@ export function TransferTokensModal({
 }: ITransferTokensModalProps) {
   const { style } = useStyle();
   const copy = style.copy.transferTokens;
+  const { signingMessage, waitingMessage } = style.copy.relayerSubmit;
   const {
     switchChain,
     sendTransaction,
@@ -89,6 +91,7 @@ export function TransferTokensModal({
   const [recipient, setRecipient] = useState<AddressInputValue>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [awaitingChain, setAwaitingChain] = useState(false);
   const [sentHash, setSentHash] = useState<EVMTransactionHash | null>(null);
   const [quote, setQuote] = useState<IPaymentQuote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
@@ -206,6 +209,7 @@ export function TransferTokensModal({
 
   async function handleSend(): Promise<void> {
     setSubmitError(null);
+    setAwaitingChain(false);
 
     if (!canSubmit || !recipient || !evmAddress) {
       return;
@@ -245,6 +249,7 @@ export function TransferTokensModal({
               paymentChainId: quote.paymentChainId,
             }
           : undefined,
+        () => setAwaitingChain(true),
       );
       await recordSentActivity({
         chainId: asset.chainId as EVMChainId,
@@ -264,6 +269,7 @@ export function TransferTokensModal({
       );
     } finally {
       setBusy(false);
+      setAwaitingChain(false);
     }
   }
 
@@ -274,6 +280,25 @@ export function TransferTokensModal({
         transactionHash={sentHash}
         onClose={onClose}
       />
+    );
+  }
+
+  if (busy) {
+    return (
+      <Modal title={copy.title}>
+        <TransactionInFlight
+          status={awaitingChain ? waitingMessage : signingMessage}
+          entries={[
+            {
+              amount: amount.trim(),
+              symbol: asset.symbol,
+              chainLabel: chainMeta?.label,
+              recipient: recipient ?? recipientText,
+              recipientLabel: copy.recipientLabel,
+            },
+          ]}
+        />
+      </Modal>
     );
   }
 
