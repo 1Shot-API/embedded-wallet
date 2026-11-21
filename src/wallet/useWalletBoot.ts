@@ -89,6 +89,7 @@ import {
   TypedSignFailedEvent,
 } from "../lib/types/events/productEvents";
 import type { TokenAmount } from "../lib/types/primitives";
+import { isEmptyCalldata } from "../lib/utils/emptyCalldata";
 import {
   registerAccountConnect,
   type AccountConnectStorage,
@@ -1272,6 +1273,45 @@ export function useWalletBoot({
                     }),
                   );
                 }
+              } else if (
+                request.to &&
+                isEmptyCalldata(request.data) &&
+                workValue != null &&
+                workValue > 0n
+              ) {
+                const native = chain?.nativeCurrency ?? {
+                  name: "Ether",
+                  symbol: "ETH",
+                  decimals: 18,
+                };
+                hash = await ask<EVMTransactionHash>(
+                  ({ id, resolve, reject }) => ({
+                    id,
+                    kind: "confirmTransfer",
+                    request: {
+                      domain: transactionUtils.resolveHostDomain(),
+                      purpose: "native",
+                      amount: transactionUtils.formatTokenAmount(
+                        workValue,
+                        native.decimals,
+                      ),
+                      tokenName: native.name,
+                      tokenSymbol: native.symbol,
+                      receiver: request.to!,
+                      chainName: transactionUtils.chainLabelFor(
+                        request.chainId,
+                        chainRepository.getCatalog(),
+                      ),
+                      chainId: request.chainId,
+                      ownerAddress: request.address,
+                      useRelayer,
+                      work: sendWork,
+                    },
+                    execute: executeSend,
+                    resolve,
+                    reject,
+                  }),
+                );
               } else {
                 const clearSigning =
                   await clearSigningService.describeTransaction(

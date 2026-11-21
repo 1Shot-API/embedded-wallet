@@ -17,11 +17,12 @@ import { AssetIdentityMark } from "../AssetIdentityMark";
 import { CopyableText } from "../CopyableText";
 import { Modal } from "../Modal";
 import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
+import { SafeAssetImage } from "../SafeAssetImage";
 import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
 
 import { RequestingHostBadge } from "./RequestingHostBadge";
 
-/** Host ERC-20 transfer consent (decoded `eth_sendTransaction`). */
+/** Host transfer consent (decoded ERC-20, or a native send). */
 export function EVMConfirmTransferModal({
   request,
   execute,
@@ -154,12 +155,25 @@ export function EVMConfirmTransferModal({
         <RequestingHostBadge domain={request.domain} />
 
         <div className="flex items-center gap-4">
-          <AssetIdentityMark
-            chainId={request.chainId}
-            address={request.tokenAddress}
-            symbol={request.tokenSymbol}
-            chainLogoUrl={chain?.logoUrl}
-          />
+          {request.tokenAddress ? (
+            <AssetIdentityMark
+              chainId={request.chainId}
+              address={request.tokenAddress}
+              symbol={request.tokenSymbol}
+              chainLogoUrl={chain?.logoUrl}
+            />
+          ) : (
+            <SafeAssetImage
+              src={chain?.logoUrl}
+              alt={request.tokenSymbol}
+              className="size-16 shrink-0 rounded-full object-cover"
+              fallback={
+                <div className="bg-muted text-foreground flex size-16 items-center justify-center rounded-full text-2xl font-semibold">
+                  {(request.tokenSymbol.trim()[0] ?? "?").toUpperCase()}
+                </div>
+              }
+            />
+          )}
           <div className="flex min-w-0 flex-col gap-1.5">
             <span className="text-xl font-semibold tracking-tight">
               {request.amount} {request.tokenSymbol}

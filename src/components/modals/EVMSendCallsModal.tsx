@@ -157,82 +157,114 @@ export function EVMSendCallsModal({
               ? formatNativeAmount(call.value, native.decimals, native.symbol)
               : null;
           return (
-          <li key={`${call.to}-${index}`} className="mt-3">
-            <FieldLabel>
-              {fill(copy.callLabel, { index: String(index + 1) })}
-            </FieldLabel>
-            {call.transfer ? (
-              <div className="flex flex-col gap-3">
-                <p className="text-foreground m-0 text-sm font-semibold">
-                  {call.transfer.purpose === "approve"
-                    ? confirmApprove.intentLabel
-                    : confirmTransfer.intentLabel}
-                </p>
-                <div className="flex items-center gap-4">
-                  <AssetIdentityMark
-                    chainId={request.chainId}
-                    address={call.transfer.tokenAddress}
-                    symbol={call.transfer.symbol}
-                    iconUrl={call.transfer.iconUrl}
-                    chainLogoUrl={chain?.logoUrl}
-                  />
-                  <span className="text-xl font-semibold tracking-tight">
-                    {call.transfer.amount} {call.transfer.symbol}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            <li key={`${call.to}-${index}`} className="mt-3">
+              <FieldLabel>
+                {fill(copy.callLabel, { index: String(index + 1) })}
+              </FieldLabel>
+              {call.transfer ? (
+                <div className="flex flex-col gap-3">
+                  <p className="text-foreground m-0 text-sm font-semibold">
                     {call.transfer.purpose === "approve"
-                      ? confirmApprove.spenderLabel
-                      : confirmTransfer.receiverLabel}
-                  </span>
-                  <CopyableText
-                    text={call.transfer.recipient}
-                    truncate
-                    copyLabel={accountCopy.copyAddressLabel}
-                    copiedLabel={accountCopy.addressCopiedLabel}
-                    copyFailedLabel={accountCopy.addressCopyFailedLabel}
-                  />
-                </div>
-                {approveNative ? (
+                      ? confirmApprove.intentLabel
+                      : confirmTransfer.intentLabel}
+                  </p>
+                  <div className="flex items-center gap-4">
+                    {call.transfer.tokenAddress ? (
+                      <AssetIdentityMark
+                        chainId={request.chainId}
+                        address={call.transfer.tokenAddress}
+                        symbol={call.transfer.symbol}
+                        iconUrl={call.transfer.iconUrl}
+                        chainLogoUrl={chain?.logoUrl}
+                      />
+                    ) : (
+                      <SafeAssetImage
+                        src={call.transfer.iconUrl ?? chain?.logoUrl}
+                        alt={call.transfer.symbol}
+                        className="size-16 shrink-0 rounded-full object-cover"
+                        fallback={
+                          <div className="bg-muted text-foreground flex size-16 items-center justify-center rounded-full text-2xl font-semibold">
+                            {(
+                              call.transfer.symbol.trim()[0] ?? "?"
+                            ).toUpperCase()}
+                          </div>
+                        }
+                      />
+                    )}
+                    <span className="text-xl font-semibold tracking-tight">
+                      {call.transfer.amount} {call.transfer.symbol}
+                    </span>
+                  </div>
                   <div className="flex flex-col gap-1.5">
                     <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                      {clearCopy.nativeValueLabel}
+                      {call.transfer.purpose === "approve"
+                        ? confirmApprove.spenderLabel
+                        : confirmTransfer.receiverLabel}
                     </span>
-                    <span className="text-sm font-medium">{approveNative}</span>
+                    <CopyableText
+                      text={call.transfer.recipient}
+                      truncate
+                      copyLabel={accountCopy.copyAddressLabel}
+                      copiedLabel={accountCopy.addressCopiedLabel}
+                      copyFailedLabel={accountCopy.addressCopyFailedLabel}
+                    />
                   </div>
-                ) : null}
-              </div>
-            ) : call.clearSigning ? (
-              <div className="flex flex-col gap-3">
-                <p className="text-foreground m-0 text-sm font-semibold">
-                  {call.clearSigning.display.intent}
-                </p>
-                <ClearSigningDetails
-                  presentation={call.clearSigning}
-                  chainId={request.chainId}
-                />
-                {hasNativeValue(call.value) ? (
-                  <LabeledBlock label={txCopy.valueLabel} content={call.value} />
-                ) : null}
-                <details className="mb-1">
-                  <summary className="text-muted-foreground mb-2 cursor-pointer text-xs font-medium select-none">
-                    {clearCopy.rawTransactionLabel}
-                  </summary>
-                  <LabeledBlock label={txCopy.contractLabel} content={call.to} />
+                  {approveNative ? (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                        {clearCopy.nativeValueLabel}
+                      </span>
+                      <span className="text-sm font-medium">
+                        {approveNative}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              ) : call.clearSigning ? (
+                <div className="flex flex-col gap-3">
+                  <p className="text-foreground m-0 text-sm font-semibold">
+                    {call.clearSigning.display.intent}
+                  </p>
+                  <ClearSigningDetails
+                    presentation={call.clearSigning}
+                    chainId={request.chainId}
+                  />
+                  {hasNativeValue(call.value) ? (
+                    <LabeledBlock
+                      label={txCopy.valueLabel}
+                      content={call.value}
+                    />
+                  ) : null}
+                  <details className="mb-1">
+                    <summary className="text-muted-foreground mb-2 cursor-pointer text-xs font-medium select-none">
+                      {clearCopy.rawTransactionLabel}
+                    </summary>
+                    <LabeledBlock
+                      label={txCopy.contractLabel}
+                      content={call.to}
+                    />
+                    <LabeledBlock
+                      label={txCopy.dataLabel}
+                      content={call.data}
+                    />
+                  </details>
+                </div>
+              ) : (
+                <>
+                  <LabeledBlock
+                    label={txCopy.contractLabel}
+                    content={call.to}
+                  />
+                  {hasNativeValue(call.value) ? (
+                    <LabeledBlock
+                      label={txCopy.valueLabel}
+                      content={call.value}
+                    />
+                  ) : null}
                   <LabeledBlock label={txCopy.dataLabel} content={call.data} />
-                </details>
-              </div>
-            ) : (
-              <>
-                <LabeledBlock label={txCopy.contractLabel} content={call.to} />
-                {hasNativeValue(call.value) ? (
-                  <LabeledBlock label={txCopy.valueLabel} content={call.value} />
-                ) : null}
-                <LabeledBlock label={txCopy.dataLabel} content={call.data} />
-              </>
-            )}
-          </li>
+                </>
+              )}
+            </li>
           );
         })}
       </ul>
