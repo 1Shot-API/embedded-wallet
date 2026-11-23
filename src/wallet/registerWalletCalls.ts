@@ -59,6 +59,7 @@ import type { IHostOriginProvider } from "../lib/interfaces/utils/IHostOriginPro
 import type { ITransactionUtils } from "../lib/interfaces/utils/ITransactionUtils";
 import type { IRelayerSendUiCallbacks } from "../lib/types/domain/RelayerSendUi";
 import { EAssetType } from "../lib/types/enum/EAssetType";
+import { isEmptyCalldata } from "../lib/utils/emptyCalldata";
 import type { AccountConnectStorage } from "../ows/registerAccountConnect";
 
 import type {
@@ -157,6 +158,19 @@ async function releaseDisplay(display: DisplaySession): Promise<void> {
     return;
   }
   await display.hide();
+}
+
+/** Positive native value on a call, or null when missing, zero, or unparseable. */
+function positiveNativeWei(value: string | undefined): bigint | null {
+  if (value == null) return null;
+  const raw = String(value).trim().toLowerCase();
+  if (!raw || raw === "0x" || raw === "0x0") return null;
+  try {
+    const wei = BigInt(raw);
+    return wei > 0n ? wei : null;
+  } catch {
+    return null;
+  }
 }
 
 function delegationManagerAddress(chainId: EVMChainId): string | undefined {
@@ -460,14 +474,39 @@ export function registerWalletCalls(
                 ...(iconUrl ? { iconUrl } : {}),
               };
             }
+          } else if (call.to && isEmptyCalldata(data)) {
+            const nativeWei = positiveNativeWei(call.value);
+            if (nativeWei != null) {
+              const native = chain.nativeCurrency;
+              transfer = {
+                purpose: "native",
+                symbol: native.symbol,
+                amount: options.transactionUtils.formatTokenAmount(
+                  nativeWei,
+                  native.decimals,
+                ),
+                recipient: call.to,
+                ...(chain.logoUrl ? { iconUrl: chain.logoUrl } : {}),
+              };
+            } else {
+              clearSigning =
+                await options.clearSigningService.describeTransaction(
+                  body.chainId,
+                  account,
+                  EVMContractAddress(call.to),
+                  data,
+                  call.value ?? HexString("0x0"),
+                );
+            }
           } else if (call.to) {
-            clearSigning = await options.clearSigningService.describeTransaction(
-              body.chainId,
-              account,
-              EVMContractAddress(call.to),
-              data,
-              call.value ?? HexString("0x0"),
-            );
+            clearSigning =
+              await options.clearSigningService.describeTransaction(
+                body.chainId,
+                account,
+                EVMContractAddress(call.to),
+                data,
+                call.value ?? HexString("0x0"),
+              );
           }
           return {
             to: call.to,

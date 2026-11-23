@@ -420,6 +420,8 @@ export type WalletContextValue = {
       feeAtoms: TokenAmount;
       paymentChainId?: EVMChainId;
     },
+    /** After the passkey, before the receipt wait. */
+    onAwaitingConfirmation?: () => void,
   ) => Promise<EVMTransactionHash>;
   /**
    * In-wallet native Send — always eth_sendRawTransaction (never the relayer).
@@ -428,6 +430,8 @@ export type WalletContextValue = {
     chainId: EVMChainId,
     to: EVMAccountAddress,
     value: bigint,
+    /** After the passkey, before broadcast and the receipt wait. */
+    onSigned?: () => void,
   ) => Promise<EVMTransactionHash>;
   /** Gas fee preview for native Send Max / summary. */
   estimateNativeTransferFee: (chainId: EVMChainId) => Promise<{
@@ -733,6 +737,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         paymentToken: EVMContractAddress;
         feeAtoms: TokenAmount;
       },
+      onAwaitingConfirmation?: () => void,
     ) => {
       const { hostDomain } = await configProvider.getConfig();
       const started = performance.now();
@@ -754,6 +759,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
               // Flyout is already open for in-wallet Send — do not requestHide
               // after passkey (host eth_sendTransaction defaults to hide).
               retainDisplayDuringSubmit: true,
+              onAwaitingConfirmation,
             },
           );
           await onSigningAuthenticated();
@@ -794,7 +800,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 
   const sendNativeTransfer = useCallback(
-    async (chainId: EVMChainId, to: EVMAccountAddress, value: bigint) => {
+    async (
+      chainId: EVMChainId,
+      to: EVMAccountAddress,
+      value: bigint,
+      onSigned?: () => void,
+    ) => {
       const { hostDomain } = await configProvider.getConfig();
       const started = performance.now();
       const accountAddress = (): EVMAccountAddress =>
@@ -810,6 +821,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             chainId,
             to,
             value,
+            onSigned,
           );
           await onSigningAuthenticated();
           return result.transactionHash;

@@ -41,11 +41,6 @@ export function RelayerConfirmModalChrome({
           submit.setQuoteError(err);
         }}
       />
-      {submit.statusMessage ? (
-        <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
-          {submit.statusMessage}
-        </p>
-      ) : null}
       {submit.error ? (
         <p className="text-destructive mt-3 m-0 text-[0.9rem]">{submit.error}</p>
       ) : null}

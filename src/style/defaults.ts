@@ -510,7 +510,8 @@ export const DEFAULT_STYLE: IResolvedStyle = {
     relayerSubmit: {
       finalFeeNotice:
         "The transaction fee changed after signing. Review the final fee before submitting.",
-      signingMessage: "Confirm in the signing panel…",
+      signingMessage: "Approve with your passkey.",
+      submittedMessage: "Submitted to the network.",
       waitingMessage: "Waiting for on-chain confirmation…",
     },
     passkeyPrompt: {
