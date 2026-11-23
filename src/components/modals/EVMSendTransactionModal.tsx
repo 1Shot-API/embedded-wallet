@@ -18,6 +18,7 @@ import { ConsentSummaryRow } from "../ConsentSummaryRow";
 import { Modal } from "../Modal";
 import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
 import { SafeAssetImage } from "../SafeAssetImage";
+import { TransactionInFlight } from "../TransactionInFlight";
 import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
 
 import {
@@ -74,6 +75,7 @@ export function EVMSendTransactionModal({
     onResolve,
     onReject,
     rejectMessage: "User rejected the transaction request",
+    retainDisplayDuringSubmit: true,
     signingMessage: relayerCopy.signingMessage,
     waitingMessage: relayerCopy.waitingMessage,
     finalFeeNotice: relayerCopy.finalFeeNotice,
@@ -88,6 +90,7 @@ export function EVMSendTransactionModal({
   const useRelayer = request.useRelayer === true;
 
   const phase = useRelayer ? relayerSubmit.phase : legacyPhase;
+  const inFlight = phase === "signing" || phase === "submitting";
 
   const canConfirm = useRelayer ? relayerSubmit.canConfirm : true;
 
@@ -126,6 +129,7 @@ export function EVMSendTransactionModal({
       ? BigInt(valueRaw)
       : undefined;
   const chain = resolveChain(request.chainId);
+  const native = chain?.nativeCurrency ?? { symbol: "ETH", decimals: 18 };
 
   // A descriptor that does not render `@.value` must not hide native value sent with the call.
   const extraRows: IClearSigningExtraRow[] = [];
@@ -137,7 +141,6 @@ export function EVMSendTransactionModal({
       (field) => field.kind === EClearSigningDisplayKind.NativeAmount,
     )
   ) {
-    const native = chain?.nativeCurrency ?? { symbol: "ETH", decimals: 18 };
     extraRows.push({
       label: clearCopy.nativeValueLabel,
       value: `${formatUnits(valueWei, native.decimals)} ${native.symbol}`,
@@ -189,6 +192,29 @@ export function EVMSendTransactionModal({
           : undefined
       }
     >
+      {inFlight ? (
+        <TransactionInFlight
+          status={
+            phase === "signing"
+              ? relayerCopy.signingMessage
+              : relayerCopy.waitingMessage
+          }
+          entries={[
+            {
+              ...(valueWei != null && valueWei > 0n
+                ? {
+                    amount: formatUnits(valueWei, native.decimals),
+                    symbol: native.symbol,
+                  }
+                : {}),
+              chainLabel: chain?.label ?? String(request.chainId),
+              subject: request.to ?? copy.contractCreationLabel,
+              subjectLabel: copy.contractLabel,
+            },
+          ]}
+        />
+      ) : (
+      <>
       <div className="mb-3 flex">
         <RequestingHostBadge domain={hostDomain} />
       </div>
@@ -245,11 +271,9 @@ export function EVMSendTransactionModal({
           }}
           submit={relayerSubmit}
         />
-      ) : legacyPhase === "signing" ? (
-        <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
-          {relayerCopy.signingMessage}
-        </p>
       ) : null}
+      </>
+      )}
       {!useRelayer && legacyError ? (
         <p className="text-destructive mt-3 m-0 text-[0.9rem]">{legacyError}</p>
       ) : null}

@@ -137,6 +137,8 @@ export class TransactionService implements ITransactionService {
         work.to,
         work.data,
         work.value,
+        undefined,
+        options?.onAwaitingConfirmation,
       );
     }
 
@@ -201,6 +203,7 @@ export class TransactionService implements ITransactionService {
     chainId: EVMChainId,
     to: EVMAccountAddress,
     value: bigint,
+    onSigned?: () => void,
   ): Promise<ISendTransactionResult> {
     const chain = await this.options.chainRepository.get(chainId);
     if (!chain) {
@@ -220,6 +223,7 @@ export class TransactionService implements ITransactionService {
         maxFeePerGas: planned.maxFeePerGas,
         maxPriorityFeePerGas: planned.maxPriorityFeePerGas,
       },
+      onSigned,
     );
   }
 

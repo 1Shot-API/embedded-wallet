@@ -50,6 +50,7 @@ import { Modal } from "../Modal";
 import { PaymentFeePicker } from "../PaymentFeePicker";
 import { QuoteCountdown } from "../QuoteCountdown";
 import { TokenAmountInput } from "../TokenAmountInput";
+import { TransactionInFlight } from "../TransactionInFlight";
 import {
   Select,
   SelectContent,
@@ -760,6 +761,33 @@ export function CCTPBridge({
     );
   }
 
+  if (phase === "submitting" || phase === "polling") {
+    const sourceLabel = sourceChain?.label ?? String(request.sourceChainId);
+    const destLabel = destChain?.label ?? destChainId ?? "";
+    return (
+      <Modal title={copy.confirmTitle}>
+        <TransactionInFlight
+          status={
+            phase === "submitting" ? copy.submittingLabel : copy.pollingLabel
+          }
+          route={`${sourceLabel} → ${destLabel}`}
+          entries={[
+            {
+              amount: amount.trim(),
+              symbol: sourceUsdc?.symbol ?? "USDC",
+            },
+          ]}
+          hash={burnTxHash ?? undefined}
+          hashLabel={copy.sourceHashLabel}
+          explorerUrl={
+            burnTxHash ? sourceChain?.txExplorerUrl(burnTxHash) : undefined
+          }
+          explorerLabel={copy.viewOnExplorerLabel}
+        />
+      </Modal>
+    );
+  }
+
   const secondaryAction =
     isConfirmScreen && !hostInitiated && phase === "quoted"
       ? {
@@ -788,12 +816,7 @@ export function CCTPBridge({
         }
       : isConfirmScreen
         ? {
-            label:
-              phase === "submitting"
-                ? copy.submittingLabel
-                : phase === "polling"
-                  ? copy.pollingLabel
-                  : copy.confirmLabel,
+            label: copy.confirmLabel,
             variant: "primary" as const,
             autoFocus: true,
             disabled: phase !== "quoted" || !canConfirm,
@@ -921,11 +944,7 @@ export function CCTPBridge({
             }
             copy={copy}
             getIrisQuote={refreshIrisQuote}
-            paused={
-              phase === "submitting" ||
-              phase === "polling" ||
-              phase === "timeout"
-            }
+            paused={phase === "timeout"}
           />
         ) : null}
 
@@ -937,22 +956,12 @@ export function CCTPBridge({
             quote={paymentQuote}
             error={paymentError}
             loading={false}
-            paused={
-              phase === "submitting" ||
-              phase === "polling" ||
-              phase === "timeout"
-            }
+            paused={phase === "timeout"}
             onQuoteChange={onPaymentQuoteChange}
           />
         ) : null}
 
-        {phase === "submitting" ? (
-          <p className="text-muted-foreground text-sm">{copy.submittingLabel}</p>
-        ) : null}
-        {phase === "polling" ? (
-          <p className="text-muted-foreground text-sm">{copy.pollingLabel}</p>
-        ) : null}
-        {burnTxHash && (phase === "polling" || phase === "timeout") ? (
+        {burnTxHash && phase === "timeout" ? (
           <HashRow
             label={copy.sourceHashLabel}
             hash={burnTxHash}

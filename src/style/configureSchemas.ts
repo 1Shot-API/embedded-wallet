@@ -516,6 +516,8 @@ export const styleCopyActivateOfflinePermissionsSchema = z.strictObject({
 export const styleCopyRelayerSubmitSchema = z.strictObject({
   finalFeeNotice: z.string(),
   signingMessage: z.string(),
+  /** Batch accepted by the relayer; the host polls chain status. */
+  submittedMessage: z.string(),
   waitingMessage: z.string(),
 });
 

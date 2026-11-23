@@ -44,14 +44,16 @@ export type ESolanaTxConsentMode = "sign" | "signAndSend";
 
 export type WalletSetupChoice = "login" | "create" | "import" | "cancel";
 
-/** Friendly host ERC-20 transfer or approval consent. */
+/** Friendly host ERC-20 or native-token transfer, or an ERC-20 approval. */
 export interface IConfirmTransferRequest {
   domain: string;
-  purpose: "transfer" | "approve";
+  /** `native` is an empty-calldata ETH send. It has no token contract. */
+  purpose: "transfer" | "approve" | "native";
   amount: string;
   tokenName: string;
   tokenSymbol: string;
-  tokenAddress: EVMContractAddress;
+  /** Omitted for a native transfer. */
+  tokenAddress?: EVMContractAddress;
   /** Recipient of a transfer, or spender of an approval. */
   receiver: string;
   chainName: string;
@@ -81,10 +83,12 @@ export type IRelayerConfirmSendResult = {
 /** Result from TX confirm when canceling or selecting payment (legacy shape). */
 export type IConfirmSendResult = false | IConfirmSendPayment;
 
-/** Decoded ERC-20 transfer or approval shown in place of raw calldata. */
+/** Decoded ERC-20 or native transfer, or an ERC-20 approval, shown in place of raw calldata. */
 export type ISendCallsModalTransfer = {
-  purpose: "transfer" | "approve";
-  tokenAddress: EVMContractAddress;
+  /** `native` is an empty-calldata ETH send. It has no token contract. */
+  purpose: "transfer" | "approve" | "native";
+  /** Omitted for a native transfer. */
+  tokenAddress?: EVMContractAddress;
   symbol: string;
   /** Formatted with the token decimals. An approval at or above 2^255 is "Unlimited". */
   amount: string;

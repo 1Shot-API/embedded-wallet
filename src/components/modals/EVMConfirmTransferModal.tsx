@@ -17,11 +17,13 @@ import { AssetIdentityMark } from "../AssetIdentityMark";
 import { CopyableText } from "../CopyableText";
 import { Modal } from "../Modal";
 import { RelayerConfirmModalChrome } from "../RelayerConfirmModalChrome";
+import { SafeAssetImage } from "../SafeAssetImage";
+import { TransactionInFlight } from "../TransactionInFlight";
 import { useRelayerConfirmSubmit } from "../useRelayerConfirmSubmit";
 
 import { RequestingHostBadge } from "./RequestingHostBadge";
 
-/** Host ERC-20 transfer consent (decoded `eth_sendTransaction`). */
+/** Host transfer consent (decoded ERC-20, or a native send). */
 export function EVMConfirmTransferModal({
   request,
   execute,
@@ -71,6 +73,7 @@ export function EVMConfirmTransferModal({
     onResolve,
     onReject,
     rejectMessage: "User rejected the transaction request",
+    retainDisplayDuringSubmit: true,
     signingMessage: relayerCopy.signingMessage,
     waitingMessage: relayerCopy.waitingMessage,
     finalFeeNotice: relayerCopy.finalFeeNotice,
@@ -113,6 +116,7 @@ export function EVMConfirmTransferModal({
   };
 
   const phase = request.useRelayer ? submit.phase : legacyPhase;
+  const inFlight = phase === "signing" || phase === "submitting";
   const showActions = request.useRelayer
     ? phase === "confirm" || phase === "finalFee"
     : legacyPhase === "confirm";
@@ -146,6 +150,35 @@ export function EVMConfirmTransferModal({
           : undefined
       }
     >
+      {inFlight ? (
+        <TransactionInFlight
+          status={
+            phase === "signing"
+              ? relayerCopy.signingMessage
+              : relayerCopy.waitingMessage
+          }
+          entries={[
+            {
+              amount: request.amount,
+              symbol: request.tokenSymbol,
+              chainLabel: request.chainName,
+              recipient: request.receiver,
+              recipientLabel: counterpartyLabel,
+            },
+            ...(attachedValue != null
+              ? [
+                  {
+                    amount: formatUnits(attachedValue, native.decimals),
+                    symbol: native.symbol,
+                    chainLabel: request.chainName,
+                    recipient: request.receiver,
+                    recipientLabel: counterpartyLabel,
+                  },
+                ]
+              : []),
+          ]}
+        />
+      ) : (
       <div className="text-foreground flex flex-col gap-5">
         <p className="text-muted-foreground m-0 text-sm leading-relaxed">
           {body}
@@ -154,12 +187,25 @@ export function EVMConfirmTransferModal({
         <RequestingHostBadge domain={request.domain} />
 
         <div className="flex items-center gap-4">
-          <AssetIdentityMark
-            chainId={request.chainId}
-            address={request.tokenAddress}
-            symbol={request.tokenSymbol}
-            chainLogoUrl={chain?.logoUrl}
-          />
+          {request.tokenAddress ? (
+            <AssetIdentityMark
+              chainId={request.chainId}
+              address={request.tokenAddress}
+              symbol={request.tokenSymbol}
+              chainLogoUrl={chain?.logoUrl}
+            />
+          ) : (
+            <SafeAssetImage
+              src={chain?.logoUrl}
+              alt={request.tokenSymbol}
+              className="size-16 shrink-0 rounded-full object-cover"
+              fallback={
+                <div className="bg-muted text-foreground flex size-16 items-center justify-center rounded-full text-2xl font-semibold">
+                  {(request.tokenSymbol.trim()[0] ?? "?").toUpperCase()}
+                </div>
+              }
+            />
+          )}
           <div className="flex min-w-0 flex-col gap-1.5">
             <span className="text-xl font-semibold tracking-tight">
               {request.amount} {request.tokenSymbol}
@@ -193,17 +239,14 @@ export function EVMConfirmTransferModal({
           </div>
         ) : null}
       </div>
-      {request.useRelayer ? (
+      )}
+      {!inFlight && request.useRelayer ? (
         <RelayerConfirmModalChrome
           chainId={request.chainId}
           ownerAddress={request.ownerAddress}
           work={request.work}
           submit={submit}
         />
-      ) : legacyPhase === "signing" ? (
-        <p className="text-muted-foreground mt-4 m-0 text-[0.9rem]">
-          {relayerCopy.signingMessage}
-        </p>
       ) : null}
       {!request.useRelayer && legacyError ? (
         <p className="text-destructive mt-3 m-0 text-[0.9rem]">{legacyError}</p>

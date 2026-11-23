@@ -15,7 +15,9 @@ import {
   Implementation,
   ScopeType,
   toMetaMaskSmartAccount,
+  type SmartAccountsEnvironment,
 } from "@metamask/smart-accounts-kit";
+import { createCaveatBuilder } from "@metamask/smart-accounts-kit/utils";
 import {
   encodeFunctionData,
   erc20Abi,
@@ -68,6 +70,7 @@ import {
   tokenAmountFromAtomString,
   type TokenAmount,
 } from "../../../types/primitives";
+import { isEmptyCalldata } from "../../../utils/emptyCalldata";
 import {
   DELEGATION_BINDING_IDB_KEY,
   idbGetString,
@@ -2272,21 +2275,14 @@ export class TransactionUtils implements ITransactionUtils {
     args: ExactCalldataDelegationArgs,
   ): ReturnType<typeof createDelegation> {
     const { smartAccount, delegate, target, value, callData } = args;
-    const salt = randomSalt32();
-    const selector = methodSelector(callData);
-
-    return createDelegation({
-      to: getAddress(delegate),
-      from: smartAccount.address,
+    return buildOneShotExactCalldataDelegation({
       environment: smartAccount.environment,
-      salt,
-      scope: {
-        type: ScopeType.FunctionCall,
-        targets: [getAddress(target)],
-        selectors: [selector],
-        exactCalldata: { calldata: callData },
-        valueLte: { maxValue: value },
-      },
+      from: smartAccount.address,
+      delegate,
+      target,
+      value,
+      callData,
+      salt: randomSalt32(),
     });
   }
 
@@ -2311,6 +2307,7 @@ export class TransactionUtils implements ITransactionUtils {
         maxAmount: 0n,
         exactCalldata: { calldata: EMPTY_CALLDATA },
       },
+      caveats: oneShotCallLimit(smartAccount.environment),
     });
   }
 
@@ -2920,6 +2917,66 @@ function normalizeWorkByChain(
     }
   }
   return [...byChain.entries()].map(([chainId, work]) => ({ chainId, work }));
+}
+
+/**
+ * One-shot work item. Empty calldata is a native transfer pinned to `target`.
+ * A selector stays a function call and may still carry ETH via `valueLte`.
+ * `limitedCalls` of 1 is on every delegation this builds, including the fee.
+ */
+export function buildOneShotExactCalldataDelegation(args: {
+  environment: SmartAccountsEnvironment;
+  from: Hex;
+  delegate: Hex;
+  target: Hex;
+  value: bigint;
+  callData: Hex;
+  salt: Hex;
+}): ReturnType<typeof createDelegation> {
+  const { environment, from, delegate, target, value, callData, salt } = args;
+  const empty = isEmptyCalldata(callData);
+  const caveats = empty
+    ? oneShotCallLimit(environment).addCaveat("allowedTargets", {
+        targets: [getAddress(target)],
+      })
+    : oneShotCallLimit(environment);
+
+  if (empty) {
+    return createDelegation({
+      to: getAddress(delegate),
+      from,
+      environment,
+      salt,
+      scope: {
+        type: ScopeType.NativeTokenTransferAmount,
+        maxAmount: value,
+        exactCalldata: { calldata: EMPTY_CALLDATA },
+      },
+      caveats,
+    });
+  }
+
+  return createDelegation({
+    to: getAddress(delegate),
+    from,
+    environment,
+    salt,
+    scope: {
+      type: ScopeType.FunctionCall,
+      targets: [getAddress(target)],
+      selectors: [methodSelector(callData)],
+      exactCalldata: { calldata: callData },
+      valueLte: { maxValue: value },
+    },
+    caveats,
+  });
+}
+
+/** One redeem. Not used for standing grants. */
+function oneShotCallLimit(environment: SmartAccountsEnvironment) {
+  return createCaveatBuilder(environment, {
+    allowInsecureUnrestrictedDelegation: true,
+  }).addCaveat("limitedCalls", { limit: 1 });
 }
 
 function methodSelector(callData: Hex): Hex {
