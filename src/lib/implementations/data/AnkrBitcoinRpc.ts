@@ -55,6 +55,14 @@ interface IMempoolUtxoRow {
   status?: { confirmed?: boolean; block_height?: number };
 }
 
+/** Ankr rejected the iframe origin. Callers retry against mempool.space. */
+class AnkrOriginDeniedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AnkrOriginDeniedError";
+  }
+}
+
 /**
  * Ankr Bitcoin:
  * - Mainnet indexed reads via Blockbook REST
@@ -78,9 +86,12 @@ export class AnkrBitcoinRpc implements IBitcoinRpc {
     address: BitcoinSegwitAccountAddress,
   ): Promise<IBitcoinBalance> {
     if (this.isMainnet(chainId)) {
-      return this.blockbookGetBalance(address);
+      return this.withMainnetFallback(
+        () => this.blockbookGetBalance(address),
+        () => this.mempoolGetBalance(address, this.mempoolMainnetBase()),
+      );
     }
-    return this.mempoolGetBalance(address);
+    return this.mempoolGetBalance(address, this.mempoolApiBase());
   }
 
   async listUnspent(
@@ -88,27 +99,41 @@ export class AnkrBitcoinRpc implements IBitcoinRpc {
     address: BitcoinSegwitAccountAddress,
   ): Promise<BitcoinUtxo[]> {
     if (this.isMainnet(chainId)) {
-      return this.blockbookListUnspent(address);
+      return this.withMainnetFallback(
+        () => this.blockbookListUnspent(address),
+        () => this.mempoolListUnspent(address, this.mempoolMainnetBase()),
+      );
     }
-    return this.mempoolListUnspent(address);
+    return this.mempoolListUnspent(address, this.mempoolApiBase());
   }
 
   async estimateFeeRateSatsPerVByte(chainId: BitcoinChainId): Promise<number> {
     if (this.isMainnet(chainId)) {
-      const result = await this.jsonRpc<{
-        feerate?: number;
-        errors?: string[];
-      }>("estimatesmartfee", [2, "ECONOMICAL"]);
-
-      if (result?.feerate == null || result.feerate <= 0) {
-        return 2;
-      }
-      // feerate is BTC/kB → sats/vB
-      const satsPerVByte = (result.feerate * 1e8) / 1000;
-      return Math.max(1, Math.ceil(satsPerVByte));
+      return this.withMainnetFallback(
+        () => this.ankrFeeRate(),
+        () => this.mempoolFeeRate(this.mempoolMainnetBase()),
+      );
     }
 
-    const res = await fetch(`${this.mempoolApiBase()}/v1/fees/recommended`);
+    return this.mempoolFeeRate(this.mempoolApiBase());
+  }
+
+  protected async ankrFeeRate(): Promise<number> {
+    const result = await this.jsonRpc<{
+      feerate?: number;
+      errors?: string[];
+    }>("estimatesmartfee", [2, "ECONOMICAL"]);
+
+    if (result?.feerate == null || result.feerate <= 0) {
+      return 2;
+    }
+    // feerate is BTC/kB → sats/vB
+    const satsPerVByte = (result.feerate * 1e8) / 1000;
+    return Math.max(1, Math.ceil(satsPerVByte));
+  }
+
+  protected async mempoolFeeRate(base: string): Promise<number> {
+    const res = await fetch(`${base}/v1/fees/recommended`);
     if (!res.ok) {
       throw new Error(`Bitcoin fee request failed (${res.status})`);
     }
@@ -122,16 +147,32 @@ export class AnkrBitcoinRpc implements IBitcoinRpc {
     rawTransaction: BitcoinTransactionData,
   ): Promise<BitcoinTransactionHash> {
     if (this.isMainnet(chainId)) {
-      const txid = await this.jsonRpc<string>("sendrawtransaction", [
-        rawTransaction,
-      ]);
-      if (!txid || typeof txid !== "string") {
-        throw new Error("Bitcoin broadcast returned no txid");
-      }
-      return this.asTxid(txid);
+      return this.withMainnetFallback(
+        () => this.ankrBroadcast(rawTransaction),
+        () => this.mempoolBroadcast(rawTransaction, this.mempoolMainnetBase()),
+      );
     }
 
-    const res = await fetch(`${this.mempoolApiBase()}/tx`, {
+    return this.mempoolBroadcast(rawTransaction, this.mempoolApiBase());
+  }
+
+  protected async ankrBroadcast(
+    rawTransaction: BitcoinTransactionData,
+  ): Promise<BitcoinTransactionHash> {
+    const txid = await this.jsonRpc<string>("sendrawtransaction", [
+      rawTransaction,
+    ]);
+    if (!txid || typeof txid !== "string") {
+      throw new Error("Bitcoin broadcast returned no txid");
+    }
+    return this.asTxid(txid);
+  }
+
+  protected async mempoolBroadcast(
+    rawTransaction: BitcoinTransactionData,
+    base: string,
+  ): Promise<BitcoinTransactionHash> {
+    const res = await fetch(`${base}/tx`, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
       body: rawTransaction,
@@ -153,9 +194,13 @@ export class AnkrBitcoinRpc implements IBitcoinRpc {
       `${base}/api/v2/address/${encodeURIComponent(address)}?details=basic`,
     );
     if (!res.ok) {
-      throw new Error(
-        `Bitcoin balance request failed (${res.status}): ${await res.text()}`,
-      );
+      const text = await res.text();
+      if (res.status === 403) {
+        throw new AnkrOriginDeniedError(
+          `Bitcoin balance request failed (${res.status}): ${text}`,
+        );
+      }
+      throw new Error(`Bitcoin balance request failed (${res.status}): ${text}`);
     }
     const body = (await res.json()) as {
       balance?: string;
@@ -178,9 +223,13 @@ export class AnkrBitcoinRpc implements IBitcoinRpc {
       `${base}/api/v2/utxo/${encodeURIComponent(address)}`,
     );
     if (!res.ok) {
-      throw new Error(
-        `Bitcoin UTXO request failed (${res.status}): ${await res.text()}`,
-      );
+      const text = await res.text();
+      if (res.status === 403) {
+        throw new AnkrOriginDeniedError(
+          `Bitcoin UTXO request failed (${res.status}): ${text}`,
+        );
+      }
+      throw new Error(`Bitcoin UTXO request failed (${res.status}): ${text}`);
     }
     const body = (await res.json()) as IBlockbookUtxoRow[];
     if (!Array.isArray(body)) {
@@ -191,9 +240,10 @@ export class AnkrBitcoinRpc implements IBitcoinRpc {
 
   protected async mempoolGetBalance(
     address: BitcoinSegwitAccountAddress,
+    base: string,
   ): Promise<IBitcoinBalance> {
     const res = await fetch(
-      `${this.mempoolApiBase()}/address/${encodeURIComponent(address)}`,
+      `${base}/address/${encodeURIComponent(address)}`,
     );
     if (!res.ok) {
       throw new Error(
@@ -214,9 +264,10 @@ export class AnkrBitcoinRpc implements IBitcoinRpc {
 
   protected async mempoolListUnspent(
     address: BitcoinSegwitAccountAddress,
+    base: string,
   ): Promise<BitcoinUtxo[]> {
     const res = await fetch(
-      `${this.mempoolApiBase()}/address/${encodeURIComponent(address)}/utxo`,
+      `${base}/address/${encodeURIComponent(address)}/utxo`,
     );
     if (!res.ok) {
       throw new Error(
@@ -276,6 +327,23 @@ export class AnkrBitcoinRpc implements IBitcoinRpc {
     return "https://mempool.space/testnet/api";
   }
 
+  /** Public mainnet indexer used when Ankr rejects the iframe origin. */
+  protected mempoolMainnetBase(): string {
+    return "https://mempool.space/api";
+  }
+
+  protected async withMainnetFallback<T>(
+    ankr: () => Promise<T>,
+    mempool: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await ankr();
+    } catch (error) {
+      if (!(error instanceof AnkrOriginDeniedError)) throw error;
+      return mempool();
+    }
+  }
+
   protected async jsonRpc<T>(
     method: string,
     params: unknown[],
@@ -292,6 +360,9 @@ export class AnkrBitcoinRpc implements IBitcoinRpc {
       }),
     });
     if (!res.ok) {
+      if (res.status === 403) {
+        throw new AnkrOriginDeniedError(`Bitcoin RPC ${method} failed (${res.status})`);
+      }
       throw new Error(`Bitcoin RPC ${method} failed (${res.status})`);
     }
     const body = (await res.json()) as IJsonRpcResponse<T>;

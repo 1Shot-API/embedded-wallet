@@ -23,6 +23,7 @@ export type {
 export { ISolanaBridgeServiceType } from "./ISolanaBridgeService";
 export type {
   IBitcoinSendParams,
+  IBitcoinSendQuote,
   IBitcoinSendResult,
   IBitcoinService,
 } from "./IBitcoinService";

@@ -3,6 +3,7 @@ import { useModalStore } from "../wallet/modalStore";
 import { ActivateOfflinePermissionsModal } from "./modals/ActivateOfflinePermissionsModal";
 import { AddAssetModal } from "./modals/AddAssetModal";
 import { AdvancedOptionsModal } from "./modals/AdvancedOptionsModal";
+import { BitcoinHostSignModal } from "./modals/BitcoinHostSignModal";
 import { CancelDelegationModal } from "./modals/CancelDelegationModal";
 import { CCTPBridge } from "./modals/CCTPBridge";
 import { ConnectModal } from "./modals/ConnectModal";
@@ -44,6 +45,19 @@ export function ModalHost() {
       return (
         <EVMSignModal
           request={activeModal.request}
+          onResolve={activeModal.resolve}
+          onReject={activeModal.reject}
+        />
+      );
+    case "bitcoinHostSign":
+      return (
+        <BitcoinHostSignModal
+          title={activeModal.title}
+          body={activeModal.body}
+          network={activeModal.network}
+          outputs={activeModal.outputs}
+          fee={activeModal.fee}
+          signerAddress={activeModal.signerAddress}
           onResolve={activeModal.resolve}
           onReject={activeModal.reject}
         />

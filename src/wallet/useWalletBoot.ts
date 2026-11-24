@@ -385,6 +385,8 @@ export function useWalletBoot({
       registerBitcoinProvider(wallet, {
         owsProvider,
         ensureReady,
+        bitcoinService,
+        ask,
       });
 
       registerSolanaProvider(wallet, {
