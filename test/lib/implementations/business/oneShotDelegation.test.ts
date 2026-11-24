@@ -3,77 +3,126 @@ import { describe, it } from "node:test";
 
 import { getSmartAccountsEnvironment } from "@metamask/smart-accounts-kit";
 import { createCaveatBuilder } from "@metamask/smart-accounts-kit/utils";
-import { getAddress, type Hex } from "viem";
+import { concat, getAddress, toHex, type Hex } from "viem";
 
-import { buildOneShotExactCalldataDelegation } from "@/lib/implementations/business/utils/TransactionUtils.ts";
+import { buildOneShotExactExecutionDelegation } from "@/lib/implementations/business/utils/TransactionUtils.ts";
 
 const environment = getSmartAccountsEnvironment(8453);
 const from = `0x${"11".repeat(20)}` as Hex;
 const delegate = `0x${"22".repeat(20)}` as Hex;
 const target = getAddress(`0x${"33".repeat(20)}`);
 const salt = `0x${"ab".repeat(32)}` as Hex;
-const transferSelector = "0xa9059cbb" as Hex;
+const transferCallData = `0xa9059cbb${"00".repeat(32)}` as Hex;
+const zero = "0x0000000000000000000000000000000000000000" as Hex;
 
-function builtCaveat(
-  type: "limitedCalls" | "allowedTargets" | "allowedMethods" | "valueLte",
-  data: Record<string, unknown>,
+const DROPPED_ENFORCERS = [
+  "AllowedTargetsEnforcer",
+  "AllowedMethodsEnforcer",
+  "ValueLteEnforcer",
+  "ExactCalldataEnforcer",
+] as const;
+
+function enforcer(name: string): string {
+  const address = environment.caveatEnforcers[name];
+  assert.ok(address, `missing enforcer ${name}`);
+  return address.toLowerCase();
+}
+
+function expectOneShot(
+  delegation: ReturnType<typeof buildOneShotExactExecutionDelegation>,
+  execution: { target: Hex; value: bigint; callData: Hex },
 ) {
-  return createCaveatBuilder(environment, {
-    allowInsecureUnrestrictedDelegation: true,
-  })
-    .addCaveat(type, data as never)
+  const exact = createCaveatBuilder(environment)
+    .addCaveat("exactExecution", {
+      execution: {
+        target: getAddress(execution.target),
+        value: execution.value,
+        callData: execution.callData,
+      },
+    })
     .build()[0]!;
-}
+  const limited = createCaveatBuilder(environment)
+    .addCaveat("limitedCalls", { limit: 1 })
+    .build()[0]!;
+  const expectedTerms = concat([
+    getAddress(execution.target),
+    toHex(execution.value, { size: 32 }),
+    execution.callData,
+  ]).toLowerCase();
 
-function hasCaveat(
-  caveats: ReadonlyArray<{ enforcer: string; terms: string }>,
-  expected: { enforcer: string; terms: string },
-): boolean {
-  return caveats.some(
-    (caveat) =>
-      caveat.enforcer.toLowerCase() === expected.enforcer.toLowerCase() &&
-      caveat.terms.toLowerCase() === expected.terms.toLowerCase(),
+  assert.equal(exact.terms.toLowerCase(), expectedTerms);
+  assert.equal(delegation.authority.toLowerCase(), `0x${"ff".repeat(32)}`);
+  assert.equal(delegation.signature, "0x");
+  assert.deepEqual(
+    delegation.caveats.map((caveat) => ({
+      enforcer: caveat.enforcer.toLowerCase(),
+      terms: caveat.terms.toLowerCase(),
+    })),
+    [
+      {
+        enforcer: exact.enforcer.toLowerCase(),
+        terms: exact.terms.toLowerCase(),
+      },
+      {
+        enforcer: limited.enforcer.toLowerCase(),
+        terms: limited.terms.toLowerCase(),
+      },
+    ],
   );
+
+  const present = new Set(
+    delegation.caveats.map((caveat) => caveat.enforcer.toLowerCase()),
+  );
+  for (const name of DROPPED_ENFORCERS) {
+    assert.equal(present.has(enforcer(name)), false);
+  }
 }
 
-describe("buildOneShotExactCalldataDelegation", () => {
-  const limited = builtCaveat("limitedCalls", { limit: 1 });
-  const pinnedTarget = builtCaveat("allowedTargets", { targets: [target] });
-  const methods = builtCaveat("allowedMethods", {
-    selectors: [transferSelector],
-  });
-  const valueCap = builtCaveat("valueLte", { maxValue: 1n });
-
-  it("signs empty calldata as a one-time native transfer to the recipient", () => {
-    const delegation = buildOneShotExactCalldataDelegation({
+describe("buildOneShotExactExecutionDelegation", () => {
+  it("pins a native transfer to target, value, and empty calldata", () => {
+    const value = 1_000_000_000_000_000n;
+    const delegation = buildOneShotExactExecutionDelegation({
       environment,
       from,
       delegate,
       target,
-      value: 1_000_000_000_000_000n,
+      value,
       callData: "0x",
       salt,
     });
 
-    assert.equal(hasCaveat(delegation.caveats, limited), true);
-    assert.equal(hasCaveat(delegation.caveats, pinnedTarget), true);
-    assert.equal(hasCaveat(delegation.caveats, methods), false);
-    assert.equal(hasCaveat(delegation.caveats, valueCap), false);
+    expectOneShot(delegation, { target, value, callData: "0x" });
   });
 
-  it("keeps a selector on FunctionCall, including attached ETH, and limits it to one call", () => {
-    const delegation = buildOneShotExactCalldataDelegation({
+  it("pins a contract call, including attached ETH, the same way", () => {
+    const delegation = buildOneShotExactExecutionDelegation({
       environment,
       from,
       delegate,
       target,
       value: 1n,
-      callData: `${transferSelector}${"00".repeat(32)}`,
+      callData: transferCallData,
       salt,
     });
 
-    assert.equal(hasCaveat(delegation.caveats, limited), true);
-    assert.equal(hasCaveat(delegation.caveats, methods), true);
-    assert.equal(hasCaveat(delegation.caveats, valueCap), true);
+    expectOneShot(delegation, {
+      target,
+      value: 1n,
+      callData: transferCallData,
+    });
+  });
+
+  it("pins the activation no-op to the zero address", () => {
+    const delegation = buildOneShotExactExecutionDelegation({
+      environment,
+      from,
+      delegate,
+      target: zero,
+      value: 0n,
+      callData: "0x",
+      salt,
+    });
+
+    expectOneShot(delegation, { target: zero, value: 0n, callData: "0x" });
   });
 });

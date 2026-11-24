@@ -10,11 +10,11 @@ import {
 } from "@1shotapi/ows-types";
 import type { IBlockchainProvider } from "@1shotapi/ows-wallet-utils";
 import {
-  createDelegation,
   getSmartAccountsEnvironment,
   Implementation,
-  ScopeType,
+  ROOT_AUTHORITY,
   toMetaMaskSmartAccount,
+  type Delegation,
   type SmartAccountsEnvironment,
 } from "@metamask/smart-accounts-kit";
 import { createCaveatBuilder } from "@metamask/smart-accounts-kit/utils";
@@ -70,7 +70,6 @@ import {
   tokenAmountFromAtomString,
   type TokenAmount,
 } from "../../../types/primitives";
-import { isEmptyCalldata } from "../../../utils/emptyCalldata";
 import {
   DELEGATION_BINDING_IDB_KEY,
   idbGetString,
@@ -2273,9 +2272,9 @@ export class TransactionUtils implements ITransactionUtils {
 
   private createExactCalldataDelegation(
     args: ExactCalldataDelegationArgs,
-  ): ReturnType<typeof createDelegation> {
+  ): Delegation {
     const { smartAccount, delegate, target, value, callData } = args;
-    return buildOneShotExactCalldataDelegation({
+    return buildOneShotExactExecutionDelegation({
       environment: smartAccount.environment,
       from: smartAccount.address,
       delegate,
@@ -2286,28 +2285,19 @@ export class TransactionUtils implements ITransactionUtils {
     });
   }
 
-  /**
-   * Empty-calldata activation work for EIP-7702. Must not use
-   * {@link ScopeType.FunctionCall}: AllowedMethodsEnforcer requires ≥4 bytes
-   * of calldata (`invalid-execution-data-length` on `0x`).
-   * NativeTokenTransferAmount + exactCalldata `0x` is the kit's intended
-   * empty-call path (no AllowedMethods).
-   */
+  /** EIP-7702 activation: empty call to the zero address, one redeem. */
   private createActivationNoOpDelegation(
     args: ActivationNoOpDelegationArgs,
-  ): ReturnType<typeof createDelegation> {
+  ): Delegation {
     const { smartAccount, delegate } = args;
-    return createDelegation({
-      to: getAddress(delegate),
-      from: smartAccount.address,
+    return buildOneShotExactExecutionDelegation({
       environment: smartAccount.environment,
+      from: smartAccount.address,
+      delegate,
+      target: ACTIVATION_NOOP_TARGET,
+      value: 0n,
+      callData: EMPTY_CALLDATA,
       salt: randomSalt32(),
-      scope: {
-        type: ScopeType.NativeTokenTransferAmount,
-        maxAmount: 0n,
-        exactCalldata: { calldata: EMPTY_CALLDATA },
-      },
-      caveats: oneShotCallLimit(smartAccount.environment),
     });
   }
 
@@ -2920,11 +2910,11 @@ function normalizeWorkByChain(
 }
 
 /**
- * One-shot work item. Empty calldata is a native transfer pinned to `target`.
- * A selector stays a function call and may still carry ETH via `valueLte`.
- * `limitedCalls` of 1 is on every delegation this builds, including the fee.
+ * One-shot redeem. ExactExecution pins target, value, and calldata.
+ * `limitedCalls` of 1 is on every delegation this builds, including the fee
+ * and the EIP-7702 activation no-op. Not used for standing grants.
  */
-export function buildOneShotExactCalldataDelegation(args: {
+export function buildOneShotExactExecutionDelegation(args: {
   environment: SmartAccountsEnvironment;
   from: Hex;
   delegate: Hex;
@@ -2932,61 +2922,27 @@ export function buildOneShotExactCalldataDelegation(args: {
   value: bigint;
   callData: Hex;
   salt: Hex;
-}): ReturnType<typeof createDelegation> {
+}): Delegation {
   const { environment, from, delegate, target, value, callData, salt } = args;
-  const empty = isEmptyCalldata(callData);
-  const caveats = empty
-    ? oneShotCallLimit(environment).addCaveat("allowedTargets", {
-        targets: [getAddress(target)],
-      })
-    : oneShotCallLimit(environment);
-
-  if (empty) {
-    return createDelegation({
-      to: getAddress(delegate),
-      from,
-      environment,
-      salt,
-      scope: {
-        type: ScopeType.NativeTokenTransferAmount,
-        maxAmount: value,
-        exactCalldata: { calldata: EMPTY_CALLDATA },
+  const caveats = createCaveatBuilder(environment)
+    .addCaveat("exactExecution", {
+      execution: {
+        target: getAddress(target),
+        value,
+        callData,
       },
-      caveats,
-    });
-  }
+    })
+    .addCaveat("limitedCalls", { limit: 1 })
+    .build();
 
-  return createDelegation({
-    to: getAddress(delegate),
-    from,
-    environment,
-    salt,
-    scope: {
-      type: ScopeType.FunctionCall,
-      targets: [getAddress(target)],
-      selectors: [methodSelector(callData)],
-      exactCalldata: { calldata: callData },
-      valueLte: { maxValue: value },
-    },
+  return {
+    delegate: getAddress(delegate),
+    delegator: from,
+    authority: ROOT_AUTHORITY,
     caveats,
-  });
-}
-
-/** One redeem. Not used for standing grants. */
-function oneShotCallLimit(environment: SmartAccountsEnvironment) {
-  return createCaveatBuilder(environment, {
-    allowInsecureUnrestrictedDelegation: true,
-  }).addCaveat("limitedCalls", { limit: 1 });
-}
-
-function methodSelector(callData: Hex): Hex {
-  if (callData.length >= 10) {
-    return callData.slice(0, 10) as Hex;
-  }
-  // FunctionCall + AllowedMethodsEnforcer needs ≥4 calldata bytes. Empty
-  // activation work must use NativeTokenTransferAmount instead (see
-  // createActivationNoOpDelegation). This fallback is only a last resort.
-  return "0x00000000";
+    salt,
+    signature: "0x",
+  };
 }
 
 function randomSalt32(): Hex {
