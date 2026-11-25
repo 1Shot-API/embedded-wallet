@@ -22,9 +22,26 @@ function sendBody(
 }
 
 describe("EIP-5792 params", () => {
-  it("rejects a chain id with leading zeros", () => {
-    const parsed = sendCallsParamsSchema.safeParse([sendBody({ chainId: "0x01" })]);
-    assert.equal(parsed.success, false);
+  it("canonicalizes padded chain ids", () => {
+    const mainnet = sendCallsParamsSchema.safeParse([
+      sendBody({ chainId: "0x01" }),
+    ]);
+    const sepolia = sendCallsParamsSchema.safeParse([
+      sendBody({ chainId: "0x0aa36a7" }),
+    ]);
+    assert.equal(mainnet.success, true);
+    assert.equal(sepolia.success, true);
+    if (!mainnet.success || !sepolia.success) return;
+    assert.equal(mainnet.data[0].chainId, "0x1");
+    assert.equal(sepolia.data[0].chainId, "0xaa36a7");
+  });
+
+  it("defaults a missing version to 2.0.0", () => {
+    const { version: _version, ...withoutVersion } = sendBody();
+    const parsed = sendCallsParamsSchema.safeParse([withoutVersion]);
+    assert.equal(parsed.success, true);
+    if (!parsed.success) return;
+    assert.equal(parsed.data[0].version, "2.0.0");
   });
 
   it("rejects a version other than 2.0.0", () => {
@@ -62,11 +79,13 @@ describe("EIP-5792 params", () => {
     );
   });
 
-  it("rejects getCapabilities chain ids with leading zeros", () => {
+  it("canonicalizes a padded getCapabilities chain id", () => {
     const parsed = getCapabilitiesParamsSchema.safeParse([
       ACCOUNT,
-      ["0x01"],
+      ["0x01", "0x0aa36a7"],
     ]);
-    assert.equal(parsed.success, false);
+    assert.equal(parsed.success, true);
+    if (!parsed.success || parsed.data.length !== 2) return;
+    assert.deepEqual(parsed.data[1], ["0x1", "0xaa36a7"]);
   });
 });

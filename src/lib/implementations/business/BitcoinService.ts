@@ -1,7 +1,15 @@
-import type { BitcoinSegwitAccountAddress } from "@1shotapi/ows-types";
+import { compressSecp256k1PublicKey } from "@1shotapi/ows-signer-utils";
+import {
+  ConversionUtils,
+  HexString,
+  OwsInvalidParamsError,
+  type BitcoinSegwitAccountAddress,
+} from "@1shotapi/ows-types";
 
+import { secpKeyForAddress } from "../../../wallet/hydrateBitcoinAddresses";
 import type {
   IBitcoinSendParams,
+  IBitcoinSendQuote,
   IBitcoinSendResult,
   IBitcoinService,
 } from "../../interfaces/business/IBitcoinService";
@@ -15,20 +23,27 @@ import {
   makeBitcoinSatoshiAmount,
   type BitcoinSatoshiAmount,
 } from "../../types/primitives/BitcoinSatoshiAmount";
-import { makeBitcoinTransactionData } from "../../types/primitives/BitcoinTransactionData";
+import type { BitcoinTransactionData } from "../../types/primitives/BitcoinTransactionData";
+import { BitcoinSigningUtils } from "../utils/BitcoinSigningUtils";
 
 /** P2WPKH dust threshold (sats). Change below this is absorbed into the fee. */
 const P2WPKH_DUST_SATS = 294n;
 
-/** Approximate virtual bytes: overhead + per-input + per-output (P2WPKH). */
-function estimateVSize(inputCount: number, outputCount: number): number {
-  return Math.ceil(10.5 + inputCount * 68 + outputCount * 31);
+/** Approximate virtual bytes: overhead + per-input + per-output (P2WPKH) + memo. */
+function estimateVSize(
+  inputCount: number,
+  outputCount: number,
+  memoBytes: number,
+): number {
+  const memoVBytes = memoBytes > 0 ? 10 + memoBytes : 0;
+  return Math.ceil(10.5 + inputCount * 68 + outputCount * 31 + memoVBytes);
 }
 
 function selectLargestFirst(
   utxos: BitcoinUtxo[],
   amountSats: BitcoinSatoshiAmount,
   feeRateSatsPerVByte: number,
+  memoBytes = 0,
 ): {
   inputs: BitcoinUtxo[];
   feeSats: BitcoinSatoshiAmount;
@@ -46,7 +61,7 @@ function selectLargestFirst(
     total += utxo.valueSats;
 
     for (const outputCount of [2, 1] as const) {
-      const vsize = estimateVSize(selected.length, outputCount);
+      const vsize = estimateVSize(selected.length, outputCount, memoBytes);
       let feeSats = BigInt(Math.ceil(vsize * feeRateSatsPerVByte));
       if (total < amountSats + feeSats) {
         continue;
@@ -58,7 +73,7 @@ function selectLargestFirst(
       }
       if (outputCount === 2 && changeSats === 0n) {
         // Recalculate fee for a single-output tx once change is dust-absorbed.
-        const vsizeOne = estimateVSize(selected.length, 1);
+        const vsizeOne = estimateVSize(selected.length, 1, memoBytes);
         feeSats = BigInt(Math.ceil(vsizeOne * feeRateSatsPerVByte));
         if (total < amountSats + feeSats) {
           continue;
@@ -86,12 +101,14 @@ function selectLargestFirst(
     }
   }
 
-  throw new Error("Insufficient Bitcoin balance for amount and network fee");
+  throw new OwsInvalidParamsError(
+    "Insufficient Bitcoin balance for amount and network fee",
+  );
 }
 
 /**
- * In-wallet Bitcoin balance + send. Coin-selects largest-first, change back to
- * the same static SegWit address, signs via `signer.bitcoin`, broadcasts via RPC.
+ * In-wallet Bitcoin balance + send. Coin-selects largest-first, signs the
+ * P2WPKH payment locally, and broadcasts via RPC.
  */
 export class BitcoinService implements IBitcoinService {
   constructor(
@@ -108,52 +125,74 @@ export class BitcoinService implements IBitcoinService {
 
   async send(params: IBitcoinSendParams): Promise<IBitcoinSendResult> {
     if (params.amountSats <= 0n) {
-      throw new Error("Amount must be positive");
+      throw new OwsInvalidParamsError("Amount must be positive");
     }
-    if (params.to === params.from) {
-      throw new Error("Cannot send Bitcoin to the same address");
+    BitcoinSigningUtils.assertAddress(params.to, params.chainId);
+    if (BitcoinSigningUtils.sameAddress(params.to, params.from)) {
+      throw new OwsInvalidParamsError("Cannot send Bitcoin to the same address");
     }
+    const changeAddress = params.changeAddress ?? params.from;
+    BitcoinSigningUtils.assertAddress(changeAddress, params.chainId);
 
     const signer = await this.owsProvider.getSigner();
+    const key = await secpKeyForAddress(signer, params.chainId, params.from);
+    if (!BitcoinSigningUtils.sameAddress(key.address, params.from)) {
+      throw new OwsInvalidParamsError("Bitcoin account is not this wallet");
+    }
+    const publicKey = key.publicKey;
 
     const [utxos, feeRate] = await Promise.all([
       this.bitcoinRpc.listUnspent(params.chainId, params.from),
       this.bitcoinRpc.estimateFeeRateSatsPerVByte(params.chainId),
     ]);
     if (utxos.length === 0) {
-      throw new Error("No Bitcoin UTXOs available");
+      throw new OwsInvalidParamsError("No Bitcoin UTXOs available");
     }
 
+    const memo = params.memo ?? new Uint8Array();
     const { inputs, feeSats, changeSats } = selectLargestFirst(
       utxos,
       params.amountSats,
       feeRate,
+      memo.length,
     );
-
-    const outputs: Array<{
-      address: BitcoinSegwitAccountAddress;
-      valueSats: BitcoinSatoshiAmount;
-    }> = [{ address: params.to, valueSats: params.amountSats }];
-    if (changeSats > 0n) {
-      outputs.push({ address: params.from, valueSats: changeSats });
+    const quote: IBitcoinSendQuote = {
+      feeSats,
+      changeSats,
+      ...(changeSats > 0n ? { changeAddress } : {}),
+    };
+    if (params.confirmSpend) {
+      await params.confirmSpend(quote);
     }
 
-    const [signed] = await signer.bitcoin.signTransaction([
-      {
-        chainId: params.chainId,
-        inputs: inputs.map((input) => ({
-          txid: input.transactionId,
-          vout: input.outputIndex,
-          valueSats: input.valueSats,
-        })),
-        outputs,
-      },
-    ]);
-    if (!signed) {
-      throw new Error("Bitcoin signing returned no transaction");
-    }
-
-    const rawTransaction = makeBitcoinTransactionData(signed.rawHex);
+    const prepared = BitcoinSigningUtils.prepareWalletPayment({
+      chainId: params.chainId,
+      compressedPublicKey: compressSecp256k1PublicKey(publicKey),
+      inputs: inputs.map((input) => ({
+        txid: input.transactionId,
+        vout: input.outputIndex,
+        valueSats: input.valueSats,
+      })),
+      outputs: [
+        { address: params.to, valueSats: params.amountSats },
+        ...(changeSats > 0n
+          ? [{ address: changeAddress, valueSats: changeSats }]
+          : []),
+      ],
+      ...(memo.length > 0 ? { memo } : {}),
+    });
+    const signed = await signer.signDigest(
+      prepared.sighashes.map((sighash) => ({
+        digestData: ConversionUtils.bytesToHex(sighash),
+        scheme: "secp256k1-ecdsa" as const,
+      })),
+    );
+    const finished = prepared.finish(
+      signed.map((result) =>
+        ConversionUtils.hexToBytes(HexString(result.signature)),
+      ),
+    );
+    const { rawTransaction } = finished;
     const txid = await this.bitcoinRpc.sendRawTransaction(
       params.chainId,
       rawTransaction,
@@ -164,5 +203,12 @@ export class BitcoinService implements IBitcoinService {
       feeSats,
       rawTransaction,
     };
+  }
+
+  broadcast(
+    chainId: IBitcoinSendParams["chainId"],
+    rawTransaction: BitcoinTransactionData,
+  ): Promise<IBitcoinSendResult["txid"]> {
+    return this.bitcoinRpc.sendRawTransaction(chainId, rawTransaction);
   }
 }

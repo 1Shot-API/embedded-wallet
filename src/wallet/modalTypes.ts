@@ -403,6 +403,18 @@ export type ModalRequest =
     }
   | {
       id: string;
+      kind: "bitcoinHostSign";
+      title: string;
+      body: string;
+      network?: { name: string; testnet: boolean };
+      outputs?: Array<{ address: string; amount?: string; label?: string }>;
+      fee?: string;
+      signerAddress?: string;
+      resolve: () => void;
+      reject: (error: unknown) => void;
+    }
+  | {
+      id: string;
       kind: "solanaBridge";
       request: ISolanaBridgeOpenRequest;
       resolve: (result: ISolanaBridgeModalResult) => void;
