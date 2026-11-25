@@ -1,7 +1,12 @@
+import { compressSecp256k1PublicKey } from "@1shotapi/ows-signer-utils";
 import {
+  Base64StringSchema,
+  BitcoinAddressSchema,
   BITCOIN_MAINNET_CHAIN_ID,
   BitcoinChainId,
-  BitcoinSegwitAccountAddress,
+  type Base64String,
+  type BitcoinAddress,
+  type BitcoinSegwitAccountAddress,
   ChainUtils,
   ConversionUtils,
   HexString,
@@ -12,24 +17,10 @@ import {
 import type { OWSWallet } from "@1shotapi/ows-wallet-utils";
 import { z } from "zod";
 
-import {
-  assertBitcoinAddress,
-  bip322SimpleProof,
-  bip322SimpleSighash,
-  bitcoinMessageHash,
-  bitcoinMessageSignatureHex,
-  compressedKeyFromPublicKey,
-  describePsbtSpend,
-  finalizedPsbtHex,
-  parseBitcoinMemo,
-  psbtInputSighashes,
-  psbtWithSignatures,
-  sameBitcoinAddress,
-} from "../lib/implementations/utils/bitcoinHostSigning";
+import { BitcoinSigningUtils } from "../lib/implementations/utils/BitcoinSigningUtils";
 import type { IBitcoinService } from "../lib/interfaces/business/IBitcoinService";
 import type { IOWSProvider } from "../lib/interfaces/utils/IOWSProvider";
 import { makeBitcoinSatoshiAmount } from "../lib/types/primitives/BitcoinSatoshiAmount";
-import { makeBitcoinTransactionData } from "../lib/types/primitives/BitcoinTransactionData";
 import { loadCachedBitcoinAddress } from "../storage";
 import { secpKeyForAddress } from "../wallet/hydrateBitcoinAddresses";
 import type { ActiveModal } from "../wallet/modalTypes";
@@ -70,8 +61,11 @@ function networkBadge(chainId: BitcoinChainId): { name: string; testnet: boolean
   return { name: testnet ? "Bitcoin testnet" : "Bitcoin", testnet };
 }
 
-function requireThisAccount(account: string | undefined, address: string): void {
-  if (account !== undefined && !sameBitcoinAddress(account, address)) {
+function requireThisAccount(
+  account: BitcoinAddress | undefined,
+  address: BitcoinSegwitAccountAddress,
+): void {
+  if (account !== undefined && !BitcoinSigningUtils.sameAddress(account, address)) {
     throw new OwsInvalidParamsError("Bitcoin account is not this wallet");
   }
 }
@@ -134,7 +128,7 @@ export function registerBitcoinProvider(
       const publicKeyHex = publicKey?.replace(/^0x/i, "");
       return [
         {
-          address: BitcoinSegwitAccountAddress(address),
+          address,
           ...(publicKeyHex ? { publicKey: publicKeyHex } : {}),
           intention: "payment" as const,
         },
@@ -164,15 +158,15 @@ export function registerBitcoinProvider(
     "bitcoin.signPsbt",
     async (params) => {
       const body = params as {
-        psbt: string;
+        psbt: Base64String;
         signInputs: Array<{
-          address: string;
+          address: BitcoinAddress;
           index: number;
           sighashTypes?: number[];
         }>;
         broadcast?: boolean;
         chainId?: BitcoinChainId;
-        account?: string;
+        account?: BitcoinAddress;
       };
       const chainId = walletChain(body.chainId, BITCOIN_MAINNET_CHAIN_ID);
       const signer = await options.owsProvider.getSigner();
@@ -181,8 +175,8 @@ export function registerBitcoinProvider(
       if (!publicKey) {
         throw new OwsInvalidParamsError("Bitcoin public key is not available");
       }
-      const compressed = compressedKeyFromPublicKey(publicKey);
-      const spend = describePsbtSpend({
+      const compressed = compressSecp256k1PublicKey(publicKey);
+      const spend = BitcoinSigningUtils.describePsbtSpend({
         psbtBase64: body.psbt,
         signInputs: body.signInputs,
         walletAddress: address,
@@ -202,7 +196,7 @@ export function registerBitcoinProvider(
           ...(spend.feeSats !== null ? { fee: formatSats(spend.feeSats) } : {}),
         });
         const indexes = body.signInputs.map((input) => input.index);
-        const sighashes = psbtInputSighashes({
+        const sighashes = BitcoinSigningUtils.psbtInputSighashes({
           psbtBase64: body.psbt,
           inputIndexes: indexes,
           compressedPublicKey: compressed,
@@ -215,7 +209,7 @@ export function registerBitcoinProvider(
             scheme: "secp256k1-ecdsa" as const,
           })),
         );
-        const psbt = psbtWithSignatures({
+        const psbt = BitcoinSigningUtils.psbtWithSignatures({
           psbtBase64: body.psbt,
           inputIndexes: indexes,
           compactSignatures: signed.map((result) =>
@@ -228,7 +222,7 @@ export function registerBitcoinProvider(
         const txid = String(
           await options.bitcoinService.broadcast(
             chainId,
-            makeBitcoinTransactionData(finalizedPsbtHex(psbt)),
+            BitcoinSigningUtils.finalizePsbt(psbt),
           ),
         ).replace(/^0x/i, "");
         return { psbt, txid };
@@ -237,11 +231,11 @@ export function registerBitcoinProvider(
       }
     },
     z.object({
-      psbt: z.string().min(1),
+      psbt: Base64StringSchema,
       signInputs: z
         .array(
           z.object({
-            address: z.string().min(1),
+            address: BitcoinAddressSchema,
             index: z.number().int().nonnegative(),
             sighashTypes: z.array(z.number().int()).optional(),
           }),
@@ -249,7 +243,7 @@ export function registerBitcoinProvider(
         .min(1),
       broadcast: z.boolean().optional(),
       chainId: chainIdSchema.optional(),
-      account: z.string().optional(),
+      account: BitcoinAddressSchema.optional(),
     }),
   );
 
@@ -258,8 +252,8 @@ export function registerBitcoinProvider(
     async (params) => {
       const body = params as {
         message: string;
-        account?: string;
-        address?: string;
+        account?: BitcoinAddress;
+        address?: BitcoinAddress;
         protocol?: "ecdsa" | "bip322";
         chainId?: BitcoinChainId;
       };
@@ -267,7 +261,7 @@ export function registerBitcoinProvider(
       const signer = await options.owsProvider.getSigner();
       const { address, publicKey } = await resolveBitcoinSigner(chainId, signer);
       requireThisAccount(body.account, address);
-      if (body.address !== undefined && !sameBitcoinAddress(body.address, address)) {
+      if (body.address !== undefined && !BitcoinSigningUtils.sameAddress(body.address, address)) {
         throw new OwsInvalidParamsError("Bitcoin address is not this wallet");
       }
       if (body.protocol === "bip322" && !publicKey) {
@@ -281,8 +275,8 @@ export function registerBitcoinProvider(
           signerAddress: address,
         });
         if (body.protocol === "bip322" && publicKey) {
-          const compressed = compressedKeyFromPublicKey(publicKey);
-          const digest = bip322SimpleSighash({
+          const compressed = compressSecp256k1PublicKey(publicKey);
+          const digest = BitcoinSigningUtils.bip322SimpleSighash({
             message: body.message,
             compressedPublicKey: compressed,
             chainId,
@@ -296,7 +290,7 @@ export function registerBitcoinProvider(
           if (!signed) {
             throw new OwsInvalidParamsError("Bitcoin message signing returned no signature");
           }
-          const proof = bip322SimpleProof({
+          const proof = BitcoinSigningUtils.bip322SimpleProof({
             message: body.message,
             compressedPublicKey: compressed,
             chainId,
@@ -308,7 +302,7 @@ export function registerBitcoinProvider(
             messageHash: proof.messageHashHex,
           };
         }
-        const digest = bitcoinMessageHash(body.message);
+        const digest = BitcoinSigningUtils.messageHash(body.message);
         const [signed] = await signer.signDigest([
           {
             digestData: ConversionUtils.bytesToHex(digest),
@@ -320,10 +314,10 @@ export function registerBitcoinProvider(
         }
         return {
           address,
-          signature: bitcoinMessageSignatureHex(
+          signature: BitcoinSigningUtils.messageSignatureHex(
             ConversionUtils.hexToBytes(HexString(signed.signature)),
           ),
-          messageHash: ConversionUtils.bytesToHex(digest).slice(2),
+          messageHash: ConversionUtils.bytesToUnprefixedHex(digest),
         };
       } finally {
         await options.owsProvider.hideDisplay().catch(() => undefined);
@@ -331,8 +325,8 @@ export function registerBitcoinProvider(
     },
     z.object({
       message: z.string(),
-      account: z.string().optional(),
-      address: z.string().optional(),
+      account: BitcoinAddressSchema.optional(),
+      address: BitcoinAddressSchema.optional(),
       protocol: z.enum(["ecdsa", "bip322"]).optional(),
       chainId: chainIdSchema.optional(),
     }),
@@ -342,10 +336,10 @@ export function registerBitcoinProvider(
     "bitcoin.sendTransfer",
     async (params) => {
       const body = params as {
-        account?: string;
-        recipientAddress?: string;
+        account?: BitcoinAddress;
+        recipientAddress?: BitcoinAddress;
         amount?: string;
-        changeAddress?: string;
+        changeAddress?: BitcoinAddress;
         memo?: string;
         chainId?: BitcoinChainId;
       };
@@ -358,13 +352,13 @@ export function registerBitcoinProvider(
         );
       }
       const chainId = walletChain(body.chainId, BITCOIN_MAINNET_CHAIN_ID);
-      const memo = parseBitcoinMemo(body.memo);
-      assertBitcoinAddress(body.recipientAddress, chainId);
+      const memo = BitcoinSigningUtils.parseMemo(body.memo);
+      BitcoinSigningUtils.assertAddress(body.recipientAddress, chainId);
       const signer = await options.owsProvider.getSigner();
       const { address: from } = await resolveBitcoinSigner(chainId, signer);
       requireThisAccount(body.account, from);
       if (body.changeAddress !== undefined) {
-        assertBitcoinAddress(body.changeAddress, chainId);
+        BitcoinSigningUtils.assertAddress(body.changeAddress, chainId);
       }
       const amountSats = makeBitcoinSatoshiAmount(BigInt(body.amount));
       try {
@@ -416,10 +410,10 @@ export function registerBitcoinProvider(
       }
     },
     z.object({
-      account: z.string().optional(),
-      recipientAddress: z.string().min(1),
+      account: BitcoinAddressSchema.optional(),
+      recipientAddress: BitcoinAddressSchema,
       amount: z.string().regex(/^[1-9]\d*$/),
-      changeAddress: z.string().optional(),
+      changeAddress: BitcoinAddressSchema.optional(),
       memo: z.string().optional(),
       chainId: chainIdSchema.optional(),
     }),

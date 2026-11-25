@@ -1,4 +1,5 @@
 import type {
+  BitcoinAddress,
   BitcoinChainId,
   BitcoinSegwitAccountAddress,
   BitcoinTransactionHash,
@@ -12,18 +13,18 @@ export interface IBitcoinSendQuote {
   feeSats: BitcoinSatoshiAmount;
   changeSats: BitcoinSatoshiAmount;
   /** Address that receives change. Absent when change is dust. */
-  changeAddress?: string;
+  changeAddress?: BitcoinAddress;
 }
 
 export interface IBitcoinSendParams {
   chainId: BitcoinChainId;
   from: BitcoinSegwitAccountAddress;
   /** Any standard address on `chainId`. */
-  to: string;
+  to: BitcoinAddress;
   /** Amount in satoshis (not including network fee). */
   amountSats: BitcoinSatoshiAmount;
   /** Change destination. Defaults to `from`. */
-  changeAddress?: string;
+  changeAddress?: BitcoinAddress;
   /** OP_RETURN payload, at most 80 bytes. */
   memo?: Uint8Array;
   /** Called after coin selection and before the passkey ceremony. */

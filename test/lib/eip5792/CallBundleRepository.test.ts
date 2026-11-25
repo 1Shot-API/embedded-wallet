@@ -63,7 +63,7 @@ function memoryRepo(now: () => number): {
 
 describe("call bundle store", () => {
   it("rejects a duplicate id for the same origin and account", async () => {
-    let now = 1_000;
+    const now = 1_000;
     const { repo } = memoryRepo(() => now);
     await repo.put(bundle("0x01", now));
     const existing = await repo.get(

@@ -10,7 +10,7 @@ import {
   type BitcoinSegwitAccountAddress,
 } from "@1shotapi/ows-types";
 
-import { sameBitcoinAddress } from "../lib/implementations/utils/bitcoinHostSigning";
+import { BitcoinSigningUtils } from "../lib/implementations/utils/BitcoinSigningUtils";
 import {
   loadCachedSecp256k1PublicKey,
   saveCachedAddresses,
@@ -120,12 +120,12 @@ export function adoptSecp256k1PublicKey(
 export async function secpKeyForAddress(
   signer: OWSSigner,
   chainId: BitcoinChainId,
-  address?: string,
+  address?: BitcoinSegwitAccountAddress,
 ): Promise<{ publicKey: SECP256K1PublicKey; address: BitcoinSegwitAccountAddress }> {
   const cached = cachedSecp256k1PublicKey(signer);
   if (cached) {
     const derived = derivedBitcoinAddress(cached, chainId);
-    if (!address || sameBitcoinAddress(derived, address)) {
+    if (!address || BitcoinSigningUtils.sameAddress(derived, address)) {
       if (!address) {
         useWalletSessionStore.getState().setBitcoinAddress(chainId, derived);
         saveCachedBitcoinAddress(chainId, derived);

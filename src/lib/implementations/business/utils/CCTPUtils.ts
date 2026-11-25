@@ -402,7 +402,7 @@ export class CCTPUtils implements ICCTPUtils {
     const hookLengthBuffer = new Uint8Array(4);
     new DataView(hookLengthBuffer.buffer).setUint32(0, hook.length, true);
 
-    const data = concatBytes([
+    const data = ConversionUtils.concatBytes(
       DEPOSIT_FOR_BURN_WITH_HOOK_DISCRIMINATOR,
       amountBuffer,
       domainBuffer,
@@ -412,7 +412,7 @@ export class CCTPUtils implements ICCTPUtils {
       finalityBuffer,
       hookLengthBuffer,
       hook,
-    ]);
+    );
 
     const instruction = {
       programAddress: tokenMessenger,
@@ -505,15 +505,3 @@ export class CCTPUtils implements ICCTPUtils {
 
 /** Exported for encode tests that decode against the same ABI fragment. */
 export { tokenMessengerV2Abi };
-
-function concatBytes(parts: Uint8Array[]): Uint8Array {
-  let len = 0;
-  for (const p of parts) len += p.length;
-  const out = new Uint8Array(len);
-  let offset = 0;
-  for (const p of parts) {
-    out.set(p, offset);
-    offset += p.length;
-  }
-  return out;
-}

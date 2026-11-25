@@ -1,3 +1,4 @@
+import { compressSecp256k1PublicKey } from "@1shotapi/ows-signer-utils";
 import {
   ConversionUtils,
   HexString,
@@ -22,16 +23,8 @@ import {
   makeBitcoinSatoshiAmount,
   type BitcoinSatoshiAmount,
 } from "../../types/primitives/BitcoinSatoshiAmount";
-import {
-  makeBitcoinTransactionData,
-  type BitcoinTransactionData,
-} from "../../types/primitives/BitcoinTransactionData";
-import {
-  assertBitcoinAddress,
-  compressedKeyFromPublicKey,
-  prepareWalletPayment,
-  sameBitcoinAddress,
-} from "../utils/bitcoinHostSigning";
+import type { BitcoinTransactionData } from "../../types/primitives/BitcoinTransactionData";
+import { BitcoinSigningUtils } from "../utils/BitcoinSigningUtils";
 
 /** P2WPKH dust threshold (sats). Change below this is absorbed into the fee. */
 const P2WPKH_DUST_SATS = 294n;
@@ -134,16 +127,16 @@ export class BitcoinService implements IBitcoinService {
     if (params.amountSats <= 0n) {
       throw new OwsInvalidParamsError("Amount must be positive");
     }
-    assertBitcoinAddress(params.to, params.chainId);
-    if (sameBitcoinAddress(params.to, params.from)) {
+    BitcoinSigningUtils.assertAddress(params.to, params.chainId);
+    if (BitcoinSigningUtils.sameAddress(params.to, params.from)) {
       throw new OwsInvalidParamsError("Cannot send Bitcoin to the same address");
     }
     const changeAddress = params.changeAddress ?? params.from;
-    assertBitcoinAddress(changeAddress, params.chainId);
+    BitcoinSigningUtils.assertAddress(changeAddress, params.chainId);
 
     const signer = await this.owsProvider.getSigner();
     const key = await secpKeyForAddress(signer, params.chainId, params.from);
-    if (!sameBitcoinAddress(key.address, params.from)) {
+    if (!BitcoinSigningUtils.sameAddress(key.address, params.from)) {
       throw new OwsInvalidParamsError("Bitcoin account is not this wallet");
     }
     const publicKey = key.publicKey;
@@ -172,9 +165,9 @@ export class BitcoinService implements IBitcoinService {
       await params.confirmSpend(quote);
     }
 
-    const prepared = prepareWalletPayment({
+    const prepared = BitcoinSigningUtils.prepareWalletPayment({
       chainId: params.chainId,
-      compressedPublicKey: compressedKeyFromPublicKey(publicKey),
+      compressedPublicKey: compressSecp256k1PublicKey(publicKey),
       inputs: inputs.map((input) => ({
         txid: input.transactionId,
         vout: input.outputIndex,
@@ -199,7 +192,7 @@ export class BitcoinService implements IBitcoinService {
         ConversionUtils.hexToBytes(HexString(result.signature)),
       ),
     );
-    const rawTransaction = makeBitcoinTransactionData(finished.rawHex);
+    const { rawTransaction } = finished;
     const txid = await this.bitcoinRpc.sendRawTransaction(
       params.chainId,
       rawTransaction,

@@ -4,82 +4,72 @@ import { describe, it } from "node:test";
 import {
   BITCOIN_MAINNET_CHAIN_ID,
   BITCOIN_TESTNET_CHAIN_ID,
+  BitcoinSegwitAccountAddressSchema,
+  BitcoinTaprootAccountAddressSchema,
+  BitcoinTransactionHash,
+  ConversionUtils,
+  SECP256K1CompressedPublicKey,
   OwsInvalidParamsError,
+  UnprefixedHexString,
 } from "@1shotapi/ows-types";
 import { secp256k1 } from "@noble/curves/secp256k1";
 import * as btc from "@scure/btc-signer";
 
-import {
-  assertBitcoinAddress,
-  bip322SimpleProof,
-  bip322SimpleSighash,
-  bitcoinMessageSignatureHex,
-  describePsbtSpend,
-  parseBitcoinMemo,
-  prepareWalletPayment,
-  standardSighash,
-} from "@/lib/implementations/utils/bitcoinHostSigning.ts";
+import { BitcoinSigningUtils } from "@/lib/implementations/utils/BitcoinSigningUtils.ts";
 
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
+function unprefixedHexToBytes(hex: string): Uint8Array {
+  return ConversionUtils.unprefixedHexToBytes(UnprefixedHexString(hex));
 }
 
-function hexToBytes(hex: string): Uint8Array {
-  const out = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < out.length; i++) {
-    out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-  }
-  return out;
-}
-
-describe("bitcoin host signing", () => {
+describe("BitcoinSigningUtils", () => {
   const privateKey = secp256k1.utils.randomPrivateKey();
   const compressed = secp256k1.getPublicKey(privateKey, true);
   const mainnet = btc.p2wpkh(compressed, btc.NETWORK);
   const testnet = btc.p2wpkh(compressed, btc.TEST_NETWORK);
+  const compressedKey = SECP256K1CompressedPublicKey(ConversionUtils.bytesToHex(compressed));
+  const mainnetAddress = BitcoinSegwitAccountAddressSchema.parse(mainnet.address);
+  const testnetAddress = BitcoinSegwitAccountAddressSchema.parse(testnet.address);
 
   it("accepts an address only on its own network", () => {
     assert.equal(typeof mainnet.address, "string");
     assert.equal(typeof testnet.address, "string");
     assert.doesNotThrow(() =>
-      assertBitcoinAddress(mainnet.address!, BITCOIN_MAINNET_CHAIN_ID),
+      BitcoinSigningUtils.assertAddress(mainnetAddress, BITCOIN_MAINNET_CHAIN_ID),
     );
     assert.throws(
-      () => assertBitcoinAddress(testnet.address!, BITCOIN_MAINNET_CHAIN_ID),
+      () => BitcoinSigningUtils.assertAddress(testnetAddress, BITCOIN_MAINNET_CHAIN_ID),
       (error: unknown) =>
         error instanceof OwsInvalidParamsError && error.code === -32602,
     );
     const taproot = btc.p2tr(compressed.subarray(1), undefined, btc.NETWORK);
     assert.doesNotThrow(() =>
-      assertBitcoinAddress(taproot.address!, BITCOIN_MAINNET_CHAIN_ID),
+      BitcoinSigningUtils.assertAddress(BitcoinTaprootAccountAddressSchema.parse(taproot.address), BITCOIN_MAINNET_CHAIN_ID),
     );
   });
 
   it("parses an OP_RETURN memo of at most 80 bytes", () => {
-    assert.equal(parseBitcoinMemo(undefined), undefined);
-    assert.equal(parseBitcoinMemo(""), undefined);
-    assert.deepEqual(parseBitcoinMemo("ab"), Uint8Array.of(0xab));
+    assert.equal(BitcoinSigningUtils.parseMemo(undefined), undefined);
+    assert.equal(BitcoinSigningUtils.parseMemo(""), undefined);
+    assert.deepEqual(BitcoinSigningUtils.parseMemo("ab"), Uint8Array.of(0xab));
     assert.throws(
-      () => parseBitcoinMemo("0xab"),
+      () => BitcoinSigningUtils.parseMemo("0xab"),
       (error: unknown) => error instanceof OwsInvalidParamsError,
     );
     assert.throws(
-      () => parseBitcoinMemo("aa".repeat(81)),
+      () => BitcoinSigningUtils.parseMemo("aa".repeat(81)),
       (error: unknown) => error instanceof OwsInvalidParamsError,
     );
   });
 
   it("accepts only SIGHASH_ALL", () => {
-    assert.equal(standardSighash(undefined), 1);
-    assert.equal(standardSighash([1]), 1);
+    assert.equal(BitcoinSigningUtils.standardSighash(undefined), 1);
+    assert.equal(BitcoinSigningUtils.standardSighash([1]), 1);
     assert.throws(
-      () => standardSighash([0x83]),
+      () => BitcoinSigningUtils.standardSighash([0x83]),
       (error: unknown) => error instanceof OwsInvalidParamsError,
     );
     assert.throws(
-      () => standardSighash([1, 2]),
+      () => BitcoinSigningUtils.standardSighash([1, 2]),
       (error: unknown) => error instanceof OwsInvalidParamsError,
     );
   });
@@ -87,7 +77,7 @@ describe("bitcoin host signing", () => {
   it("shows an OP_RETURN PSBT output instead of rejecting it", () => {
     const tx = new btc.Transaction({ allowUnknownOutputs: true });
     tx.addInput({
-      txid: hexToBytes("11".repeat(32)),
+      txid: unprefixedHexToBytes("11".repeat(32)),
       index: 0,
       witnessUtxo: { script: testnet.script!, amount: 10_000n },
     });
@@ -96,11 +86,11 @@ describe("bitcoin host signing", () => {
       script: btc.Script.encode(["RETURN", new TextEncoder().encode("hi")]),
       amount: 0n,
     });
-    const spend = describePsbtSpend({
-      psbtBase64: bytesToBase64(tx.toPSBT(0)),
-      signInputs: [{ address: testnet.address!, index: 0, sighashTypes: [1] }],
-      walletAddress: testnet.address!,
-      compressedPublicKey: compressed,
+    const spend = BitcoinSigningUtils.describePsbtSpend({
+      psbtBase64: ConversionUtils.bytesToBase64(tx.toPSBT(0)),
+      signInputs: [{ address: testnetAddress, index: 0, sighashTypes: [1] }],
+      walletAddress: testnetAddress,
+      compressedPublicKey: compressedKey,
       chainId: BITCOIN_TESTNET_CHAIN_ID,
     });
     assert.equal(spend.sighashTypes[0], 1);
@@ -111,43 +101,43 @@ describe("bitcoin host signing", () => {
   it("keeps the ecdsa message signature as header-first hex", () => {
     const recoverable = new Uint8Array(65);
     recoverable[64] = 27;
-    const hex = bitcoinMessageSignatureHex(recoverable);
+    const hex = BitcoinSigningUtils.messageSignatureHex(recoverable);
     assert.equal(hex.length, 130);
     assert.equal(hex.startsWith("1f"), true);
     assert.equal(hex.startsWith("0x"), false);
   });
 
   it("builds a BIP-322 simple proof whose text starts with smp", () => {
-    const sighash = bip322SimpleSighash({
+    const sighash = BitcoinSigningUtils.bip322SimpleSighash({
       message: "Hello, World!",
-      compressedPublicKey: compressed,
+      compressedPublicKey: compressedKey,
       chainId: BITCOIN_MAINNET_CHAIN_ID,
     });
     const compact = secp256k1.sign(sighash, privateKey).toCompactRawBytes();
-    const proof = bip322SimpleProof({
+    const proof = BitcoinSigningUtils.bip322SimpleProof({
       message: "Hello, World!",
-      compressedPublicKey: compressed,
+      compressedPublicKey: compressedKey,
       chainId: BITCOIN_MAINNET_CHAIN_ID,
       compactSignature: compact,
     });
-    const text = new TextDecoder().decode(hexToBytes(proof.signatureHex));
+    const text = new TextDecoder().decode(unprefixedHexToBytes(proof.signatureHex));
     assert.equal(text.startsWith("smp"), true);
-    assert.equal(proof.messageHashHex, [...sighash].map((byte) => byte.toString(16).padStart(2, "0")).join(""));
+    assert.equal(proof.messageHashHex, ConversionUtils.bytesToUnprefixedHex(sighash));
   });
 
   it("puts an OP_RETURN memo in a signed payment", () => {
-    const prepared = prepareWalletPayment({
+    const prepared = BitcoinSigningUtils.prepareWalletPayment({
       chainId: BITCOIN_TESTNET_CHAIN_ID,
-      compressedPublicKey: compressed,
-      inputs: [{ txid: "22".repeat(32), vout: 0, valueSats: 10_000n }],
-      outputs: [{ address: testnet.address!, valueSats: 5_000n }],
+      compressedPublicKey: compressedKey,
+      inputs: [{ txid: BitcoinTransactionHash("22".repeat(32)), vout: 0, valueSats: 10_000n }],
+      outputs: [{ address: testnetAddress, valueSats: 5_000n }],
       memo: new TextEncoder().encode("hi"),
     });
     const compact = secp256k1
       .sign(prepared.sighashes[0]!, privateKey)
       .toCompactRawBytes();
     const finished = prepared.finish([compact]);
-    const raw = btc.Transaction.fromRaw(hexToBytes(finished.rawHex), {
+    const raw = btc.Transaction.fromRaw(unprefixedHexToBytes(finished.rawTransaction), {
       allowUnknownOutputs: true,
     });
     assert.equal(raw.outputsLength, 2);
