@@ -1,14 +1,14 @@
 import {
-  idbGetString,
-  idbRemoveString,
-  idbSetString,
-} from "../../utils/idbStringStore";
-import {
   CALL_BUNDLE_KEY_PREFIX,
   CALL_BUNDLE_TTL_MS,
   CALL_RESERVATION_TTL_MS,
 } from "../../eip5792/constants";
 import type { ICallsReceipt } from "../../eip5792/receipt";
+import {
+  idbGetString,
+  idbRemoveString,
+  idbSetString,
+} from "../../utils/idbStringStore";
 
 export interface IStoredCall {
   to: string;

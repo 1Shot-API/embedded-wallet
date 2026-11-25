@@ -10,13 +10,13 @@ import { z } from "zod";
 import { WALLET_CALLS_VERSION } from "./constants";
 
 /**
- * EIP-5792 chain id: `0x` + hex with no leading zeros (`0x0` only for zero).
- * `"0x01"` is invalid params.
+ * EIP-5792 chain id: any `0x` hex integer. Leading zeros are accepted and
+ * stripped (`"0x01"` and `"0x0aa36a7"` become `0x1` and `0xaa36a7`).
  */
 export const strictHexChainIdSchema = z
   .string()
-  .regex(/^0x(0|[1-9a-fA-F][0-9a-fA-F]*)$/, {
-    message: "chainId must be 0x-prefixed hex with no leading zeros",
+  .regex(/^0x[0-9a-fA-F]+$/, {
+    message: "chainId must be a 0x-prefixed hex integer",
   })
   .transform((value) =>
     EVMChainId(`0x${BigInt(value).toString(16)}` as `0x${string}`),
@@ -46,7 +46,10 @@ export type IParsedWalletCall = {
 
 export const sendCallsParamsSchema = z.tuple([
   z.strictObject({
-    version: z.literal(WALLET_CALLS_VERSION),
+    version: z
+      .literal(WALLET_CALLS_VERSION)
+      .optional()
+      .transform((value) => value ?? WALLET_CALLS_VERSION),
     id: z.string().min(1).max(8194).optional(),
     from: EVMAccountAddressSchema.optional(),
     chainId: strictHexChainIdSchema,

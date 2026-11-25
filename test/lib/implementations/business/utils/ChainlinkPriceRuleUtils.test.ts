@@ -9,7 +9,6 @@ import {
   RULE_KIND_DIP,
 } from "@/lib/implementations/business/utils/ChainlinkPriceRuleUtils.ts";
 
-const ARC_ETH_USD = "0x50FCDD99D6762D1C170DC6A9111db944AEE6D364";
 const ARC_BTC_USD = "0xa109B535C70C8Be9995be64Bb6751AcDB27e03De";
 const BASE_ETH_USD = "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70";
 const BASE_BTC_USD = "0xC01502b887D09B0f329981764268fC32a94cB453";
